@@ -24,12 +24,14 @@
 
 Traditional Mongolian script in Unicode has a fundamental problem: **the same visible word can be encoded in multiple different Unicode sequences**. This happens because:
 
-1. **Letters share glyphs** — A (ᠠ) and E (ᠡ) look identical in medial and final positions; O (ᠣ) and U (ᠤ) share forms; QA (ᠬ) and GA (ᠭ) share forms depending on vowel harmony.
-2. **Multiple encoding paths** — The same tooth glyph (ᠢ) can be encoded as I, YA+FVS1, or even two separate I characters.
+1. **Letters share glyphs** — A and E look identical in medial and final positions; O and U share forms; QA and GA share forms depending on vowel harmony.
+2. **Multiple encoding paths** — The same tooth glyph (I) can be encoded as I, YA+FVS1, or even two separate I characters.
+
+![Mongolian letters A E O U QA GA I rendered in Noto Sans Mongolian](assets/letters.png)
 3. **Redundant FVS usage** — Free Variation Selectors (FVS1–FVS4) can create equivalent sequences that render identically.
 
 This means:
-- **Search fails**: Searching for `ᠰᠠᠢᠨ` (sain) won't find `ᠰᠡᠢᠨ` or `ᠰᠠᠶ᠋ᠢᠨ`, even though they look identical.
+- **Search fails**: Searching for "sain" (one encoding) won't find the same word in another encoding, even though they look identical.
 - **Deduplication breaks**: The same word has multiple Unicode representations.
 - **Indexing is unreliable**: Different encodings of the same word produce different keys.
 
@@ -43,13 +45,7 @@ This is a **shaping-aware normalizer** for Traditional Mongolian. It:
 
 **Example**: All five of these encode the word "sain" (good) and look identical:
 
-| Input | Unicode Sequence | Normalized |
-|-------|-----------------|------------|
-| ᠰᠠᠢᠨ | SA + A + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠡᠢᠨ | SA + E + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠨ᠌ᠢᠢᠨ | SA + NA+FVS2 + I + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠠᠶ᠋ᠢᠨ | SA + A + YA+FVS1 + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠠᠶ᠋ᠶ᠋ᠨ | SA + A + YA+FVS1 + YA+FVS1 + NA | ᠰᠠᠢᠨ ✓ |
+![Five encodings of "sain" all normalizing to the same canonical form](assets/sain-variants.png)
 
 ### How It Works
 
@@ -219,12 +215,14 @@ The shaping rule data is derived from Unicode Technical Notes and the mongfontbu
 
 传统蒙古文在 Unicode 中存在一个根本性问题：**同一个可见词形可以用多种不同的 Unicode 序列编码**。原因是：
 
-1. **字母共享字形** — A(ᠠ) 和 E(ᠡ) 在中间和尾部位置外形完全相同；O(ᠣ) 和 U(ᠤ) 共享形态；QA(ᠬ) 和 GA(ᠭ) 根据元音和谐共享形态。
+1. **字母共享字形** — A 和 E 在中间和尾部位置外形完全相同；O 和 U 共享形态；QA 和 GA 根据元音和谐共享形态。
 2. **多种编码路径** — 同一个齿形字形可以编码为 I、YA+FVS1，甚至两个独立的 I 字符。
+
+![蒙古文字母 A E O U QA GA I 在 Noto Sans Mongolian 字体下的渲染](assets/letters.png)
 3. **冗余的 FVS 使用** — 自由变体选择符（FVS1–FVS4）可以创建渲染结果完全相同的等价序列。
 
 这意味着：
-- **搜索失效**：搜索 `ᠰᠠᠢᠨ`（sain）找不到 `ᠰᠡᠢᠨ` 或 `ᠰᠠᠶ᠋ᠢᠨ`，尽管它们外形完全一样。
+- **搜索失效**：搜索同一个词的某种编码，找不到另一种编码，尽管它们外形完全一样。
 - **去重失败**：同一个词有多种 Unicode 表示。
 - **索引不可靠**：同一个词的不同编码产生不同的索引键。
 
@@ -238,13 +236,7 @@ The shaping rule data is derived from Unicode Technical Notes and the mongfontbu
 
 **示例**：以下五种编码都表示 "sain"（好的），外形完全相同：
 
-| 输入 | Unicode 序列 | 规范化结果 |
-|------|-------------|-----------|
-| ᠰᠠᠢᠨ | SA + A + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠡᠢᠨ | SA + E + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠨ᠌ᠢᠢᠨ | SA + NA+FVS2 + I + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠠᠶ᠋ᠢᠨ | SA + A + YA+FVS1 + I + NA | ᠰᠠᠢᠨ ✓ |
-| ᠰᠠᠶ᠋ᠶ᠋ᠨ | SA + A + YA+FVS1 + YA+FVS1 + NA | ᠰᠠᠢᠨ ✓ |
+![五种 sain 编码全部规范化为同一个标准形式](assets/sain-variants.png)
 
 ### 工作原理
 
