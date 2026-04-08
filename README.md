@@ -105,6 +105,20 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 # → 'ᠰᠠᠢᠨ'
 ```
 
+#### Full-text normalization
+
+`normalize()` operates on single words. For sentences, paragraphs, or mixed-script text, use `normalize_text()` — it normalizes each Mongolian word independently while preserving spaces, punctuation, and non-Mongolian text verbatim.
+
+```python
+# Normalize a sentence (each Mongolian word normalized independently)
+shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ")
+# → 'ᠰᠠᠢᠨ ᠨᠠᠢᠮᠠ'
+
+# Mixed script: non-Mongolian text preserved as-is
+shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
+# → 'Hello ᠰᠠᠢᠨ world'
+```
+
 #### Batch normalization example
 
 ```python
@@ -132,8 +146,9 @@ The test suite covers:
 | `TestShape` | `shape()` returns correct written-unit sequence (sain variants, vowel harmony, devsger, edge cases) |
 | `TestSameShape` | `same_shape()` correctly identifies visually identical vs. distinct encodings |
 | `TestNormalize` | `normalize()` produces canonical output; idempotency; normalized result matches original visually |
+| `TestNormalizeText` | `normalize_text()` handles multi-word, mixed-script, punctuation, empty input; idempotency; word independence |
 
-Current test count: **14 test cases** — all covering the MNG (Hudum) locale.
+Current test count: **23 test cases** — all covering the MNG (Hudum) locale.
 
 ### Help Wanted: Test Data
 
@@ -298,6 +313,20 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 # → 'ᠰᠠᠢᠨ'
 ```
 
+#### 全文规范化
+
+`normalize()` 作用于单个词。对于句子、段落或混合文字文本，使用 `normalize_text()` ——它独立规范化每个蒙古文词，同时原样保留空格、标点和非蒙古文文本。
+
+```python
+# 规范化句子（每个蒙古文词独立规范化）
+shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ")
+# → 'ᠰᠠᠢᠨ ᠨᠠᠢᠮᠠ'
+
+# 混合文字：非蒙古文文本原样保留
+shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
+# → 'Hello ᠰᠠᠢᠨ world'
+```
+
 #### 批量规范化示例
 
 ```python
@@ -325,8 +354,9 @@ python -m unittest test_shaper -v
 | `TestShape` | `shape()` 输出正确的书写单元序列（sain 变体、元音和谐、devsger、边界情况） |
 | `TestSameShape` | `same_shape()` 正确识别外形相同 vs 不同的编码 |
 | `TestNormalize` | `normalize()` 输出规范结果；幂等性；规范化后与原始词形视觉相同 |
+| `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入；幂等性；词独立性 |
 
-当前共 **14 个测试用例**，均覆盖 MNG（Hudum）语种。
+当前共 **23 个测试用例**，均覆盖 MNG（Hudum）语种。
 
 ### 求助：测试数据
 

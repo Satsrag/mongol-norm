@@ -1325,11 +1325,63 @@ class MongolianShaper:
         
         return "".join(result)
 
+    def normalize_text(self, text):
+        """
+        Normalize a whole text string (sentence, paragraph, etc.).
+        规范化整段文本（句子、段落等）。
+
+        Segments the input into Mongolian word runs vs non-Mongolian spans,
+        normalizes each Mongolian word independently, and preserves everything
+        else (spaces, punctuation, Latin text, etc.) verbatim.
+        将输入分段为蒙古文词段和非蒙古文片段，独立规范化每个蒙古文词，
+        其余内容（空格、标点、拉丁文等）原样保留。
+
+        Why a separate method / 为什么需要单独的方法:
+          normalize() treats its entire input as one word — spaces and
+          non-Mongolian characters are silently dropped during tokenization.
+          This method correctly handles multi-word and mixed-script text.
+          normalize() 将整个输入当作一个词——空格和非蒙古文字符在分词时被静默丢弃。
+          此方法正确处理多词和混合文字文本。
+        """
+        if not text:
+            return text
+
+        # Segment text into runs of Mongolian characters (letters + FVS + MVS)
+        # vs everything else.
+        # 将文本分段为蒙古文字符段（字母 + FVS + MVS）和其他字符段。
+        segments = []  # list of (is_mongolian: bool, substring: str)
+        current_is_mong = None
+        current_start = 0
+
+        for i, ch in enumerate(text):
+            cp = ord(ch)
+            is_mong = is_mongolian_letter(cp) or cp in FVS_CPS or cp == MVS_CP
+            if current_is_mong is None:
+                current_is_mong = is_mong
+            elif is_mong != current_is_mong:
+                segments.append((current_is_mong, text[current_start:i]))
+                current_is_mong = is_mong
+                current_start = i
+
+        if current_start < len(text):
+            segments.append((current_is_mong, text[current_start:]))
+
+        # Normalize Mongolian segments, pass through everything else.
+        # 规范化蒙古文段，其他内容原样传递。
+        parts = []
+        for is_mong, span in segments:
+            if is_mong:
+                parts.append(self.normalize(span))
+            else:
+                parts.append(span)
+
+        return "".join(parts)
+
 
 # ── CLI / 命令行接口 ─────────────────────────────────────────────
-# Three commands: shape (show glyph sequence), same (compare two encodings),
-# normalize (produce canonical form). All accept --locale for non-MNG scripts.
-# 三个命令：shape（显示字形序列）、same（比较两种编码）、normalize（生成规范形式）。
+# Four commands: shape, same, normalize (word), normalize-text (full text).
+# All accept --locale for non-MNG scripts.
+# 四个命令：shape、same、normalize（单词）、normalize-text（全文）。
 # 都接受 --locale 参数用于非 MNG 文字。
 
 def main():
@@ -1353,6 +1405,9 @@ def main():
     p_norm = sub.add_parser("normalize", help="Normalize TEXT to canonical bare Unicode")
     p_norm.add_argument("text")
 
+    p_normt = sub.add_parser("normalize-text", help="Normalize full text (multi-word, mixed script)")
+    p_normt.add_argument("text")
+
     args = parser.parse_args()
     shaper = MongolianShaper(locale=args.locale)
 
@@ -1365,6 +1420,8 @@ def main():
         sys.exit(0 if result else 1)
     elif args.cmd == "normalize":
         print(shaper.normalize(args.text))
+    elif args.cmd == "normalize-text":
+        print(shaper.normalize_text(args.text))
 
 
 if __name__ == "__main__":
