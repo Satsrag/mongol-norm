@@ -1,31 +1,59 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Tests for MongolianShaper: shape, same_shape, normalize."""
+"""
+Tests for MongolianShaper: shape, same_shape, normalize.
+MongolianShaper 测试：shape（字形处理）、same_shape（视觉比较）、normalize（规范化）。
+
+The test suite centers on "sain" (ᠰᠠᠢᠨ, meaning "good") because it perfectly
+illustrates the encoding ambiguity problem: five different Unicode sequences
+all render as the same visual word. If normalization works correctly, all five
+must produce the identical canonical output.
+测试套件以"sain"（ᠰᠠᠢᠨ，意为"好"）为中心，因为它完美地展示了编码歧义问题：
+五种不同的 Unicode 序列都渲染为相同的视觉词。如果规范化正确工作，
+所有五种都必须产生相同的规范输出。
+"""
 import unittest
 from shaper import MongolianShaper
 
 
 class TestShape(unittest.TestCase):
-    """shape() returns the correct written-unit sequence."""
+    """
+    shape() returns the correct written-unit sequence.
+    shape() 返回正确的书写单元序列。
+
+    The key assertion for sain variants: ALL five encodings must produce
+    ['S', 'A', 'I', 'I', 'A'] — proving they are visually identical.
+    sain 变体的关键断言：所有五种编码都必须产生 ['S', 'A', 'I', 'I', 'A']——
+    证明它们在视觉上完全相同。
+    """
 
     @classmethod
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    # ── sain (good) — README examples ───────────────────────────
-
+    # ── sain (good) — 5 encodings of the same word / "好"的5种编码 ──
+    # Encoding 1: S + A + I + NA (base form, simplest encoding)
+    # 编码1：S + A + I + NA（基本形式，最简编码）
     def test_sain_base(self):
         self.assertEqual(self.s.shape("ᠰᠠᠢᠨ"), ["S", "A", "I", "I", "A"])
 
+    # Encoding 2: S + E + I + NA (E instead of A — same glyph in medial position)
+    # 编码2：S + E + I + NA（E 代替 A——中间位置字形相同）
     def test_sain_e_variant(self):
         self.assertEqual(self.s.shape("ᠰᠡᠢᠨ"), ["S", "A", "I", "I", "A"])
 
+    # Encoding 3: S + NA+FVS2 + I + I + NA (NA+FVS2 produces 'A' glyph)
+    # 编码3：S + NA+FVS2 + I + I + NA（NA+FVS2 产生 'A' 字形）
     def test_sain_na_fvs2(self):
         self.assertEqual(self.s.shape("ᠰᠨ᠌ᠢᠢᠨ"), ["S", "A", "I", "I", "A"])
 
+    # Encoding 4: S + A + YA+FVS1 + I + NA (YA+FVS1 produces single 'I' tooth)
+    # 编码4：S + A + YA+FVS1 + I + NA（YA+FVS1 产生单个 'I' 齿）
     def test_sain_ya_fvs1_i(self):
         self.assertEqual(self.s.shape("ᠰᠠᠶ᠋ᠢᠨ"), ["S", "A", "I", "I", "A"])
 
+    # Encoding 5: S + A + YA+FVS1 + YA+FVS1 + NA (two YA+FVS1 = two teeth)
+    # 编码5：S + A + YA+FVS1 + YA+FVS1 + NA（两个 YA+FVS1 = 两个齿）
     def test_sain_ya_fvs1_ya_fvs1(self):
         self.assertEqual(self.s.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ"), ["S", "A", "I", "I", "A"])
 
@@ -60,7 +88,10 @@ class TestShape(unittest.TestCase):
 
 
 class TestSameShape(unittest.TestCase):
-    """same_shape() correctly identifies visually identical encodings."""
+    """
+    same_shape() correctly identifies visually identical encodings.
+    same_shape() 正确识别视觉上相同的编码。
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -79,7 +110,16 @@ class TestSameShape(unittest.TestCase):
 
 
 class TestNormalize(unittest.TestCase):
-    """normalize() returns canonical bare-Unicode encoding."""
+    """
+    normalize() returns canonical bare-Unicode encoding.
+    normalize() 返回规范的裸 Unicode 编码。
+
+    Two critical properties / 两个关键属性:
+      1. Convergence: all visual variants → same canonical form
+         收敛性：所有视觉变体 → 相同的规范形式
+      2. Idempotence: normalize(normalize(x)) == normalize(x)
+         幂等性：normalize(normalize(x)) == normalize(x)
+    """
 
     @classmethod
     def setUpClass(cls):
