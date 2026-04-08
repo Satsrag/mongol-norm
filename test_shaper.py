@@ -224,6 +224,25 @@ class TestNormalizeText(unittest.TestCase):
         n2 = self.s.normalize_text(n1)
         self.assertEqual(n1, n2)
 
+    def test_numbers_preserved(self):
+        # Numbers mixed with Mongolian text stay unchanged
+        # 数字与蒙古文混合时保持不变
+        text = "ᠰᠡᠢᠨ 123 ᠨᠠᠢᠮᠠ"
+        result = self.s.normalize_text(text)
+        self.assertIn("123", result)
+        self.assertEqual(
+            result,
+            self.s.normalize("ᠰᠡᠢᠨ") + " 123 " + self.s.normalize("ᠨᠠᠢᠮᠠ"),
+        )
+
+    def test_symbols_preserved(self):
+        # Symbols (@, #, etc.) mixed with Mongolian text stay unchanged
+        # 符号与蒙古文混合时保持不变
+        text = "#ᠰᠡᠢᠨ @world"
+        result = self.s.normalize_text(text)
+        self.assertTrue(result.startswith("#"))
+        self.assertIn("@world", result)
+
     def test_multiword_each_word_independent(self):
         # Each word should be normalized independently — verify by checking
         # that multi-word normalize_text matches word-by-word normalize
