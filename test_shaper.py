@@ -254,5 +254,133 @@ class TestNormalizeText(unittest.TestCase):
         self.assertEqual(result, expected)
 
 
+class TestNNBSP(unittest.TestCase):
+    """
+    U+202F (Narrow No-Break Space) handling.
+    U+202F（窄不换行空格）处理。
+
+    NNBSP appears in older Mongolian text in the same role as MVS (U+180E).
+    The shaping engine must treat NNBSP as functionally equivalent to MVS
+    in the pipeline while preserving the original codepoint in output.
+    NNBSP 出现在较旧的蒙古文文本中，与 MVS (U+180E) 角色相同。
+    字形引擎必须在管线中将 NNBSP 视为功能上等同于 MVS，同时在输出中保留原始码位。
+    """
+
+    NNBSP = "\u202F"
+    MVS = "\u180E"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.s = MongolianShaper(locale="MNG")
+
+    # ── Tokenization: NNBSP survives, not silently dropped ─────────
+
+    def test_nnbsp_survives_tokenization(self):
+        # NNBSP between two Mongolian letters must not be dropped
+        # NNBSP 在两个蒙古文字母之间不应被丢弃
+        text = "ᠰᠠᠢᠨ" + self.NNBSP + "ᠠ"
+        tokens = self.s.tokenize(text)
+        cps = [tok.cp for tok in tokens]
+        self.assertIn(0x202F, cps)
+
+    def test_nnbsp_token_is_mvs_flag(self):
+        # NNBSP token must have is_mvs=True (functionally equivalent)
+        text = "ᠰ" + self.NNBSP + "ᠠ"
+        tokens = self.s.tokenize(text)
+        nnbsp_toks = [t for t in tokens if t.cp == 0x202F]
+        self.assertEqual(len(nnbsp_toks), 1)
+        self.assertTrue(nnbsp_toks[0].is_mvs)
+
+    # ── Shaping: NNBSP triggers same behavior as MVS ──────────────
+
+    def test_nnbsp_same_shape_as_mvs(self):
+        # Word with NNBSP should shape identically to same word with MVS
+        # 使用 NNBSP 的词应与使用 MVS 的相同词产生相同字形
+        stem = "ᠰᠠᠢᠨ"
+        suffix = "ᠠ"
+        with_mvs = stem + self.MVS + suffix
+        with_nnbsp = stem + self.NNBSP + suffix
+        self.assertEqual(self.s.shape(with_mvs), self.s.shape(with_nnbsp))
+
+    def test_nnbsp_chachlag_trigger(self):
+        # NNBSP before a/e should trigger chachlag condition (like MVS)
+        stem = "ᠰᠠᠢᠨ"
+        suffix = "ᠠ"
+        text = stem + self.NNBSP + suffix
+        tokens = self.s.tokenize(text)
+        self.s.assign_positions(tokens)
+        self.s._step1_chachlag(tokens)
+        # The suffix 'a' after NNBSP should get chachlag condition
+        a_tokens = [t for t in tokens if t.alias == "a" and t.condition == "chachlag"]
+        self.assertGreater(len(a_tokens), 0,
+                           "NNBSP should trigger chachlag on following a/e")
+
+    # ── Normalization: NNBSP preserved, not converted to MVS ──────
+
+    def test_nnbsp_preserved_in_normalize(self):
+        # normalize() must output NNBSP as NNBSP, not convert to MVS
+        stem = "ᠰᠠᠢᠨ"
+        suffix = "ᠠ"
+        text = stem + self.NNBSP + suffix
+        result = self.s.normalize(text)
+        self.assertIn(self.NNBSP, result,
+                      "NNBSP must be preserved in normalize() output")
+        self.assertNotIn(self.MVS, result,
+                         "NNBSP must not be converted to MVS")
+
+    def test_mvs_not_converted_to_nnbsp(self):
+        # Regression: MVS must still be preserved as MVS
+        stem = "ᠰᠠᠢᠨ"
+        suffix = "ᠠ"
+        text = stem + self.MVS + suffix
+        result = self.s.normalize(text)
+        self.assertIn(self.MVS, result)
+        self.assertNotIn(self.NNBSP, result)
+
+    # ── normalize_text(): NNBSP in Mongolian runs ─────────────────
+
+    def test_nnbsp_in_mongolian_run(self):
+        # NNBSP should be part of Mongolian text runs, not break them
+        stem = "ᠰᠠᠢᠨ"
+        suffix = "ᠠ"
+        text = stem + self.NNBSP + suffix
+        result = self.s.normalize_text(text)
+        # The result should contain NNBSP (not lost) and be a single run
+        self.assertIn(self.NNBSP, result)
+
+    def test_nnbsp_normalize_text_matches_normalize(self):
+        # For a single word+suffix with NNBSP, normalize_text should
+        # produce the same result as normalize
+        stem = "ᠰᠠᠢᠨ"
+        suffix = "ᠠ"
+        text = stem + self.NNBSP + suffix
+        self.assertEqual(self.s.normalize_text(text), self.s.normalize(text))
+
+    def test_nnbsp_mixed_with_spaces(self):
+        # NNBSP inside Mongolian word, regular space between words
+        word1 = "ᠰᠠᠢᠨ" + self.NNBSP + "ᠠ"
+        word2 = "ᠨᠠᠢᠮᠠ"
+        text = word1 + " " + word2
+        result = self.s.normalize_text(text)
+        self.assertIn(self.NNBSP, result)
+        self.assertIn(" ", result)
+
+    # ── Idempotence with NNBSP ────────────────────────────────────
+
+    def test_nnbsp_normalize_idempotent(self):
+        stem = "ᠰᠠᠢᠨ"
+        suffix = "ᠠ"
+        text = stem + self.NNBSP + suffix
+        n1 = self.s.normalize(text)
+        n2 = self.s.normalize(n1)
+        self.assertEqual(n1, n2, "normalize() with NNBSP must be idempotent")
+
+    def test_nnbsp_normalize_text_idempotent(self):
+        text = "ᠰᠠᠢᠨ" + self.NNBSP + "ᠠ" + " " + "ᠨᠠᠢᠮᠠ"
+        n1 = self.s.normalize_text(text)
+        n2 = self.s.normalize_text(n1)
+        self.assertEqual(n1, n2, "normalize_text() with NNBSP must be idempotent")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

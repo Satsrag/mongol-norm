@@ -110,7 +110,7 @@ class Token:
         self.written = None  # Lazily resolved — set during _resolve_token_written()
                              # 延迟解析——在 _resolve_token_written() 中设置
         self.alias = ""
-        self.is_mvs = (cp == MVS_CP)
+        self.is_mvs = (cp == MVS_CP or cp == NNBSP_CP)
         self.is_letter = is_mongolian_letter(cp)
         self.index = index
     
@@ -353,7 +353,7 @@ class MongolianShaper:
                 tokens.append(tok)
                 idx += 1
                 i = j
-            elif cp == MVS_CP:
+            elif cp == MVS_CP or cp == NNBSP_CP:
                 tok = Token(cp, index=idx)
                 tok.alias = "mvs"
                 tokens.append(tok)
@@ -1225,10 +1225,10 @@ class MongolianShaper:
 
         # Build segments preserving original alias (needed for harmony resolution later)
         # 构建段落，保留原始别名（后续和谐解析需要）
-        segments = []  # (type, written, original_alias)
+        segments = []  # (type, written, original_alias) or ('mvs', (), '', original_cp)
         for tok in tokens:
             if tok.is_mvs:
-                segments.append(('mvs', (), ''))
+                segments.append(('mvs', (), '', tok.cp))
             elif tok.is_letter and tok.written:
                 segments.append(('letter', tok.written, tok.alias))
         
@@ -1294,7 +1294,7 @@ class MongolianShaper:
         for idx, seg in enumerate(segments):
             tp = seg[0]
             if tp == 'mvs':
-                result.append(chr(MVS_CP))
+                result.append(chr(seg[3] if len(seg) > 3 else MVS_CP))
                 continue
             
             written = seg[1]
@@ -1355,7 +1355,7 @@ class MongolianShaper:
 
         for i, ch in enumerate(text):
             cp = ord(ch)
-            is_mong = is_mongolian_letter(cp) or cp in FVS_CPS or cp == MVS_CP
+            is_mong = is_mongolian_letter(cp) or cp in FVS_CPS or cp == MVS_CP or cp == NNBSP_CP
             if current_is_mong is None:
                 current_is_mong = is_mong
             elif is_mong != current_is_mong:
