@@ -151,5 +151,108 @@ class TestNormalize(unittest.TestCase):
             self.assertTrue(self.s.same_shape(word, self.s.normalize(word)))
 
 
+class TestNormalizeText(unittest.TestCase):
+    """
+    normalize_text() normalizes multi-word / mixed-script strings.
+    normalize_text() 规范化多词/混合文字字符串。
+
+    Key properties / 关键属性:
+      1. Each Mongolian word is normalized independently
+         每个蒙古文词独立规范化
+      2. Non-Mongolian text (spaces, punctuation, Latin, etc.) is preserved verbatim
+         非蒙古文文本（空格、标点、拉丁文等）原样保留
+      3. Single-word input produces the same result as normalize()
+         单词输入与 normalize() 产生相同结果
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.s = MongolianShaper(locale="MNG")
+
+    CANONICAL_SAIN = "ᠰᠠᠢᠨ"
+
+    def test_single_word_matches_normalize(self):
+        # normalize_text on a single word should match normalize
+        # 单词的 normalize_text 应与 normalize 一致
+        for word in ["ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ", "ᠨᠠᠢᠮᠠ", "ᠣᠷᠣᠨ"]:
+            self.assertEqual(self.s.normalize_text(word), self.s.normalize(word))
+
+    def test_two_words_space_separated(self):
+        # Two Mongolian words separated by a space
+        # 空格分隔的两个蒙古文词
+        text = "ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ"
+        result = self.s.normalize_text(text)
+        expected = self.s.normalize("ᠰᠡᠢᠨ") + " " + self.s.normalize("ᠨᠠᠢᠮᠠ")
+        self.assertEqual(result, expected)
+
+    def test_space_preserved(self):
+        # Spaces must be preserved exactly
+        # 空格必须精确保留
+        text = "ᠰᠠᠢᠨ  ᠨᠠᠢᠮᠠ"  # double space
+        result = self.s.normalize_text(text)
+        self.assertIn("  ", result)
+
+    def test_mixed_script(self):
+        # Mongolian words surrounded by Latin text
+        # 蒙古文词被拉丁文包围
+        text = "Hello ᠰᠡᠢᠨ world"
+        result = self.s.normalize_text(text)
+        self.assertEqual(result, "Hello " + self.CANONICAL_SAIN + " world")
+
+    def test_punctuation_preserved(self):
+        # Mongolian punctuation and regular punctuation preserved
+        # 蒙古文标点和普通标点保留
+        text = "ᠰᠡᠢᠨ, ᠨᠠᠢᠮᠠ!"
+        result = self.s.normalize_text(text)
+        self.assertIn(",", result)
+        self.assertIn("!", result)
+        self.assertIn(" ", result)
+
+    def test_empty_string(self):
+        self.assertEqual(self.s.normalize_text(""), "")
+
+    def test_no_mongolian(self):
+        # Pure non-Mongolian text passes through unchanged
+        # 纯非蒙古文文本原样通过
+        text = "Hello, world! 123"
+        self.assertEqual(self.s.normalize_text(text), text)
+
+    def test_idempotent(self):
+        # normalize_text(normalize_text(x)) == normalize_text(x)
+        text = "ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ"
+        n1 = self.s.normalize_text(text)
+        n2 = self.s.normalize_text(n1)
+        self.assertEqual(n1, n2)
+
+    def test_numbers_preserved(self):
+        # Numbers mixed with Mongolian text stay unchanged
+        # 数字与蒙古文混合时保持不变
+        text = "ᠰᠡᠢᠨ 123 ᠨᠠᠢᠮᠠ"
+        result = self.s.normalize_text(text)
+        self.assertIn("123", result)
+        self.assertEqual(
+            result,
+            self.s.normalize("ᠰᠡᠢᠨ") + " 123 " + self.s.normalize("ᠨᠠᠢᠮᠠ"),
+        )
+
+    def test_symbols_preserved(self):
+        # Symbols (@, #, etc.) mixed with Mongolian text stay unchanged
+        # 符号与蒙古文混合时保持不变
+        text = "#ᠰᠡᠢᠨ @world"
+        result = self.s.normalize_text(text)
+        self.assertTrue(result.startswith("#"))
+        self.assertIn("@world", result)
+
+    def test_multiword_each_word_independent(self):
+        # Each word should be normalized independently — verify by checking
+        # that multi-word normalize_text matches word-by-word normalize
+        # 每个词应独立规范化——通过检查多词结果与逐词结果一致来验证
+        words = ["ᠰᠡᠢᠨ", "ᠣᠷᠣᠨ", "ᠨᠠᠢᠮᠠ"]
+        text = " ".join(words)
+        result = self.s.normalize_text(text)
+        expected = " ".join(self.s.normalize(w) for w in words)
+        self.assertEqual(result, expected)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
