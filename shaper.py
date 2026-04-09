@@ -354,7 +354,9 @@ class MongolianShaper:
                 idx += 1
                 i = j
             elif cp == MVS_CP or cp == NNBSP_CP:
-                tok = Token(cp, index=idx)
+                # Normalize NNBSP → MVS at tokenization (earliest preprocessing point).
+                # NNBSP 在分词阶段统一转换为 MVS（最早的预处理点）。
+                tok = Token(MVS_CP, index=idx)
                 tok.alias = "mvs"
                 tokens.append(tok)
                 idx += 1
@@ -1225,10 +1227,10 @@ class MongolianShaper:
 
         # Build segments preserving original alias (needed for harmony resolution later)
         # 构建段落，保留原始别名（后续和谐解析需要）
-        segments = []  # (type, written, original_alias) or ('mvs', (), '', original_cp)
+        segments = []  # (type, written, original_alias) or ('mvs', (), '')
         for tok in tokens:
             if tok.is_mvs:
-                segments.append(('mvs', (), '', tok.cp))
+                segments.append(('mvs', (), ''))
             elif tok.is_letter and tok.written:
                 segments.append(('letter', tok.written, tok.alias))
         
@@ -1294,7 +1296,9 @@ class MongolianShaper:
         for idx, seg in enumerate(segments):
             tp = seg[0]
             if tp == 'mvs':
-                result.append(chr(seg[3] if len(seg) > 3 else MVS_CP))
+                # Always output MVS — NNBSP was already normalized during tokenization.
+                # 始终输出 MVS——NNBSP 已在分词阶段被规范化。
+                result.append(chr(MVS_CP))
                 continue
             
             written = seg[1]
