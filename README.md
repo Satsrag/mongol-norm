@@ -148,7 +148,7 @@ The test suite covers:
 | `TestNormalize` | `normalize()` produces canonical output; idempotency; normalized result matches original visually |
 | `TestNormalizeText` | `normalize_text()` handles multi-word, mixed-script, punctuation, empty input; idempotency; word independence |
 
-Current test count: **23 test cases** — all covering the MNG (Hudum) locale.
+Current test count: **31 test cases** — all covering the MNG (Hudum) locale.
 
 ### Help Wanted: Test Data
 
@@ -356,7 +356,7 @@ python -m unittest test_shaper -v
 | `TestNormalize` | `normalize()` 输出规范结果；幂等性；规范化后与原始词形视觉相同 |
 | `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入；幂等性；词独立性 |
 
-当前共 **23 个测试用例**，均覆盖 MNG（Hudum）语种。
+当前共 **31 个测试用例**，均覆盖 MNG（Hudum）语种。
 
 ### 求助：测试数据
 
