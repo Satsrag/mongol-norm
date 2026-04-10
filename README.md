@@ -68,6 +68,8 @@ After shaping, the normalizer selects the canonical letter for each position:
 - **Redundancy removal**: YA+FVS1 producing a tooth → merged with adjacent I tokens. NA+FVS2 producing vowel-A shape → replaced by A.
 - **Bare encoding**: Output uses bare Unicode without FVS, since the shaping engine automatically selects the correct variant from context.
 
+For a detailed walkthrough of each pipeline step with tables and worked examples, see **[docs/shape-normalize-pipeline.md](docs/shape-normalize-pipeline.md)**.
+
 ### Installation
 
 ```bash
@@ -176,8 +178,10 @@ If you can contribute, please **open an issue or pull request** at [github.com/S
 
 ```
 mongol-norm/
-├── shaper.py        # Core: shaping engine + normalizer
-├── test_shaper.py   # Unit tests (pytest / unittest)
+├── shaper.py                          # Core: shaping engine + normalizer
+├── test_shaper.py                     # Unit tests (pytest / unittest)
+├── docs/
+│   └── shape-normalize-pipeline.md    # Detailed pipeline documentation
 └── README.md
 ```
 
@@ -275,6 +279,8 @@ shaping 后，规范化器为每个位置选择规范字母：
 - **边界保留**：词首和词尾的字母保留原始身份（如 NA 在词尾 = 辅音 N，不是元音 A）。
 - **冗余清除**：YA+FVS1 产出齿形 → 与相邻 I 合并；NA+FVS2 产出元音 A 形态 → 替换为 A。
 - **Bare 编码**：输出使用 bare Unicode（不加 FVS），因为 shaping 引擎会自动根据上下文选择正确的变体。
+
+详细的管线步骤说明、表格和示例请参见 **[docs/shape-normalize-pipeline.md](docs/shape-normalize-pipeline.md)**。
 
 ### 安装
 
@@ -384,8 +390,10 @@ shaping 逻辑是从 UTN #57 v4 数据机器推导而来的。**目前缺乏的�
 
 ```
 mongol-norm/
-├── shaper.py        # 核心：shaping 引擎 + 规范化器
-├── test_shaper.py   # 单元测试（pytest / unittest）
+├── shaper.py                          # 核心：shaping 引擎 + 规范化器
+├── test_shaper.py                     # 单元测试（pytest / unittest）
+├── docs/
+│   └── shape-normalize-pipeline.md    # 详细管线文档
 └── README.md
 ```
 
