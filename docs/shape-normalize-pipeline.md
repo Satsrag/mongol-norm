@@ -354,6 +354,116 @@ Narrow No-Break Space (U+202F) appears in some Mongolian text as an alternative 
 
 ---
 
+## Additional Worked Examples
+
+The "sain" example above demonstrates a/e ambiguity and YA+FVS1 merging. The examples below show other aspects of the pipeline.
+
+### Example 2: Feminine Word — "üge" (word/speech)
+
+```
+Input:  ᠥᠭᠡ  (OE + GA + E)
+```
+
+| Step | Token | Alias | Position | Condition assigned | Why |
+|---|---|---|---|---|---|
+| Tokenize | `1825` | `oe` | — | — | OE letter |
+| Tokenize | `182D` | `g` | — | — | GA letter |
+| Tokenize | `1821` | `e` | — | — | E letter |
+| Positions | `oe` | `oe` | `init` | — | First letter |
+| Positions | `g` | `g` | `medi` | — | Middle |
+| Positions | `e` | `e` | `fina` | — | Last letter |
+| Step 2 | `g` | `g` | `medi` | `feminine` | Prev vowel OE is feminine → GA form |
+
+**Shaping result**: `['OE', 'G', 'Aa']` (note: `Aa` is the final form of `e`)
+
+**Normalization**:
+- Vowel harmony: OE present → **feminine**
+- `g` stays `g` (feminine member of h/g pair)
+- Output: `ᠥᠭᠡ` (unchanged — already canonical)
+
+### Example 3: Devsger — "ail" (village)
+
+```
+Input:  ᠠᠢᠯ  (A + I + L)
+```
+
+| Step | Token | Alias | Position | Condition | Why |
+|---|---|---|---|---|---|
+| Positions | `a` | `a` | `init` | — | First |
+| Positions | `i` | `i` | `medi` | — | Middle |
+| Positions | `l` | `l` | `fina` | — | Last |
+| Step 4 | `i` | `i` | `medi` | `vowel_devsger` | `i` after vowel `a` → double-tooth |
+
+**Shaping result**: `['A', 'I', 'I', 'L']` — note `i` expands to two `I` written units
+
+**Normalization**: Output `ᠠᠢᠯ` — bare `i` in context produces double-tooth by default.
+
+### Example 4: MVS Chachlag — stem + suffix
+
+```
+Input:  ᠶᠠᠪᠤ᠋ᠬᠤ  →  with MVS between stem and suffix
+        (conceptual: yabu + MVS + a)
+```
+
+When MVS appears between a stem and a suffix starting with `a`/`e`:
+
+| Step | What happens |
+|---|---|
+| Tokenize | MVS becomes MVS token (whether input is U+180E or U+202F) |
+| Step 1 (Chachlag) | The `a`/`e` after MVS gets condition `chachlag` → suffix connection glyph |
+| Step 2 (Syllabic) | Consonant before MVS may get `chachlag_onset` if followed by isolated `a`/`e` |
+| Step 3 (Particle) | If the full word matches a particle pattern, override with `particle` condition |
+
+### Example 5: Post-bowed — vowel after bowed consonant
+
+When a vowel follows a bowed consonant (G, Gx, K, K2, B, P, F), the vowel takes a modified connection form:
+
+```
+Input:  ...B + U...  (B followed by U in medial position)
+```
+
+| Step | Token | Condition | Why |
+|---|---|---|---|
+| Step 5 | `u` | `post_bowed` | Previous letter's written ends with `B` (a bowed unit) |
+
+The `post_bowed` condition selects a glyph variant where the vowel's leading stroke connects smoothly to the bow of the preceding consonant.
+
+### Summary: Before/After Normalization
+
+| Input (various encodings) | Canonical output | Harmony | Key resolution |
+|---|---|---|---|
+| `ᠰᠡᠢᠨ` (S+E+I+NA) | `ᠰᠠᠢᠨ` (S+A+I+NA) | masculine (default) | E→A (a/e pair, masculine) |
+| `ᠰᠠᠶ᠋ᠶ᠋ᠨ` (S+A+YA×2+NA) | `ᠰᠠᠢᠨ` (S+A+I+NA) | masculine | YA+FVS1 merged → I |
+| `ᠰᠨ᠌ᠢᠢᠨ` (S+NA+FVS2+I+I+NA) | `ᠰᠠᠢᠨ` (S+A+I+NA) | masculine | NA+FVS2→A glyph, reverse-mapped to A |
+| `ᠥᠭᠡ` (OE+GA+E) | `ᠥᠭᠡ` (unchanged) | feminine (OE present) | Already canonical |
+| `ᠠᠢᠯ` (A+I+L) | `ᠠᠢᠯ` (unchanged) | masculine (default) | Already canonical |
+
+---
+
+## Terminology Glossary
+
+| Term | Meaning |
+|---|---|
+| **Written unit** | An abstract glyph name (e.g., `A`, `I`, `S`, `G`, `OE`). The atomic visual building block. Two strings with the same written-unit sequence look identical when rendered. |
+| **FVS** (Free Variation Selector) | Unicode codepoints U+180B–U+180D, U+180F that follow a letter to select a non-default glyph variant. Root cause of encoding ambiguity. |
+| **MVS** (Mongolian Vowel Separator) | U+180E. Marks the boundary between a word stem and its grammatical suffix. Triggers chachlag forms and particle matching. |
+| **NNBSP** (Narrow No-Break Space) | U+202F. Some text uses this instead of MVS. Normalized to MVS at tokenization. |
+| **Chachlag** | The suffix connection form that `a`/`e` takes when appearing immediately after MVS. |
+| **Devsger** | A "connecting" consonant form between syllables (e.g., `n` between two vowels). For `i` after a vowel, it means the double-tooth form `('I', 'I')`. |
+| **Onset** | A consonant that begins a syllable (before a vowel). |
+| **Post-bowed** | A vowel form used after bowed consonants (G, K, B, P, F) to connect smoothly to the preceding bow stroke. |
+| **Vowel harmony** | Phonological rule: native Mongolian words contain either masculine vowels (o, u) or feminine vowels (oe, ue, ee), never both. Neuter `i` appears in either class. |
+| **Masculine** | Harmony class containing `o`, `u`. Ambiguous `a`/`e` resolves to `a`; ambiguous `h`/`g` resolves to `h` (QA). |
+| **Feminine** | Harmony class containing `oe`, `ue`, `ee`. Ambiguous `a`/`e` resolves to `e`; ambiguous `h`/`g` resolves to `g` (GA). |
+| **QA / GA** | The two contextual identities of Unicode codepoints U+182C (`h`) and U+182D (`g`). QA is the masculine/back-vowel variant; GA is the feminine/front-vowel variant. They share glyph forms in several positions. |
+| **Bare encoding** | Unicode text containing only letter codepoints and MVS — no FVS. The canonical output format of `normalize()`. |
+| **Reverse map** | A lookup from `(position, written_tuple)` → list of `(codepoint, fvs)` candidates. Used by `normalize()` to find which letters can produce a given glyph. |
+| **Particle** | A Mongolian grammatical suffix (小品词) preceded by MVS, with a fixed glyph form defined in the particle dictionary. |
+| **Position** | One of `isol` (isolated), `init` (initial), `medi` (medial), `fina` (final) — determines which glyph variant a letter uses. |
+| **Condition** | A string label (e.g., `chachlag`, `onset`, `devsger`, `marked`, `feminine`) assigned by the 5-step pipeline, selecting a non-default glyph variant. |
+
+---
+
 ## Data Flow Diagram
 
 ```
