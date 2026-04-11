@@ -92,6 +92,12 @@ class TestShape(unittest.TestCase):
             ["T", "A", "L", "mvs", "Aa", "mvs", "I", "I", "A"],
         )
 
+    def test_nnbsp_same_as_mvs(self):
+        # NNBSP (U+202F) is normalized to MVS at tokenization, same shape result
+        mvs_text = "\u1832\u1820\u182F\u180E\u1820\u180E\u1836\u1822\u1828"
+        nnbsp_text = "\u1832\u1820\u182F\u202F\u1820\u202F\u1836\u1822\u1828"
+        self.assertEqual(self.s.shape(nnbsp_text), self.s.shape(mvs_text))
+
     # ── single letter / edge cases ───────────────────────────────
 
     def test_single_vowel(self):
