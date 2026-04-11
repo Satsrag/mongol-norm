@@ -372,20 +372,33 @@ class MongolianShaper:
 
         Position assignment is purely structural (word boundary detection):
         single letter → isol, first → init, last → fina, middle → medi.
+        MVS breaks the joining chain, so segments are assigned independently.
         位置分配纯粹是结构性的（词边界检测）：
         单字母 → 独立形式，首字母 → 首形式，末字母 → 尾形式，中间 → 中形式。
+        MVS 断开连接链，各段独立分配位置。
         """
-        ltoks = [t for t in tokens if t.is_letter]
-        n = len(ltoks)
-        for i, tok in enumerate(ltoks):
-            if n == 1:
-                tok.position = "isol"
-            elif i == 0:
-                tok.position = "init"
-            elif i == n - 1:
-                tok.position = "fina"
-            else:
-                tok.position = "medi"
+        segments = []
+        current = []
+        for t in tokens:
+            if t.is_letter:
+                current.append(t)
+            elif t.is_mvs:
+                if current:
+                    segments.append(current)
+                    current = []
+        if current:
+            segments.append(current)
+        for ltoks in segments:
+            n = len(ltoks)
+            for i, tok in enumerate(ltoks):
+                if n == 1:
+                    tok.position = "isol"
+                elif i == 0:
+                    tok.position = "init"
+                elif i == n - 1:
+                    tok.position = "fina"
+                else:
+                    tok.position = "medi"
     
     # ── Helpers ─────────────────────────────────────────────────
     
@@ -685,31 +698,40 @@ class MongolianShaper:
         第3步：助词——MVS 助词词典查找。
 
         Mongolian particles (grammatical suffixes) are preceded by MVS and have
-        fixed glyph forms. If the entire word matches a known particle pattern
-        in the dictionary, specific tokens get the "particle" condition,
-        overriding any syllabic condition from step 2.
-        蒙古文助词（语法后缀）前面有 MVS，具有固定的字形形式。如果整个词匹配
-        词典中已知的助词模式，特定标记获得"particle"条件，覆盖第2步的音节条件。
+        fixed glyph forms. Each MVS-delimited sub-sequence is matched against
+        the particle dictionary independently. Matching tokens get the "particle"
+        condition, overriding any syllabic condition from step 2.
+        蒙古文助词（语法后缀）前面有 MVS，具有固定的字形形式。每个 MVS 分隔的
+        子序列独立匹配助词词典。匹配的标记获得"particle"条件，覆盖第2步的音节条件。
         """
-        # Build the alias sequence for particle matching / 构建别名序列用于助词匹配
-        aliases = []
-        tok_indices = []
+        # Build segments split at MVS boundaries, each starting with MVS
+        # 构建以 MVS 为起点的分段
+        segments = []  # list of (aliases, tok_indices) per MVS-delimited sub-sequence
+        current_aliases = []
+        current_indices = []
         for i, tok in enumerate(tokens):
-            if tok.is_letter or tok.is_mvs:
-                aliases.append(tok.alias)
-                tok_indices.append(i)
+            if tok.is_mvs:
+                if current_aliases:
+                    segments.append((current_aliases, current_indices))
+                current_aliases = [tok.alias]
+                current_indices = [i]
+            elif tok.is_letter:
+                current_aliases.append(tok.alias)
+                current_indices.append(i)
+        if current_aliases:
+            segments.append((current_aliases, current_indices))
         
-        # Check if this word matches a particle pattern
-        alias_str = " ".join(aliases)
-        particle_indices = self.particle_dict.get(alias_str)
-        
-        if particle_indices is not None:
-            for pidx in particle_indices:
-                if pidx < len(tok_indices):
-                    real_idx = tok_indices[pidx]
-                    tok = tokens[real_idx]
-                    if tok.is_letter and tok.alias in ("a", "e", "i", "u", "ue", "d", "y"):
-                        tok.condition = "particle"
+        # Match each segment against the particle dictionary
+        for aliases, tok_indices in segments:
+            alias_str = " ".join(aliases)
+            particle_indices = self.particle_dict.get(alias_str)
+            if particle_indices is not None:
+                for pidx in particle_indices:
+                    if pidx < len(tok_indices):
+                        real_idx = tok_indices[pidx]
+                        tok = tokens[real_idx]
+                        if tok.is_letter and tok.alias in ("a", "e", "i", "u", "ue", "d", "y"):
+                            tok.condition = "particle"
     
     def _step4_devsger(self, tokens):
         """
@@ -818,10 +840,12 @@ class MongolianShaper:
         for tok in tokens:
             self._resolve_token_written(tok)
         
-        # Collect written units
+        # Collect written units (MVS emits a boundary marker)
         result = []
         for tok in tokens:
-            if tok.written:
+            if tok.is_mvs:
+                result.append("mvs")
+            elif tok.written:
                 result.extend(tok.written)
         return result
     
@@ -1285,47 +1309,61 @@ class MongolianShaper:
         # Assign positions and pick canonical letters.
         # Re-derive positions from the merged segment list (not original tokens,
         # since merging may have changed the letter count).
+        # MVS breaks the joining chain, so each MVS-delimited group gets
+        # positions assigned independently.
         # 分配位置并选择规范字母。
         # 从合并后的段落列表重新推导位置（不是原始标记，因为合并可能改变了字母数量）。
-        letter_segs = [(idx, s) for idx, s in enumerate(segments) if s[0] == 'letter']
-        n_letters = len(letter_segs)
+        # MVS 断开连接链，每个 MVS 分隔的组独立分配位置。
+        
+        # Split segments into groups at MVS boundaries
+        groups = []
+        current_group = []
+        for seg in segments:
+            if seg[0] == 'mvs':
+                if current_group:
+                    groups.append(current_group)
+                groups.append([seg])  # MVS as its own group
+                current_group = []
+            else:
+                current_group.append(seg)
+        if current_group:
+            groups.append(current_group)
         
         result = []
-        letter_seq = 0
         
-        for idx, seg in enumerate(segments):
-            tp = seg[0]
-            if tp == 'mvs':
+        for group in groups:
+            if len(group) == 1 and group[0][0] == 'mvs':
                 # Always output MVS — NNBSP was already normalized during tokenization.
                 # 始终输出 MVS——NNBSP 已在分词阶段被规范化。
                 result.append(chr(MVS_CP))
                 continue
             
-            written = seg[1]
-            orig_alias = seg[2]
-            
-            if n_letters == 1: pos = "isol"
-            elif letter_seq == 0: pos = "init"
-            elif letter_seq == n_letters - 1: pos = "fina"
-            else: pos = "medi"
-            letter_seq += 1
-            
-            # Get all candidates for this (pos, written)
-            candidates = self._get_candidates(pos, written)
-            
-            # Pick best candidate using harmony + original preservation
-            best = self._pick_by_harmony(candidates, harmony, orig_alias, pos=pos, written=written)
-            
-            if best:
-                # BARE ENCODING: output only the letter codepoint, no FVS.
-                # The shaping engine will automatically pick the correct default
-                # variant based on context — this is the entire point of normalization.
-                # 裸编码：只输出字母码位，不加 FVS。
-                # 字形引擎会根据上下文自动选择正确的默认变体——这正是规范化的意义所在。
-                result.append(chr(best["cp"]))
-            else:
-                # Absolute fallback: preserve original token  
-                result.append(f"<{'|'.join(written)}>")
+            n_letters = len(group)
+            for letter_seq, seg in enumerate(group):
+                written = seg[1]
+                orig_alias = seg[2]
+                
+                if n_letters == 1: pos = "isol"
+                elif letter_seq == 0: pos = "init"
+                elif letter_seq == n_letters - 1: pos = "fina"
+                else: pos = "medi"
+                
+                # Get all candidates for this (pos, written)
+                candidates = self._get_candidates(pos, written)
+                
+                # Pick best candidate using harmony + original preservation
+                best = self._pick_by_harmony(candidates, harmony, orig_alias, pos=pos, written=written)
+                
+                if best:
+                    # BARE ENCODING: output only the letter codepoint, no FVS.
+                    # The shaping engine will automatically pick the correct default
+                    # variant based on context — this is the entire point of normalization.
+                    # 裸编码：只输出字母码位，不加 FVS。
+                    # 字形引擎会根据上下文自动选择正确的默认变体——这正是规范化的意义所在。
+                    result.append(chr(best["cp"]))
+                else:
+                    # Absolute fallback: preserve original token  
+                    result.append(f"<{'|'.join(written)}>")
         
         return "".join(result)
 

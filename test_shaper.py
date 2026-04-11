@@ -78,6 +78,20 @@ class TestShape(unittest.TestCase):
         # ᠠᠢ — I at final position, devsger does not apply
         self.assertEqual(self.s.shape("ᠠᠢ"), ["A", "A", "I"])
 
+    # ── MVS chachlag ───────────────────────────────────────────────
+
+    def test_mvs_chachlag(self):
+        # ᠲᠠᠯ᠎ᠠ (tal + MVS + a) — MVS breaks joining: l=fina, a=isol with chachlag
+        self.assertEqual(self.s.shape("\u1832\u1820\u182F\u180E\u1820"), ["T", "A", "L", "mvs", "Aa"])
+
+    def test_mvs_double(self):
+        # ᠲᠠᠯ᠎ᠠ᠎ᠶᠢᠨ (tal + MVS + a + MVS + yin) — two MVS boundaries
+        # "mvs y i n" matches particle dict → y gets particle condition → written "I"
+        self.assertEqual(
+            self.s.shape("\u1832\u1820\u182F\u180E\u1820\u180E\u1836\u1822\u1828"),
+            ["T", "A", "L", "mvs", "Aa", "mvs", "I", "I", "A"],
+        )
+
     # ── single letter / edge cases ───────────────────────────────
 
     def test_single_vowel(self):
