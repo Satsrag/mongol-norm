@@ -332,9 +332,10 @@ class TestNNBSP(unittest.TestCase):
         stem = "ᠰᠠᠢᠨ"
         suffix = "ᠠ"
         text = stem + self.NNBSP + suffix
+        from mongol_norm import rules
         tokens = self.s.tokenize(text)
         self.s.assign_positions(tokens)
-        self.s._step1_chachlag(tokens)
+        rules.run_rules(self.s._shaping_rules, tokens, self.s)
         # The suffix 'a' after NNBSP should get chachlag condition
         a_tokens = [t for t in tokens if t.alias == "a" and t.condition == "chachlag"]
         self.assertGreater(len(a_tokens), 0,

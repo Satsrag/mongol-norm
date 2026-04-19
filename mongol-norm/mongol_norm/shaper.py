@@ -37,6 +37,7 @@ script in the mongol-shape-data package.
 from typing import List, Tuple, Optional, Dict, Set
 
 from mongol_shape_data import load_rules
+from . import rules as _rules
 
 # Positional forms: a Mongolian letter takes different shapes depending on
 # where it appears in the word. This is analogous to Arabic initial/medial/final forms.
@@ -148,6 +149,7 @@ class MongolianShaper:
         self.locale = locale
         self._load_data()
         self._build_lookups()
+        self._shaping_rules = _rules.get_rules_for_locale(self.locale)
 
     # ── Data loading ────────────────────────────────────────────
 
@@ -510,186 +512,12 @@ class MongolianShaper:
         """Get alias sequence for the word (for particle lookup)."""
         return [t.alias for t in tokens if t.is_letter or t.is_mvs]
     
-    # ── Shaping Steps / 字形处理步骤 ───────────────────────────────
-    # The 5 steps run sequentially and assign a "condition" string to each token.
-    # Later, _resolve_token_written() uses the condition to pick the correct
-    # FVS variant. Steps are ordered by specificity: earlier steps have higher
-    # priority — once a token has a condition, later steps skip it.
-    # 5个步骤按顺序运行，为每个标记分配一个"条件"字符串。
-    # 之后 _resolve_token_written() 使用条件来选择正确的 FVS 变体。
-    # 步骤按特定性排序：先前的步骤优先级更高——一旦标记有了条件，后续步骤就跳过它。
+    # ── Shaping steps ────────────────────────────────────────────
+    # The condition-assignment logic is now in `rules.py` as a declarative
+    # table that mirrors mongfontbuilder's iii.py (iii1..iii5). The helpers
+    # below — `_scan_vowel_harmony` and the small predicates — are consumed
+    # by the rule functions via the shaper instance handed to them.
 
-    def _step1_chachlag(self, tokens):
-        """
-        Step 1: Chachlag — a/e after MVS get suffix form.
-        第1步：附加形式——MVS 后的 a/e 取词缀形态。
-
-        In Mongolian, MVS separates a stem from its suffix (like a soft hyphen).
-        The a/e letter immediately after MVS takes a special "chachlag" glyph
-        that visually connects to the preceding stem differently than normal.
-        在蒙古文中，MVS 将词干与词缀分隔开（类似软连字符）。
-        MVS 后紧跟的 a/e 字母取特殊的"chachlag"字形，与前面词干的视觉连接方式不同于常规形式。
-        """
-        for i, tok in enumerate(tokens):
-            if not tok.is_letter or tok.alias not in ("a", "e"):
-                continue
-            prev = self._prev_tok(tokens, i)
-            if prev and prev.is_mvs:
-                nxt = self._next_tok(tokens, i)
-                if nxt and self._has_fvs(tok):
-                    # follows MVS and has FVS → default (no condition)
-                    pass
-                else:
-                    tok.condition = "chachlag"
-    
-    def _step2_syllabic(self, tokens):
-        """
-        Step 2: Syllabic — complex consonant/vowel context rules.
-        第2步：音节规则——复杂的辅音/元音上下文规则。
-
-        This is the largest and most complex step. It examines each letter's
-        neighbors to determine its syllabic role:
-        这是最大也最复杂的步骤。它检查每个字母的邻居来确定其音节角色：
-
-          - o/u/oe/ue: "marked" form after initial consonant (tall vs short stem)
-            o/u/oe/ue：首辅音后取"标记"形式（高杆 vs 矮杆）
-          - n/t/d: "onset" before vowel, "devsger" after vowel (tooth direction)
-            n/t/d：元音前为"起始"，元音后为"连接"（齿的方向）
-          - h/g (QA/GA): masculine/feminine based on adjacent vowel harmony
-            h/g（QA/GA）：根据相邻元音和谐确定阳性/阴性
-          - d: "marked" before final vowel (different stroke)
-            d：尾元音前取"标记"形式（不同笔画）
-          - sh: "dotless" before i (dot omitted to avoid collision)
-            sh：i 前取"无点"形式（省略点以避免碰撞）
-          - g: "dotless" after s or d
-            g：s 或 d 后取"无点"形式
-        """
-        for i, tok in enumerate(tokens):
-            if not tok.is_letter:
-                continue
-            if tok.condition:
-                continue  # already assigned by step 1
-            if tok.fvs_cp is not None:
-                continue  # explicit FVS → default
-            
-            alias = tok.alias
-            pos = tok.position
-            prev = self._prev_letter(tokens, i)
-            nxt = self._next_letter(tokens, i)
-            nxt_tok = self._next_tok(tokens, i)
-            
-            # --- o, u, oe, ue: marked/default ---
-            # "Marked" = the tall-stem form used after an initial consonant.
-            # Without this, o/u would use the short-stem default form.
-            # "标记" = 首辅音后使用的高杆形式。没有这个，o/u 会使用矮杆默认形式。
-            if alias in ("o", "u", "oe", "ue"):
-                # if follows an initial consonant → marked
-                if prev and self._is_consonant(prev) and prev.position == "init":
-                    tok.condition = "marked"
-                    continue
-                # if precedes an FVS or follows an FVS → default
-                if self._has_fvs(tok):
-                    continue  # default
-                # oe, ue special: if medial and follows consonant cluster starting from init
-                if alias in ("oe", "ue") and pos == "medi":
-                    if prev and self._is_consonant(prev) and prev.position == "medi":
-                        # check if there's an init consonant before
-                        pp = self._prev_letter(tokens, prev.index if hasattr(prev, 'index') else i-1)
-                        if pp and self._is_consonant(pp) and pp.position == "init":
-                            tok.condition = "marked"
-                            continue
-            
-            # --- d: marked if precedes final vowel without FVS ---
-            if alias == "d":
-                if nxt and self._is_vowel(nxt) and nxt.position == "fina" and not self._has_fvs(nxt):
-                    tok.condition = "marked"
-                    continue
-            
-            # --- n, j, w: chachlag_onset (before MVS + isolated a/e) ---
-            if alias in ("n", "j", "w"):
-                if nxt_tok and nxt_tok.is_mvs:
-                    nxt_after_mvs = self._next_letter(tokens, i + 1) if i + 1 < len(tokens) else None
-                    if nxt_after_mvs and nxt_after_mvs.alias in ("a", "e") and nxt_after_mvs.position == "isol":
-                        tok.condition = "chachlag_onset"
-                        continue
-            
-            # --- h, g: chachlag_onset (before MVS + isolated a) ---
-            if alias in ("h", "g"):
-                if nxt_tok and nxt_tok.is_mvs:
-                    nxt_after_mvs = self._next_letter(tokens, i + 1) if i + 1 < len(tokens) else None
-                    if nxt_after_mvs:
-                        if nxt_after_mvs.alias == "a" and nxt_after_mvs.position == "isol":
-                            tok.condition = "chachlag_onset"
-                            continue
-                        if alias == "g" and nxt_after_mvs.alias == "e" and nxt_after_mvs.position == "isol":
-                            tok.condition = "chachlag_onset"  # chachlag_onset_gb
-                            continue
-            
-            # --- n, t, d: onset/devsger ---
-            # "Onset" = before a vowel (beginning of syllable), shows a different tooth.
-            # "Devsger" = after a vowel (connecting to next syllable), tooth faces the other way.
-            # "起始(onset)" = 元音前（音节开头），显示不同的齿。
-            # "连接(devsger)" = 元音后（连接下一音节），齿朝向相反。
-            if alias in ("n", "t", "d"):
-                if nxt and self._is_vowel(nxt):
-                    tok.condition = "onset"
-                    continue
-                if prev and self._is_vowel(prev):
-                    tok.condition = "devsger"
-                    continue
-            
-            # --- h, g: masculine/feminine ---
-            # h (QA) and g (GA) share many glyph forms but are distinguished by
-            # vowel harmony. In a masculine word (containing o/u), use h (QA);
-            # in feminine (oe/ue/ee), use g (GA). This is the primary ambiguity
-            # that normalization must resolve.
-            # h (QA) 和 g (GA) 共享许多字形但通过元音和谐来区分。
-            # 在阳性词（含 o/u）中用 h (QA)；在阴性词（含 oe/ue/ee）中用 g (GA)。
-            # 这是规范化必须解决的主要歧义。
-            if alias in ("h", "g"):
-                if nxt and self._is_masc_vowel(nxt):
-                    tok.condition = "masculine_onset"
-                    continue
-                if nxt and (self._is_fem_vowel(nxt) or self._is_neut_vowel(nxt)):
-                    tok.condition = "feminine"
-                    continue
-                if prev and self._is_masc_vowel(prev):
-                    tok.condition = "masculine_devsger"
-                    continue
-                if prev and self._is_fem_vowel(prev):
-                    tok.condition = "feminine"
-                    continue
-                # Remote vowel harmony scan: when no adjacent vowel reveals harmony,
-                # scan the entire word for any unambiguous vowel.
-                # 远程元音和谐扫描：当相邻元音无法揭示和谐类型时，扫描整词寻找明确元音。
-                cond = self._scan_vowel_harmony(tokens, i)
-                if cond:
-                    tok.condition = cond
-                    continue
-                tok.condition = "feminine"  # default fallback
-                continue
-            
-            # --- t: devsger before ee or consonant ---
-            if alias == "t":
-                if nxt and (nxt.alias == "ee" or self._is_consonant(nxt)):
-                    tok.condition = "devsger"
-                    continue
-            
-            # --- sh: dotless before i ---
-            if alias == "sh":
-                if pos == "init" and nxt and nxt.alias == "i" and nxt.position == "medi":
-                    tok.condition = "dotless"
-                    continue
-                if pos == "medi" and nxt and nxt.alias == "i":
-                    tok.condition = "dotless"
-                    continue
-            
-            # --- g: dotless after s or d ---
-            if alias == "g":
-                if prev and prev.alias in ("s", "d"):
-                    tok.condition = "dotless"
-                    continue
-    
     def _scan_vowel_harmony(self, tokens, idx):
         """
         Remote vowel harmony scan for h/g.
@@ -719,119 +547,6 @@ class MongolianShaper:
                 return "feminine"
         return None
     
-    def _step3_particle(self, tokens):
-        """
-        Step 3: Particle — MVS particle dictionary lookup.
-        第3步：助词——MVS 助词词典查找。
-
-        Mongolian particles (grammatical suffixes) are preceded by MVS and have
-        fixed glyph forms. Each MVS-delimited sub-sequence is matched against
-        the particle dictionary independently. Matching tokens get the "particle"
-        condition, overriding any syllabic condition from step 2.
-        蒙古文助词（语法后缀）前面有 MVS，具有固定的字形形式。每个 MVS 分隔的
-        子序列独立匹配助词词典。匹配的标记获得"particle"条件，覆盖第2步的音节条件。
-        """
-        # Build segments split at MVS boundaries, each starting with MVS
-        # 构建以 MVS 为起点的分段
-        segments = []  # list of (aliases, tok_indices) per MVS-delimited sub-sequence
-        current_aliases = []
-        current_indices = []
-        for i, tok in enumerate(tokens):
-            if tok.is_mvs:
-                if current_aliases:
-                    segments.append((current_aliases, current_indices))
-                current_aliases = [tok.alias]
-                current_indices = [i]
-            elif tok.is_letter:
-                current_aliases.append(tok.alias)
-                current_indices.append(i)
-        if current_aliases:
-            segments.append((current_aliases, current_indices))
-        
-        # Match each segment against the particle dictionary
-        for aliases, tok_indices in segments:
-            alias_str = " ".join(aliases)
-            particle_indices = self.particle_dict.get(alias_str)
-            if particle_indices is not None:
-                for pidx in particle_indices:
-                    if pidx < len(tok_indices):
-                        real_idx = tok_indices[pidx]
-                        tok = tokens[real_idx]
-                        if tok.is_letter and tok.alias in ("a", "e", "i", "u", "ue", "d", "y"):
-                            tok.condition = "particle"
-    
-    def _step4_devsger(self, tokens):
-        """
-        Step 4: Devsger — i after vowel gets vowel_devsger (double tooth).
-        第4步：连接齿——元音后的 i 取 vowel_devsger（双齿形）。
-
-        When 'i' appears in medial position after a vowel, it renders as a
-        double-tooth glyph (two 'I' written units) instead of a single tooth.
-        This is the visual "devsger" (connecting tooth) that distinguishes
-        vowel+i sequences from consonant+i.
-        当 'i' 出现在元音后的中间位置时，渲染为双齿字形（两个 'I' 书写单元），
-        而非单齿。这就是区分 元音+i 和 辅音+i 序列的视觉"连接齿"。
-
-        Example / 例: ᠠᠢᠯ (ail) → A + I,I + L (the I after A gets double-tooth)
-        """
-        for i, tok in enumerate(tokens):
-            if not tok.is_letter or tok.alias != "i" or tok.position != "medi":
-                continue
-            if tok.condition:
-                continue  # already assigned
-            if tok.fvs_cp is not None:
-                continue  # explicit FVS
-            
-            prev = self._prev_letter(tokens, i)
-            if prev and self._is_vowel(prev):
-                # Resolve prev's written to check if it ends with I
-                self._resolve_token_written(prev)
-                if not self._written_ends_with(prev, "I"):
-                    tok.condition = "vowel_devsger"
-    
-    def _step5_post_bowed(self, tokens):
-        """
-        Step 5: Post-bowed — vowels after bowed consonants get special forms.
-        第5步：弓形后续——弓形辅音后的元音取特殊形态。
-
-        Bowed consonants (G, Gx, K, K2, B, P, F) end with a rightward curve.
-        A vowel following a bowed consonant needs a modified connection form
-        to attach smoothly to the bowed stroke.
-        弓形辅音（G, Gx, K, K2, B, P, F）末笔向右弯曲。
-        弓形辅音后的元音需要修改连接形式以平滑地接入弓形笔画。
-
-        Example / 例: ᠥᠭᠡ (üge) — the final 'e' after GA(bowed) takes post_bowed form
-        """
-        for i, tok in enumerate(tokens):
-            if not tok.is_letter:
-                continue
-            if tok.condition:
-                continue
-            if tok.fvs_cp is not None:
-                continue
-            
-            alias = tok.alias
-            
-            if alias in ("o", "u", "oe", "ue"):
-                prev = self._prev_letter(tokens, i)
-                if prev:
-                    self._resolve_token_written(prev)
-                    if prev.written and prev.written[-1] in BOWED_UNITS:
-                        # Check if this token would be in written form U
-                        # (final position produces U for o/u/oe/ue)
-                        tok.condition = "post_bowed"
-                        continue
-            
-            if alias in ("a", "e"):
-                prev = self._prev_letter(tokens, i)
-                if prev:
-                    self._resolve_token_written(prev)
-                    if prev.written and prev.written[-1] in BOWED_UNITS:
-                        tok.condition = "post_bowed"
-                        continue
-    
-    # ── Main pipeline / 主管线 ───────────────────────────────────
-
     def shape(self, text):
         """
         Full shaping pipeline: text → glyph sequence (written units).
@@ -855,19 +570,14 @@ class MongolianShaper:
         """
         tokens = self.tokenize(text)
         self.assign_positions(tokens)
-        
-        # 5-step condition mapping
-        self._step1_chachlag(tokens)
-        self._step2_syllabic(tokens)
-        self._step3_particle(tokens)
-        self._step4_devsger(tokens)
-        self._step5_post_bowed(tokens)
-        
-        # Resolve all written
+
+        # Condition mapping — runs the declarative rule table mirroring
+        # mongfontbuilder's iii.py (one rule per OpenType Lookup, in order).
+        _rules.run_rules(self._shaping_rules, tokens, self)
+
         for tok in tokens:
             self._resolve_token_written(tok)
-        
-        # Collect written units (MVS emits a boundary marker)
+
         result = []
         for tok in tokens:
             if tok.is_mvs:
@@ -896,11 +606,7 @@ class MongolianShaper:
         """Return detailed shaping breakdown per token. / 返回每个标记的详细字形分解。"""
         tokens = self.tokenize(text)
         self.assign_positions(tokens)
-        self._step1_chachlag(tokens)
-        self._step2_syllabic(tokens)
-        self._step3_particle(tokens)
-        self._step4_devsger(tokens)
-        self._step5_post_bowed(tokens)
+        _rules.run_rules(self._shaping_rules, tokens, self)
         for tok in tokens:
             self._resolve_token_written(tok)
         
@@ -1261,14 +967,10 @@ class MongolianShaper:
         """
         tokens = self.tokenize(text)
         self.assign_positions(tokens)
-        self._step1_chachlag(tokens)
-        self._step2_syllabic(tokens)
-        self._step3_particle(tokens)
-        self._step4_devsger(tokens)
-        self._step5_post_bowed(tokens)
+        _rules.run_rules(self._shaping_rules, tokens, self)
         for tok in tokens:
             self._resolve_token_written(tok)
-        
+
         if not hasattr(self, '_reverse_map'):
             self.build_reverse_map()
         
