@@ -212,8 +212,8 @@ def _iii2c_chachlag_onset_at(tokens, i, shaper):
         tok.condition = "chachlag_onset"
         return
     if alias == "g" and target_vowel == "e":
-        # GB variant — same condition name in the data (chachlag_onset covers it).
-        tok.condition = "chachlag_onset"
+        # GB variant: data exposes this as a distinct condition.
+        tok.condition = "chachlag_onset_gb"
 
 
 # ═══════════════════════════════════════════════════════════════════════
