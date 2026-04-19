@@ -1,0 +1,2484 @@
+{
+  "schema_version": 1,
+  "locale": "MCH",
+  "generated_from": {
+    "package": "mongfontbuilder",
+    "version": "0.10.6"
+  },
+  "letters": [
+    {
+      "cp": 6151,
+      "name": "MONGOLIAN SIBE SYLLABLE BOUNDARY MARKER",
+      "alias": "sbm",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6176,
+      "name": "MONGOLIAN LETTER A",
+      "alias": "a",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 3,
+          "written": [
+            "A",
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "A",
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 1,
+          "written": [
+            "Aa"
+          ],
+          "default": false,
+          "conditions": [
+            "post_bowed"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 2,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6179,
+      "name": "MONGOLIAN LETTER O",
+      "alias": "o",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "A",
+            "O"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "A",
+            "O"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "O"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 1,
+          "written": [
+            "O"
+          ],
+          "default": false,
+          "conditions": [
+            "marked",
+            "post_bowed"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 2,
+          "written": [
+            "U"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6184,
+      "name": "MONGOLIAN LETTER NA",
+      "alias": "n",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "N"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "N"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "N"
+          ],
+          "default": false,
+          "conditions": [
+            "onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [
+            "devsger"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 3,
+          "written": [
+            "Nx"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 1,
+          "written": [
+            "N"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 2,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 3,
+          "written": [
+            "Nx"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6185,
+      "name": "MONGOLIAN LETTER ANG",
+      "alias": "ng",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "A",
+            "G"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "A",
+            "G"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "A",
+            "G"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "A",
+            "G"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6186,
+      "name": "MONGOLIAN LETTER BA",
+      "alias": "b",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "B"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "B"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "B"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "B"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6190,
+      "name": "MONGOLIAN LETTER MA",
+      "alias": "m",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "M"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "M"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "M"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "M"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6191,
+      "name": "MONGOLIAN LETTER LA",
+      "alias": "l",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "L"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "L"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "L"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "L"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6192,
+      "name": "MONGOLIAN LETTER SA",
+      "alias": "s",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "S"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "S"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "S"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "S"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6196,
+      "name": "MONGOLIAN LETTER CHA",
+      "alias": "ch",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Ch"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Ch"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Ch"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Ch"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6197,
+      "name": "MONGOLIAN LETTER JA",
+      "alias": "j",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "J"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "J"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6198,
+      "name": "MONGOLIAN LETTER YA",
+      "alias": "y",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Y"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "Y"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 3,
+          "written": [
+            "Y"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Y"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6200,
+      "name": "MONGOLIAN LETTER WA",
+      "alias": "w",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "W"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "W"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "W"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "W"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6202,
+      "name": "MONGOLIAN LETTER KA",
+      "alias": "kh",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "K2"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "K2"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "K2"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "K2"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6237,
+      "name": "MONGOLIAN LETTER SIBE E",
+      "alias": "e",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "A"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "A"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "Ah"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 1,
+          "written": [
+            "A"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 2,
+          "written": [
+            "At"
+          ],
+          "default": false,
+          "conditions": [
+            "post_bowed"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 3,
+          "written": [
+            "Aa"
+          ],
+          "default": false,
+          "conditions": [
+            "post_bowed_feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 4,
+          "written": [
+            "Ah"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6239,
+      "name": "MONGOLIAN LETTER SIBE IY",
+      "alias": "ii",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Ai"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Ai"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Ai"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Ai"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6240,
+      "name": "MONGOLIAN LETTER SIBE UE",
+      "alias": "u",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "A",
+            "Oh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "A",
+            "Oh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "O"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "Oh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 1,
+          "written": [
+            "U"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 2,
+          "written": [
+            "Oh"
+          ],
+          "default": false,
+          "conditions": [
+            "marked",
+            "post_bowed"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 3,
+          "written": [
+            "O"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine_marked",
+            "post_bowed_feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 4,
+          "written": [
+            "Uh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6241,
+      "name": "MONGOLIAN LETTER SIBE U",
+      "alias": "ue",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "A",
+            "Ue"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "A",
+            "O",
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "O",
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Ue"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6244,
+      "name": "MONGOLIAN LETTER SIBE GA",
+      "alias": "g",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Hh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "Gh"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 1,
+          "written": [
+            "Gh"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "Hh"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "Gh"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "Hh"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Hh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6245,
+      "name": "MONGOLIAN LETTER SIBE HA",
+      "alias": "h",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Hc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "Gc"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 1,
+          "written": [
+            "Gc"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "Hc"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "Gc"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "Hc"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Hc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6246,
+      "name": "MONGOLIAN LETTER SIBE PA",
+      "alias": "p",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Pb"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Pb"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Pb"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Pb"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6247,
+      "name": "MONGOLIAN LETTER SIBE SHA",
+      "alias": "sh",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Sp"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Sp"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Sp"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Sp"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6248,
+      "name": "MONGOLIAN LETTER SIBE TA",
+      "alias": "t",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Tb"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "T"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 1,
+          "written": [
+            "Tb"
+          ],
+          "default": true,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "T"
+          ],
+          "default": false,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "Db"
+          ],
+          "default": true,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "Dd"
+          ],
+          "default": false,
+          "conditions": [
+            "devsger"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 3,
+          "written": [
+            "D"
+          ],
+          "default": false,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Dd"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6249,
+      "name": "MONGOLIAN LETTER SIBE DA",
+      "alias": "d",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Th"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "Tt"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 2,
+          "written": [
+            "Dt"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 1,
+          "written": [
+            "Tt"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "Th"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 3,
+          "written": [
+            "Dt"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "Dt"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "Dh"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Dh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6252,
+      "name": "MONGOLIAN LETTER SIBE GAA",
+      "alias": "gh",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Kh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Kh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Kh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Kh"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6253,
+      "name": "MONGOLIAN LETTER SIBE HAA",
+      "alias": "hh",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Kc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Kc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Kc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Kc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6254,
+      "name": "MONGOLIAN LETTER SIBE TSA",
+      "alias": "c",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Cs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Cs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Cs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Cs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6255,
+      "name": "MONGOLIAN LETTER SIBE ZA",
+      "alias": "z",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Zs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "Zs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "Zs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Zs"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6256,
+      "name": "MONGOLIAN LETTER SIBE RAA",
+      "alias": "rh",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Rr"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Rr"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Rr"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Rr"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6257,
+      "name": "MONGOLIAN LETTER SIBE CHA",
+      "alias": "cr",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Cc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Cc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Cc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Cc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6259,
+      "name": "MONGOLIAN LETTER MANCHU I",
+      "alias": "i",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "I"
+          ],
+          "default": false,
+          "conditions": [
+            "particle"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 2,
+          "written": [
+            "A",
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "A",
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "I",
+            "I"
+          ],
+          "default": false,
+          "conditions": [
+            "vowel_devsger"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "A",
+            "I"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 3,
+          "written": [
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 1,
+          "written": [
+            "Iy"
+          ],
+          "default": false,
+          "conditions": [
+            "marked"
+          ],
+          "archaic": false,
+          "unrecommended": true
+        },
+        {
+          "position": "fina",
+          "fvs": 2,
+          "written": [
+            "I"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6260,
+      "name": "MONGOLIAN LETTER MANCHU KA",
+      "alias": "k",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "H"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "G"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 2,
+          "written": [
+            "Gx"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 1,
+          "written": [
+            "G"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "Gx"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": true,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 3,
+          "written": [
+            "H"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "Hx"
+          ],
+          "default": false,
+          "conditions": [
+            "masculine_devsger"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "G"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 3,
+          "written": [
+            "H"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_onset"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 4,
+          "written": [
+            "Gx"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": true,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 1,
+          "written": [
+            "G4"
+          ],
+          "default": false,
+          "conditions": [
+            "feminine"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 2,
+          "written": [
+            "Gx"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": true,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 3,
+          "written": [
+            "Hx"
+          ],
+          "default": true,
+          "conditions": [
+            "masculine_devsger"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6261,
+      "name": "MONGOLIAN LETTER MANCHU RA",
+      "alias": "r",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "R"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "R3"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "R"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 1,
+          "written": [
+            "R3"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "R"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "R3"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "R2"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6262,
+      "name": "MONGOLIAN LETTER MANCHU FA",
+      "alias": "f",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "V"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "isol",
+          "fvs": 1,
+          "written": [
+            "W"
+          ],
+          "default": false,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 1,
+          "written": [
+            "W"
+          ],
+          "default": false,
+          "conditions": [
+            "marked"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 2,
+          "written": [
+            "V"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 1,
+          "written": [
+            "W"
+          ],
+          "default": false,
+          "conditions": [
+            "marked"
+          ],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 2,
+          "written": [
+            "V"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "V"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    },
+    {
+      "cp": 6263,
+      "name": "MONGOLIAN LETTER MANCHU ZHA",
+      "alias": "zr",
+      "variants": [
+        {
+          "position": "isol",
+          "fvs": 0,
+          "written": [
+            "Ic"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "init",
+          "fvs": 0,
+          "written": [
+            "Ic"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "medi",
+          "fvs": 0,
+          "written": [
+            "Jc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        },
+        {
+          "position": "fina",
+          "fvs": 0,
+          "written": [
+            "Jc"
+          ],
+          "default": true,
+          "conditions": [],
+          "archaic": false,
+          "unrecommended": false
+        }
+      ]
+    }
+  ],
+  "categories": {
+    "vowel": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "u",
+      "ue",
+      "ii"
+    ],
+    "consonant": [
+      "sbm",
+      "n",
+      "ng",
+      "k",
+      "g",
+      "h",
+      "b",
+      "p",
+      "s",
+      "sh",
+      "t",
+      "d",
+      "l",
+      "m",
+      "ch",
+      "j",
+      "y",
+      "r",
+      "f",
+      "w",
+      "kh",
+      "gh",
+      "hh",
+      "c",
+      "z",
+      "rh",
+      "cr",
+      "zr"
+    ],
+    "vowelMasculine": [
+      "a",
+      "o",
+      "ue"
+    ],
+    "vowelFeminine": [
+      "e",
+      "u"
+    ],
+    "vowelNeuter": [
+      "i"
+    ]
+  },
+  "particles": {
+    "mvs i": [
+      1
+    ]
+  }
+}

@@ -30,12 +30,13 @@ Why this engine exists / 为什么需要这个引擎:
   5. Post-bowed（弓形后续）— vowel forms after bowed consonants (G, Gx, K, K2, B, P, F)
                              弓形辅音后的元音形态
 
-Data source / 数据来源: mongfontbuilder PyPI package (mongfontbuilder.data)
+Data source / 数据来源: mongol-shape-data (flat pre-processed rules JSON).
+The rules are generated from mongfontbuilder + UTN #57 by the preprocess
+script in the mongol-shape-data package.
 """
-import json
-import os
 from typing import List, Tuple, Optional, Dict, Set
-import mongfontbuilder as _mfb
+
+from mongol_shape_data import load_rules
 
 # Positional forms: a Mongolian letter takes different shapes depending on
 # where it appears in the word. This is analogous to Arabic initial/medial/final forms.
@@ -152,27 +153,53 @@ class MongolianShaper:
 
     def _load_data(self):
         """
-        Load JSON data files from the mongfontbuilder package.
-        从 mongfontbuilder 包加载 JSON 数据文件。
+        Load the flat shape-rules JSON for the selected locale.
+        加载当前 locale 的扁平 shape-rules JSON。
 
-        Four files power the engine / 引擎依赖四个文件:
-          variants.json  — letter × position × FVS → glyph/written mapping
-                           字母 × 位置 × FVS → 字形/书写单元映射
-          aliases.json   — codepoint → human-readable alias (e.g. U+1820 → "A")
-                           码位 → 人类可读简称
-          locales.json   — locale-specific vowel/consonant categories and harmony classes
-                           区域特定的元音/辅音分类和和谐类别
-          particles.json — MVS particle dictionary for suffix recognition
-                           MVS 助词词典，用于识别词缀
+        Data comes from the `mongol-shape-data` package, which ships pre-processed
+        rules generated from mongfontbuilder + UTN #57. No runtime reference
+        resolution, no cross-locale merging — the JSON is language-agnostic and
+        the same file is consumed by future JS/Dart/etc. ports.
+
+        数据来自 `mongol-shape-data` 包，内含由 mongfontbuilder + UTN #57 预处理
+        生成的规则。运行时无需解析交叉引用或跨 locale 合并——该 JSON 语言无关，
+        未来 JS/Dart 等移植版本共享同一份数据。
         """
-        data_dir = os.path.join(os.path.dirname(_mfb.__file__), "data")
-        def load(name):
-            with open(os.path.join(data_dir, name), encoding="utf-8") as f:
-                return json.load(f)
-        self.variants = load("variants.json")
-        self.aliases = load("aliases.json")
-        self.locales_data = load("locales.json")
-        self.particles_data = load("particles.json")
+        self._rules = load_rules(self.locale)
+
+        # Build a compat nested dict so the rest of the engine (which still walks
+        # self.variants in {char_name: {pos: {fvs_str: vdata}}} shape) keeps working.
+        # Each vdata here already has locale-specific fields inlined under self.locale,
+        # since the preprocess step filtered to the target locale.
+        self.variants: Dict[str, Dict[str, Dict[str, Dict]]] = {}
+        for letter in self._rules["letters"]:
+            char_name = letter["name"]
+            for v in letter["variants"]:
+                pos, fvs_str = v["position"], str(v["fvs"])
+                vdata = {
+                    "written": v["written"],
+                    "default": v["default"],
+                    "locales": {
+                        self.locale: {
+                            "written": v["written"],
+                            "conditions": v["conditions"],
+                            "archaic": v["archaic"],
+                            "unrecommended": v["unrecommended"],
+                        }
+                    },
+                }
+                self.variants.setdefault(char_name, {}).setdefault(pos, {})[fvs_str] = vdata
+
+        # Aliases for this locale, flattened to {char_name: alias}.
+        self.aliases: Dict[str, str] = {
+            letter["name"]: letter["alias"]
+            for letter in self._rules["letters"]
+            if letter.get("alias")
+        }
+
+        # Locale-level metadata (categories + particles).
+        self.locales_data = {self.locale: {"categories": self._rules["categories"]}}
+        self.particles_data = {self.locale: self._rules["particles"]}
     
     def _build_lookups(self):
         """

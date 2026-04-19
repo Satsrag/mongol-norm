@@ -13,7 +13,7 @@ must produce the identical canonical output.
 所有五种都必须产生相同的规范输出。
 """
 import unittest
-from shaper import MongolianShaper
+from mongol_norm import MongolianShaper
 
 
 class TestShape(unittest.TestCase):
