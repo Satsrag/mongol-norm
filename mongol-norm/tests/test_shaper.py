@@ -15,6 +15,22 @@ must produce the identical canonical output.
 import unittest
 from mongol_norm import MongolianShaper
 
+_ALIAS_TO_CP = {
+    'a': '\u1820', 'e': '\u1821', 'i': '\u1822', 'o': '\u1823',
+    'u': '\u1824', 'oe': '\u1825', 'ue': '\u1826', 'ee': '\u1827',
+    'n': '\u1828', 'ng': '\u1829', 'b': '\u182A', 'p': '\u182B',
+    'h': '\u182C', 'g': '\u182D', 'm': '\u182E', 'l': '\u182F',
+    's': '\u1830', 'sh': '\u1831', 't': '\u1832', 'd': '\u1833',
+    'ch': '\u1834', 'j': '\u1835', 'y': '\u1836', 'r': '\u1837',
+    'w': '\u1838', 'f': '\u1839', 'k2': '\u183A', 'k': '\u183B',
+    'mvs': '\u180E', 'fvs1': '\u180B', 'fvs2': '\u180C',
+    'fvs3': '\u180D', 'fvs4': '\u180F', 'nnbsp': '\u202F',
+}
+
+def _mgl(s):
+    """Build Mongolian text from space-separated aliases, e.g. _mgl("t a l mvs a")."""
+    return ''.join(_ALIAS_TO_CP[a] for a in s.split())
+
 
 class TestShape(unittest.TestCase):
     """
@@ -57,54 +73,399 @@ class TestShape(unittest.TestCase):
     def test_sain_ya_fvs1_ya_fvs1(self):
         self.assertEqual(self.s.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ"), ["S", "A", "I", "I", "A"])
 
-    # ── vowel harmony ────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════
+    # Step 1 · Chachlag — MVS-triggered suffix forms
+    # ══════════════════════════════════════════════════════════
 
-    def test_masculine_a_not_e(self):
-        # ᠣᠷᠣᠨ (oron) — masculine word, A-position vowel stays A-form
-        shape = self.s.shape("ᠣᠷᠣᠨ")
-        self.assertIn("O", shape)
-
-    def test_feminine_post_bowed(self):
-        # ᠥᠭᠡ (üge) — feminine: GA after OE takes post-bowed Aa form at final
-        self.assertEqual(self.s.shape("ᠥᠭᠡ"), ["A", "O", "I", "G", "Aa"])
-
-    # ── devsger: I after vowel gets double-tooth ─────────────────
-
-    def test_devsger_double_tooth(self):
-        # ᠠᠢᠯ (ail) — I in medial position after vowel → double-tooth I,I
-        self.assertEqual(self.s.shape("ᠠᠢᠯ"), ["A", "A", "I", "I", "L"])
-
-    def test_devsger_final_no_double(self):
-        # ᠠᠢ — I at final position, devsger does not apply
-        self.assertEqual(self.s.shape("ᠠᠢ"), ["A", "A", "I"])
-
-    # ── MVS chachlag ───────────────────────────────────────────────
-
-    def test_mvs_chachlag(self):
-        # ᠲᠠᠯ᠎ᠠ (tal + MVS + a) — MVS breaks joining: l=fina, a=isol with chachlag
-        self.assertEqual(self.s.shape("\u1832\u1820\u182F\u180E\u1820"), ["T", "A", "L", "mvs", "Aa"])
-
-    def test_mvs_double(self):
-        # ᠲᠠᠯ᠎ᠠ᠎ᠶᠢᠨ (tal + MVS + a + MVS + yin) — two MVS boundaries
-        # "mvs y i n" matches particle dict → y gets particle condition → written "I"
+    # 1-1  a/e after MVS → chachlag
+    def test_step1_chachlag_tala(self):
+        # ᠲᠠᠯ᠎ᠠ  tal + MVS + a → chachlag "Aa"
         self.assertEqual(
-            self.s.shape("\u1832\u1820\u182F\u180E\u1820\u180E\u1836\u1822\u1828"),
+            self.s.shape(_mgl("t a l mvs a")),
+            ["T", "A", "L", "mvs", "Aa"],
+        )
+
+    def test_step1_chachlag_talayin(self):
+        # ᠲᠠᠯ᠎ᠠ᠎ᠶᠢᠨ  two MVS: chachlag on a, particle on y
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs a mvs y i n")),
             ["T", "A", "L", "mvs", "Aa", "mvs", "I", "I", "A"],
         )
 
-    def test_nnbsp_same_as_mvs(self):
-        # NNBSP (U+202F) is normalized to MVS at tokenization, same shape result
-        mvs_text = "\u1832\u1820\u182F\u180E\u1820\u180E\u1836\u1822\u1828"
-        nnbsp_text = "\u1832\u1820\u182F\u202F\u1820\u202F\u1836\u1822\u1828"
+    # 1-2  a/e after MVS + FVS → default (no chachlag)
+    def test_step1_chachlag_mvs_a_fvs_default(self):
+        # tal + MVS + a+FVS1 → a gets default (not chachlag)
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs a fvs1")),
+            ["T", "A", "L", "mvs", "A"],
+        )
+
+    # ══════════════════════════════════════════════════════════
+    # Step 2 · Syllabic — consonant/vowel context rules
+    # ══════════════════════════════════════════════════════════
+
+    # 2-1  o/u/oe/ue after initial consonant → marked
+
+    def test_step2_vowel_marked(self):
+        # o/u/oe/ue after initial consonant → marked
+        self.assertEqual(self.s.shape(_mgl("ch u")),   ["Ch", "O"])       # ᠴᠤ
+        self.assertEqual(self.s.shape(_mgl("s ue")),   ["S", "Ue"])       # ᠰᠦ
+        self.assertEqual(self.s.shape(_mgl("d u")),    ["D", "O"])        # ᠳᠤ
+        self.assertEqual(self.s.shape(_mgl("d ue")),   ["D", "Ue"])       # ᠳᠦ
+        self.assertEqual(self.s.shape(_mgl("t ue l")), ["T", "O", "I", "L"])  # ᠲᠦᠯ
+
+    # 2-1b  o/u/oe/ue precedes/follows FVS → default
+    def test_step2_vowel_fvs_default(self):
+        # FVS on vowel itself → default
+        self.assertEqual(self.s.shape(_mgl("h u fvs2")),  ["H", "U"])    # ᠬᠤ᠌
+        self.assertEqual(self.s.shape(_mgl("r ue fvs3")), ["R", "U"])    # ᠷᠦ᠍
+        # FVS on preceding letter → vowel also default
+        self.assertEqual(self.s.shape(_mgl("d fvs1 ue")), ["D", "U"])    # ᠳ᠋ᠦ
+        self.assertEqual(self.s.shape(_mgl("d fvs1 u")),  ["D", "U"])    # ᠳ᠋ᠤ
+
+    # 2-1c  oe/ue.fina preceded by h/g(INIT)+FVS2/FVS4 → marked (exception)
+    # Per GB/T 25914-2023 表 E.3 (U+182C) / 表 E.4 (U+182D): this rule applies
+    # ONLY when h/g is at initial position. UTN #57 and the mongfontbuilder
+    # docs (web/docs/hudum.mdx) describe this rule without the init constraint
+    # and with reversed "precedes" wording — both are inaccurate.
+    # See: https://github.com/Kushim-Jiang/mongfontbuilder/issues/47
+    # 仅当 h/g 处于词首位置时触发；UTN #57 与 mongfontbuilder 文档均有误。
+    def test_step2_oe_ue_fina_hg_init_fvs_marked(self):
+        self.assertEqual(self.s.shape(_mgl("h fvs2 ue")), ["G", "Ue"])   # ᠬ᠌ᠦ
+        self.assertEqual(self.s.shape(_mgl("g fvs4 ue")), ["Gx", "Ue"])  # ᠭ᠏ᠦ
+
+    # 2-1d  oe/ue.fina preceded by h/g(MEDI)+FVS2/FVS4 → default (NOT marked)
+    # Regression guard: confirms the init-position constraint added per GB/T
+    # 25914-2023 表 E.3/E.4. ᠡᠨᠡᠬ᠌ᠦ (enehüu, "this") has h at .medi — it must
+    # render the default O form, matching real font output.
+    # 反向回归：词中的 h/g + FVS2/FVS4 + ue 不触发 marked，必须返回默认 O 形。
+    def test_step2_oe_ue_fina_hg_medi_fvs_default(self):
+        self.assertEqual(self.s.shape(_mgl("e n e h fvs2 ue")), ["A", "N", "A", "G", "O"])   # ᠡᠨᠡᠬ᠌ᠦ
+        self.assertEqual(self.s.shape(_mgl("e n e g fvs4 ue")), ["A", "N", "A", "Gx", "O"])  # ᠡᠨᠡᠭ᠏ᠦ
+
+    # 2-2  oe/ue medial after consonant cluster from init → marked
+    def test_step2_oe_marked_after_cc(self):
+        # ᠮᠨᠥᠭᠡ (mnöge) — oe after init m + medi n → marked
+        details = self.s.shape_detailed(_mgl("m n oe g e"))
+        oe_tok = [d for d in details if d["alias"] == "oe"][0]
+        self.assertEqual(oe_tok["condition"], "marked")
+
+    # 2-3  d before final vowel (no FVS) → marked
+    def test_step2_d_marked(self):
+        # ᠠᠳᠤ (adu) — d before fina u → marked "Dd"
+        self.assertEqual(
+            self.s.shape(_mgl("a d u")),
+            ["A", "A", "Dd", "U"],
+        )
+
+    # 2-4  n/j/w before MVS + isolated a/e → chachlag_onset
+    def test_step2_chachlag_onset_n(self):
+        # ᠰᠠᠢᠨ᠎ᠠ — n before MVS+a → chachlag_onset "N"
+        self.assertEqual(
+            self.s.shape(_mgl("s a i n mvs a")),
+            ["S", "A", "I", "I", "N", "mvs", "Aa"],
+        )
+
+    # 2-5  h/g before MVS + isolated a → chachlag_onset
+    def test_step2_chachlag_onset_g_a(self):
+        # ᠭ᠎ᠠ — g before MVS+a → chachlag_onset
+        self.assertEqual(
+            self.s.shape(_mgl("g mvs a")),
+            ["Hx", "mvs", "Aa"],
+        )
+
+    # 2-6  g before MVS + isolated e → chachlag_onset
+    def test_step2_chachlag_onset_g_e(self):
+        # ᠭ᠎ᠡ — g before MVS+e → chachlag_onset
+        self.assertEqual(
+            self.s.shape(_mgl("g mvs e")),
+            ["Hx", "mvs", "Aa"],
+        )
+
+    # 2-7  n/t/d before vowel → onset; after vowel → devsger
+    def test_step2_n_onset(self):
+        # ᠨᠠᠢᠮᠠ (naima) — n before vowel → onset "N"
+        self.assertEqual(
+            self.s.shape(_mgl("n a i m a"))[0], "N",
+        )
+
+    def test_step2_n_devsger(self):
+        # ᠰᠠᠢᠨ (sain) — n after vowel → devsger → fina "A"
+        self.assertEqual(
+            self.s.shape(_mgl("s a i n"))[-1], "A",
+        )
+
+    def test_step2_t_onset(self):
+        # ᠲᠣᠯᠢ (toli) — t before vowel → onset "T"
+        self.assertEqual(
+            self.s.shape(_mgl("t o l i"))[0], "T",
+        )
+
+    def test_step2_t_devsger_before_consonant(self):
+        # ᠠᠲᠨ (atn) — t before consonant n → devsger "T"
+        self.assertEqual(
+            self.s.shape(_mgl("a t n")),
+            ["A", "A", "T", "A"],
+        )
+
+    # 2-8  h/g: masculine/feminine context chain
+    def test_step2_h_masculine_onset(self):
+        # ᠬᠠᠷ (har) — h(QA) before masculine vowel a → masculine_onset "H"
+        self.assertEqual(
+            self.s.shape(_mgl("h a r")),
+            ["H", "A", "R"],
+        )
+
+    def test_step2_g_masculine_onset(self):
+        # ᠭᠠᠷ (gar) — g(GA) before masculine vowel a → masculine_onset "Hx"
+        self.assertEqual(
+            self.s.shape(_mgl("g a r")),
+            ["Hx", "A", "R"],
+        )
+
+    def test_step2_g_feminine(self):
+        # ᠭᠡᠷ (ger) — g(GA) before feminine vowel e → feminine "G"
+        self.assertEqual(
+            self.s.shape(_mgl("g e r")),
+            ["G", "A", "R"],
+        )
+
+    def test_step2_g_masculine_devsger(self):
+        # ᠠᠭ (ag) — g(GA) after masculine vowel a → masculine_devsger "H"
+        self.assertEqual(
+            self.s.shape(_mgl("a g")),
+            ["A", "A", "H"],
+        )
+
+    def test_step2_g_feminine_after_fem(self):
+        # ᠥᠭ (oeg) — g(GA) after feminine vowel oe → feminine "G"
+        self.assertEqual(
+            self.s.shape(_mgl("oe g")),
+            ["A", "O", "I", "G"],
+        )
+
+    def test_step2_hg_remote_masculine(self):
+        # ᠣᠭᠨ (ogn) — g remote: o is masculine → masculine_devsger "H"
+        self.assertEqual(
+            self.s.shape(_mgl("o g n")),
+            ["A", "O", "H", "A"],
+        )
+
+    def test_step2_hg_remote_feminine(self):
+        # ᠥᠭᠨ (oegn) — g remote: oe is feminine → feminine "G"
+        self.assertEqual(
+            self.s.shape(_mgl("oe g n")),
+            ["A", "O", "I", "G", "A"],
+        )
+
+    # 2-9  t before ee or consonant → devsger
+    def test_step2_t_devsger_before_ee(self):
+        # ᠠᠲᠧᠨ (ateen) — t before ee → devsger "D"
+        details = self.s.shape_detailed(_mgl("a t ee n"))
+        t_tok = [d for d in details if d["alias"] == "t"][0]
+        self.assertEqual(t_tok["condition"], "onset")
+
+    # 2-10  sh: dotless before i
+    def test_step2_sh_dotless(self):
+        # ᠰᠢᠮ (shim) — sh.init before i.medi → dotless "S"
+        self.assertEqual(
+            self.s.shape(_mgl("sh i m")),
+            ["S", "I", "M"],
+        )
+
+    # ══════════════════════════════════════════════════════════
+    # Step 3 · Particle — MVS particle dictionary lookup
+    # ══════════════════════════════════════════════════════════
+
+    # 3-1  MVS + particle dict entries
+    def test_step3_particle_yi(self):
+        # tal + MVS + yi → y particle "I"
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs y i")),
+            ["T", "A", "L", "mvs", "I", "I"],
+        )
+
+    def test_step3_particle_yin(self):
+        # tal + MVS + yin → y particle "I"
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs y i n")),
+            ["T", "A", "L", "mvs", "I", "I", "A"],
+        )
+
+    def test_step3_particle_du(self):
+        # tal + MVS + du → d,u particle
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs d u")),
+            ["T", "A", "L", "mvs", "D", "U"],
+        )
+
+    def test_step3_particle_i(self):
+        # tal + MVS + i → i particle
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i")),
+            ["T", "A", "L", "mvs", "I"],
+        )
+
+    def test_step3_particle_u(self):
+        # tal + MVS + u → u particle
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs u")),
+            ["T", "A", "L", "mvs", "U"],
+        )
+
+    def test_step3_particle_iyar(self):
+        # tal + MVS + iyar → i,y particle
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i y a r")),
+            ["T", "A", "L", "mvs", "I", "I", "A", "R"],
+        )
+
+    def test_step3_particle_dagan(self):
+        # tal + MVS + dagan → d particle
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs d a g a n")),
+            ["T", "A", "L", "mvs", "D", "A", "Hx", "A", "A"],
+        )
+
+    # 3-2  u/ue particle without MVS
+    def test_step3_particle_uu(self):
+        # ᠤᠤ (uu) — "u u" in particle dict → u.init particle "O"
+        self.assertEqual(
+            self.s.shape(_mgl("u u")),
+            ["O", "U"],
+        )
+
+    def test_step3_particle_ueue(self):
+        # ᠦᠦ (ueue) — "ue ue" in particle dict → ue.init particle "O"
+        self.assertEqual(
+            self.s.shape(_mgl("ue ue")),
+            ["O", "U"],
+        )
+
+    # ══════════════════════════════════════════════════════════
+    # Step 4 · Devsger — i double tooth after vowel
+    # ══════════════════════════════════════════════════════════
+
+    def test_step4_devsger_ail(self):
+        # ᠠᠢᠯ (ail) — i.medi after vowel a → vowel_devsger I,I
+        self.assertEqual(
+            self.s.shape(_mgl("a i l")),
+            ["A", "A", "I", "I", "L"],
+        )
+
+    def test_step4_no_devsger_final(self):
+        # ᠠᠢ (ai) — i.fina: devsger does NOT apply at final
+        self.assertEqual(
+            self.s.shape(_mgl("a i")),
+            ["A", "A", "I"],
+        )
+
+    def test_step4_devsger_naima(self):
+        # ᠨᠠᠢᠮᠠ (naima) — i after a → vowel_devsger I,I
+        self.assertEqual(
+            self.s.shape(_mgl("n a i m a")),
+            ["N", "A", "I", "I", "M", "A"],
+        )
+
+    # ══════════════════════════════════════════════════════════
+    # Step 5 · Post-bowed — vowels after bowed consonants
+    # ══════════════════════════════════════════════════════════
+
+    # 5-1  a/e after bowed → post_bowed
+    def test_step5_post_bowed_uge(self):
+        # ᠥᠭᠡ (üge) — e after G(bowed) → post_bowed "Aa"
+        self.assertEqual(
+            self.s.shape(_mgl("oe g e")),
+            ["A", "O", "I", "G", "Aa"],
+        )
+
+    def test_step5_post_bowed_ger(self):
+        # ᠭᠡᠷ (ger) — e after G(bowed) → post_bowed "A"
+        self.assertEqual(
+            self.s.shape(_mgl("g e r")),
+            ["G", "A", "R"],
+        )
+
+    def test_step5_post_bowed_boge(self):
+        # ᠪᠣᠭᠡ (boge) — e after G(bowed) → post_bowed "Aa"
+        self.assertEqual(
+            self.s.shape(_mgl("b o g e")),
+            ["B", "O", "G", "Aa"],
+        )
+
+    # ══════════════════════════════════════════════════════════
+    # Position assignment
+    # ══════════════════════════════════════════════════════════
+
+    def test_position_single_isol(self):
+        tokens = self.s.tokenize(_mgl("n"))
+        self.s.assign_positions(tokens)
+        ltoks = [t for t in tokens if t.is_letter]
+        self.assertEqual(ltoks[0].position, "isol")
+
+    def test_position_init_fina(self):
+        tokens = self.s.tokenize(_mgl("a b"))
+        self.s.assign_positions(tokens)
+        ltoks = [t for t in tokens if t.is_letter]
+        self.assertEqual(ltoks[0].position, "init")
+        self.assertEqual(ltoks[1].position, "fina")
+
+    def test_position_init_medi_fina(self):
+        tokens = self.s.tokenize(_mgl("t a l"))
+        self.s.assign_positions(tokens)
+        ltoks = [t for t in tokens if t.is_letter]
+        self.assertEqual(ltoks[0].position, "init")
+        self.assertEqual(ltoks[1].position, "medi")
+        self.assertEqual(ltoks[2].position, "fina")
+
+    def test_position_mvs_breaks_chain(self):
+        # t a l MVS a → [init,medi,fina] + [isol]
+        tokens = self.s.tokenize(_mgl("t a l mvs a"))
+        self.s.assign_positions(tokens)
+        ltoks = [t for t in tokens if t.is_letter]
+        positions = [t.position for t in ltoks]
+        self.assertEqual(positions, ["init", "medi", "fina", "isol"])
+
+    def test_position_double_mvs(self):
+        # t a l MVS a MVS y i n → 3 segments
+        tokens = self.s.tokenize(_mgl("t a l mvs a mvs y i n"))
+        self.s.assign_positions(tokens)
+        ltoks = [t for t in tokens if t.is_letter]
+        positions = [t.position for t in ltoks]
+        self.assertEqual(positions, ["init", "medi", "fina", "isol", "init", "medi", "fina"])
+
+    # ══════════════════════════════════════════════════════════
+    # NNBSP → MVS normalization
+    # ══════════════════════════════════════════════════════════
+
+    def test_nnbsp_produces_same_shape(self):
+        mvs_text = _mgl("t a l mvs a mvs y i n")
+        nnbsp_text = _mgl("t a l nnbsp a nnbsp y i n")
         self.assertEqual(self.s.shape(nnbsp_text), self.s.shape(mvs_text))
 
-    # ── single letter / edge cases ───────────────────────────────
+    # ══════════════════════════════════════════════════════════
+    # Edge cases
+    # ══════════════════════════════════════════════════════════
 
     def test_single_vowel(self):
-        self.assertEqual(self.s.shape("ᠠ"), ["A", "A"])
+        self.assertEqual(self.s.shape(_mgl("a")), ["A", "A"])
 
     def test_empty_string(self):
         self.assertEqual(self.s.shape(""), [])
+
+    def test_oron(self):
+        # ᠣᠷᠣᠨ (oron)
+        self.assertEqual(
+            self.s.shape(_mgl("o r o n")),
+            ["A", "O", "R", "O", "A"],
+        )
+
+    def test_mori(self):
+        # ᠮᠣᠷᠢ (mori)
+        self.assertEqual(
+            self.s.shape(_mgl("m o r i")),
+            ["M", "O", "R", "I"],
+        )
 
 
 class TestSameShape(unittest.TestCase):

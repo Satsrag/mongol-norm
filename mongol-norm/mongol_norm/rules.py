@@ -41,6 +41,9 @@ from typing import Callable, FrozenSet, List
 
 BOWED_UNITS = {"G", "Gx", "K", "K2", "B", "P", "F"}
 
+FVS2_CP = 0x180C
+FVS4_CP = 0x180F
+
 
 @dataclass(frozen=True)
 class Rule:
@@ -91,12 +94,16 @@ def _iii1_chachlag_at(tokens, i, shaper):
 # ═══════════════════════════════════════════════════════════════════════
 #
 # (1) o/u/oe/ue following an initial consonant get `marked` (tall-stem form).
+#     GB.A resets this when an FVS is adjacent to the vowel;
+#     GB.B re-asserts it for the narrow h/g + FVS2/FVS4 + oe/ue.fina case.
 # (1') oe/ue in medial position also get `marked` when the preceding medi
 #      consonant sits in a cluster that starts with an init consonant.
 # (2)  Initial d before a final vowel gets `marked` (Twelve Syllabaries form).
-# GB exception across the board: explicit FVS on the target reverts to default.
+#      Its GB exception (FVS adjacent to d or the following vowel) is
+#      currently inlined in `_iii2a_d_marked_at`.
 
 def _iii2a_o_u_oe_ue_marked(tokens, shaper):
+    """mongfontbuilder Lookup: III.o_u_oe_ue.marked"""
     for i in range(len(tokens)):
         _iii2a_o_u_oe_ue_marked_at(tokens, i, shaper)
 
@@ -109,12 +116,69 @@ def _iii2a_o_u_oe_ue_marked_at(tokens, i, shaper):
         return
     if tok.alias not in ("o", "u", "oe", "ue"):
         return
-    if shaper._has_fvs(tok):
-        return  # GB: explicit FVS → default
     prev = shaper._prev_letter(tokens, i)
     if prev is None:
         return
     if not (shaper._is_consonant(prev) and prev.position == "init"):
+        return
+    tok.condition = "marked"
+
+
+def _iii2a_o_u_oe_ue_marked_gb_a(tokens, shaper):
+    """mongfontbuilder Lookup: III.o_u_oe_ue.marked.GB.A
+
+    Reverts `marked` to default when an FVS sits directly before or after
+    the vowel. In mongfontbuilder this is expressed via two sub-rules under
+    `UseMarkFilteringSet = fvs`:
+
+        sub [vowel→reset] [fvs]                  # FVS attached to vowel
+        sub [fvs] [vowel→reset]                  # FVS attached to prev letter
+    """
+    for i in range(len(tokens)):
+        _iii2a_o_u_oe_ue_marked_gb_a_at(tokens, i, shaper)
+
+
+def _iii2a_o_u_oe_ue_marked_gb_a_at(tokens, i, shaper):
+    tok = tokens[i]
+    if not tok.is_letter:
+        return
+    if tok.alias not in ("o", "u", "oe", "ue"):
+        return
+    if tok.condition != "marked":
+        return
+    if shaper._has_fvs(tok):
+        tok.condition = None
+        return
+    prev = shaper._prev_letter(tokens, i)
+    if prev is not None and shaper._has_fvs(prev):
+        tok.condition = None
+
+
+def _iii2a_o_u_oe_ue_marked_gb_b(tokens, shaper):
+    """mongfontbuilder Lookup: III.o_u_oe_ue.marked.GB.B
+
+    The single exception to GB.A: initial h/g carrying FVS2 or FVS4
+    followed by final oe/ue stays `marked`, even though an FVS sits
+    between the consonant and the vowel.
+    """
+    for i in range(len(tokens)):
+        _iii2a_o_u_oe_ue_marked_gb_b_at(tokens, i, shaper)
+
+
+def _iii2a_o_u_oe_ue_marked_gb_b_at(tokens, i, shaper):
+    tok = tokens[i]
+    if tok.condition is not None:
+        return
+    if not tok.is_letter:
+        return
+    if tok.alias not in ("oe", "ue") or tok.position != "fina":
+        return
+    prev = shaper._prev_letter(tokens, i)
+    if prev is None:
+        return
+    if prev.alias not in ("h", "g") or prev.position != "init":
+        return
+    if prev.fvs_cp not in (FVS2_CP, FVS4_CP):
         return
     tok.condition = "marked"
 
@@ -476,6 +540,8 @@ def _iii5_post_bowed_at(tokens, i, shaper):
 RULES_MNG: List[Rule] = [
     Rule("III.1.chachlag",                 frozenset({"MNG"}), _iii1_chachlag),
     Rule("III.2a.o_u_oe_ue.marked",        frozenset({"MNG"}), _iii2a_o_u_oe_ue_marked),
+    Rule("III.2a.o_u_oe_ue.marked.GB.A",   frozenset({"MNG"}), _iii2a_o_u_oe_ue_marked_gb_a),
+    Rule("III.2a.o_u_oe_ue.marked.GB.B",   frozenset({"MNG"}), _iii2a_o_u_oe_ue_marked_gb_b),
     Rule("III.2a.oe_ue.cluster.marked",    frozenset({"MNG"}), _iii2a_oe_ue_cluster_marked),
     Rule("III.2a.d.marked",                frozenset({"MNG"}), _iii2a_d_marked),
     Rule("III.2c.chachlag_onset",          frozenset({"MNG"}), _iii2c_chachlag_onset),
