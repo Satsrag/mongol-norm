@@ -99,8 +99,10 @@ def _iii1_chachlag_at(tokens, i, shaper):
 # (1') oe/ue in medial position also get `marked` when the preceding medi
 #      consonant sits in a cluster that starts with an init consonant.
 # (2)  Initial d before a final vowel gets `marked` (Twelve Syllabaries form).
-#      Its GB exception (FVS adjacent to d or the following vowel) is
-#      currently inlined in `_iii2a_d_marked_at`.
+#      The init gate is load-bearing, not descriptive — see the rule body
+#      for why we diverge from the formal UTN57 wording here. The GB
+#      exception (FVS adjacent to d or the following vowel) is inlined in
+#      `_iii2a_d_marked_at`.
 
 def _iii2a_o_u_oe_ue_marked(tokens, shaper):
     """mongfontbuilder Lookup: III.o_u_oe_ue.marked"""
@@ -224,6 +226,23 @@ def _iii2a_d_marked_at(tokens, i, shaper):
     if tok.condition is not None:
         return
     if not tok.is_letter or tok.alias != "d":
+        return
+    # Restrict to d.init. The formal UTN57 wording in
+    # `mongfontbuilder/web/docs/hudum.mdx` says just "d", but both
+    # reference implementations gate on init:
+    #   - mongfontbuilder/lib/mongfontbuilder/otl/iii.py:359-364
+    #     uses `MNG-d.init` as the input class
+    #   - mongolian/sources/otl/lookups-general-syllabic.fea:72
+    #     uses `@d-hud.init'` as the matched glyph
+    # The data layer agrees: `condition.hud.marked`
+    # (mongolian/sources/otl/lookups-conditions-hag.fea:33-41) only
+    # ships a marked variant for d.init (`uni1833.D.init`); d.medi has
+    # no marked form. Without this gate, a d.medi sitting before a fina
+    # vowel would silently claim the `marked` slot and — via the
+    # first-writer-wins guard at the top — block iii2e from setting
+    # `onset` on the same d, dropping the correct Twelve-Syllabaries
+    # onset form. So we mirror the implementations, not the prose.
+    if tok.position != "init":
         return
     if shaper._has_fvs(tok):
         return

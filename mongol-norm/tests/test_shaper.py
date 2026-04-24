@@ -149,14 +149,33 @@ class TestShape(unittest.TestCase):
         details = self.s.shape_detailed(_mgl("m n oe g e"))
         oe_tok = [d for d in details if d["alias"] == "oe"][0]
         self.assertEqual(oe_tok["condition"], "marked")
+        self.assertEqual(self.s.shape(_mgl("m n oe g e")), ["M", "N", "O", "I", "G", "Aa"])  # ᠮᠨᠥᠭᠡ
 
-    # 2-3  d before final vowel (no FVS) → marked
+    # 2-3  d.init before final vowel (no FVS) → marked (Twelve Syllabaries)
     def test_step2_d_marked(self):
-        # ᠠᠳᠤ (adu) — d before fina u → marked "Dd"
-        self.assertEqual(
-            self.s.shape(_mgl("a d u")),
-            ["A", "A", "Dd", "U"],
-        )
+        # ᠳᠠ (da) — d.init + a.fina (no FVS) → marked "D".
+        # Without the marked rule, d.init default would be "T" (onset).
+        self.assertEqual(self.s.shape(_mgl("d a")), ["D", "A"])
+        # ᠳᠦ (du) — d.init + u.fina → marked "D"; u.fina renders as "O"
+        # because the post-bowed/marked context selects its bowed form.
+        self.assertEqual(self.s.shape(_mgl("d u")), ["D", "O"])
+
+    # 2-3a  GB exception: an FVS adjacent to d or to the following vowel
+    #       cancels the d.marked rule (cf. mongolian/.fea III.eac.d.marked
+    #       `ignore sub @d-hud.init' @hud.vowel @fvs`).
+    def test_step2_d_marked_gb_fvs_cancels(self):
+        # FVS on the vowel → marked bails → d.init falls to default "T"
+        self.assertEqual(self.s.shape(_mgl("d a fvs1")), ["T", "Aa"])
+
+    # 2-3b  d.medi between vowels is NOT covered by d.marked (init-only);
+    #       iii2e takes it instead and assigns `onset` → "D" (tooth form).
+    #       Locks in the init-gate fix in `_iii2a_d_marked_at`.
+    def test_step2_d_medi_intervocalic_onset(self):
+        # ᠣᠳᠣ (odu) — o init + d medi (between vowels) + u fina
+        # d.medi gets onset → "D", not the devsger default "Dd".
+        self.assertEqual(self.s.shape(_mgl("o d u")), ["A", "O", "D", "U"])
+        # d.fina (no following vowel) keeps its devsger default "Dd"
+        self.assertEqual(self.s.shape(_mgl("o d")), ["A", "O", "Dd"])
 
     # 2-4  n/j/w before MVS + isolated a/e → chachlag_onset
     def test_step2_chachlag_onset_n(self):
@@ -165,29 +184,69 @@ class TestShape(unittest.TestCase):
             self.s.shape(_mgl("s a i n mvs a")),
             ["S", "A", "I", "I", "N", "mvs", "Aa"],
         )
+        # ᠬᠤᠷᠸ᠎ᠠ - w before MVS+a → chachlag_onset "U"
+        self.assertEqual(
+            self.s.shape(_mgl("h o r w mvs a")),
+            ["H", "O", "R", "U", "mvs", "Aa"],
+        )
+        # ᠵ᠎ᠠ - j before MVS+a → chachlag_onset "I"
+        self.assertEqual(
+            self.s.shape(_mgl("j mvs a")),
+            ["I", "mvs", "Aa"],
+        )
+        # ᠡᠵ᠎ᠡ - j.fina before MVS+e.iso → chachlag_onset "I"
+        self.assertEqual(
+            self.s.shape(_mgl("e j mvs e")),
+            ["A", "I", "mvs", "Aa"],
+        )
 
     # 2-5  h/g before MVS + isolated a → chachlag_onset
     def test_step2_chachlag_onset_g_a(self):
-        # ᠭ᠎ᠠ — g before MVS+a → chachlag_onset
+        # ᠶᠠᠪᠤᠭ᠎ᠠ — g before MVS+a → chachlag_onset
         self.assertEqual(
-            self.s.shape(_mgl("g mvs a")),
-            ["Hx", "mvs", "Aa"],
+            self.s.shape(_mgl("y a b u g mvs a")),
+            ["Y", "A", "B","O", "Hx", "mvs", "Aa"],
+        )
+        # ᠬᠠᠪᠬ᠎ᠠ — h before MVS+a → chachlag_onset
+        self.assertEqual(
+            self.s.shape(_mgl("h a b h mvs a")),
+            ["H", "A", "B", "H", "mvs", "Aa"],
         )
 
     # 2-6  g before MVS + isolated e → chachlag_onset
     def test_step2_chachlag_onset_g_e(self):
-        # ᠭ᠎ᠡ — g before MVS+e → chachlag_onset
+        # ᠡᠭ᠎ᠡ — g before MVS+e → chachlag_onset
         self.assertEqual(
-            self.s.shape(_mgl("g mvs e")),
-            ["Hx", "mvs", "Aa"],
+            self.s.shape(_mgl("e g mvs e")),
+            ["A", "H", "mvs", "Aa"],
         )
 
     # 2-7  n/t/d before vowel → onset; after vowel → devsger
     def test_step2_n_onset(self):
-        # ᠨᠠᠢᠮᠠ (naima) — n before vowel → onset "N"
+        # ᠠᠨᠠᠷ - n before vowel → onset "N"
         self.assertEqual(
-            self.s.shape(_mgl("n a i m a"))[0], "N",
+            self.s.shape(_mgl("a n a r"))[2], "N",
         )
+        # ᠳᠠᠯᠠ - d.init before vowel → onset "T"
+        self.assertEqual(
+            self.s.shape(_mgl("d a l a"))[0], "T",
+        )
+        # ᠠᠨᠳᠠ - d.medi before vowel → onset "D"; n.medi after vowel and before consonant d → devsger "A"
+        out = self.s.shape(_mgl("a n d a"))
+        self.assertEqual(out[3], "D")  # d.medi onset
+        self.assertEqual(out[2], "A")  # n.medi devsger (next is consonant d)
+
+        # ᠪᠠᠨ - n.fina after vowel → devsger "A"
+        self.assertEqual(self.s.shape(_mgl("b a n"))[2], "A")
+
+        # ᠳᠠᠳᠭ᠎ᠠ - d.medi after vowel and before consonant g → devsger "Dd"
+        out = self.s.shape(_mgl("d a d g mvs a"))
+        self.assertEqual(out[2], "Dd")  # d.medi devsger
+
+        # ᠠᠲᠳ - t.medi after vowel a and before consonant d → devsger "T"; d.fina default → devsger "Dd"
+        out = self.s.shape(_mgl("a t d"))
+        self.assertEqual(out[2], "T")   # t.medi devsger
+        self.assertEqual(out[3], "Dd")  # d.fina devsger (default)
 
     def test_step2_n_devsger(self):
         # ᠰᠠᠢᠨ (sain) — n after vowel → devsger → fina "A"
