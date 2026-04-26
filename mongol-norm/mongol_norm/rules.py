@@ -305,6 +305,17 @@ def _iii2c_chachlag_onset_at(tokens, i, shaper):
 # ═══════════════════════════════════════════════════════════════════════
 #
 # For n/t/d: `onset` before a vowel, `devsger` after a vowel.
+#
+# Carve-out: `t + ee` is owned by iii2g.t.devsger, NOT iii2e. In iii.py
+# (`mongfontbuilder/lib/mongfontbuilder/otl/iii.py:738-753`), iii2g uses
+# OpenType's class-membership trick to overwrite iii2e's onset substitution
+# (the condition lookup matches the post-iii2e glyph because `MNG-t` class
+# includes all variants of t). Our first-writer-wins model can't replicate
+# that, so iii2e must bow out for the `t + ee` case to let iii2g fire.
+# Verified against `DraftNew-Regular.otf` via hb-shape:
+#   `a t ee n` → u1832.T.medi (devsger), NOT u1832.D.medi (default/onset)
+# Note this carve-out is t-only (not n or d): d before ee still goes onset
+# via iii2e (and font confirms `a d ee` renders default D).
 
 def _iii2e_n_t_d_onset_devsger(tokens, shaper):
     for i in range(len(tokens)):
@@ -321,8 +332,10 @@ def _iii2e_n_t_d_onset_devsger_at(tokens, i, shaper):
         return
     nxt = shaper._next_letter(tokens, i)
     if nxt is not None and shaper._is_vowel(nxt):
-        tok.condition = "onset"
-        return
+        # iii2g.t.devsger owns the `t + ee` case (see block comment above).
+        if not (tok.alias == "t" and nxt.alias == "ee"):
+            tok.condition = "onset"
+            return
     prev = shaper._prev_letter(tokens, i)
     if prev is not None and shaper._is_vowel(prev):
         tok.condition = "devsger"
@@ -333,9 +346,51 @@ def _iii2e_n_t_d_onset_devsger_at(tokens, i, shaper):
 #   mongfontbuilder iii.py::iii2f
 # ═══════════════════════════════════════════════════════════════════════
 #
-# For h/g: choose masculine_onset vs feminine based on neighboring vowel
-# harmony. Adjacent vowels take priority; otherwise scan the word for any
-# unambiguous vowel (_scan_vowel_harmony). Falls back to `feminine`.
+# For h/g, condition assignment proceeds in three layers, mirroring iii.py:
+#
+#  (a) Adjacent vowel — `III.k_g_h.onset_and_devsger_and_gender.MNG_TOD_SIB_MCH`
+#      (iii.py:592-683). The IMMEDIATELY adjacent vowel decides:
+#          next masc      → masculine_onset
+#          next fem/neut  → feminine
+#          prev masc      → masculine_devsger
+#          prev fem       → feminine
+#
+#  (b) `i + g/h` with a propagated MASC marker —
+#      `III.g_h.onset_and_devsger_and_gender.A.MNG` (iii.py:686-707).
+#      Only fires when prev is `i`. preprocessing.A/B/C (iii.py:78-101)
+#      duplicates a MASC marker after every non-fem letter downstream of
+#      a masc vowel, then strips MASC after every non-h/g letter. Net
+#      result: MASC sits immediately after every h/g letter that is
+#      preceded by a masc vowel with no fem vowel in between (regardless
+#      of what follows the h/g). When that happens, pattern 5 fires →
+#      `masculine_devsger`. Otherwise pattern 6 (i + g, no MASC) fires →
+#      `feminine` — but only for `g`, not `h`. See
+#      `_masc_marker_reaches_g_h` in shaper.py for the precise check.
+#
+#  (c) `g.init/h.init + consonant → feminine` —
+#      `III.g_h.onset_and_devsger_and_gender.B.MNG` (iii.py:709-718).
+#
+# ─── Doc/implementation discrepancy ────────────────────────────────────
+# `mongfontbuilder/web/docs/hudum.mdx:189-220` describes FOUR additional
+# "remotely follows / remotely precedes" rules (e.g. "h/g remotely follows
+# masc vowel without a blocking fem → masculine_devsger"). Neither
+# mongfontbuilder iii.py nor mongolian/.fea actually implements those —
+# verified by font rendering: `o l g` renders G (default), NOT H, even
+# though o is a masc vowel earlier in the word. Layer (b) above is the
+# ONLY non-adjacent harmony mechanism in the implementation, and it is
+# strictly gated on prev=i.
+# We follow the implementations (which match the font), not the prose.
+# A previous version of this rule used `_scan_vowel_harmony` to do an
+# unconstrained backward+forward scan; that over-applied masculine_devsger
+# whenever any masc vowel existed in the word and was the source of the
+# `o l g → H` regression. The new helper `_masc_marker_reaches_g_h`
+# encodes the precise marker-propagation semantics from preprocessing.A/B.
+#
+# When none of (a)/(b)/(c) fire, we leave `tok.condition = None` and let
+# the resolver fall back to the data's default variant. For g.medi/g.fina
+# and h.medi the default glyph happens to coincide with the feminine glyph
+# (`G` for g, `G` for h.medi); for h.fina the default is `H` (no feminine
+# variant — falls back to default anyway).
 
 def _iii2f_h_g_harmony(tokens, shaper):
     for i in range(len(tokens)):
@@ -353,6 +408,7 @@ def _iii2f_h_g_harmony_at(tokens, i, shaper):
     nxt = shaper._next_letter(tokens, i)
     prev = shaper._prev_letter(tokens, i)
 
+    # ── (a) Adjacent vowel decides ──
     if nxt is not None and shaper._is_masc_vowel(nxt):
         tok.condition = "masculine_onset"
         return
@@ -365,11 +421,24 @@ def _iii2f_h_g_harmony_at(tokens, i, shaper):
     if prev is not None and shaper._is_fem_vowel(prev):
         tok.condition = "feminine"
         return
-    remote = shaper._scan_vowel_harmony(tokens, i)
-    if remote is not None:
-        tok.condition = remote
+
+    # ── (b) i + g/h with reachable MASC marker (iii2f.A) ──
+    if prev is not None and prev.alias == "i":
+        if shaper._masc_marker_reaches_g_h(tokens, i):
+            tok.condition = "masculine_devsger"
+            return
+        if tok.alias == "g":  # iii2f.A pattern 6: g only, not h
+            tok.condition = "feminine"
+            return
+        # h with prev=i and no reachable marker: no rule fires here.
+
+    # ── (c) g.init/h.init + consonant (iii2f.B) ──
+    if tok.position == "init" and nxt is not None and shaper._is_consonant(nxt):
+        tok.condition = "feminine"
         return
-    tok.condition = "feminine"  # conventional fallback
+
+    # No layer fired — leave condition = None so the resolver uses the
+    # data's default variant (matches .fea/iii.py behaviour exactly).
 
 
 # ═══════════════════════════════════════════════════════════════════════

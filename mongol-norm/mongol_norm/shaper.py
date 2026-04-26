@@ -515,38 +515,58 @@ class MongolianShaper:
     # ── Shaping steps ────────────────────────────────────────────
     # The condition-assignment logic is now in `rules.py` as a declarative
     # table that mirrors mongfontbuilder's iii.py (iii1..iii5). The helpers
-    # below — `_scan_vowel_harmony` and the small predicates — are consumed
-    # by the rule functions via the shaper instance handed to them.
+    # below — `_masc_marker_reaches_g_h` and the small predicates — are
+    # consumed by the rule functions via the shaper instance handed to them.
 
-    def _scan_vowel_harmony(self, tokens, idx):
+    def _masc_marker_reaches_g_h(self, tokens, idx):
         """
-        Remote vowel harmony scan for h/g.
-        h/g 的远程元音和谐扫描。
+        Mirror MARKER_MASCULINE propagation from mongfontbuilder iii.py
+        preprocessing.A/B/C (`mongfontbuilder/lib/mongfontbuilder/otl/iii.py:78-101`).
+        模拟 mongfontbuilder iii.py 中 MARKER_MASCULINE 的传播 + 清理链。
 
-        When h or g has no immediately adjacent vowel, we scan the entire word
-        to find any unambiguous masculine/feminine vowel. Backward scan takes
-        priority (preceding context is more reliable for harmony).
-        当 h 或 g 没有紧邻的元音时，扫描整词寻找任何明确的阳性/阴性元音。
-        向后扫描优先（前方上下文对和谐判断更可靠）。
+        Returns True iff a MASC marker would sit *immediately after* the g/h
+        at `idx` after the full preprocessing chain — the precondition for
+        the iii2f.A pattern 5 substitution `i + g/h + MASC → masculine_devsger`.
+        当 MASC marker 会留在该 g/h 紧邻其后位置时返回 True，对应 iii2f.A
+        pattern 5 的触发条件。
+
+        Mechanism (verified empirically against DraftNew-Regular.otf):
+
+          - preprocessing.A adds a MASC marker after every masc vowel default
+            glyph at init/medi (fina is NOT marked).
+          - preprocessing.B is a CHAIN context substitution
+            `MASC + X → X + MASC`. Each application *adds* a new MASC after
+            each non-fem letter following the masc vowel (does not "move"
+            the marker; it duplicates it forward). Fem vowels are not in
+            the input set, so they block further propagation.
+          - preprocessing.C strips MASC after every non-h/g letter, leaving
+            MASC only immediately after h/g letters.
+
+        Net effect: MASC ends up immediately after every h/g letter that
+        is preceded (anywhere) by a masc vowel with no fem vowel in between.
+        Whether g/h is the last letter is irrelevant — letters after g/h
+        also have their MASCs stripped by preprocessing.C, but g/h's own
+        trailing MASC is preserved.
+        净效果:词内只要在 g/h 之前存在 masc vowel 且中间没有 fem vowel
+        阻断,MASC 就会落在该 g/h 紧邻其后。g/h 后面有没有字母无关紧要。
+
+        Two conditions:
+        1. Some masc vowel exists earlier in the word at init/medi position.
+        2. No fem vowel sits between that masc vowel and g/h.
         """
-        # Scan backwards for vowels / 向后扫描元音
-        for i in range(idx - 1, -1, -1):
-            if not tokens[i].is_letter:
+        # Scan backward from g/h. The first fem vowel we hit blocks any
+        # earlier masc; the first masc vowel we hit (if at init/medi)
+        # confirms the marker reaches g/h.
+        for j in range(idx - 1, -1, -1):
+            if not tokens[j].is_letter:
                 continue
-            if self._is_masc_vowel(tokens[i]):
-                return "masculine_devsger"
-            if self._is_fem_vowel(tokens[i]):
-                return "feminine"
-        # Scan forwards
-        for i in range(idx + 1, len(tokens)):
-            if not tokens[i].is_letter:
-                continue
-            if self._is_masc_vowel(tokens[i]):
-                return "masculine_devsger"
-            if self._is_fem_vowel(tokens[i]):
-                return "feminine"
-        return None
-    
+            if self._is_fem_vowel(tokens[j]):
+                return False
+            if self._is_masc_vowel(tokens[j]) and tokens[j].position in ("init", "medi"):
+                return True
+
+        return False
+
     def shape(self, text):
         """
         Full shaping pipeline: text → glyph sequence (written units).

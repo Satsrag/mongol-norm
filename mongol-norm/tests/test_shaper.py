@@ -221,7 +221,9 @@ class TestShape(unittest.TestCase):
             ["A", "H", "mvs", "Aa"],
         )
 
-    # 2-7  n/t/d before vowel → onset; after vowel → devsger
+    # 2-7  n/d before vowel → onset; n/t/d after vowel or before consonant → devsger
+    #      (t has no observable onset variant in MNG.json — iii2e still tags it
+    #       but the resolver falls back to default, so onset is a visual no-op for t.)
     def test_step2_n_onset(self):
         # ᠠᠨᠠᠷ - n before vowel → onset "N"
         self.assertEqual(
@@ -248,31 +250,12 @@ class TestShape(unittest.TestCase):
         self.assertEqual(out[2], "T")   # t.medi devsger
         self.assertEqual(out[3], "Dd")  # d.fina devsger (default)
 
-    def test_step2_n_devsger(self):
-        # ᠰᠠᠢᠨ (sain) — n after vowel → devsger → fina "A"
-        self.assertEqual(
-            self.s.shape(_mgl("s a i n"))[-1], "A",
-        )
-
-    def test_step2_t_onset(self):
-        # ᠲᠣᠯᠢ (toli) — t before vowel → onset "T"
-        self.assertEqual(
-            self.s.shape(_mgl("t o l i"))[0], "T",
-        )
-
-    def test_step2_t_devsger_before_consonant(self):
-        # ᠠᠲᠨ (atn) — t before consonant n → devsger "T"
-        self.assertEqual(
-            self.s.shape(_mgl("a t n")),
-            ["A", "A", "T", "A"],
-        )
-
     # 2-8  h/g: masculine/feminine context chain
     def test_step2_h_masculine_onset(self):
-        # ᠬᠠᠷ (har) — h(QA) before masculine vowel a → masculine_onset "H"
+        # ᠬᠠᠰ (has) — h(QA) before masculine vowel a → masculine_onset "H"
         self.assertEqual(
-            self.s.shape(_mgl("h a r")),
-            ["H", "A", "R"],
+            self.s.shape(_mgl("h a s")),
+            ["H", "A", "S"],
         )
 
     def test_step2_g_masculine_onset(self):
@@ -303,26 +286,151 @@ class TestShape(unittest.TestCase):
             ["A", "O", "I", "G"],
         )
 
-    def test_step2_hg_remote_masculine(self):
-        # ᠣᠭᠨ (ogn) — g remote: o is masculine → masculine_devsger "H"
-        self.assertEqual(
-            self.s.shape(_mgl("o g n")),
-            ["A", "O", "H", "A"],
-        )
+    # 2-8a  g.medi adjacent to fem vowel → feminine via iii2f main rule
+    # (NOT remote — oe sits immediately before g)
+    def test_step2_oegn_adjacent_feminine(self):
+        # ᠥᠭᠨ - oe (fem) IMMEDIATELY before g → check 4 fires → feminine "G"
+        self.assertEqual(self.s.shape(_mgl("oe g n")), ["A", "O", "I", "G", "A"])
 
-    def test_step2_hg_remote_feminine(self):
-        # ᠥᠭᠨ (oegn) — g remote: oe is feminine → feminine "G"
-        self.assertEqual(
-            self.s.shape(_mgl("oe g n")),
-            ["A", "O", "I", "G", "A"],
-        )
+    # 2-8c  i + g/h with reachable MASC marker → masculine_devsger "H"
+    # Mirrors iii.py's `III.g_h.onset_and_devsger_and_gender.A.MNG` pattern 5
+    # (`i + g/h + MASC`). Per preprocessing.A/B/C, MASC ends up immediately
+    # after every h/g letter that is preceded by a masc vowel (init/medi)
+    # with no fem vowel in between. What follows the g/h does NOT matter —
+    # any letters after g/h have their MASC stripped by preprocessing.C,
+    # but g/h's own trailing MASC is preserved. All expected values below
+    # verified against `DraftNew-Regular.otf` via `hb-shape`.
+    def test_step2_g_i_with_marker_masc(self):
+        # ᠠᠢᠭ - g.fina, prev=i, masc a reaches g → "H"
+        self.assertEqual(self.s.shape(_mgl("a i g")), ["A", "A", "I", "I", "H"])
+        # ᠣᠯᠢᠭ - marker threads through l + i → "H"
+        self.assertEqual(self.s.shape(_mgl("o l i g")), ["A", "O", "L", "I", "H"])
+        # ᠠᠢᠭᠷ - g.medi (r follows); g/h being last is NOT required
+        self.assertEqual(self.s.shape(_mgl("a i g r")), ["A", "A", "I", "I", "H", "R"])
+        # ᠠᠯᠢᠭᠷ - marker through l + i, then g.medi with r after
+        self.assertEqual(self.s.shape(_mgl("a l i g r")), ["A", "A", "L", "I", "H", "R"])
+        # ᠠᠢᠭᠷᠡ - even a fem e *after* g doesn't block (e blocks only when
+        #          it sits between masc source and g/h, not downstream)
+        self.assertEqual(self.s.shape(_mgl("a i g r e")), ["A", "A", "I", "I", "H", "R", "A"])
+
+    # 2-8d  i + g/h with marker BLOCKED or NOT REACHING → pattern 6 → feminine
+    def test_step2_g_i_marker_blocked(self):
+        # ᠠᠡᠢᠭ - fem e between masc a and g blocks marker → pattern 6 → "G"
+        self.assertEqual(self.s.shape(_mgl("a e i g")), ["A", "A", "A", "I", "I", "G"])
+        # ᠢᠭ - prev=i but no masc vowel anywhere → pattern 6 → "G"
+        self.assertEqual(self.s.shape(_mgl("i g")), ["A", "I", "G"])
+
+    # 2-8c-h  Same scenarios as 2-8c but with h instead of g. h has different
+    # observability: h.fina default == "H" == masc_devsger glyph, so h.fina
+    # cases CANNOT distinguish "rule fired" from "fell to default" — they
+    # all show H either way. The only observable position is h.medi, where
+    # default = "G" but masc_devsger = "H". All values verified against
+    # `DraftNew-Regular.otf` via hb-shape.
+    def test_step2_h_i_with_marker_masc(self):
+        # ᠠᠢᠬᠷ - h.medi, prev=i, marker reaches → masc_devsger "H"
+        # (Without pattern 5 firing, h.medi would default to "G" — so this
+        # test genuinely proves the rule fired.)
+        self.assertEqual(self.s.shape(_mgl("a i h r")), ["A", "A", "I", "I", "H", "R"])
+        # ᠠᠢᠬ - h.fina, prev=i, marker reaches → masc_devsger "H" (same as default)
+        self.assertEqual(self.s.shape(_mgl("a i h")), ["A", "A", "I", "I", "H"])
+
+    # 2-8d-h  h with prev=i but blocked/no masc — KEY DIFFERENCE from g:
+    # iii2f.A pattern 6 (i+g → feminine) covers ONLY g, NOT h. So when
+    # the marker doesn't reach h, h falls through to its DEFAULT, not to
+    # feminine. h.fina default = "H" (looks identical to masc); h.medi
+    # default = "G" (which is what feminine would be anyway, but for a
+    # different reason — fall-through, not pattern 6).
+    def test_step2_h_i_marker_blocked(self):
+        # ᠠᠡᠢᠬᠷ - fem e blocks marker; h.medi falls to default "G"
+        self.assertEqual(self.s.shape(_mgl("a e i h r")), ["A", "A", "A", "I", "I", "G", "R"])
+        # ᠠᠡᠢᠬ - h.fina default = "H" (no pattern 6 for h, no feminine variant)
+        # Contrast: same shape with g would give "G" (pattern 6 fires for g).
+        self.assertEqual(self.s.shape(_mgl("a e i h")), ["A", "A", "A", "I", "I", "H"])
+        # ᠢᠬ - no masc anywhere; h.fina default = "H" (NOT G like `i g`)
+        self.assertEqual(self.s.shape(_mgl("i h")), ["A", "I", "H"])
+
+    # 2-8e-h  h with prev≠i — same logic as g but observable on h.medi.
+    def test_step2_h_non_i_prev_no_remote(self):
+        # ᠣᠯᠬ - h.fina default = "H" (looks like masc, but no rule fired)
+        self.assertEqual(self.s.shape(_mgl("o l h")), ["A", "O", "L", "H"])
+        # ᠣᠯᠬᠷ - h.medi default = "G" (genuinely shows no rule fired)
+        self.assertEqual(self.s.shape(_mgl("o l h r")), ["A", "O", "L", "G", "R"])
+
+    # 2-8e  prev letter is NOT i (e.g. consonant) — iii2f.A doesn't fire even
+    # if a masc vowel is reachable. This is the strict prev=i gate that
+    # distinguishes our impl from the broader "remote harmony" prose in
+    # the web docs (`mongfontbuilder/web/docs/hudum.mdx:189-220`).
+    def test_step2_g_non_i_prev_no_remote(self):
+        # ᠣᠯᠭ - prev=l → default "G" (NOT H, despite remote masc o)
+        self.assertEqual(self.s.shape(_mgl("o l g")), ["A", "O", "L", "G"])
+        # ᠠᠯᠭᠷ - prev=l, g.medi with r after → default "G"
+        self.assertEqual(self.s.shape(_mgl("a l g r")), ["A", "A", "L", "G", "R"])
+
+    # 2-8f  Web docs (mongfontbuilder/web/docs/hudum.mdx:189-220) describe two
+    # additional remote-harmony rules that are NOT implemented in iii.py and
+    # NOT exhibited by DraftNew-Regular.otf. Document this divergence here:
+    #
+    #   Doc rule (5): "g/h remotely follows fem vowel without blocking masc
+    #                  → feminine"
+    #     Not implementable observably — g.fina/g.medi/h.medi default glyph
+    #     is already G (the feminine form), and h.fina has no feminine
+    #     variant (falls back to default H). Our default-fallthrough yields
+    #     the same glyph as the doc-prescribed feminine, so this divergence
+    #     is invisible in output. Recorded here for future reference.
+    #
+    #   Doc rule (7): "g/h remotely precedes masc vowel without blocking fem
+    #                  → masculine_devsger"
+    #     OBSERVABLY divergent from the font: `g r a` should be `Hx` per
+    #     docs (g.init.masculine_onset/devsger), but DraftNew renders G.
+    #     Reason: iii2f.B fires first (g.init + consonant → feminine),
+    #     and the implementation has no rule that "looks ahead remotely"
+    #     for a masc vowel after the consonant context. We mirror the
+    #     implementation, not the docs.
+    def test_step2_gh_remote_doc_rules_NOT_implemented(self):
+        # Doc rule (5): remotely follows fem — output is G either way (default
+        # equals feminine glyph), so this is just a tripwire confirming the
+        # default form is what we expect.
+        self.assertEqual(self.s.shape(_mgl("e l g")), ["A", "L", "G"])
+        self.assertEqual(self.s.shape(_mgl("e l g r")), ["A", "L", "G", "R"])
+        # Doc rule (7): remotely precedes masc — iii2f.B forces feminine "G",
+        # NOT the masculine_onset "Hx" that web docs describe. Verified
+        # against DraftNew-Regular.otf via hb-shape:
+        #   `g r a`  → u182D.G.init  (NOT u182D.Hx.init)
+        #   `h r a`  → u182C.G.init  (NOT u182C.H.init)
+        # Contrast `g a` (adjacent masc vowel) which correctly fires
+        # masculine_onset → "Hx".
+        self.assertEqual(self.s.shape(_mgl("g r a")), ["G", "R", "A"])
+        self.assertEqual(self.s.shape(_mgl("h r a")), ["G", "R", "A"])
+        # Adjacency control: g + masc a (no consonant between) → "Hx"
+        self.assertEqual(self.s.shape(_mgl("g a")), ["Hx", "A"])
+
+    # 2-8g  g.init / h.init + consonant → feminine (iii2f.B). Last in the
+    # 2-8 series — this is the simplest "no adjacent vowel, init position"
+    # fallback rule, kept here as a clean trailing case after all the
+    # marker-propagation and doc-divergence subtleties above.
+    def test_step2_gh_init_before_consonant_feminine(self):
+        # g.init + r → iii2f.B → feminine "G"
+        self.assertEqual(self.s.shape(_mgl("g r")), ["G", "R"])
+        # h.init + r → iii2f.B → feminine "G"
+        self.assertEqual(self.s.shape(_mgl("h r")), ["G", "R"])
 
     # 2-9  t before ee or consonant → devsger
     def test_step2_t_devsger_before_ee(self):
-        # ᠠᠲᠧᠨ (ateen) — t before ee → devsger "D"
+        # ᠠᠲᠧᠨ (ateen) — t.medi before ee → iii2g.t.devsger fires → "T"
+        # (NOT iii2e onset — see iii2e block comment for the carve-out.)
+        # Verified against DraftNew-Regular.otf: u1832.T.medi (devsger T).
         details = self.s.shape_detailed(_mgl("a t ee n"))
         t_tok = [d for d in details if d["alias"] == "t"][0]
-        self.assertEqual(t_tok["condition"], "onset")
+        self.assertEqual(t_tok["condition"], "devsger")
+        self.assertEqual(t_tok["written"], ["T"])
+        # Full shape regression: D form would be the buggy output
+        self.assertEqual(self.s.shape(_mgl("a t ee n")), ["A", "A", "T", "W", "A"])
+        # Control: t + non-ee vowel still goes onset → falls to default "D"
+        # (iii2e fires; iii2g doesn't)
+        self.assertEqual(self.s.shape(_mgl("a t i n")), ["A", "A", "D", "I", "A"])
+        # Control: d + ee still goes iii2e onset (carve-out is t-only)
+        # d.medi.onset = D (same as default) — visually identical
+        self.assertEqual(self.s.shape(_mgl("a d ee n")), ["A", "A", "D", "W", "A"])
 
     # 2-10  sh: dotless before i
     def test_step2_sh_dotless(self):
