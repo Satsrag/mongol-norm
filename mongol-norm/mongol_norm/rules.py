@@ -499,9 +499,35 @@ def _iii2g_g_dotless(tokens, shaper):
 
 
 def _iii2g_g_dotless_at(tokens, i, shaper):
+    """mongfontbuilder Lookup: III.t_sh_g.MNG.GB (g branch, iii.py:764-776)
+
+    Two precise sub-rules:
+      (1) `s/d + g.medi + masc vowel` → `dotless`
+      (2) `s/d + g.fina + MVS + (chachlag a.isol)` → `dotless`
+
+    Unlike the other rules in this file, this lookup OVERRIDES any
+    condition already set on `g`. In iii.py / mongolian/.fea the same
+    effect comes from OpenType's class-membership semantics — iii2g's
+    pattern matches the g.medi/g.fina input even after iii2f or iii2c
+    already substituted it, and its `condition.hud.dotless` lookup
+    rewrites the glyph. Our first-writer-wins model can't reproduce that
+    organically, so we explicitly drop the `if tok.condition is not None`
+    guard and write `dotless` over whatever earlier rules set.
+
+    Concretely:
+      - iii2f.h_g.harmony tags `s + g + masc` as `masculine_onset` (Hx);
+        rule (1) here OVERRIDES that with `dotless` (H).
+      - iii2c.chachlag_onset tags `s + g + mvs + isol a` as
+        `chachlag_onset` (Hx); rule (2) here OVERRIDES that with
+        `dotless` (H).
+      - `s + g + mvs + isol e` is already H via `chachlag_onset_gb`
+        (different glyph slot, same final shape), so no override needed.
+
+    All expected outputs verified against `DraftNew-Regular.otf` via
+    `hb-shape --unicodes=...`.
+    """
     tok = tokens[i]
-    if tok.condition is not None:
-        return
+    # NOTE: no `if tok.condition is not None: return` — see docstring.
     if not tok.is_letter or tok.alias != "g":
         return
     if shaper._has_fvs(tok):
@@ -509,7 +535,28 @@ def _iii2g_g_dotless_at(tokens, i, shaper):
     prev = shaper._prev_letter(tokens, i)
     if prev is None or prev.alias not in ("s", "d"):
         return
-    tok.condition = "dotless"
+
+    nxt = shaper._next_letter(tokens, i)
+    nxt_tok = shaper._next_tok(tokens, i)
+
+    # Rule (1): g.medi + immediately following masc vowel
+    if tok.position == "medi" and nxt is not None and shaper._is_masc_vowel(nxt):
+        tok.condition = "dotless"
+        return
+
+    # Rule (2): g.fina + MVS + chachlag a.isol
+    # The chachlag check encodes iii.py's literal `"u1820.Aa.isol"` context
+    # (the glyph name AFTER iii1.chachlag has fired). If a has FVS that
+    # cancelled chachlag, the glyph would be default a.isol and iii.py's
+    # rule wouldn't match — we mirror that by requiring chachlag here.
+    if tok.position == "fina" and nxt_tok is not None and nxt_tok.is_mvs:
+        nxt_after_mvs = shaper._next_letter(tokens, i + 1)
+        if (nxt_after_mvs is not None
+                and nxt_after_mvs.alias == "a"
+                and nxt_after_mvs.position == "isol"
+                and nxt_after_mvs.condition == "chachlag"):
+            tok.condition = "dotless"
+            return
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -428,17 +428,66 @@ class TestShape(unittest.TestCase):
         # Control: t + non-ee vowel still goes onset → falls to default "D"
         # (iii2e fires; iii2g doesn't)
         self.assertEqual(self.s.shape(_mgl("a t i n")), ["A", "A", "D", "I", "A"])
+        # Control: t + consonant → iii2g.t.devsger fires (consonant branch)
+        # → "T". Here iii2e also yields devsger via prev=vowel a, so iii2g
+        # is technically redundant; the test still locks in T as the output.
+        self.assertEqual(self.s.shape(_mgl("a t r")), ["A", "A", "T", "R"])
         # Control: d + ee still goes iii2e onset (carve-out is t-only)
         # d.medi.onset = D (same as default) — visually identical
         self.assertEqual(self.s.shape(_mgl("a d ee n")), ["A", "A", "D", "W", "A"])
 
-    # 2-10  sh: dotless before i
+    # 2-10  sh: dotless. iii2g.sh.dotless has two clauses (iii.py:754-763):
+    #   (1) sh.init + i.medi          → dotless
+    #   (2) sh.medi + i.{medi, fina}  → dotless
+    # All expected values verified against `DraftNew-Regular.otf` via
+    # `hb-shape --unicodes=1831,...` (note: U+1831 is sh, not U+1830 s —
+    # the font uses `u1831.Sh.init` for the dotted default and
+    # `u1831.S.init` for the dotless variant).
     def test_step2_sh_dotless(self):
-        # ᠰᠢᠮ (shim) — sh.init before i.medi → dotless "S"
-        self.assertEqual(
-            self.s.shape(_mgl("sh i m")),
-            ["S", "I", "M"],
-        )
+        # ᠰᠢᠮ - sh.init + i.medi → clause 1 → "S"
+        self.assertEqual(self.s.shape(_mgl("sh i m")), ["S", "I", "M"])
+        # ᠰᠢᠰᠢ - one input exercises BOTH clauses:
+        #   1st sh.init + i.medi (followed by 2nd sh) → clause 1 → "S"
+        #   2nd sh.medi + i.fina (i is last)          → clause 2 → "S"
+        self.assertEqual(self.s.shape(_mgl("sh i sh i")), ["S", "I", "S", "I"])
+        # ᠠᠰᠢ - sh.medi + i.fina → clause 2 → "S"
+        self.assertEqual(self.s.shape(_mgl("a sh i")), ["A", "A", "S", "I"])
+        # Negative controls — neither clause fires, sh stays default "Sh":
+        # ᠰᠢ - sh.init + i.FINA (only 2 letters, so i is fina not medi)
+        self.assertEqual(self.s.shape(_mgl("sh i")), ["Sh", "I"])
+        # ᠰᠠ - sh.init + non-i vowel
+        self.assertEqual(self.s.shape(_mgl("sh a")), ["Sh", "A"])
+        # ᠰᠧ - sh.init + ee (ee is not in the rule's input set)
+        self.assertEqual(self.s.shape(_mgl("sh ee")), ["Sh", "W"])
+
+    # 2-11  g: dotless. iii2g.g.dotless (iii.py:764-776) has two precise
+    # sub-rules — both require `s/d` before g — and OVERRIDES whatever
+    # condition iii2f.h_g.harmony or iii2c.chachlag_onset set earlier
+    # (the OpenType class-membership trick). All values verified against
+    # `DraftNew-Regular.otf` via `hb-shape --unicodes=...`.
+    #
+    # Rule (1):  s/d + g.medi + masc vowel  → dotless "H"
+    #            (override target: iii2f masculine_onset "Hx")
+    # Rule (2):  s/d + g.fina + MVS + chachlag a.isol  → dotless "H"
+    #            (override target: iii2c chachlag_onset "Hx")
+    def test_step2_g_dotless(self):
+        # Rule 1 — g.medi + masc vowel:
+        self.assertEqual(self.s.shape(_mgl("s g a")), ["S", "H", "A"])
+        self.assertEqual(self.s.shape(_mgl("d g a")), ["T", "H", "A"])
+        self.assertEqual(self.s.shape(_mgl("a s g a")), ["A", "A", "S", "H", "A"])
+        # Rule 2 — g.fina + MVS + chachlag a:
+        self.assertEqual(self.s.shape(_mgl("s g mvs a")), ["S", "H", "mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("d g mvs a")), ["T", "H", "mvs", "Aa"])
+
+        # Negative: rule 1 needs masc vowel — fem/neut/consonant don't fire
+        self.assertEqual(self.s.shape(_mgl("s g i")), ["S", "G", "I"])   # neut i
+        self.assertEqual(self.s.shape(_mgl("s g e")), ["S", "G", "Aa"])  # fem e (iii2f → feminine = G)
+        self.assertEqual(self.s.shape(_mgl("s g n")), ["S", "G", "A"])   # consonant n
+        # Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire
+        self.assertEqual(self.s.shape(_mgl("s g")), ["S", "G"])
+        # Negative: prev letter must be s or d
+        self.assertEqual(self.s.shape(_mgl("a g a")), ["A", "A", "Hx", "A"])         # iii2f masc_onset
+        self.assertEqual(self.s.shape(_mgl("n g mvs a")), ["N", "Hx", "mvs", "Aa"])  # iii2c chachlag_onset
 
     # ══════════════════════════════════════════════════════════
     # Step 3 · Particle — MVS particle dictionary lookup
