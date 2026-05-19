@@ -492,70 +492,155 @@ class TestShape(unittest.TestCase):
     # ══════════════════════════════════════════════════════════
     # Step 3 · Particle — MVS particle dictionary lookup
     # ══════════════════════════════════════════════════════════
+    #
+    # Per `_PARTICLE_TARGET_ALIASES` in rules.py, only the following 7
+    # letters can receive the `particle` condition (in this order):
+    #   a, e, i, u, ue, d, y
+    # Tests are organized by which TARGET letter they exercise. A test
+    # that triggers particle on multiple targets (e.g., d+u or i+y) is
+    # listed under the target that comes FIRST in the order above.
 
-    # 3-1  MVS + particle dict entries
+    # 3-1a  TARGET = a
+    def test_step3_particle_acha(self):
+        # tal + MVS + acha — a.init at idx 1 → particle (e, d, y not targeted here)
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs a ch a")),
+            ["T", "A", "L", "mvs", "A", "Ch", "A"],
+        )
+
+    # 3-1b  TARGET = e
+    # The particle dict has NO entry where e sits at a particle index —
+    # e appears in some particles (e.g. "mvs i y e n", "mvs d e g e n")
+    # but always at indices 3+ (non-particle positions). The rule never
+    # observably tags e as `particle`. Listed here for completeness;
+    # the iyen/iyer/degen tests below double as negative coverage for e.
+
+    # 3-1c  TARGET = i
+    def test_step3_particle_i(self):
+        # tal + MVS + i — i.isol at idx 1 → particle
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i")),
+            ["T", "A", "L", "mvs", "I"],
+        )
+
+    def test_step3_particle_iyar(self):
+        # tal + MVS + iyar — i + y at idx 1, 2 → both particle (masc vowel)
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i y a r")),
+            ["T", "A", "L", "mvs", "I", "I", "A", "R"],
+        )
+
+    def test_step3_particle_iyer(self):
+        # tal + MVS + iyer — fem-vowel pair of iyar; identical shape because
+        # e.medi default = "A" same as a.medi default
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i y e r")),
+            ["T", "A", "L", "mvs", "I", "I", "A", "R"],
+        )
+
+    def test_step3_particle_iyen(self):
+        # tal + MVS + iyen — i,y particles; e at idx 3 stays default (not in [1,2])
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i y e n")),
+            ["T", "A", "L", "mvs", "I", "I", "A", "A"],
+        )
+
+    # 3-1d  TARGET = u
+    def test_step3_particle_u(self):
+        # tal + MVS + u — u.isol at idx 1 → particle
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs u")),
+            ["T", "A", "L", "mvs", "U"],
+        )
+
+    def test_step3_particle_du(self):
+        # tal + MVS + du — d at idx 1 AND u at idx 2 both particles
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs d u")),
+            ["T", "A", "L", "mvs", "D", "U"],
+        )
+
+    # 3-1e  TARGET = ue
+    def test_step3_particle_ue(self):
+        # tal + MVS + ue — ue.isol at idx 1 → particle "U"
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs ue")),
+            ["T", "A", "L", "mvs", "U"],
+        )
+
+    def test_step3_particle_uen(self):
+        # tal + MVS + ue+n — ue.init particle "O", n.fina devsger "A"
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs ue n")),
+            ["T", "A", "L", "mvs", "O", "A"],
+        )
+
+    def test_step3_particle_ued(self):
+        # tal + MVS + ue+d — ue.init particle "O", d.fina devsger "Dd"
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs ue d")),
+            ["T", "A", "L", "mvs", "O", "Dd"],
+        )
+
+    def test_step3_particle_duer(self):
+        # tal + MVS + duer — d at idx 1 AND ue at idx 2 both particles
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs d ue r")),
+            ["T", "A", "L", "mvs", "D", "O", "R"],
+        )
+
+    # 3-1f  TARGET = d
+    def test_step3_particle_dagan(self):
+        # tal + MVS + dagan — d at idx 1 → particle (masc vowel harmony)
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs d a g a n")),
+            ["T", "A", "L", "mvs", "D", "A", "Hx", "A", "A"],
+        )
+
+    def test_step3_particle_degen(self):
+        # tal + MVS + degen — fem-vowel pair of dagan. g.medi here gets
+        # "G" (iii2f feminine) instead of "Hx" (masc_onset in dagan)
+        # because of the surrounding fem vowel e.
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs d e g e n")),
+            ["T", "A", "L", "mvs", "D", "A", "G", "A", "A"],
+        )
+
+    # 3-1g  TARGET = y
     def test_step3_particle_yi(self):
-        # tal + MVS + yi → y particle "I"
+        # tal + MVS + yi — y.init at idx 1 → particle "I"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs y i")),
             ["T", "A", "L", "mvs", "I", "I"],
         )
 
     def test_step3_particle_yin(self):
-        # tal + MVS + yin → y particle "I"
+        # tal + MVS + yin — y.init at idx 1 → particle "I"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs y i n")),
             ["T", "A", "L", "mvs", "I", "I", "A"],
         )
 
-    def test_step3_particle_du(self):
-        # tal + MVS + du → d,u particle
-        self.assertEqual(
-            self.s.shape(_mgl("t a l mvs d u")),
-            ["T", "A", "L", "mvs", "D", "U"],
-        )
-
-    def test_step3_particle_i(self):
-        # tal + MVS + i → i particle
-        self.assertEqual(
-            self.s.shape(_mgl("t a l mvs i")),
-            ["T", "A", "L", "mvs", "I"],
-        )
-
-    def test_step3_particle_u(self):
-        # tal + MVS + u → u particle
-        self.assertEqual(
-            self.s.shape(_mgl("t a l mvs u")),
-            ["T", "A", "L", "mvs", "U"],
-        )
-
-    def test_step3_particle_iyar(self):
-        # tal + MVS + iyar → i,y particle
-        self.assertEqual(
-            self.s.shape(_mgl("t a l mvs i y a r")),
-            ["T", "A", "L", "mvs", "I", "I", "A", "R"],
-        )
-
-    def test_step3_particle_dagan(self):
-        # tal + MVS + dagan → d particle
-        self.assertEqual(
-            self.s.shape(_mgl("t a l mvs d a g a n")),
-            ["T", "A", "L", "mvs", "D", "A", "Hx", "A", "A"],
-        )
-
-    # 3-2  u/ue particle without MVS
+    # 3-2  u/ue particles WITHOUT MVS (word-internal: "u u", "ue ue")
     def test_step3_particle_uu(self):
-        # ᠤᠤ (uu) — "u u" in particle dict → u.init particle "O"
-        self.assertEqual(
-            self.s.shape(_mgl("u u")),
-            ["O", "U"],
-        )
+        # ᠤᠤ — "u u" in dict → u.init at idx 0 → particle "O"
+        self.assertEqual(self.s.shape(_mgl("u u")), ["O", "U"])
 
     def test_step3_particle_ueue(self):
-        # ᠦᠦ (ueue) — "ue ue" in particle dict → ue.init particle "O"
+        # ᠦᠦ — "ue ue" in dict → ue.init at idx 0 → particle "O"
+        self.assertEqual(self.s.shape(_mgl("ue ue")), ["O", "U"])
+
+    # 3-3  Negative: MVS-headed segment NOT in particle dict → no particle
+    def test_step3_no_particle_match(self):
+        # "mvs l e" — not a dict entry → l and e stay default
         self.assertEqual(
-            self.s.shape(_mgl("ue ue")),
-            ["O", "U"],
+            self.s.shape(_mgl("t a l mvs l e")),
+            ["T", "A", "L", "mvs", "L", "A"],
+        )
+        # "mvs r" — not a dict entry → r stays default
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs r")),
+            ["T", "A", "L", "mvs", "R"],
         )
 
     # ══════════════════════════════════════════════════════════
