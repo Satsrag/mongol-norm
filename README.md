@@ -11,7 +11,11 @@
 
 ### Status
 
-**Shaping** (MNG / Hudum) is verified against two cross-implementation TSV suites:
+The two pieces of the library are at very different maturity levels — be aware before you depend on `normalize()`.
+
+#### ✅ Shaping — usable
+
+`shape()` and `same_shape()` (MNG / Hudum) are cross-validated against two upstream TSV suites:
 
 | Suite | Cases | Pass | Notes |
 |---|---|---|---|
@@ -19,14 +23,19 @@
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3512 | **100%** | 5 cases excluded as UTN ↔ EAC xfail, matching mongfontbuilder's own `pytest.mark.xfail` set |
 | Hand-written shaper unit tests | 113 | **100%** | shape / same_shape / normalize / normalize_text |
 
-CI runs the full suite on Python 3.9 – 3.13 on every push.
+CI runs the full suite on Python 3.9 – 3.13 on every push. Within these constraints — MNG / Hudum locale, the shaping rules covered by UTN #57 v4 and mongfontbuilder — the shaper should be reliable enough to build on.
 
-**Normalization** is exercised by the hand-written tests but does NOT yet have a third-party corpus regression set. Edge cases may still mis-canonicalize, especially:
+#### ⚠️ Normalization — NOT reliable yet, work-in-progress
 
-- Words with ambiguous vowel harmony (no unambiguous o/u/oe/ue vowel)
-- Todo / Sibe / Manchu locales (shaping rules loaded; normalization unimplemented)
+`normalize()` and `normalize_text()` are the **focus of upcoming work**, not the current strength of the library. Today they have:
 
-**Contributions of normalization test data and bug reports are welcome** — see [Help Wanted](#help-wanted-test-data) below.
+- only the hand-written round-trip tests (no third-party corpus regression set)
+- known mis-canonicalization on words with ambiguous vowel harmony (no unambiguous o/u/oe/ue vowel in the word)
+- no implementation at all for Todo / Sibe / Manchu (shaping rules are loaded for those locales, normalization is not)
+
+If you are building on this library now, treat the shape / same-shape APIs as stable and the normalize APIs as **experimental** — they will keep changing as the canonical-form logic is rebuilt against a real corpus.
+
+**Contributions of normalization test data and bug reports are very welcome** — see [Help Wanted](#help-wanted-test-data) below.
 
 This project was developed with [Claude Code](https://claude.ai/code) (AI-assisted coding). Shaping logic is derived from UTN #57 v4 and mongfontbuilder; the implementation is independently tested against the upstream TSV regression suites.
 
@@ -252,7 +261,11 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 
 ### 状态
 
-**Shaping**(MNG / Hudum)对照两套跨实现 TSV 套件已全部验证:
+库的两个部分成熟度差距很大 — 依赖 `normalize()` 之前请先看清楚。
+
+#### ✅ Shaping(整形)— 可用
+
+`shape()` 和 `same_shape()`(MNG / Hudum)对照两套上游 TSV 套件交叉验证:
 
 | 套件 | 用例数 | 通过 | 说明 |
 |---|---|---|---|
@@ -260,12 +273,17 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3512 | **100%** | 5 个 UTN ↔ EAC 分歧 case 跳过(跟 mongfontbuilder 自己的 `pytest.mark.xfail` 列表一致) |
 | 手写 shaper 单元测试 | 113 | **100%** | shape / same_shape / normalize / normalize_text |
 
-CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。
+CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum 语种、UTN #57 v4 和 mongfontbuilder 覆盖的整形规则范围内,shape 这块应该足够可靠拿去落地使用。
 
-**规范化**目前由手写测试覆盖,但**还没有第三方语料库回归集**。边缘情况可能输出错误的规范形式,尤其是:
+#### ⚠️ Normalization(规范化)— 目前不靠谱,后期重点
 
-- 元音和谐不明确的词(没有 o/u/oe/ue 等不模糊元音)
-- Todo / 锡伯文 / 满文(shaping 规则已加载,规范化未实现)
+`normalize()` 和 `normalize_text()` 是**后续更新的重点**,不是目前库的强项。当前状态:
+
+- 只有手写的往返测试,**没有第三方语料库回归集**
+- 已知 bug: 元音和谐不明确的词(整个词里没有 o/u/oe/ue 这种不模糊元音)会输出错误的规范形式
+- Todo / 锡伯文 / 满文完全没实现规范化(虽然加载了 shaping 规则)
+
+如果你现在要基于本库开发,把 shape / same_shape 当稳定 API,把 normalize 当**实验性 API** — 因为规范化逻辑会基于真实语料重写,持续变动。
 
 **欢迎贡献规范化测试数据和报告问题** — 详见下方[求助:测试数据](#求助测试数据)。
 
