@@ -1,0 +1,3545 @@
+MAD10-1	a	A A
+MAD10-2	a fvs3	A A
+MAD11-1	a	A A
+MAD12-1	a fvs3	A A
+MAD12-2	a b u mvs a fvs3	A A B O - A A
+MAD20-1	a fvs1	A
+MAD21-1	a fvs1	A
+MAD21-2	a b u mvs a fvs1	A A B O - A
+MAD30-1	a fvs2	Aa
+MAD31-1	t a n mvs a	T A N _ Aa
+MAD31-2	t a n fvs2 mvs a	T A A _ Aa
+MAD32-1	a fvs2	Aa
+MAD32-2	a b u mvs a fvs2	A A B O - Aa
+MAS10-1	a nirugu	A A Ni >
+MAS10-2	a fvs2 nirugu	A A Ni >
+MAS11-1	a r g a l	A A R Hx A L
+MAS12-1	a b u mvs a fvs2 ch a	A A B O - A A Ch A
+MAS12-2	a fvs2 r g a l	A A R Hx A L
+MAS20-1	a fvs1 nirugu	A Ni >
+MAS21-1	h u t a n mvs a ch a	H O D A A - A Ch A
+MAS21-2	h u t a n mvs a nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ch a	H O D A A - A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ch A
+MAS22-1	b a g sh i mvs a ch a g a n	B A H S I - A Ch A Hx A A
+MAS22-2	b a g sh i mvs a nirugu nirugu ch nirugu a nirugu g nirugu a nirugu n	B A H S I - A Ni Ni Ch Ni A Ni Hx Ni A Ni A
+MAS23-1	a fvs1 b u	A B O
+MAS23-2	a fvs1 ch a	A Ch A
+MAS23-3	a fvs1 ch a g a n	A Ch A Hx A A
+MAZ10-1	nirugu a nirugu	< Ni A Ni >
+MAZ11-1	j a s a h u	I A S A H U
+MAZ11-2	j a s a fvs2 h u	I A S A > Fvs2 < H U
+MAZ11-3	j a s a fvs3 h u	I A S A > Fvs3 < H U
+MAZ11-4	b a g a t u r	B A Hx A D O R
+MAZ11-5	k2 a r t	K2 A R T
+MAZ20-1	nirugu a fvs1 nirugu	< Ni A A Ni >
+MAZ21-1	h a s a fvs1 g u l a	H A S A A Hx O L A
+MAZ21-2	b a fvs1 g a t u r	B A A Hx A D O R
+MAM10-1	nirugu a	< Ni A
+MAM10-2	nirugu a fvs2	< Ni A
+MAM11-1	h a d a	H A D A
+MAM11-2	s a n a	S A N A
+MAM12-1	s a b a fvs2	S A B A
+MAM12-2	h a d a fvs2	H A D A
+MAM20-1	nirugu a fvs1	< Ni Aa
+MAM21-1	sh a f a	Sh A F Aa
+MAM21-2	m a l i k2 a	M A L I K2 Aa
+MAM22-1	t u s a fvs1	T O S Aa
+MAM22-2	h a d a a fvs1	H A D A Aa
+MAM22-3	sh a f a fvs1	Sh A F Aa
+MAM30-1	mvs a	_ Aa
+MAM31-1	b a i n mvs a	B A I I N _ Aa
+MAM31-2	t u g mvs a	T O Hx _ Aa
+MAM31-3	mvs a	_ Aa
+MED10-1	e	A
+MED10-2	e fvs2	A
+MED11-1	e	A
+MED11-2	e fvs3	A Fvs3
+MED12-1	e fvs2	A
+MED12-2	e j i mvs e fvs2	A J I - A
+MED20-1	nirugu e fvs1	< Ni Aa
+MED21-1	e g ue n mvs e	A G O N _ Aa
+MED21-2	t e g ue n mvs e	T A G O N _ Aa
+MED22-1	e fvs1	Aa
+MED22-2	e j i mvs e fvs1	A J I - Aa
+MES10-1	e nirugu	A Ni >
+MES11-1	e j i	A J I
+MES11-2	e m e g e l	A M A G A L
+MES11-3	e fvs2 m e g e l	A > Fvs2 < M A G A L
+MES11-4	e fvs3 m e g e l	A > Fvs3 < M A G A L
+MES20-1	e fvs1 nirugu	A A Ni >
+MES21-1	e fvs1 l e s u	A A L A S U
+MES21-2	e fvs1 ch e	A A Ch A
+MEZ10-1	nirugu e nirugu	< Ni A Ni >
+MEZ11-1	n e m e h ue	N A M A G O
+MEZ11-2	b e l e h e n	B A L A G A A
+MEM10-1	nirugu e	< Ni A
+MEM10-2	nirugu e fvs2	< Ni A
+MEM11-1	t e d e	T A D A
+MEM12-1	i r e b e fvs2	A I R A B A
+MEM12-2	n i g e fvs2	N I G A
+MEM12-3	n i g fvs2 e fvs2	N I G A
+MEM12-4	t e d e fvs2	T A D A
+MEM20-1	nirugu e fvs1	< Ni Aa
+MEM21-1	i r e b e	A I R A B Aa
+MEM21-2	n e h e	N A G Aa
+MEM22-1	t e d e fvs1	T A D Aa
+MEM22-2	n e fvs1	N Aa
+MEM22-3	n e h e fvs1	N A G Aa
+MEM30-1	mvs e	_ Aa
+MEM31-1	i r e n mvs e	A I R A N _ Aa
+MEM31-2	ue j e y mvs e	A O I J A I _ Aa
+MEM31-3	mvs e	_ Aa
+MID10-1	i	A I
+MID10-2	i fvs3	A I
+MID11-1	i	A I
+MID12-1	i fvs3	A I
+MID12-2	t a n mvs i fvs3	T A A - A I
+MID20-1	i fvs1	I
+MID21-1	mvs i	- I
+MID21-2	t a n mvs i	T A A - I
+MID22-1	i fvs1	I
+MID30-1	i fvs2	Ix
+MID31-1	t a n mvs i fvs2	T A A - Ix
+MIS10-1	i nirugu	A I Ni >
+MIS10-2	i fvs2 nirugu	A I Ni >
+MIS11-1	i sh i g e	A I S I G Aa
+MIS11-2	i l e g ue ue	A I L A G O U
+MIS11-3	mvs i y fvs3 a n	- A I Y A A
+MIS12-1	i fvs2 y fvs1 e r	A I I A R
+MIS12-2	i fvs2 y fvs1 a n	A I I A A
+MIS12-3	mvs i fvs2 y fvs1 e r	- A I I A R
+MIS12-4	mvs i fvs2 y fvs1 a n	- A I I A A
+MIS20-1	i fvs1 nirugu	I Ni >
+MIS21-1	mvs i y a r	- I I A R
+MIS21-2	mvs i nirugu nirugu y nirugu nirugu a nirugu nirugu r	- I Ni Ni I Ni Ni A Ni Ni R
+MIS21-3	mvs i y e r	- I I A R
+MIS21-4	mvs i nirugu nirugu y nirugu nirugu e nirugu nirugu r	- I Ni Ni I Ni Ni A Ni Ni R
+MIS22-1	mvs i y a n	- I I A A
+MIS22-2	mvs i nirugu nirugu y nirugu nirugu a nirugu nirugu n	- I Ni Ni I Ni Ni A Ni Ni A
+MIS22-3	mvs i y e n	- I I A A
+MIS22-4	mvs i nirugu nirugu y nirugu nirugu e nirugu nirugu n	- I Ni Ni I Ni Ni A Ni Ni A
+MIS23-1	i fvs1 sh i g e	I S I G Aa
+MIS23-2	i fvs1 y fvs1 e r	I I A R
+MIS23-3	i fvs1 y fvs1 a r	I I A R
+MIS23-4	i fvs1 y fvs1 a n	I I A A
+MIS23-5	i fvs1 y fvs1 e n	I I A A
+MIZ10-1	nirugu i nirugu	< Ni I Ni >
+MIZ10-2	nirugu i fvs3 nirugu	< Ni I Ni >
+MIZ11-1	sh i m e h ue	S I M A G O
+MIZ11-2	ch i ng i r ue g e l	Ch I A G I R O G A L
+MIZ12-1	s ue i h e	S O I I G Aa
+MIZ12-2	s ue nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i h e	S O I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I G Aa
+MIZ12-3	ue i l e	A O I I L A
+MIZ12-4	ue nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i l e	A O I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I L A
+MIZ12-5	ue i l e d b ue r i	A O I I L A Dd B O R I
+MIZ13-1	sh i i d	S I I Dd
+MIZ13-2	ch i i l e h ue	Ch I I L A G O
+MIZ13-3	a i i l	A A I I I L
+MIZ13-4	a i fvs1 i l	A A A I I L
+MIZ13-5	a i fvs3 i l	A A I I L
+MIZ13-6	a h u i i l a l	A A H O I I I L A L
+MIZ13-7	s i i d b ue r i l e j ue	S I I Dd B O R I L A J U
+MIZ14-1	a r i g u n ue fvs1 i l e s	A A R I Hx O N O I I L A S
+MIZ14-2	a r i g u n oe fvs1 i l e s	A A R I Hx O N O I I L A S
+MIZ14-3	a l t a n s oe fvs1 i h e	A A L D A A S O I I G Aa
+MIZ14-4	a l t a n s oe fvs1 nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i h e	A A L D A A S O I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I G Aa
+MIZ14-5	a l t a n s oe fvs2 i h e	A A L D A A S A O I I G Aa
+MIZ14-6	a l t a n s oe fvs2 nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i h e	A A L D A A S A O I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I G Aa
+MIZ15-1	n a i fvs3 m a	N A I M A
+MIZ15-2	t e i fvs3 m ue	T A I M U
+MIZ15-3	j i r a n n a i fvs3 m a	I I R A A N A I M A
+MIZ15-4	n a i fvs3 m a n ch u d	N A I M A A Ch O Dd
+MIZ15-5	n a i fvs3 m a l j i l	N A I M A L J I L
+MIZ15-6	n a i fvs3 m a i	N A I M A I
+MIZ15-7	n a i fvs3 m a t a i	N A I M A D A I
+MIZ20-1	nirugu i fvs1 nirugu	< Ni A I Ni >
+MIZ21-1	s a i n i fvs1 r ue g e l	S A I I N A I R O G A L
+MIZ21-2	t o i fvs1 m u	T O A I M U
+MIZ30-1	nirugu i fvs2 nirugu	< Ni I I Ni >
+MIZ31-1	a i l	A A I I L
+MIZ31-2	a nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i l	A A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I L
+MIZ31-3	t e i m ue	T A I I M U
+MIZ31-4	t e nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i m ue	T A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I M U
+MIZ31-5	b a fvs1 i l	B A A I I L
+MIZ31-6	b a fvs1 nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i l	B A A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I L
+MIZ31-7	b a nirugu i l	B A Ni I I L
+MIZ31-8	b a nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i l	B A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I L
+MIZ31-9	b a t u i t e g e l	B A D O I I D A G A L
+MIZ31-10	n a i m a	N A I I M A
+MIZ31-11	a h u i i l a l	A A H O I I I L A L
+MIZ31-12	j i r a n n a i m a	I I R A A N A I I M A
+MIZ31-13	n a i m a n ch u d	N A I I M A A Ch O Dd
+MIZ31-14	n a i m a l j i l	N A I I M A L J I L
+MIZ31-15	n a i m a i	N A I I M A I
+MIZ31-16	n a i m a t a i	N A I I M A D A I
+MIZ32-1	h i l oe i h ue	G I L O I I G O
+MIZ32-2	h i l oe nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i h ue	G I L O Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I G O
+MIZ32-3	i r e h ue i ch e	A I R A G O I I Ch A
+MIZ32-4	i r e h ue nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i ch e	A I R A G O Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I Ch A
+MIZ33-1	s ue fvs3 i h e	S O I I G Aa
+MIZ33-2	s ue fvs3 nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i h e	S O Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I G Aa
+MIZ33-3	s oe fvs3 i h e	S O I I G Aa
+MIZ34-1	ue fvs1 i l e	O I I L A
+MIZ34-2	ue fvs1 nirugu nirugu nirugu i l e	O Ni Ni Ni I I L A
+MIZ35-1	s o ch i fvs2 h u	S O Ch I I H U
+MIZ35-2	h a s i fvs2 r g u i	H A S I I R Hx O I
+MIZ35-3	a i fvs2 l	A A I I L
+MIZ35-4	a nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i fvs2 l	A A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I I L
+MIM10-1	nirugu i	< Ni I
+MIM11-1	h a sh i	H A S I
+MIM11-2	t a l b i	T A L B I
+MIM11-3	h a j a g a i	H A J A Hx A I
+MWD10-1	o	A O
+MWD11-1	o	A O
+MWD11-2	o fvs1	A O Fvs1
+MWD11-3	o fvs2	A O Fvs2
+MWD11-4	o fvs3	A O Fvs3
+MWS10-1	o nirugu	A O Ni >
+MWS11-1	o r g i l	A O R G I L
+MWS11-2	o m u g	A O M O H
+MWZ10-1	nirugu o nirugu	< Ni O Ni >
+MWZ11-1	n o m	N O M
+MWZ11-2	g o o l	Hx O O L
+MWZ11-3	g o fvs2 o l	Hx O > Fvs2 < O L
+MWZ11-4	g o fvs3 o l	Hx O > Fvs3 < O L
+MWZ11-5	b a t u o r u sh i h u	B A D O O R O S I H U
+MWZ11-6	b o d a ng	B O D A A G
+MWZ20-1	nirugu o fvs1 nirugu	< Ni A O Ni >
+MWZ21-1	t o fvs1 n u g	T A O N O H
+MWZ21-2	b o fvs1 d a ng	B A O D A A G
+MWM10-1	nirugu o	< Ni U
+MWM10-2	nirugu o fvs2	< Ni U
+MWM11-1	n o n o n o	N O N O N U
+MWM11-2	n o n o n o fvs3	N O N O N U Fvs3
+MWM11-3	o b o o	A O B O U
+MWM12-1	n o fvs2	N U
+MWM12-2	b o fvs2	B U
+MWM12-3	k2 a r a m p o fvs2	K2 A R A M P U
+MWM20-1	nirugu o fvs1	< Ni O
+MWM21-1	k2 a r a m p o	K2 A R A M P O
+MWM22-1	ch o	Ch O
+MWM22-2	b o	B O
+MWM22-3	p o	P O
+MWM23-1	k2 i n o fvs1	K2 I N O
+MWM23-2	b o fvs1	B O
+MWM23-3	f o fvs1	F O
+MVD10-1	u	A O
+MVD10-2	u fvs3	A O
+MVD11-1	u	A O
+MVD12-1	u fvs3	A O
+MVD12-2	t a n mvs u fvs3	T A A - A O
+MVD20-1	u fvs1	U
+MVD21-1	mvs u	- U
+MVD22-1	t a n mvs u fvs1	T A A - U
+MVD30-1	u fvs2	Ux
+MVD31-1	t a n mvs u fvs2	T A A - Ux
+MVS10-1	u nirugu	A O Ni >
+MVS10-2	u fvs2 nirugu	A O Ni >
+MVS11-1	u r a n	A O R A A
+MVS11-2	u fvs3 r a n	A O > Fvs3 < R A A
+MVS11-3	u n t a h u	A O A D A H U
+MVS12-1	u fvs2 n	A O A
+MVS12-2	u fvs2 u	A O U
+MVS12-3	mvs u fvs2 n	- A O A
+MVS20-1	u fvs1 nirugu	O Ni >
+MVS21-1	u u	O U
+MVS22-1	mvs u n	- O A
+MVS22-2	mvs u nirugu nirugu nirugu nirugu n	- O Ni Ni Ni Ni A
+MVS23-1	mvs u d	- O Dd
+MVS23-2	mvs u nirugu nirugu nirugu nirugu d	- O Ni Ni Ni Ni Dd
+MVS24-1	u fvs1 t a s u	O D A S U
+MVS24-2	u fvs1 r a n	O R A A
+MVS24-3	u fvs1 d	O Dd
+MVS24-4	u fvs1 n	O A
+MVZ10-1	nirugu u nirugu	< Ni O Ni >
+MVZ11-1	d u r a n	T O R A A
+MVZ11-2	d u fvs2 r a n	T O > Fvs2 < R A A
+MVZ11-3	d u fvs3 r a n	T O > Fvs3 < R A A
+MVZ11-4	h u r u d	H O R O Dd
+MVZ11-5	b u d a g mvs a	B O D A Hx _ Aa
+MVZ11-6	a u g mvs a	A A O Hx _ Aa
+MVZ11-7	o b u g mvs a	A O B O Hx _ Aa
+MVZ20-1	nirugu u fvs1 nirugu	< Ni A O Ni >
+MVZ21-1	a m i n fvs2 u fvs1 r t u	A A M I A A O R D U
+MVZ21-2	h a s u fvs1 y u n	H A S A O Y O A
+MVZ21-3	l u fvs1 g mvs a	L A O Hx _ Aa
+MVZ21-4	b u fvs1 d a g mvs a	B A O D A Hx _ Aa
+MVM10-1	nirugu u	< Ni U
+MVM10-2	nirugu u fvs2	< Ni U
+MVM11-1	a u	A A U
+MVM11-2	a nirugu nirugu nirugu nirugu u	A A Ni Ni Ni Ni U
+MVM11-3	d a g u	T A Hx U
+MVM11-4	d a g u fvs3	T A Hx U Fvs3
+MVM11-5	d a g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu u	T A Hx Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni U
+MVM11-6	ch a b a u	Ch A B A U
+MVM11-7	ch a b a nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu u	Ch A B A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni U
+MVM12-1	t a b u fvs2	T A B U
+MVM12-2	ch u fvs2	Ch U
+MVM12-3	b o g ch nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu u fvs2	B O H Ch Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni U
+MVM12-4	b o g ch u fvs2	B O H Ch U
+MVM12-5	d u fvs2	T U
+MVM12-6	d fvs1 u	D U
+MVM13-1	b a i g s a n mvs ch u	B A I I H S A A - Ch U
+MVM14-1	i j a g u r mvs t u	A I J A Hx O R - T U
+MVM20-1	nirugu u fvs1	< Ni O
+MVM21-1	t a b u	T A B O
+MVM21-2	h a m b u	H A M B O
+MVM22-1	ch u	Ch O
+MVM22-2	ch nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu u	Ch Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni O
+MVM22-3	b u	B O
+MVM22-4	b nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu u	B Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni O
+MVM23-1	b u fvs1	B O
+MVM23-2	t a b u fvs1	T A B O
+MVM23-3	h a m b u fvs1	H A M B O
+MVM23-4	o g o n o fvs1	A O Hx O N O
+MOD10-1	oe	A Ue
+MOD11-1	oe	A Ue
+MOD11-2	oe fvs2	A Ue Fvs2
+MOD20-1	oe fvs1	A U
+MOD21-1	oe fvs1	A U
+MOS10-1	oe nirugu	A O I Ni >
+MOS11-1	oe n d oe r	A O I A D O R
+MOS11-2	oe fvs1 n d oe r	A O I > Fvs1 < A D O R
+MOS11-3	oe fvs2 n d oe r	A O I > Fvs2 < A D O R
+MOS11-4	oe fvs3 n d oe r	A O I > Fvs3 < A D O R
+MOZ10-1	nirugu oe nirugu	< Ni O Ni >
+MOZ10-2	nirugu oe fvs3 nirugu	< Ni O Ni >
+MOZ11-1	h oe oe g	G O I O G
+MOZ12-1	oe n oe d oe r	A O I N O D O R
+MOZ12-2	s a n a g a oe r g e n	S A N A Hx A O R G A A
+MOZ13-1	n oe fvs3 h e	N O G Aa
+MOZ13-2	n oe fvs3 l oe g e	N O L O G Aa
+MOZ13-3	h oe oe fvs3 g	G O I O G
+MOZ13-4	oe n oe fvs3 d oe r	A O I N O D O R
+MOZ20-1	nirugu oe fvs1 nirugu	< Ni O I Ni >
+MOZ21-1	t oe r	T O I R
+MOZ21-2	h oe g ue r g e	G O I G O R G Aa
+MOZ21-3	k y oe r i	K Y O I R I
+MOZ22-1	s a i n b oe fvs1 h e	S A I I A B O I G Aa
+MOZ22-2	h oe oe fvs1 g	G O I O I G
+MOZ22-3	n oe l oe fvs1 g e	N O I L O I G Aa
+MOZ30-1	nirugu oe fvs2 nirugu	< Ni A O I Ni >
+MOZ31-1	b u y a n fvs2 oe fvs2 l j e i	B O Y A A A O I L J A I
+MOM10-1	nirugu oe	< Ni U
+MOM10-2	nirugu oe fvs3	< Ni U
+MOM11-1	oe n oe	A O I N U
+MOM12-1	b oe b oe fvs3	B O I B U
+MOM12-2	s oe fvs3	S U
+MOM20-1	nirugu oe fvs1	< Ni Ue
+MOM21-1	n oe	N Ue
+MOM21-2	b oe	B Ue
+MOM22-1	s oe s oe s oe fvs1	S O I S O S Ue
+MOM22-2	b ue b oe fvs1	B O I B Ue
+MOM22-3	oe n oe fvs1	A O I N Ue
+MOM30-1	nirugu oe fvs2	< Ni O
+MOM31-1	b oe b oe	B O I B O
+MOM32-1	oe n oe fvs2	A O I N O
+MOM32-2	b oe b oe fvs2	B O I B O
+MOM32-3	s oe fvs2	S O
+MUD10-1	ue	A Ue
+MUD11-1	ue	A Ue
+MUD20-1	ue fvs1	A U
+MUD21-1	ue fvs1	A U
+MUD21-2	t e g ue n mvs ue fvs1	T A G O A - A U
+MUD30-1	ue fvs2	U
+MUD31-1	mvs ue	- U
+MUD32-1	t e g ue n mvs ue fvs2	T A G O A - U
+MUD40-1	ue fvs3	Ux
+MUD41-1	t e g ue n mvs ue fvs3	T A G O A - Ux
+MUS10-1	ue nirugu	A O I Ni >
+MUS10-2	ue fvs2 nirugu	A O I Ni >
+MUS11-1	ue h e r	A O I G A R
+MUS12-1	ue fvs2 ue	A O I U
+MUS12-2	ue fvs2 d	A O I Dd
+MUS12-3	ue fvs2 h e r	A O I G A R
+MUS12-4	ue fvs3 h e r	A O I > Fvs3 < G A R
+MUS20-1	ue fvs1 nirugu	O Ni >
+MUS21-1	ue ue	O U
+MUS21-2	ue nirugu nirugu nirugu nirugu nirugu nirugu ue	O Ni Ni Ni Ni Ni Ni U
+MUS22-1	mvs ue n	- O A
+MUS22-2	ue fvs1 n	O A
+MUS22-3	ue fvs1 nirugu nirugu nirugu nirugu nirugu n	O Ni Ni Ni Ni Ni A
+MUS23-1	mvs ue d	- O Dd
+MUS23-2	ue fvs1 d	O Dd
+MUS23-3	ue fvs1 nirugu nirugu nirugu nirugu nirugu d	O Ni Ni Ni Ni Ni Dd
+MUS24-1	ue fvs1 h e r	O G A R
+MUS24-2	ue fvs1 d	O Dd
+MUS24-3	ue fvs1 n	O A
+MUZ10-1	nirugu ue nirugu	< Ni O Ni >
+MUZ10-2	nirugu ue fvs3 nirugu	< Ni O Ni >
+MUZ11-1	t e ue h e	T A O G Aa
+MUZ11-2	t e nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue h e	T A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni O G Aa
+MUZ11-3	ue ue sh i n	A O I O S I A
+MUZ12-1	ue s ue g	A O I S O G
+MUZ12-2	ch i ng ue n e n	Ch I A G O N A A
+MUZ12-3	l i l l l ue l	L I L L L O L
+MUZ12-4	l i l l l l ue l	L I L L L L O L
+MUZ13-1	b ue ue	B O U
+MUZ13-2	b ue nirugu nirugu nirugu nirugu nirugu ue	B O Ni Ni Ni Ni Ni U
+MUZ14-1	mvs t ue r	- T O R
+MUZ15-1	mvs t ue n i	- T O N I
+MUZ16-1	mvs y ue g e n	- Y O G A A
+MUZ16-2	mvs y nirugu nirugu ue nirugu nirugu g e nirugu nirugu n	- Y Ni Ni O Ni Ni G A Ni Ni A
+MUZ17-1	mvs l ue g e	- L O G Aa
+MUZ17-2	mvs l nirugu nirugu ue nirugu nirugu g e	- L Ni Ni O Ni Ni G Aa
+MUZ18-1	mvs n ue g ue d	- N O G O Dd
+MUZ18-2	mvs n nirugu nirugu ue nirugu nirugu g ue nirugu nirugu d	- N Ni Ni O Ni Ni G O Ni Ni Dd
+MUZ19-1	mvs n ue g e n	- N O G A A
+MUZ1A-1	mvs d ue n i	- D O N I
+MUZ1A-2	mvs d nirugu nirugu ue nirugu nirugu n nirugu nirugu i	- D Ni Ni O Ni Ni N Ni Ni I
+MUZ1B-1	mvs d ue g e r	- D O G A R
+MUZ1B-2	mvs d nirugu nirugu ue nirugu nirugu g e nirugu nirugu r	- D Ni Ni O Ni Ni G A Ni Ni R
+MUZ1C-1	mvs d ue r	- D O R
+MUZ1C-2	mvs d nirugu nirugu ue nirugu nirugu r	- D Ni Ni O Ni Ni R
+MUZ1D-1	mvs y ue m	- Y O M
+MUZ1D-2	mvs y nirugu nirugu ue nirugu nirugu m	- Y Ni Ni O Ni Ni M
+MUZ1E-1	mvs y ue m s e n	- Y O M S A A
+MUZ1E-2	mvs y nirugu nirugu ue nirugu nirugu m nirugu nirugu s nirugu nirugu e nirugu nirugu n	- Y Ni Ni O Ni Ni M Ni Ni S Ni Ni A Ni Ni A
+MUZ1F-1	n ue fvs3 g e	N O G Aa
+MUZ1F-2	b ue fvs3 r g ue d	B O R G O Dd
+MUZ1F-3	t ue fvs3 r	T O R
+MUZ1F-4	t ue fvs3 n i	T O N I
+MUZ1F-5	y ue fvs3 g e n	Y O G A A
+MUZ1F-6	l ue fvs3 g e	L O G Aa
+MUZ1F-7	n ue fvs3 g ue d	N O G O Dd
+MUZ1F-8	n ue fvs3 g e n	N O G A A
+MUZ1F-9	d fvs1 ue fvs3 n i	D O N I
+MUZ1F-10	d fvs1 ue fvs3 g e r	D O G A R
+MUZ1F-11	d fvs1 ue fvs3 r	D O R
+MUZ1F-12	y ue fvs3 m	Y O M
+MUZ1F-13	y ue fvs3 m s e n	Y O M S A A
+MUZ20-1	nirugu ue fvs1 nirugu	< Ni O I Ni >
+MUZ21-1	t ue r g e n	T O I R G A A
+MUZ21-2	p r ue f ee s s o r	P R O I F W S S O R
+MUZ21-3	p ue f ee s s o r	P O I F W S S O R
+MUZ21-4	r ue f ee s s o r	R O I F W S S O R
+MUZ21-5	b ue d ue g ue n	B O I D O G O A
+MUZ21-6	h ue r e l	G O I R A L
+MUZ21-7	k y ue r i	K Y O I R I
+MUZ21-8	s nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue l j i y e n	S Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni O I L J I Y A A
+MUZ21-9	t nirugu nirugu nirugu nirugu r nirugu nirugu nirugu nirugu nirugu nirugu d fvs1 nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue r g e n	T Ni Ni Ni Ni R Ni Ni Ni Ni Ni Ni D Ni Ni Ni Ni Ni Ni Ni O I R G A A
+MUZ21-10	t t t t t t nirugu nirugu nirugu nirugu nirugu ue r g e n	T T T T T D Ni Ni Ni Ni Ni O I R G A A
+MUZ21-11	n b g h j l nirugu nirugu nirugu nirugu nirugu ue r g e n	N B G G J L Ni Ni Ni Ni Ni O I R G A A
+MUZ22-1	w i r ue fvs1 s	W I R O I S
+MUZ22-2	t ue fvs1 r g e n	T O I R G A A
+MUZ22-3	d a l a i d ue fvs1 g ue r e ng	T A L A I I D O I G O R A A G
+MUZ22-4	s e ue fvs1 d i	S A O I D I
+MUZ22-5	z i m b a b ue fvs1 w ee i	Z I M B A B O I W W I
+MUZ22-6	m ue n a n j i y a h ue fvs1 w a	M O I N A A J I Y A G O I W A
+MUZ22-7	b ee l u r ue fvs1 sh i y mvs e	B W L O R O I S I I _ Aa
+MUZ30-1	nirugu ue fvs2 nirugu	< Ni A O I Ni >
+MUZ31-1	a l t a n b ue fvs2 r g ue d	A A L D A A B A O I R G O Dd
+MUM10-1	nirugu ue	< Ni U
+MUM10-2	nirugu ue fvs3	< Ni U
+MUM11-1	e ue	A U
+MUM11-2	e nirugu nirugu nirugu nirugu ue	A Ni Ni Ni Ni U
+MUM11-3	i ue	A I U
+MUM11-4	i nirugu nirugu nirugu nirugu ue	A I Ni Ni Ni Ni U
+MUM11-5	ue s ue	A O I S U
+MUM11-6	j e g ue ue	I A G O U
+MUM11-7	d fvs1 ue	D U
+MUM11-8	d fvs1 nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue	D Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni U
+MUM12-1	i r e h ue fvs3	A I R A G U
+MUM12-2	l ue fvs3	L U
+MUM12-3	s ue fvs3	S U
+MUM13-1	ue g e i mvs ch u	A O I G A I - Ch U
+MUM13-2	ue g e i mvs ch nirugu nirugu nirugu nirugu nirugu u	A O I G A I - Ch Ni Ni Ni Ni Ni U
+MUM14-1	g e r mvs t ue	G A R - T U
+MUM20-1	nirugu ue fvs1	< Ni Ue
+MUM21-1	s ue	S Ue
+MUM21-2	s nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue	S Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ue
+MUM21-3	g ue	G Ue
+MUM21-4	g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue	G Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ue
+MUM22-1	b a g ue fvs1	B A G Ue
+MUM22-2	j e g ue ue fvs1	I A G O Ue
+MUM30-1	nirugu ue fvs2	< Ni O
+MUM31-1	i r e h ue	A I R A G O
+MUM31-2	b a g ue	B A G O
+MUM32-1	ue s ue fvs2	A O I S O
+MUM32-2	b a g ue fvs2	B A G O
+MUM32-3	l ue fvs2	L O
+MUM32-4	s ue fvs2	S O
+MUM33-1	g a g ch a mvs h ue	Hx A H Ch A - G O
+XED10-1	ee	A W
+XED11-1	ee	A W
+XES10-1	ee nirugu	A W Ni >
+XES11-1	ee m	A W M
+XEZ10-1	nirugu ee nirugu	< Ni W Ni >
+XEZ11-1	l ee n i n	L W N I A
+XEZ11-2	b ee r l i n	B W R L I A
+XEZ11-3	w i y ee n a	W I Y W N A
+XEM10-1	nirugu ee	< Ni W
+XEM11-1	e m ee	A M W
+XEM11-2	p o p p ee	P O P P W
+MND10-1	n	N >
+MND11-1	n	N >
+MND11-2	n fvs2	N > Fvs2
+MND11-3	n mvs	N > Mvs
+MND11-4	mvs n mvs	- N > Mvs
+MND20-1	n fvs1	A >
+MND21-1	n fvs1	A >
+MNS10-1	n nirugu	N Ni >
+MNS10-2	n mvs a	N > _ Aa
+MNS10-3	n n n	N A A
+MNS10-4	mvs n mvs a	- N > _ Aa
+MNS10-5	n mvs a ch a	N > - A Ch A
+MNS11-1	n a	N A
+MNS11-2	n a fvs1	N Aa
+MNS11-3	n a fvs2	N A
+MNS11-4	n a fvs3	N A Fvs3
+MNS11-5	n e	N A
+MNS11-6	n e fvs1	N Aa
+MNS11-7	n e fvs2	N A
+MNS11-8	n e fvs3	N A Fvs3
+MNS11-9	n i	N I
+MNS11-10	n o	N O
+MNS11-11	n o fvs1	N O
+MNS11-12	n o fvs2	N U
+MNS11-13	n u	N O
+MNS11-14	n u fvs1	N O
+MNS11-15	n u fvs2	N U
+MNS11-16	n oe	N Ue
+MNS11-17	n oe fvs1	N Ue
+MNS11-18	n oe fvs2	N O
+MNS11-19	n oe fvs3	N U
+MNS11-20	n ue	N Ue
+MNS11-21	n ue fvs1	N Ue
+MNS11-22	n ue fvs2	N O
+MNS11-23	n ue fvs3	N U
+MNS11-24	n ee	N W
+MNS11-25	n e h e i	N A G A I
+MNS11-26	n fvs2 e h e i	N > Fvs2 < A G A I
+MNS11-27	n fvs3 e h e i	N > Fvs3 < A G A I
+MNS20-1	n fvs1 nirugu	A Ni >
+MNS21-1	n fvs1 e h e i	A A G A I
+MNS21-2	n fvs1 o	A U
+MNS21-3	n fvs1 o fvs1	A O
+MNS21-4	n fvs1 o fvs2	A U
+MNS21-5	n fvs1 o fvs3	A U Fvs3
+MNS21-6	n fvs1 oe	A U
+MNS21-7	n fvs1 oe fvs1	A Ue
+MNS21-8	n fvs1 oe fvs2	A O
+MNS21-9	n fvs1 oe fvs3	A U
+MNZ10-1	nirugu n nirugu	< Ni A Ni >
+MNZ11-1	s ee k2 ue fvs1 n t	S W K2 O I A T
+MNZ11-2	a n d a	A A A D A
+MNZ11-3	a n fvs3 d a	A A A > Fvs3 < D A
+MNZ11-4	n a s u n fvs2 e r d e n i	N A S O A A R D A N I
+MNZ12-1	n a s u n fvs2 e r d e n i	N A S O A A R D A N I
+MNZ12-2	a n fvs2 a r	A A A A R
+MNZ12-3	a n fvs2 d a	A A A D A
+MNZ12-4	a n fvs2 nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu a r	A A A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni A R
+MNZ20-1	nirugu n fvs1 nirugu	< Ni N Ni >
+MNZ21-1	h e m n e h ue	G A M N A G O
+MNZ21-2	s a i n i fvs1 r ue g e l	S A I I N A I R O G A L
+MNZ21-3	ue n ue fvs3 d ue r	A O I N O D O R
+MNZ21-4	ue n ue	A O I N U
+MNZ21-5	ue n fvs3 ue	A O I N > Fvs3 < U
+MNZ21-6	g n e n	G N A A
+MNZ21-7	g n nirugu nirugu nirugu e n	G N Ni Ni Ni A A
+MNZ21-8	a n nirugu a r	A A N Ni A R
+MNZ21-9	a n nirugu nirugu nirugu nirugu a r	A A N Ni Ni Ni Ni A R
+MNZ21-10	a n nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu a r	A A N Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni A R
+MNZ22-1	n n fvs1 n fvs1	N N N
+MNZ22-2	c w m w n fvs1 t	C W M W N T
+MNZ22-3	a n fvs1 a r	A A N A R
+# MNZ30-1
+MNZ31-1	i r e n mvs e	A I R A N _ Aa
+MNZ31-2	nirugu n mvs e	< Ni N _ Aa
+MNZ31-3	nirugu n mvs e	< Ni N _ Aa
+MNZ32-1	e g ue n fvs1 mvs e	A G O N _ Aa
+# MNZ40-1
+MNZ41-1	i r e n fvs2 mvs e	A I R A A _ Aa
+MNZ41-2	nirugu nirugu n mvs	< Ni Ni A Mvs
+MNZ41-3	nirugu n mvs	< Ni A Mvs
+MNM10-1	nirugu n	< Ni A
+MNM10-2	nirugu n fvs3	< Ni A Fvs3
+MNM10-3	h h n mvs	G G A Mvs
+MNM10-4	h a n mvs	H A A Mvs
+MNM10-5	h e n mvs	G A A Mvs
+MNM10-6	h i n mvs	G I A Mvs
+MNM10-7	nirugu n fvs2 mvs	< Ni A Mvs
+MNM11-1	t a n	T A A
+MNM11-2	t a n fvs3	T A A Fvs3
+MNM11-3	t n	T A
+MNM11-4	t a n fvs2 mvs a	T A A _ Aa
+MNM11-5	t a n mvs	T A A Mvs
+MNM11-6	t a n mvs u	T A A - U
+MNM12-1	t a n fvs2	T A A
+MNM20-1	nirugu n fvs1	< Ni N
+MNM20-2	nirugu n fvs1 mvs	< Ni N Mvs
+MNM21-1	n n fvs1 n fvs1	N N N
+MNM21-2	o n fvs1	A O N
+XND10-1	ng	< A G >
+XND11-1	ng	< A G >
+XNS10-1	ng nirugu	< A G Ni >
+XNS11-1	ng ng ng ng	< A G A G A G A G
+XNZ10-1	nirugu ng nirugu	< Ni A G Ni >
+XNZ11-1	m o ng g o l	M O A G Hx O L
+XNZ11-2	h a n g fvs3 g a j u	H A A H Hx A J U
+XNZ11-3	h a n g fvs2 g a j u	H A A G Hx A J U
+XNM10-1	nirugu ng	< Ni A G
+XNM11-1	s a ng	S A A G
+XNM11-2	i n j ee n ee r i ng	A I A J W N W R I A G
+MBD10-1	b	B >
+MBD11-1	b	B >
+MBS10-1	b nirugu	B Ni >
+MBS11-1	b a	B Aa
+MBS11-2	b a fvs1	B Aa
+MBS11-3	b a fvs2	B A
+MBS11-4	b a fvs3	B Aa Fvs3
+MBS11-5	b nirugu a	B Ni Aa
+MBS11-6	b fvs3 a	B > Fvs3 < Aa
+MBS11-7	b e	B Aa
+MBS11-8	b e fvs1	B Aa
+MBS11-9	b e fvs2	B A
+MBS11-10	b e fvs3	B Aa Fvs3
+MBS11-11	b nirugu e	B Ni Aa
+MBS11-12	b fvs3 e	B > Fvs3 < Aa
+MBS11-13	b i	B I
+MBS11-14	b nirugu i	B Ni I
+MBS11-15	b fvs3 i	B > Fvs3 < I
+MBS11-16	b o	B O
+MBS11-17	b o fvs1	B O
+MBS11-18	b o fvs2	B U
+MBS11-19	b o fvs3	B O Fvs3
+MBS11-20	b nirugu o	B Ni O
+MBS11-21	b fvs1 nirugu o	B > Fvs1 < Ni O
+MBS11-22	b u	B O
+MBS11-23	b u fvs1	B O
+MBS11-24	b u fvs2	B U
+MBS11-25	b u fvs3	B O Fvs3
+MBS11-26	b nirugu u	B Ni O
+MBS11-27	b fvs1 nirugu u	B > Fvs1 < Ni O
+MBS11-28	b oe	B Ue
+MBS11-29	b oe fvs1	B Ue
+MBS11-30	b oe fvs2	B O
+MBS11-31	b oe fvs3	B U
+MBS11-32	b nirugu oe	B Ni Ue
+MBS11-33	b fvs1 nirugu oe	B > Fvs1 < Ni Ue
+MBS11-34	b ue	B Ue
+MBS11-35	b ue fvs1	B Ue
+MBS11-36	b ue fvs2	B O
+MBS11-37	b ue fvs3	B U
+MBS11-38	b nirugu ue	B Ni Ue
+MBS11-39	b fvs1 nirugu ue	B > Fvs1 < Ni Ue
+MBS11-40	b ee	B W
+MBS11-41	b nirugu ee	B Ni W
+MBS11-42	b fvs1 nirugu ee	B > Fvs1 < Ni W
+MBS11-43	b a g a j i	B A Hx A J I
+MBS11-44	b a fvs1 g a j i	B A A Hx A J I
+MBS11-45	b a fvs2 g a j i	B A > Fvs2 < Hx A J I
+MBS11-46	b e h e	B A G Aa
+MBS11-47	b e fvs1 h e	B A > Fvs1 < G Aa
+MBS11-48	b i ch i g	B I Ch I G
+MBS11-49	b i fvs1 ch i g	B A I Ch I G
+MBS11-50	b i fvs2 ch i g	B I I Ch I G
+MBS11-51	b i fvs3 ch i g	B I Ch I G
+MBS11-52	b o r u	B O R U
+MBS11-53	b o fvs1 r u	B A O R U
+MBS11-54	b o fvs2 r u	B O > Fvs2 < R U
+MBS11-55	b u r u g u	B O R O Hx U
+MBS11-56	b u fvs1 r u g u	B A O R O Hx U
+MBS11-57	b u fvs2 r u g u	B O > Fvs2 < R O Hx U
+MBS11-58	b oe r h ue g	B O I R G O G
+MBS11-59	b oe fvs1 r h ue g	B O I R G O G
+MBS11-60	b oe fvs2 r h ue g	B A O I R G O G
+MBS11-61	b oe fvs3 r h ue g	B O R G O G
+MBS11-62	b ue d ue g ue n	B O I D O G O A
+MBS11-63	b ue fvs1 d ue g ue n	B O I D O G O A
+MBS11-64	b ue fvs2 d ue g ue n	B A O I D O G O A
+MBS11-65	b ue fvs3 d ue g ue n	B O D O G O A
+MBS11-66	b ee b ee b ee	B W B W B W
+MBS11-67	b a r u g	B A R O H
+MBS11-68	b e r h e	B A R G Aa
+MBS11-69	b i r	B I R
+MBS11-70	b o g ch u	B O H Ch U
+MBS11-71	b fvs1 u g ch u	B > Fvs1 < O H Ch U
+MBS11-72	b u d a g mvs a	B O D A Hx _ Aa
+MBS11-73	b oe j i g	B O I J I G
+MBS11-74	b fvs1 ue j i g	B > Fvs1 < O I J I G
+MBS11-75	b ue r	B O I R
+MBS11-76	b w r l i n	B W R L I A
+MBS11-77	b l a m mvs a	B L A M _ Aa
+MBS11-78	mvs b e r	- B A R
+MBZ10-1	nirugu b nirugu	< Ni B Ni >
+MBZ11-1	b a m b a r	B A M B A R
+MBZ11-2	y a b u b a	Y A B O B Aa
+MBZ11-3	d e b e h ue	T A B A G O
+MBZ11-4	h e r b e	G A R B Aa
+MBZ11-5	h o b i n ch i r	H O B I A Ch I R
+MBZ11-6	t a l b i	T A L B I
+MBZ11-7	o b o o	A O B O U
+MBZ11-8	o b o	A O B O
+MBZ11-9	t a b u n	T A B O A
+MBZ11-10	t a b u	T A B O
+MBZ11-11	h oe b ue r e l	G O I B O R A L
+MBZ11-12	t o b ch i	T O B Ch I
+MBZ11-13	a b a l a	A A B A L A
+MBZ11-14	a b a fvs1 l a	A A B A A L A
+MBZ11-15	a b a fvs2 l a	A A B A > Fvs2 < L A
+MBZ11-16	a b nirugu nirugu a l a	A A B Ni Ni A L A
+MBZ11-17	a b fvs2 a l a	A A B > Fvs2 < A L A
+MBZ11-18	a b nirugu nirugu a	A A B Ni Ni Aa
+MBZ11-19	a b fvs2 a	A A B > Fvs2 < Aa
+MBZ11-20	e b e l e	A B A L A
+MBZ11-21	e b e fvs1 l e	A B A > Fvs1 < L A
+MBZ11-22	e b nirugu nirugu e l e	A B Ni Ni A L A
+MBZ11-23	e b fvs1 e l e	A B > Fvs1 < A L A
+MBZ11-24	e b nirugu nirugu e	A B Ni Ni Aa
+MBZ11-25	e b fvs2 e	A B > Fvs2 < Aa
+MBZ11-26	l i b i l i	L I B I L I
+MBZ11-27	l i b i fvs1 l i	L I B A I L I
+MBZ11-28	l i b i fvs2 l i	L I B I I L I
+MBZ11-29	l i b i fvs3 l i	L I B I L I
+MBZ11-30	l i b nirugu nirugu i l i	L I B Ni Ni I L I
+MBZ11-31	l i b fvs1 i l i	L I B > Fvs1 < I L I
+MBZ11-32	l i b nirugu nirugu i	L I B Ni Ni I
+MBZ11-33	l i b fvs1 i	L I B > Fvs1 < I
+MBZ11-34	b a b o b a	B A B O B Aa
+MBZ11-35	b a b o fvs1 b a	B A B A O B Aa
+MBZ11-36	b a b o fvs2 b a	B A B O > Fvs2 < B Aa
+MBZ11-37	b a b nirugu nirugu o b a	B A B Ni Ni O B Aa
+MBZ11-38	b a b fvs2 o b a	B A B > Fvs2 < O B Aa
+MBZ11-39	b a b nirugu nirugu o	B A B Ni Ni O
+MBZ11-40	b a b fvs2 o	B A B > Fvs2 < O
+MBZ11-41	t a b u l a	T A B O L A
+MBZ11-42	t a b u fvs1 l a	T A B A O L A
+MBZ11-43	t a b u fvs2 l a	T A B O > Fvs2 < L A
+MBZ11-44	t a b nirugu nirugu u l a	T A B Ni Ni O L A
+MBZ11-45	t a b fvs2 u l a	T A B > Fvs2 < O L A
+MBZ11-46	b a b nirugu nirugu u	B A B Ni Ni O
+MBZ11-47	b a b fvs2 u	B A B > Fvs2 < O
+MBZ11-48	b e b oe b e	B A B O B Aa
+MBZ11-49	b e b oe fvs1 b e	B A B O I B Aa
+MBZ11-50	b e b oe fvs2 b e	B A B A O I B Aa
+MBZ11-51	b e b oe fvs3 b e	B A B O B Aa
+MBZ11-52	b e b nirugu oe b e	B A B Ni O B Aa
+MBZ11-53	b e b fvs2 oe b e	B A B > Fvs2 < O B Aa
+MBZ11-54	b e b nirugu oe	B A B Ni O
+MBZ11-55	b e b fvs2 oe	B A B > Fvs2 < O
+MBZ11-56	t e b ue n e	T A B O N A
+MBZ11-57	t e b ue fvs1 n e	T A B O I N A
+MBZ11-58	t e b ue fvs2 n e	T A B A O I N A
+MBZ11-59	t e b ue fvs3 n e	T A B O N A
+MBZ11-60	t e b nirugu nirugu ue n e	T A B Ni Ni O N A
+MBZ11-61	t e b fvs2 ue n e	T A B > Fvs2 < O N A
+MBZ11-62	t e b nirugu nirugu ue	T A B Ni Ni O
+MBZ11-63	t e b fvs2 ue	T A B > Fvs2 < O
+MBZ11-64	b ee b ee b ee	B W B W B W
+MBZ11-65	b ee b nirugu nirugu ee b ee	B W B Ni Ni W B W
+MBZ11-66	b ee b fvs2 ee b ee	B W B > Fvs2 < W B W
+MBZ11-67	b ee b nirugu nirugu ee	B W B Ni Ni W
+MBZ11-68	b ee b fvs2 ee	B W B > Fvs2 < W
+MBM10-1	nirugu b	< Ni B
+MBM11-1	a b	A A B
+MBM11-2	a b fvs2	A A B Fvs2
+MBM11-3	a b fvs3	A A B Fvs3
+MBM20-1	nirugu b fvs1	< Ni B2
+MBM21-1	s e d ue b fvs1	S A D O B2
+MPD10-1	p	P >
+MPD11-1	p	P >
+MPS10-1	p nirugu	P Ni >
+MPS11-1	p a	P Aa
+MPS11-2	p a fvs1	P Aa
+MPS11-3	p a fvs2	P A
+MPS11-4	p a fvs3	P Aa Fvs3
+MPS11-5	p e	P Aa
+MPS11-6	p e fvs1	P Aa
+MPS11-7	p e fvs2	P A
+MPS11-8	p e fvs3	P Aa Fvs3
+MPS11-9	p i	P I
+MPS11-10	p o	P O
+MPS11-11	p o fvs1	P O
+MPS11-12	p o fvs2	P U
+MPS11-13	p o fvs3	P O Fvs3
+MPS11-14	p u	P O
+MPS11-15	p u fvs1	P O
+MPS11-16	p u fvs2	P U
+MPS11-17	p u fvs3	P O Fvs3
+MPS11-18	p oe	P Ue
+MPS11-19	p oe fvs1	P Ue
+MPS11-20	p oe fvs2	P O
+MPS11-21	p oe fvs3	P U
+MPS11-22	p ue	P Ue
+MPS11-23	p ue fvs1	P Ue
+MPS11-24	p ue fvs2	P O
+MPS11-25	p ue fvs3	P U
+MPS11-26	p ee	P W
+MPS11-27	p a p a	P A P Aa
+MPS11-28	p a fvs1 p a	P A A P Aa
+MPS11-29	p a fvs2 p a	P A > Fvs2 < P Aa
+MPS11-30	p e p e	P A P Aa
+MPS11-31	p e fvs1 p e	P A > Fvs1 < P Aa
+MPS11-32	p i p i	P I P I
+MPS11-33	p i fvs1 p i	P A I P I
+MPS11-34	p i fvs2 p i	P I I P I
+MPS11-35	p i fvs3 p i	P I P I
+MPS11-36	p o p o	P O P O
+MPS11-37	p o fvs1 p o	P A O P O
+MPS11-38	p o fvs2 p o	P O > Fvs2 < P O
+MPS11-39	p u p u	P O P O
+MPS11-40	p u fvs1 p u	P A O P O
+MPS11-41	p u fvs2 p u	P O > Fvs2 < P O
+MPS11-42	p oe p oe	P O I P O
+MPS11-43	p oe fvs1 p oe	P O I P O
+MPS11-44	p oe fvs2 p oe	P A O I P O
+MPS11-45	p oe fvs3 p oe	P O P O
+MPS11-46	p ue p ue	P O I P O
+MPS11-47	p ue fvs1 p ue	P O I P O
+MPS11-48	p ue fvs2 p ue	P A O I P O
+MPS11-49	p ue fvs3 p ue	P O P O
+MPS11-50	p ee p ee	P W P W
+MPS11-51	p l a n	P L A A
+MPS11-52	p a r t fvs1 i z a n	P A R T I Z A A
+MPS11-53	p i ng	P I A G
+MPS11-54	p u ng	P O A G
+MPS11-55	p ue	P Ue
+MPS11-56	p ee ng	P W A G
+MPZ10-1	nirugu p nirugu	< Ni P Ni >
+MPZ11-1	p a p a p a	P A P A P Aa
+MPZ11-2	p a p a fvs1 p a	P A P A A P Aa
+MPZ11-3	p a p a fvs2 p a	P A P A > Fvs2 < P Aa
+MPZ11-4	p e p e p e	P A P A P Aa
+MPZ11-5	p e p e fvs1 p e	P A P A > Fvs1 < P Aa
+MPZ11-6	p i p i p i	P I P I P I
+MPZ11-7	p i p i fvs1 p i	P I P A I P I
+MPZ11-8	p i p i fvs2 p i	P I P I I P I
+MPZ11-9	p i p i fvs3 p i	P I P I P I
+MPZ11-10	p o p o p o	P O P O P O
+MPZ11-11	p o p o fvs1 p o	P O P A O P O
+MPZ11-12	p o p o fvs2 p o	P O P O > Fvs2 < P O
+MPZ11-13	p u p u p u	P O P O P O
+MPZ11-14	p u p u fvs1 p u	P O P A O P O
+MPZ11-15	p u p u fvs2 p u	P O P O > Fvs2 < P O
+MPZ11-16	p oe p oe p oe	P O I P O P O
+MPZ11-17	p oe p oe fvs1 p oe	P O I P O I P O
+MPZ11-18	p oe p oe fvs2 p oe	P O I P A O I P O
+MPZ11-19	p oe p oe fvs3 p oe	P O I P O P O
+MPZ11-20	p ue p ue p ue	P O I P O P O
+MPZ11-21	p ue p ue fvs1 p ue	P O I P O I P O
+MPZ11-22	p ue p ue fvs2 p ue	P O I P A O I P O
+MPZ11-23	p ue p ue fvs3 p ue	P O I P O P O
+MPZ11-24	p ee p ee p ee	P W P W P W
+MPZ11-25	p u p p w	P O P P W
+MPZ11-26	p i p a	P I P Aa
+MPZ11-27	p i p ee ng	P I P W A G
+MPM10-1	nirugu p	< Ni P
+MPM11-1	p u m p	P O M P
+MHD10-1	h	H >
+MHD11-1	h	H >
+MHD11-2	h fvs3	H > Fvs3
+MHD11-3	h mvs	H > Mvs
+MHD11-4	mvs h mvs	- H > Mvs
+MHD20-1	h fvs1	Hx >
+MHD21-1	h fvs1	Hx >
+MHD30-1	h fvs2	G >
+MHD31-1	h fvs2	G >
+MHD40-1	h fvs4	Gx >
+MHD41-1	h fvs4	Gx >
+MHS10-1	h nirugu	H Ni >
+MHS11-1	h a	H A
+MHS11-2	h a fvs1	H Aa
+MHS11-3	h a fvs2	H A
+MHS11-4	h o	H O
+MHS11-5	h o fvs1	H O
+MHS11-6	h o fvs2	H U
+MHS11-7	h u	H O
+MHS11-8	h u fvs1	H O
+MHS11-9	h u fvs2	H U
+MHS11-10	h a d a	H A D A
+MHS11-11	h a fvs1 d a	H A A D A
+MHS11-12	h o t a	H O D A
+MHS11-13	h o fvs1 t a	H A O D A
+MHS11-14	h u d a	H O D A
+MHS11-15	h u fvs1 d a	H A O D A
+MHS11-16	h mvs a	H > _ Aa
+MHS11-17	mvs h mvs a	- H > _ Aa
+MHS11-18	h mvs a ch a	H > - A Ch A
+MHS11-19	h h h mvs h	G G H - H >
+MHS12-1	h fvs3 nirugu	H Ni >
+MHS12-2	h fvs3 a	H A
+MHS12-3	h fvs3 a fvs1	H Aa
+MHS12-4	h fvs3 a fvs2	H A
+MHS12-5	h fvs3 e	H A
+MHS12-6	h fvs3 e fvs1	H Aa
+MHS12-7	h fvs3 i	H I
+MHS12-8	h fvs3 o	H U
+MHS12-9	h fvs3 o fvs1	H O
+MHS12-10	h fvs3 o fvs2	H U
+MHS12-11	h fvs3 u	H U
+MHS12-12	h fvs3 u fvs1	H O
+MHS12-13	h fvs3 u fvs2	H U
+MHS12-14	h fvs3 oe	H U
+MHS12-15	h fvs3 oe fvs1	H Ue
+MHS12-16	h fvs3 oe fvs2	H O
+MHS12-17	h fvs3 oe fvs3	H U
+MHS12-18	h fvs3 ue	H U
+MHS12-19	h fvs3 ue fvs1	H Ue
+MHS12-20	h fvs3 ue fvs2	H O
+MHS12-21	h fvs3 ue fvs3	H U
+MHS12-22	h fvs3 ee	H W
+MHS12-23	h fvs3 a d a	H A D A
+MHS12-24	h fvs3 a fvs1 d a	H A A D A
+MHS12-25	h fvs3 e r e g	H A R A G
+MHS12-26	h fvs3 i r a g mvs a	H I R A Hx _ Aa
+MHS12-27	h fvs3 i fvs1 r a g mvs a	H A I R A Hx _ Aa
+MHS12-28	h fvs3 i fvs2 r a g mvs a	H I I R A Hx _ Aa
+MHS12-29	h fvs3 i fvs3 r a g mvs a	H I R A Hx _ Aa
+MHS12-30	h fvs3 o ng g o r	H O A G Hx O R
+MHS12-31	h fvs3 o fvs1 ng g o r	H A O A G Hx O R
+MHS12-32	h fvs3 u r a l	H O R A L
+MHS12-33	h fvs3 u fvs1 r a l	H A O R A L
+MHS12-34	h fvs3 oe g ue r g e	H O I G O R G Aa
+MHS12-35	h fvs3 oe fvs1 g ue r g e	H O I G O R G Aa
+MHS12-36	h fvs3 oe fvs2 g ue r g e	H A O I G O R G Aa
+MHS12-37	h fvs3 oe fvs3 g ue r g e	H O G O R G Aa
+MHS12-38	h fvs3 ue r e l	H O I R A L
+MHS12-39	h fvs3 ue fvs1 r e l	H O I R A L
+MHS12-40	h fvs3 ue fvs2 r e l	H A O I R A L
+MHS12-41	h fvs3 ue fvs3 r e l	H O R A L
+MHS12-42	h fvs3 ee h ee	H W G W
+MHS20-1	h fvs1 nirugu	Hx Ni >
+MHS21-1	h fvs1 a	Hx A
+MHS21-2	h fvs1 a fvs1	Hx Aa
+MHS21-3	h fvs1 a fvs2	Hx A
+MHS21-4	h fvs1 e	Hx A
+MHS21-5	h fvs1 e fvs1	Hx Aa
+MHS21-6	h fvs1 i	Hx I
+MHS21-7	h fvs1 o	Hx U
+MHS21-8	h fvs1 o fvs1	Hx O
+MHS21-9	h fvs1 o fvs2	Hx U
+MHS21-10	h fvs1 u	Hx U
+MHS21-11	h fvs1 u fvs1	Hx O
+MHS21-12	h fvs1 u fvs2	Hx U
+MHS21-13	h fvs1 oe	Hx U
+MHS21-14	h fvs1 oe fvs1	Hx Ue
+MHS21-15	h fvs1 oe fvs2	Hx O
+MHS21-16	h fvs1 oe fvs3	Hx U
+MHS21-17	h fvs1 ue	Hx U
+MHS21-18	h fvs1 ue fvs1	Hx Ue
+MHS21-19	h fvs1 ue fvs2	Hx O
+MHS21-20	h fvs1 ue fvs3	Hx U
+MHS21-21	h fvs1 ee	Hx W
+MHS21-22	h fvs1 a d a	Hx A D A
+MHS21-23	h fvs1 a fvs1 d a	Hx A A D A
+MHS21-24	h fvs1 e n	Hx A A
+MHS21-25	h fvs1 i r a g mvs a	Hx I R A Hx _ Aa
+MHS21-26	h fvs1 i fvs1 r a g mvs a	Hx A I R A Hx _ Aa
+MHS21-27	h fvs1 i fvs2 r a g mvs a	Hx I I R A Hx _ Aa
+MHS21-28	h fvs1 i fvs3 r a g mvs a	Hx I R A Hx _ Aa
+MHS21-29	h fvs1 o ng g o r	Hx O A G Hx O R
+MHS21-30	h fvs1 o fvs1 ng g o r	Hx A O A G Hx O R
+MHS21-31	h fvs1 u r a l	Hx O R A L
+MHS21-32	h fvs1 u fvs1 r a l	Hx A O R A L
+MHS21-33	h fvs1 oe g ue r g e	Hx O I G O R G Aa
+MHS21-34	h fvs1 oe fvs1 g ue r g e	Hx O I G O R G Aa
+MHS21-35	h fvs1 oe fvs2 g ue r g e	Hx A O I G O R G Aa
+MHS21-36	h fvs1 oe fvs3 g ue r g e	Hx O G O R G Aa
+MHS21-37	h fvs1 ue r e l	Hx O I R A L
+MHS21-38	h fvs1 ue fvs1 r e l	Hx O I R A L
+MHS21-39	h fvs1 ue fvs2 r e l	Hx A O I R A L
+MHS21-40	h fvs1 ue fvs3 r e l	Hx O R A L
+MHS30-1	h fvs2 nirugu	G Ni >
+MHS31-1	h h h	G G H
+MHS31-2	h h h mvs a	G G H _ Aa
+MHS31-3	h h h mvs h	G G H - H >
+MHS31-4	h e	G Aa
+MHS31-5	h e fvs1	G Aa
+MHS31-6	h i	G I
+MHS31-7	h oe	G Ue
+MHS31-8	h oe fvs1	G Ue
+MHS31-9	h oe fvs2	G O
+MHS31-10	h oe fvs3	G U
+MHS31-11	h ue	G Ue
+MHS31-12	h ue fvs1	G Ue
+MHS31-13	h ue fvs2	G O
+MHS31-14	h ue fvs3	G U
+MHS31-15	h ee	G W
+MHS31-16	h e r e g	G A R A G
+MHS31-17	h i r a g mvs a	G I R A Hx _ Aa
+MHS31-18	h i fvs1 r a g mvs a	G A I R A Hx _ Aa
+MHS31-19	h i fvs2 r a g mvs a	G I I R A Hx _ Aa
+MHS31-20	h i fvs3 r a g mvs a	G I R A Hx _ Aa
+MHS31-21	h oe g ue r g e	G O I G O R G Aa
+MHS31-22	h oe fvs1 g ue r g e	G O I G O R G Aa
+MHS31-23	h oe fvs2 g ue r g e	G A O I G O R G Aa
+MHS31-24	h oe fvs3 g ue r g e	G O G O R G Aa
+MHS31-25	h ue r e l	G O I R A L
+MHS31-26	h ue fvs1 r e l	G O I R A L
+MHS31-27	h ue fvs2 r e l	G A O I R A L
+MHS31-28	h ue fvs3 r e l	G O R A L
+MHS31-29	h nirugu nirugu e	G Ni Ni Aa
+MHS31-30	h nirugu nirugu i	G Ni Ni I
+MHS31-31	h nirugu nirugu oe	G Ni Ni Ue
+MHS31-32	h nirugu nirugu ue	G Ni Ni Ue
+MHS31-33	h nirugu nirugu ee	G Ni Ni W
+MHS32-1	h h i r	G G I R
+MHS33-1	h fvs2 a	G A
+MHS33-2	h fvs2 e	G Aa
+MHS33-3	h fvs2 i	G I
+MHS33-4	h fvs2 o	G U
+MHS33-5	h fvs2 u	G U
+MHS33-6	h fvs2 oe	G Ue
+MHS33-7	h fvs2 ue	G Ue
+MHS33-8	h fvs2 ee	G W
+MHS33-9	h fvs2 nirugu a	G Ni A
+MHS33-10	h fvs2 nirugu e	G Ni Aa
+MHS33-11	h fvs2 nirugu i	G Ni I
+MHS33-12	h fvs2 nirugu o	G Ni U
+MHS33-13	h fvs2 nirugu u	G Ni U
+MHS33-14	h fvs2 nirugu oe	G Ni Ue
+MHS33-15	h fvs2 nirugu ue	G Ni Ue
+MHS33-16	h fvs2 nirugu ee	G Ni W
+MHS33-17	h fvs2 a d a	G A D A
+MHS33-18	h fvs2 a fvs1 d a	G A A D A
+MHS33-19	h fvs2 o ng g o r	G O A G Hx O R
+MHS33-20	h fvs2 o fvs1 ng g o r	G A O A G Hx O R
+MHS33-21	h fvs2 u r a l	G O R A L
+MHS33-22	h fvs2 u fvs1 r a l	G A O R A L
+MHS40-1	h fvs4	Gx >
+MHS41-1	h fvs4 a	Gx A
+MHS41-2	h fvs4 e	Gx Aa
+MHS41-3	h fvs4 i	Gx I
+MHS41-4	h fvs4 o	Gx U
+MHS41-5	h fvs4 u	Gx U
+MHS41-6	h fvs4 oe	Gx Ue
+MHS41-7	h fvs4 ue	Gx Ue
+MHS41-8	h fvs4 ee	Gx W
+MHS41-9	g fvs4 nirugu a	Gx Ni A
+MHS41-10	h fvs4 nirugu e	Gx Ni Aa
+MHS41-11	h fvs4 nirugu i	Gx Ni I
+MHS41-12	g fvs4 nirugu o	Gx Ni U
+MHS41-13	h fvs4 nirugu o	Gx Ni U
+MHS41-14	h fvs4 nirugu oe	Gx Ni Ue
+MHS41-15	h fvs4 nirugu ue	Gx Ni Ue
+MHS41-16	h fvs4 nirugu ee	Gx Ni W
+MHS41-17	h fvs4 a d a	Gx A D A
+MHS41-18	h fvs4 e r e g	Gx A R A G
+MHS41-19	h fvs4 i r a g mvs a	Gx I R A Hx _ Aa
+MHS41-20	h fvs4 o r a l	Gx O R A L
+MHS41-21	h fvs4 ue r e l	Gx O I R A L
+MHZ10-1	nirugu h fvs3 nirugu	< Ni H Ni >
+MHZ11-1	s a h a l	S A H A L
+MHZ12-1	s a h fvs3 a l	S A H A L
+MHZ20-1	nirugu h fvs1 nirugu	< Ni Hx Ni >
+MHZ21-1	s a h fvs1 a l	S A Hx A L
+MHZ21-2	sh i h fvs1 a h fvs1 u	S I Hx A Hx U
+MHZ21-3	n i g u h fvs1 u	N I Hx O Hx U
+MHZ30-1	nirugu h nirugu	< Ni G Ni >
+MHZ30-2	nirugu h fvs2 nirugu	< Ni G Ni >
+MHZ31-1	h h h	G G H
+MHZ31-2	h h h mvs a	G G H _ Aa
+MHZ31-3	h h h mvs h	G G H - H >
+MHZ31-4	s e h ue h ue	S A G O G O
+MHZ31-5	n e h e fvs1	N A G Aa
+MHZ31-6	u r ue h s i	A O R O G S I
+MHZ31-7	i r e h ue fvs3	A I R A G U
+MHZ32-1	t ee h n i g	T W G N I G
+MHZ32-2	t ee h n i g ch ue ue l	T W G N I G Ch O O L
+MHZ33-1	s a h fvs2 a l	S A G A L
+MHZ33-2	t ee h fvs2 n i g	T W G N I G
+MHZ40-1	nirugu h fvs4 nirugu	< Ni Gx Ni >
+MHZ41-1	s a h fvs4 a l	S A Gx A L
+MHZ41-2	s e h fvs4 e g e	S A Gx A G Aa
+MHZ41-3	d a h fvs4 i r	T A Gx I R
+MHZ41-4	n i h fvs4 u h u	N I Gx O H U
+MHZ41-5	n oe h fvs4 ue h ue	N O I Gx O G O
+# MHZ50-1
+MHZ51-1	h h h mvs a	G G H _ Aa
+MHZ51-2	h h h mvs h	G G H - H >
+MHZ51-3	b a h mvs a	B A H _ Aa
+MHZ51-4	b a h mvs e	B A H _ Aa
+# MHZ60-1
+MHZ61-1	m i h fvs1 mvs a	M I Hx _ Aa
+MHZ61-2	m i h fvs1 mvs e	M I Hx _ Aa
+MHM10-1	nirugu h	< Ni H
+MHM10-2	nirugu h fvs2	< Ni H Fvs2
+MHM10-3	nirugu h fvs3	< Ni H Fvs3
+MHM10-4	h h h mvs	G G H Mvs
+MHM10-5	h a h mvs	H A H Mvs
+MHM10-6	h e h mvs	G A H Mvs
+MHM10-7	h i h mvs	G I H Mvs
+MHM10-8	nirugu h mvs	< Ni H Mvs
+MHM11-1	h h h	G G H
+MHM11-2	h a h a h	H A H A H
+MHM20-1	nirugu h fvs1	< Ni Hx
+MHM20-2	nirugu h fvs1 mvs	< Ni Hx Mvs
+MHM21-1	h a h a h fvs1	H A H A Hx
+MGD10-1	g	Hx >
+MGD11-1	g g g mvs g	G G G - Hx >
+MGD11-2	g	Hx >
+MGD11-3	g mvs	Hx > Mvs
+MGD11-4	mvs g mvs	- Hx > Mvs
+MGD20-1	g fvs1	H >
+MGD21-1	g fvs1	H >
+MGD30-1	g fvs2	G >
+MGD31-1	g fvs2	G >
+MGD40-1	g fvs4	Gx >
+MGD41-1	g fvs4	Gx >
+MGS10-1	g fvs3 nirugu	Hx Ni >
+MGS11-1	g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu	Hx Ni Ni Ni Ni Ni Ni Ni Ni >
+MGS11-2	g o y u	Hx O Y U
+MGS11-3	g o	Hx O
+MGS11-4	g u	Hx O
+MGS11-5	g a	Hx A
+MGS11-6	g nirugu nirugu a	Hx Ni Ni A
+MGS11-7	g mvs a	Hx > _ Aa
+MGS11-8	mvs g mvs a	- Hx > _ Aa
+MGS11-9	g mvs a ch a	Hx > - A Ch A
+MGS12-1	g fvs3 nirugu	Hx Ni >
+MGS12-2	g fvs3 a	Hx A
+MGS12-3	g fvs3 a fvs1	Hx Aa
+MGS12-4	g fvs3 a fvs2	Hx A
+MGS12-5	g fvs3 e	Hx A
+MGS12-6	g fvs3 e fvs1	Hx Aa
+MGS12-7	g fvs3 i	Hx I
+MGS12-8	g fvs3 o	Hx U
+MGS12-9	g fvs3 o fvs1	Hx O
+MGS12-10	g fvs3 o fvs2	Hx U
+MGS12-11	g fvs3 u	Hx U
+MGS12-12	g fvs3 u fvs1	Hx O
+MGS12-13	g fvs3 u fvs2	Hx U
+MGS12-14	g fvs3 oe	Hx U
+MGS12-15	g fvs3 oe fvs1	Hx Ue
+MGS12-16	g fvs3 oe fvs2	Hx O
+MGS12-17	g fvs3 oe fvs3	Hx U
+MGS12-18	g fvs3 ue	Hx U
+MGS12-19	g fvs3 ue fvs1	Hx Ue
+MGS12-20	g fvs3 ue fvs2	Hx O
+MGS12-21	g fvs3 ue fvs3	Hx U
+MGS12-22	g fvs3 ee	Hx W
+MGS12-23	g fvs3 sh a n	Hx Sh A A
+MGS12-24	g fvs3 e n e n	Hx A N A A
+MGS12-25	g fvs3 a j a r	Hx A J A R
+MGS12-26	g fvs3 a fvs1 j a r	Hx A A J A R
+MGS12-27	g fvs3 e r	Hx A R
+MGS12-28	g fvs3 i n d a n	Hx I A D A A
+MGS12-29	g fvs3 i fvs1 n d a n	Hx A I A D A A
+MGS12-30	g fvs3 i fvs2 n d a n	Hx I I A D A A
+MGS12-31	g fvs3 i fvs3 n d a n	Hx I A D A A
+MGS12-32	g fvs3 o j i ng	Hx O J I A G
+MGS12-33	g fvs3 o fvs1 j i ng	Hx A O J I A G
+MGS12-34	g fvs3 o j i ng	Hx O J I A G
+MGS12-35	g fvs3 u r b a	Hx O R B Aa
+MGS12-36	g fvs3 u fvs1 r b a	Hx A O R B Aa
+MGS12-37	g fvs3 u r b a	Hx O R B Aa
+MGS12-38	g fvs3 oe r ue g e s ue	Hx O I R O G A S U
+MGS12-39	g fvs3 oe fvs1 r ue g e s ue	Hx O I R O G A S U
+MGS12-40	g fvs3 oe fvs2 r ue g e s ue	Hx A O I R O G A S U
+MGS12-41	g fvs3 oe fvs3 r ue g e s ue	Hx O R O G A S U
+MGS12-42	g fvs3 ue r ue n	Hx O I R O A
+MGS12-43	g fvs3 ue fvs1 r ue n	Hx O I R O A
+MGS12-44	g fvs3 ue fvs2 r ue n	Hx A O I R O A
+MGS12-45	g fvs3 ue fvs3 r ue n	Hx O R O A
+MGS12-46	g fvs3 ee n	Hx W A
+MGS20-1	g fvs1 nirugu	H Ni >
+MGS21-1	g fvs1 a j a r	H A J A R
+MGS21-2	g fvs1 a fvs1 j a r	H A A J A R
+MGS21-3	g fvs1 e r	H A R
+MGS21-4	g fvs1 i n d a n	H I A D A A
+MGS21-5	g fvs1 i fvs1 n d a n	H A I A D A A
+MGS21-6	g fvs1 i fvs2 n d a n	H I I A D A A
+MGS21-7	g fvs1 i fvs3 n d a n	H I A D A A
+MGS21-8	g fvs1 o j i ng	H O J I A G
+MGS21-9	g fvs1 o fvs1 j i ng	H A O J I A G
+MGS21-10	g fvs1 o j i ng	H O J I A G
+MGS21-11	g fvs1 u r b a	H O R B Aa
+MGS21-12	g fvs1 u fvs1 r b a	H A O R B Aa
+MGS21-13	g fvs1 u r b a	H O R B Aa
+MGS21-14	g fvs1 oe r ue g e s ue	H O I R O G A S U
+MGS21-15	g fvs1 oe fvs1 r ue g e s ue	H O I R O G A S U
+MGS21-16	g fvs1 oe fvs2 r ue g e s ue	H A O I R O G A S U
+MGS21-17	g fvs1 oe fvs3 r ue g e s ue	H O R O G A S U
+MGS21-18	g fvs1 ue r ue n	H O I R O A
+MGS21-19	g fvs1 ue fvs1 r ue n	H O I R O A
+MGS21-20	g fvs1 ue fvs2 r ue n	H A O I R O A
+MGS21-21	g fvs1 ue fvs3 r ue n	H O R O A
+MGS21-22	g fvs1 ee n	H W A
+MGS21-23	g fvs1 sh a n	H Sh A A
+MGS21-24	g fvs1 a	H A
+MGS21-25	g fvs1 e	H A
+MGS21-26	g fvs1 i	H I
+MGS21-27	g fvs1 o	H U
+MGS21-28	g fvs1 u fvs1	H O
+MGS21-29	g fvs1 o fvs2	H U
+MGS21-30	g fvs1 u	H U
+MGS21-31	g fvs1 u fvs1	H O
+MGS21-32	g fvs1 u fvs2	H U
+MGS30-1	g fvs2 nirugu	G Ni >
+MGS31-1	g e n e n	G A N A A
+MGS31-2	g i	G I
+MGS31-3	g i n d a n	G I A D A A
+MGS31-4	g e	G Aa
+MGS31-5	g ee	G W
+MGS31-6	g ue	G Ue
+MGS31-7	g oe	G Ue
+MGS31-8	g ue i l i n	G O I I L I A
+MGS31-9	g nirugu i i nirugu nirugu ue	G Ni I I Ni Ni U
+MGS31-10	g nirugu i i nirugu n mvs e	G Ni I I Ni N _ Aa
+MGS31-11	g nirugu i i nirugu g e	G Ni I I Ni G Aa
+MGS31-12	g nirugu i i a	G Ni I I A
+MGS31-13	g nirugu i i i i nirugu nirugu a	G Ni I I I I Ni Ni A
+MGS31-14	g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i n d a n	G Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I A D A A
+MGS31-15	g fvs2 e	G Aa
+MGS31-16	g fvs2 e fvs1	G Aa
+MGS31-17	g fvs2 i	G I
+MGS31-18	g fvs2 oe	G Ue
+MGS31-19	g fvs2 oe fvs1	G Ue
+MGS31-20	g fvs2 oe fvs2	G O
+MGS31-21	g fvs2 oe fvs3	G U
+MGS31-22	g fvs2 ue	G Ue
+MGS31-23	g fvs2 ue fvs1	G Ue
+MGS31-24	g fvs2 ue fvs2	G O
+MGS31-25	g fvs2 ue fvs3	G U
+MGS31-26	g fvs2 ee	G W
+MGS32-1	g g g	G G G
+MGS32-2	g g i r	G G I R
+MGS32-3	g r	G R
+MGS32-4	g r m a n	G R M A A
+MGS32-5	g nirugu nirugu nirugu nirugu r m a n	G Ni Ni Ni Ni R M A A
+MGS32-6	g g i b	G G I B
+MGS32-7	g fvs2 a j a r	G A J A R
+MGS32-8	g fvs2 a fvs1 j a r	G A A J A R
+MGS32-9	g fvs2 e r	G A R
+MGS32-10	g fvs2 i n d a n	G I A D A A
+MGS32-11	g fvs2 i fvs1 n d a n	G A I A D A A
+MGS32-12	g fvs2 i fvs2 n d a n	G I I A D A A
+MGS32-13	g fvs2 i fvs3 n d a n	G I A D A A
+MGS32-14	g fvs2 o j i ng	G O J I A G
+MGS32-15	g fvs2 o fvs1 j i ng	G A O J I A G
+MGS32-16	g fvs2 o j i ng	G O J I A G
+MGS32-17	g fvs2 u r b a	G O R B Aa
+MGS32-18	g fvs2 u fvs1 r b a	G A O R B Aa
+MGS32-19	g fvs2 u r b a	G O R B Aa
+MGS32-20	g fvs2 oe r ue g e s ue	G O I R O G A S U
+MGS32-21	g fvs2 oe fvs1 r ue g e s ue	G O I R O G A S U
+MGS32-22	g fvs2 oe fvs2 r ue g e s ue	G A O I R O G A S U
+MGS32-23	g fvs2 oe fvs3 r ue g e s ue	G O R O G A S U
+MGS32-24	g fvs2 ue r ue n	G O I R O A
+MGS32-25	g fvs2 ue fvs1 r ue n	G O I R O A
+MGS32-26	g fvs2 ue fvs2 r ue n	G A O I R O A
+MGS32-27	g fvs2 ue fvs3 r ue n	G O R O A
+MGS32-28	g fvs2 ee n	G W A
+MGS32-29	g fvs2 e	G Aa
+MGS32-30	g fvs2 e fvs1	G Aa
+MGS32-31	g fvs2 i	G I
+MGS32-32	g fvs2 oe	G Ue
+MGS32-33	g fvs2 nirugu nirugu oe	G Ni Ni Ue
+MGS32-34	g fvs2 oe fvs1	G Ue
+MGS32-35	g fvs2 oe fvs2	G O
+MGS32-36	g fvs2 oe fvs3	G U
+MGS32-37	g fvs2 ue	G Ue
+MGS32-38	g fvs2 nirugu nirugu ue	G Ni Ni Ue
+MGS32-39	g fvs2 ue fvs1	G Ue
+MGS32-40	g fvs2 ue fvs2	G O
+MGS32-41	g fvs2 ue fvs3	G U
+MGS32-42	g fvs2 ee	G W
+MGS33-1	g fvs2 r a r	G R A R
+MGS40-1	g fvs4 nirugu	Gx Ni >
+MGS41-1	g fvs4 g i r	Gx G I R
+MGS41-2	g fvs4 a j a r	Gx A J A R
+MGS41-3	g fvs4 e r	Gx A R
+MGS41-4	g fvs4 i n d a n	Gx I A D A A
+MGS41-5	g fvs4 u r b a	Gx O R B Aa
+MGS41-6	g fvs4 ue r ue n	Gx O I R O A
+MGZ10-1	nirugu g fvs3 nirugu	< Ni H Ni >
+MGZ11-1	j u r i g t u	I O R I H D U
+MGZ11-2	ch u g l a g mvs a	Ch O H L A Hx _ Aa
+MGZ11-3	a g l a g	A A H L A H
+MGZ11-4	a j i g l a h u	A A J I H L A H U
+MGZ11-5	t a l i i g ch i	T A L I I H Ch I
+MGZ11-6	t o i g l a h u	T O I I H L A H U
+MGZ11-7	a i m sh i g t a i	A A I I M S I H D A I
+MGZ11-8	n i g t a l a h u	N I H D A L A H U
+MGZ11-9	g a g ch a	Hx A H Ch A
+MGZ11-10	g a g ch e	Hx A H Ch A
+MGZ11-11	sh i g sh i r a h u	S I H S I R A H U
+MGZ11-12	n i g sh i r a h u	N I H S I R A H U
+MGZ11-13	n i g sh i g u n	N I H S I Hx O A
+MGZ11-14	n i g sh i h u	N I H S I H U
+MGZ11-15	i g ch i d a h u	A I H Ch I D A H U
+MGZ11-16	i g ch i d h u	A I H Ch I Dd H U
+MGZ11-17	i g ch i r a h u	A I H Ch I R A H U
+MGZ11-18	g u i b i g ch i	Hx O I I B I H Ch I
+MGZ11-19	b i l i g t a i	B I L I H D A I
+MGZ11-20	a b i sh i g l a h u	A A B I S I H L A H U
+MGZ11-21	i sh i g l a h u	A I S I H L A H U
+MGZ11-22	b i ch i g l a h u	B I Ch I H L A H U
+MGZ11-23	m a sh i b i l i g t a i	M A S I B I L I H D A I
+MGZ11-24	m a sh i b i l i g t e i	M A S I B I L I H D A I
+MGZ11-25	m i l i g r a m	M I L I H R A M
+MGZ11-26	m i l l i g r a m	M I L L I H R A M
+MGZ11-27	j i l i i g ch a	I I L I I H Ch A
+MGZ11-28	b a g ch a	B A H Ch A
+MGZ11-29	s u r g a g ch i	S O R Hx A H Ch I
+MGZ11-30	s a g u g d a l	S A Hx O H D A L
+MGZ11-31	y a b u g d a h u	Y A B O H D A H U
+MGZ11-32	b o i g l a h u	B O I I H L A H U
+MGZ11-33	n i g t a l a h u	N I H D A L A H U
+MGZ11-34	i g ch a r a h u	A I H Ch A R A H U
+MGZ11-35	j i g s a g a n	I I H S A Hx A A
+MGZ11-36	m i g m a r	M I H M A R
+MGZ11-37	sh i g l a j u	S I H L A J U
+MGZ11-38	sh i g sh i l g mvs a	S I H S I L Hx _ Aa
+MGZ11-39	sh i h i r l i g j i s h i g s a n	S I G I R L I H J I S G I H S A A
+MGZ11-40	sh i h i r l i g j i g s a n	S I G I R L I H J I H S A A
+MGZ11-41	j o r i g nirugu	I O R I H Ni >
+MGZ11-42	j o r i nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g nirugu	I O R I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni H Ni >
+MGZ11-43	sh i g nirugu nirugu nirugu nirugu l nirugu nirugu a	S I H Ni Ni Ni Ni L Ni Ni A
+MGZ11-44	sh i g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu l nirugu nirugu a	S I H Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni L Ni Ni A
+MGZ11-45	s a nirugu nirugu g nirugu	S A Ni Ni H Ni >
+MGZ11-46	nirugu nirugu g fvs3 nirugu	< Ni Ni H Ni >
+MGZ11-47	nirugu nirugu g fvs3 nirugu nirugu	< Ni Ni H Ni Ni >
+MGZ11-48	b a g nirugu nirugu nirugu nirugu	B A H Ni Ni Ni Ni >
+MGZ11-49	sh i g sh i l mvs a	S I H S I L _ Aa
+MGZ11-50	i g sh i l mvs a	A I H S I L _ Aa
+MGZ11-51	i g sh i n fvs2 mvs a	A I H S I A _ Aa
+MGZ11-52	i g sh i n fvs2 mvs a	A I H S I A _ Aa
+MGZ11-53	sh i nirugu nirugu nirugu nirugu nirugu g nirugu nirugu nirugu nirugu nirugu sh nirugu nirugu nirugu nirugu nirugu i nirugu nirugu nirugu nirugu nirugu l mvs a	S I Ni Ni Ni Ni Ni H Ni Ni Ni Ni Ni S Ni Ni Ni Ni Ni I Ni Ni Ni Ni Ni L _ Aa
+MGZ11-54	sh i g nirugu sh i nirugu l nirugu l mvs a	S I H Ni S I Ni L Ni L _ Aa
+MGZ11-55	a i m sh i g nirugu nirugu	A A I I M S I H Ni Ni >
+MGZ11-56	a nirugu nirugu nirugu i nirugu nirugu nirugu m nirugu nirugu nirugu sh nirugu nirugu nirugu i nirugu nirugu nirugu nirugu nirugu g nirugu nirugu	A A Ni Ni Ni I I Ni Ni Ni M Ni Ni Ni S Ni Ni Ni I Ni Ni Ni Ni Ni H Ni Ni >
+MGZ11-57	a fvs1 g s a n	A H S A A
+MGZ11-58	a fvs2 g s a n	A A H S A A
+MGZ11-59	i fvs1 g s a n	I H S A A
+MGZ11-60	u fvs1 g s a n	O H S A A
+MGZ11-61	u fvs1 g s e n	O H S A A
+MGZ11-62	s i fvs1 g s a n	S A I H S A A
+MGZ11-63	s i fvs2 g s a n	S I I H S A A
+MGZ11-64	s o fvs1 g s a n	S A O H S A A
+MGZ12-1	d a d g a l	T A Dd H A L
+MGZ12-2	d a d fvs3 g a l	T A Dd > Fvs3 < H A L
+MGZ12-3	d a d nirugu nirugu nirugu g a l	T A Dd Ni Ni Ni H A L
+MGZ12-4	d a s fvs1 g a l	T A S > Fvs1 < H A L
+MGZ12-5	d a s fvs2 g a l	T A S > Fvs2 < H A L
+MGZ12-6	d a s fvs2 g a l	T A S > Fvs2 < H A L
+MGZ12-7	d a s fvs3 g a l	T A S > Fvs3 < H A L
+MGZ12-8	d a d g a h u	T A Dd H A H U
+MGZ12-9	d a s g a h u	T A S H A H U
+MGZ12-10	d a d fvs1 g a h u	T A D H A H U
+MGZ12-11	d a s fvs1 g a h u	T A S > Fvs1 < H A H U
+MGZ12-12	d a d fvs2 g a h u	T A Dd H A H U
+MGZ12-13	d a s fvs2 g a h u	T A S > Fvs2 < H A H U
+MGZ12-14	d a d fvs3 g a h u	T A Dd > Fvs3 < H A H U
+MGZ12-15	d a s fvs3 g a h u	T A S > Fvs3 < H A H U
+MGZ12-16	a l u s g u b i	A A L O S H O B I
+MGZ12-17	h a s nirugu nirugu nirugu g o w mvs a	H A S Ni Ni Ni H O U _ Aa
+MGZ13-1	e ch i g fvs3 s e n	A Ch I H S A A
+MGZ13-2	sh i g fvs3 sh i g fvs1	S I H S I H
+MGZ13-3	i g fvs3 ch i	A I H Ch I
+MGZ13-4	j oe r i g fvs3 nirugu	I O I R I H Ni >
+MGZ20-1	nirugu g fvs1 nirugu	< Ni Hx Ni >
+MGZ21-1	nirugu g nirugu a	< Ni Hx Ni A
+MGZ21-2	nirugu nirugu g nirugu nirugu nirugu nirugu nirugu a	< Ni Ni Hx Ni Ni Ni Ni Ni A
+MGZ21-3	s a g u d a l	S A Hx O D A L
+MGZ22-1	d a d g fvs1 a l	T A Dd Hx A L
+MGZ22-2	a l u s g fvs1 u b i	A A L O S Hx O B I
+MGZ22-3	e ch i g fvs1 s e n	A Ch I Hx S A A
+MGZ22-4	h a s g fvs1 o w mvs a	H A S Hx O U _ Aa
+MGZ22-5	a ng g fvs1 l i	A A A G Hx L I
+MGZ22-6	ch a g fvs1 a n	Ch A Hx A A
+MGZ22-7	ch a g fvs1 a fvs1 n	Ch A Hx A A A
+MGZ22-8	ch e g fvs1 e g e n	Ch A Hx A G A A
+MGZ22-9	t a ng g fvs1 i l	T A A G Hx I L
+MGZ22-10	d o g fvs1 o l	T O Hx O L
+MGZ22-11	d o g fvs1 o fvs1 l	T O Hx A O L
+MGZ22-12	d o g fvs1 o l	T O Hx O L
+MGZ22-13	n i g fvs1 u ch a	N I Hx O Ch A
+MGZ22-14	n i g fvs1 u fvs1 ch a	N I Hx A O Ch A
+MGZ22-15	n i g fvs1 u ch a	N I Hx O Ch A
+MGZ22-16	g oe g fvs1 oe g oe	G O I Hx O G O
+MGZ22-17	g oe g fvs1 oe fvs1 g oe	G O I Hx O I G O
+MGZ22-18	g oe g fvs1 oe fvs2 g oe	G O I Hx A O I G O
+MGZ22-19	g oe g fvs1 oe fvs3 g oe	G O I Hx O G O
+MGZ22-20	j e g fvs1 ue h ue	I A Hx O G O
+MGZ22-21	j e g fvs1 ue fvs1 h ue	I A Hx O I G O
+MGZ22-22	j e g fvs1 ue fvs2 h ue	I A Hx A O I G O
+MGZ22-23	j e g fvs1 ue fvs3 h ue	I A Hx O G O
+MGZ22-24	g ee g fvs1 ee g ee	G W Hx W G W
+MGZ22-25	j o r i g fvs1 nirugu	I O R I Hx Ni >
+MGZ22-26	j oe r i g fvs1 nirugu	I O I R I Hx Ni >
+MGZ30-1	nirugu g nirugu	< Ni G Ni >
+MGZ30-2	nirugu g nirugu	< Ni G Ni >
+MGZ30-3	nirugu g fvs2 nirugu	< Ni G Ni >
+MGZ31-1	g g g	G G G
+MGZ31-2	h ue g sh i n	G O I G S I A
+MGZ31-3	sh i g sh i r e h ue	S I G S I R A G O
+MGZ31-4	e g ch e	A G Ch A
+MGZ31-5	s e g ch e h ue	S A G Ch A G O
+MGZ31-6	s e d h i g d e l	S A Dd G I G D A L
+MGZ31-7	g e i g s e n	G A I I G S A A
+MGZ31-8	ch i g l e h ue	Ch I G L A G O
+MGZ31-9	j i l i i g ch i	I I L I I G Ch I
+MGZ31-10	j i g h i h ue	I I G G I G O
+MGZ31-11	b i ch i g l e h ue	B I Ch I G L A G O
+MGZ31-12	i sh i g l e h ue	A I S I G L A G O
+MGZ31-13	t e l b i h d e j o	T A L B I G D A J U
+MGZ31-14	sh a g a r d e h d e j o	Sh A Hx A R D A G D A J U
+MGZ31-15	n i g e fvs2	N I G A
+MGZ31-16	n i g t	N I G T
+MGZ31-17	i sh i g fvs2 l e h ue	A I S I G L A G O
+MGZ31-18	j i l i i g fvs2 ch a	I I L I I G Ch A
+MGZ31-19	b i l i g t e i	B I L I G D A I
+MGZ31-20	ch i i g l e h ue	Ch I I G L A G O
+MGZ31-21	a ng g l i	A A A G G L I
+MGZ31-22	l ee n i ng g r a d fvs1	L W N I A G G R A D
+MGZ31-23	b ee r g m a n	B W R G M A A
+MGZ31-24	k2 a l i n i ng g r a d fvs1	K2 A L I N I A G G R A D
+MGZ31-25	r r r g r r r a	R R R G R R R A
+MGZ31-26	e i g l e h ue	A I I G L A G O
+MGZ31-27	s e j i g l e h ue	S A J I G L A G O
+MGZ31-28	e m j i g l e h ue	A M J I G L A G O
+MGZ31-29	ue r e j i g d e g ue n	A O I R A J I G D A G O A
+MGZ31-30	n e ng j i g ch i	N A A G J I G Ch I
+MGZ31-31	e b l i g h e n	A B L I G G A A
+MGZ31-32	sh i l i g d e h ue	S I L I G D A G O
+MGZ31-33	j i j i g l e h ue	I I J I G L A G O
+MGZ31-34	i g d e h ue	A I G D A G O
+MGZ31-35	j i g h i h ue	I I G G I G O
+MGZ31-36	n i g sh i h ue	N I G S I G O
+MGZ31-37	j i g sh i h ue	I I G S I G O
+MGZ31-38	sh i g sh i l t e	S I G S I L D A
+MGZ31-39	j i g sh i g s e n	I I G S I G S A A
+MGZ31-40	n i g sh i g s e n	N I G S I G S A A
+MGZ31-41	b u l oe h s a a	B O L O G S A A
+MGZ31-42	h e sh i g ue fvs2 n d ue r	G A S I G A O I A D O R
+MGZ31-43	h e sh i g ue fvs1 n d ue r	G A S I G O I A D O R
+MGZ31-44	h e sh i g ue fvs3 n d ue r	G A S I G O A D O R
+MGZ31-45	sh i g sh i l g e	S I G S I L G Aa
+MGZ31-46	sh i g sh i l l mvs e	S I G S I L L _ Aa
+MGZ31-47	ch e ch e g m mvs a	Ch A Ch A G M _ Aa
+MGZ31-48	sh i h i r l i g j i s h i g s e n	S I G I R L I G J I S G I G S A A
+MGZ31-49	sh i h i r l i g j i g s e n	S I G I R L I G J I G S A A
+MGZ31-50	j oe r i g fvs2 nirugu	I O I R I G Ni >
+MGZ31-51	sh i g nirugu nirugu nirugu nirugu l nirugu nirugu e	S I G Ni Ni Ni Ni L Ni Ni A
+MGZ31-52	sh oe nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu l ue	Sh O I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni L U
+MGZ31-53	nirugu l nirugu g nirugu nirugu	< Ni L Ni G Ni Ni >
+MGZ31-54	nirugu l nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g nirugu nirugu	< Ni L Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G Ni Ni >
+MGZ31-55	nirugu g nirugu e	< Ni G Ni Aa
+MGZ31-56	nirugu g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu e	< Ni G Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Aa
+MGZ31-57	s e nirugu nirugu g nirugu	S A Ni Ni G Ni >
+MGZ31-58	s e nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g nirugu	S A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G Ni >
+MGZ31-59	nirugu nirugu g nirugu nirugu nirugu nirugu nirugu e	< Ni Ni G Ni Ni Ni Ni Ni Aa
+MGZ31-60	nirugu g l i	< Ni G L I
+MGZ31-61	nirugu nirugu g l i	< Ni Ni G L I
+MGZ31-62	nirugu g nirugu nirugu l i	< Ni G Ni Ni L I
+MGZ31-63	nirugu nirugu g nirugu nirugu l i	< Ni Ni G Ni Ni L I
+MGZ31-64	sh i g nirugu	S I G Ni >
+MGZ31-65	sh i g ch	S I G Ch
+MGZ31-66	sh i nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g nirugu	S I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G Ni >
+MGZ31-67	nirugu nirugu g g g nirugu nirugu	< Ni Ni G G G Ni Ni >
+MGZ31-68	nirugu nirugu g nirugu	< Ni Ni G Ni >
+MGZ31-69	nirugu nirugu g nirugu nirugu	< Ni Ni G Ni Ni >
+MGZ31-70	r r r g r r r	R R R G R R R
+MGZ31-71	r r r g r r r a	R R R G R R R A
+MGZ31-72	r r r g b fvs1	R R R G B2
+MGZ31-73	n e ng j nirugu nirugu i nirugu nirugu g nirugu nirugu	N A A G J Ni Ni I Ni Ni G Ni Ni >
+MGZ31-74	sh i g sh i l mvs e	S I G S I L _ Aa
+MGZ31-75	sh i g nirugu sh i nirugu l nirugu l mvs e	S I G Ni S I Ni L Ni L _ Aa
+MGZ31-76	sh i g nirugu nirugu nirugu nirugu nirugu sh i nirugu nirugu	S I G Ni Ni Ni Ni Ni S I Ni Ni >
+MGZ31-77	sh i g nirugu nirugu nirugu l nirugu nirugu nirugu i	S I G Ni Ni Ni L Ni Ni Ni I
+MGZ31-78	b i l i g nirugu e r h i m	B I L I G Ni A R G I M
+MGZ31-79	e fvs1 g s a n	A A G S A A
+MGZ31-80	i fvs1 g s e n	I G S A A
+MGZ31-81	ue fvs1 g s a n	O G S A A
+MGZ31-82	s i fvs1 g s e n	S A I G S A A
+MGZ31-83	s i fvs2 g fvs2 s e n	S I I G S A A
+MGZ31-84	s ue fvs1 g s a n	S O I G S A A
+MGZ31-85	s ue fvs2 g s e n	S A O I G S A A
+MGZ31-86	s ue fvs3 g s e n	S O G S A A
+MGZ32-1	g e g e g e	G A G A G Aa
+MGZ32-2	g nirugu e g nirugu e g nirugu e	G Ni A G Ni A G Ni Aa
+MGZ32-3	g i g i g i	G I G I G I
+MGZ32-4	g nirugu i g nirugu i g nirugu i	G Ni I G Ni I G Ni I
+MGZ32-5	g oe g oe g oe	G O I G O G O
+MGZ32-6	g nirugu oe g nirugu oe g nirugu oe	G Ni O I G Ni O G Ni O
+MGZ32-7	g ue g ue g ue	G O I G O G O
+MGZ32-8	g nirugu ue g nirugu ue g nirugu ue	G Ni O I G Ni O G Ni O
+MGZ32-9	g ee g ee g ee	G W G W G W
+MGZ32-10	g nirugu ee g nirugu ee g nirugu ee	G Ni W G Ni W G Ni W
+MGZ32-11	g e g e r e h ue	G A G A R A G O
+MGZ32-12	g e g nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu e r e h ue	G A G Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni A R A G O
+MGZ33-1	g fvs2 a g fvs2 a g fvs2 a	G A G A G A
+MGZ33-2	g fvs2 nirugu a g fvs2 nirugu a g fvs2 nirugu a	G Ni A G Ni A G Ni A
+MGZ33-3	g fvs2 o g fvs2 o g fvs2 o	G O G O G U
+MGZ33-4	g fvs2 nirugu o g fvs2 nirugu o g fvs2 nirugu o	G Ni O G Ni O G Ni U
+MGZ33-5	g fvs2 u g fvs2 u g fvs2 u	G O G O G U
+MGZ33-6	g fvs2 nirugu u g fvs2 nirugu u g fvs2 nirugu u	G Ni O G Ni O G Ni U
+MGZ33-7	g fvs2 e g fvs2 e g fvs2 e	G A G A G Aa
+MGZ33-8	g fvs2 nirugu e g fvs2 nirugu e g fvs2 nirugu e	G Ni A G Ni A G Ni Aa
+MGZ33-9	g fvs2 i g fvs2 i g fvs2 i	G I G I G I
+MGZ33-10	g fvs2 nirugu i g fvs2 nirugu i g fvs2 nirugu i	G Ni I G Ni I G Ni I
+MGZ33-11	g fvs2 oe g fvs2 oe g fvs2 oe	G O I G O G O
+MGZ33-12	g fvs2 nirugu oe g fvs2 nirugu oe g fvs2 nirugu oe	G Ni O I G Ni O G Ni O
+MGZ33-13	g fvs2 ue g fvs2 ue g fvs2 ue	G O I G O G O
+MGZ33-14	g fvs2 nirugu ue g fvs2 nirugu ue g fvs2 nirugu ue	G Ni O I G Ni O G Ni O
+MGZ33-15	g fvs2 ee g fvs2 ee g fvs2 ee	G W G W G W
+MGZ33-16	g fvs2 nirugu ee g fvs2 nirugu ee g fvs2 nirugu ee	G Ni W G Ni W G Ni W
+MGZ33-17	u g fvs2 y u	A O G Y U
+MGZ33-18	a b u g fvs2 s a n	A A B O G S A A
+MGZ33-19	h e sh i g fvs2 e r d e n i	G A S I G A R D A N I
+MGZ33-20	h e sh i g fvs2 ue n d ue r	G A S I G O A D O R
+MGZ33-21	r r r g fvs2 r r r	R R R G R R R
+MGZ33-22	r r r g fvs2 r r r r a	R R R G R R R R A
+MGZ33-23	a b i sh i g fvs2 l e h ue	A A B I S I G L A G O
+MGZ33-24	b i l i g fvs2 b a t ue	B I L I G B A D U
+MGZ33-25	a ng g fvs2 l i	A A A G G L I
+MGZ33-26	ch a g fvs2 a n	Ch A G A A
+MGZ33-27	ch a g fvs2 a fvs1 n	Ch A G A A A
+MGZ33-28	ch e g fvs2 e g e n	Ch A G A G A A
+MGZ33-29	t a ng g fvs2 i l	T A A G G I L
+MGZ33-30	d o g fvs2 o l	T O G O L
+MGZ33-31	d o g fvs2 o fvs1 l	T O G A O L
+MGZ33-32	d o g fvs2 o l	T O G O L
+MGZ33-33	n i g fvs2 u ch a	N I G O Ch A
+MGZ33-34	n i g fvs2 u fvs1 ch a	N I G A O Ch A
+MGZ33-35	n i g fvs2 u ch a	N I G O Ch A
+MGZ33-36	g oe g fvs2 oe g oe	G O I G O G O
+MGZ33-37	g oe g fvs2 oe fvs1 g oe	G O I G O I G O
+MGZ33-38	g oe g fvs2 oe fvs2 g oe	G O I G A O I G O
+MGZ33-39	g oe g fvs2 oe fvs3 g oe	G O I G O G O
+MGZ33-40	j e g fvs2 ue h ue	I A G O G O
+MGZ33-41	j e g fvs2 ue fvs1 h ue	I A G O I G O
+MGZ33-42	j e g fvs2 ue fvs2 h ue	I A G A O I G O
+MGZ33-43	j e g fvs2 ue fvs3 h ue	I A G O G O
+MGZ33-44	g ee g fvs2 ee g fvs2 ee	G W G W G W
+MGZ33-45	j o r i g fvs2 nirugu	I O R I G Ni >
+MGZ33-46	j o r i g fvs2 nirugu	I O R I G Ni >
+MGZ40-1	nirugu g fvs4 nirugu	< Ni Gx Ni >
+MGZ41-1	g fvs4 a g fvs4 a g fvs4 a	Gx A Gx A Gx A
+MGZ41-2	g fvs4 nirugu a g fvs4 nirugu a g fvs4 nirugu a	Gx Ni A Gx Ni A Gx Ni A
+MGZ41-3	g fvs4 o g fvs4 o g fvs4 o	Gx O Gx O Gx U
+MGZ41-4	g fvs4 nirugu o g fvs4 nirugu o g fvs4 nirugu o	Gx Ni O Gx Ni O Gx Ni U
+MGZ41-5	g fvs4 u g fvs4 u g fvs4 u	Gx O Gx O Gx U
+MGZ41-6	g fvs4 nirugu u g fvs4 nirugu u g fvs4 nirugu u	Gx Ni O Gx Ni O Gx Ni U
+MGZ41-7	g fvs4 e g fvs4 e g fvs4 e	Gx A Gx A Gx Aa
+MGZ41-8	g fvs4 nirugu e g fvs4 nirugu e g fvs4 nirugu e	Gx Ni A Gx Ni A Gx Ni Aa
+MGZ41-9	g fvs4 i g fvs4 i g fvs4 i	Gx I Gx I Gx I
+MGZ41-10	g fvs4 nirugu i g fvs4 nirugu i g fvs4 nirugu i	Gx Ni I Gx Ni I Gx Ni I
+MGZ41-11	g fvs4 oe g fvs4 oe g fvs4 oe	Gx O I Gx O Gx O
+MGZ41-12	g fvs4 nirugu oe g fvs4 nirugu oe g fvs4 nirugu oe	Gx Ni O I Gx Ni O Gx Ni O
+MGZ41-13	g fvs4 ue g fvs4 ue g fvs4 ue	Gx O I Gx O Gx O
+MGZ41-14	g fvs4 nirugu ue g fvs4 nirugu ue g fvs4 nirugu ue	Gx Ni O I Gx Ni O Gx Ni O
+MGZ41-15	g fvs4 ee g fvs4 ee g fvs4 ee	Gx W Gx W Gx W
+MGZ41-16	g fvs4 nirugu ee g fvs4 nirugu ee g fvs4 nirugu ee	Gx Ni W Gx Ni W Gx Ni W
+MGZ41-17	h ue g fvs4 sh i n	G O I Gx S I A
+MGZ41-18	j i g fvs4 sh i h ue	I I Gx S I G O
+MGZ41-19	g e g fvs4 e r e h ue	G A Gx A R A G O
+MGZ41-20	u g fvs4 y u	A O Gx Y U
+MGZ41-21	n i g fvs4 u fvs1 ch a	N I Gx A O Ch A
+MGZ41-22	j e g fvs4 ue fvs3 h ue	I A Gx O G O
+# MGZ50-1
+MGZ51-1	g g g mvs a	G G Hx _ Aa
+MGZ51-2	t u g mvs a	T O Hx _ Aa
+MGZ51-3	ch o h i l g mvs a	Ch O G I L Hx _ Aa
+MGZ52-1	ch o h i l g fvs3 mvs a	Ch O G I L Hx _ Aa
+MGZ52-2	d a s g fvs3 mvs a	T A S Hx _ Aa
+MGZ52-3	d a d g fvs3 mvs a	T A Dd Hx _ Aa
+# MGZ60-1
+MGZ61-1	d a s g mvs a	T A S H _ Aa
+MGZ61-2	d a s fvs1 g mvs a	T A S > Fvs1 < H _ Aa
+MGZ61-3	d a s fvs2 g mvs a	T A S > Fvs2 < H _ Aa
+MGZ61-4	d a s fvs3 g mvs a	T A S > Fvs3 < H _ Aa
+MGZ61-5	d a d g mvs a	T A Dd H _ Aa
+MGZ61-6	d a d fvs1 g mvs a	T A D H _ Aa
+MGZ61-7	d a d fvs2 g mvs a	T A Dd H _ Aa
+MGZ61-8	d a d fvs3 g mvs a	T A Dd > Fvs3 < H _ Aa
+MGZ61-9	d a s nirugu nirugu g mvs a	T A S Ni Ni H _ Aa
+MGZ61-10	d a s nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g mvs a	T A S Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni H _ Aa
+MGZ61-11	d a d nirugu nirugu g mvs a	T A Dd Ni Ni H _ Aa
+MGZ61-12	d a d nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g mvs a	T A Dd Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni H _ Aa
+MGZ62-1	a g mvs e	A A H _ Aa
+MGZ62-2	e g mvs e	A H _ Aa
+MGZ62-3	g a g mvs e	Hx A H _ Aa
+MGZ62-4	g e g mvs e	G A H _ Aa
+MGZ62-5	t u g mvs e	T O H _ Aa
+MGZ63-1	d a s fvs1 g fvs1 mvs a	T A S > Fvs1 < H _ Aa
+MGZ63-2	d a s fvs2 g fvs1 mvs a	T A S > Fvs2 < H _ Aa
+MGZ63-3	d a s fvs3 g fvs1 mvs a	T A S > Fvs3 < H _ Aa
+MGZ63-4	d a d fvs2 g fvs1 mvs a	T A Dd H _ Aa
+MGZ63-5	d a d fvs3 g fvs1 mvs a	T A Dd > Fvs3 < H _ Aa
+MGZ63-6	b a g fvs1 mvs a	B A H _ Aa
+MGZ63-7	t o g fvs1 mvs a	T O H _ Aa
+MGM10-1	nirugu g fvs1	< Ni H
+MGM10-2	h h h mvs	G G H Mvs
+MGM10-3	h a h mvs	H A H Mvs
+MGM10-4	h e h mvs	G A H Mvs
+MGM10-5	h i h mvs	G I H Mvs
+MGM10-6	nirugu g fvs1 mvs	< Ni H Mvs
+MGM11-1	b a d a g	B A D A H
+MGM11-2	b a d a g mvs u n	B A D A H - O A
+MGM11-3	b a d a nirugu nirugu nirugu nirugu nirugu g	B A D A Ni Ni Ni Ni Ni H
+MGM11-4	a ch u g	A A Ch O H
+MGM11-5	u r sh i g	A O R S I H
+MGM11-6	m a i g	M A I I H
+MGM11-7	a i m sh i g	A A I I M S I H
+MGM11-8	t a l i i g	T A L I I H
+MGM11-9	o i l i g	A O I I L I H
+MGM11-10	u r sh i g	A O R S I H
+MGM11-11	j a r l i g	I A R L I H
+MGM11-12	j a r l nirugu nirugu i nirugu nirugu g	I A R L Ni Ni I Ni Ni H
+MGM11-13	t a m sh i g	T A M S I H
+MGM11-14	sh a l i g	Sh A L I H
+MGM11-15	y a g j i g	Y A H J I H
+MGM11-16	y a ng g i g	Y A A G G I H
+MGM11-17	l o nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g i nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	L O Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni H
+MGM11-18	a i r a g l i g	A A I I R A H L I H
+MGM11-19	n a m u g l i g	N A M O H L I H
+MGM11-20	g u d u m sh i g	Hx O D O M S I H
+MGM11-21	o i l i g	A O I I L I H
+MGM11-22	ch i r a i l i g	Ch I R A I I L I H
+MGM11-23	t a l i i g	T A L I I H
+MGM11-24	t a m l i i g	T A M L I I H
+MGM11-25	a i m sh i g	A A I I M S I H
+MGM11-26	n a r i l i g	N A R I L I H
+MGM11-27	t o h i l i g	T O G I L I H
+MGM11-28	r u m a n t fvs1 i g	R O M A A T I H
+MGM11-29	ch i d a b u r i l i g	Ch I D A B O R I L I H
+MGM11-30	p r a k2 t fvs1 i g	P R A K2 T I H
+MGM11-31	a r sh i l i g	A A R S I L I H
+MGM11-32	a g a j i m sh i g	A A Hx A J I M S I H
+MGM11-33	h u j i r l i g	H O J I R L I H
+MGM11-34	t a m i r l i g	T A M I R L I H
+MGM11-35	n a b ch i l i g	N A B Ch I L I H
+MGM11-36	t o r b i l i g	T O R B I L I H
+MGM11-37	a ng g i r l i g	A A A G G I R L I H
+MGM11-38	b o l ch i ng l i g	B O L Ch I A G L I H
+MGM11-39	nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g fvs1	< Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni H
+MGM12-1	i j i g fvs1	A I J I H
+MGM12-2	b i j i g fvs1	B I J I H
+MGM12-3	sh i g fvs1	S I H
+MGM12-4	e l e g fvs1	A L A H
+MGM12-5	y a b u g fvs1	Y A B O H
+MGM12-6	a b i sh i g fvs1	A A B I S I H
+MGM12-7	l i r l i g fvs1	L I R L I H
+MGM12-8	i j i l i g fvs1	A I J I L I H
+MGM20-1	nirugu g	< Ni G
+MGM20-2	nirugu g	< Ni G
+MGM20-3	nirugu g fvs2	< Ni G
+MGM21-1	g g g	G G G
+MGM21-2	g g g mvs g	G G G - Hx >
+MGM21-3	s g	S G
+MGM21-4	s nirugu nirugu nirugu nirugu g	S Ni Ni Ni Ni G
+MGM21-5	s nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	S Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-6	nirugu l g	< Ni L G
+MGM21-7	nirugu l nirugu nirugu g	< Ni L Ni Ni G
+MGM21-8	nirugu l nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	< Ni L Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-9	nirugu l g	< Ni L G
+MGM21-10	nirugu l nirugu nirugu nirugu nirugu g	< Ni L Ni Ni Ni Ni G
+MGM21-11	nirugu l nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	< Ni L Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-12	s l g	S L G
+MGM21-13	s l nirugu nirugu g	S L Ni Ni G
+MGM21-14	s l nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	S L Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-15	nirugu s l g	< Ni S L G
+MGM21-16	nirugu s l nirugu nirugu nirugu nirugu g	< Ni S L Ni Ni Ni Ni G
+MGM21-17	nirugu s l nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	< Ni S L Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-18	nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	< Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-19	h e r e g	G A R A G
+MGM21-20	h e r e g mvs ue n	G A R A G - O A
+MGM21-21	sh i l ue g	S I L O G
+MGM21-22	ch e g	Ch A G
+MGM21-23	ch e nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	Ch A Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-24	ue s ue g	A O I S O G
+MGM21-25	sh i g	S I G
+MGM21-26	i g	A I G
+MGM21-27	i nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	A I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-28	i r m e g	A I R M A G
+MGM21-29	e g e sh i g	A G A S I G
+MGM21-30	e g e sh i nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	A G A S I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-31	s e i g	S A I I G
+MGM21-32	b i ch i g	B I Ch I G
+MGM21-33	b i nirugu nirugu nirugu ch nirugu nirugu nirugu i nirugu nirugu nirugu g	B I Ni Ni Ni Ch Ni Ni Ni I Ni Ni Ni G
+MGM21-34	j i l i i g	I I L I I G
+MGM21-35	i sh i g	A I S I G
+MGM21-36	i nirugu nirugu nirugu sh nirugu nirugu nirugu i nirugu nirugu nirugu g	A I Ni Ni Ni S Ni Ni Ni I Ni Ni Ni G
+MGM21-37	i ch i r i g	A I Ch I R I G
+MGM21-38	i j i l i g	A I J I L I G
+MGM21-39	h i g	G I G
+MGM21-40	h i nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu g	G I Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni G
+MGM21-41	j r l i g	I R L I G
+MGM21-42	ue ue g	A O I O G
+MGM21-43	j i sh fvs2 i g	I I Sh I G
+MGM21-44	h ue i g	G O I I G
+MGM21-45	h e i g	G A I I G
+MGM21-46	s e i g	S A I I G
+MGM21-47	s e g s e i g	S A G S A I I G
+MGM21-48	t oe g ue r i g	T O I G O R I G
+MGM21-49	h e sh i g	G A S I G
+MGM21-50	s e j i g	S A J I G
+MGM21-51	e b l i g	A B L I G
+MGM21-52	t e r l i g	T A R L I G
+MGM21-53	oe n d ue r l i g	A O I A D O R L I G
+MGM21-54	j e r l i g	I A R L I G
+MGM21-55	j e nirugu nirugu nirugu nirugu r nirugu nirugu nirugu nirugu l nirugu nirugu nirugu nirugu i nirugu nirugu nirugu nirugu nirugu g	I A Ni Ni Ni Ni R Ni Ni Ni Ni L Ni Ni Ni Ni I Ni Ni Ni Ni Ni G
+MGM21-56	b e h i l i g	B A G I L I G
+MGM21-57	h ue ch i l i g	G O I Ch I L I G
+MGM21-58	n oe m ue r l i g	N O I M O R L I G
+MGM21-59	d ue r i m sh i g	T O I R I M S I G
+MGM21-60	e g e sh i g l i g	A G A S I G L I G
+MGM21-61	t i d i m l i g	T I D I M L I G
+MGM22-1	a b sh i g fvs2	A A B S I G
+MGM22-2	a sh i g fvs2	A A S I G
+MGM22-3	e l e g fvs2	A L A G
+MGM22-4	a b i sh i g fvs2	A A B I S I G
+MGM22-5	b a t u b i l i g fvs2	B A D O B I L I G
+MGM22-6	m a sh i b i l i g fvs2	M A S I B I L I G
+MGM30-1	nirugu g fvs3	< Ni Hx
+MGM30-2	nirugu g fvs3 mvs	< Ni Hx Mvs
+MGM31-1	b a d a g fvs3	B A D A Hx
+MGM31-2	s ue r l i g fvs3	S O I R L I Hx
+MMD10-1	m	M >
+MMD11-1	m	M >
+MMD11-2	m mvs	M > Mvs
+MMD11-3	mvs m mvs	- M > Mvs
+MMS10-1	m nirugu	M Ni >
+MMS11-1	m a l	M A L
+MMS11-2	m mvs a	M > _ Aa
+MMS11-3	mvs m mvs a	- M > _ Aa
+MMS11-4	m mvs a ch a	M > - A Ch A
+MMZ10-1	nirugu m nirugu	< Ni M Ni >
+MMZ11-1	h a m a r	H A M A R
+# MMZ20-1
+MMZ21-1	l a m mvs a	L A M _ Aa
+MMM10-1	nirugu m	< Ni M
+MMM10-2	nirugu m mvs	< Ni M Mvs
+MMM11-1	n o m	N O M
+MLD10-1	l	L >
+MLD11-1	l	L >
+MLD11-2	l mvs	L > Mvs
+MLD11-3	mvs l mvs	- L > Mvs
+MLS10-1	l nirugu	L Ni >
+MLS11-1	l i m b ue	L I M B O
+MLS11-2	l mvs a	L > _ Aa
+MLS11-3	mvs l mvs a	- L > _ Aa
+MLS11-4	l mvs a ch a	L > - A Ch A
+MLZ10-1	nirugu l nirugu	< Ni L Ni >
+MLZ11-1	n a l u	N A L U
+# MLZ20-1
+MLZ21-1	t a l mvs a	T A L _ Aa
+MLM10-1	nirugu l	< Ni L
+MLM10-2	nirugu l mvs	< Ni L Mvs
+MLM11-1	g a l	Hx A L
+MSD10-1	s	S >
+MSD11-1	s	S >
+MSD11-2	s mvs	S > Mvs
+MSD11-3	mvs s mvs	- S > Mvs
+MSS10-1	s nirugu	S Ni >
+MSS11-1	s a r a	S A R A
+MSS11-2	s mvs a	S > _ Aa
+MSS11-3	mvs s mvs a	- S > _ Aa
+MSS11-4	s mvs a ch a	S > - A Ch A
+MSZ10-1	nirugu s nirugu	< Ni S Ni >
+MSZ11-1	t u s a l a h u	T O S A L A H U
+MSZ11-2	a r s l a n	A A R S L A A
+# MSZ20-1
+MSZ21-1	u l u s mvs a	A O L O S _ Aa
+# MSZ30-1
+MSZ31-1	u l u s fvs1 mvs a	A O L O Sz _ Aa
+MSM10-1	nirugu s	< Ni S
+MSM10-2	mvs nirugu s	- < Ni S
+MSM10-3	mvs nirugu nirugu s	- < Ni Ni S
+MSM10-4	nirugu s mvs	< Ni S Mvs
+MSM11-1	a l m a s	A A L M A S
+# MSM11-2	a l m a s fvs2	A A L M A S Fvs2
+MSM11-3	a l m a s fvs3	A A L M A S Fvs3
+MSM20-1	nirugu s fvs1	< Ni Sz
+MSM20-2	nirugu s fvs1 mvs	< Ni Sz Mvs
+MSM21-1	h ue m ue s fvs1	G O I M O Sz
+MXD10-1	sh	Sh >
+MXD11-1	sh	Sh >
+MXD11-2	sh fvs2	Sh > Fvs2
+MXD11-3	sh mvs	Sh > Mvs
+MXD11-4	mvs sh mvs	- Sh > Mvs
+MXD20-1	sh fvs1	S >
+MXD21-1	sh fvs1	S >
+MXS10-1	sh nirugu	Sh Ni >
+MXS10-2	sh fvs2 nirugu	Sh Ni >
+MXS11-1	sh a l a	Sh A L A
+MXS11-2	sh nirugu nirugu nirugu a l a	Sh Ni Ni Ni A L A
+MXS11-3	sh e g e l e h ue	Sh A G A L A G O
+MXS11-4	sh o r u	Sh O R U
+MXS11-5	sh nirugu nirugu nirugu o r u	Sh Ni Ni Ni O R U
+MXS11-6	sh oe l ue	Sh O I L U
+MXS11-7	sh ue g ue r e l	Sh O I G O R A L
+MXS11-8	sh ee ng	Sh W A G
+MXS11-9	sh nirugu nirugu nirugu ee ng	Sh Ni Ni Ni W A G
+MXS11-10	sh mvs a	Sh > _ Aa
+MXS11-11	mvs sh mvs a	- Sh > _ Aa
+MXS11-12	sh mvs a ch a	Sh > - A Ch A
+MXS12-1	sh a	Sh A
+MXS12-2	sh a fvs1	Sh Aa
+MXS12-3	sh a fvs2	Sh A
+MXS12-4	sh a fvs3	Sh A Fvs3
+MXS12-5	sh e	Sh A
+MXS12-6	sh e fvs1	Sh Aa
+MXS12-7	sh e fvs2	Sh A
+MXS12-8	sh e fvs3	Sh A Fvs3
+MXS12-9	sh i	Sh I
+MXS12-10	sh o	Sh O
+MXS12-11	sh o fvs1	Sh O
+MXS12-12	sh o fvs2	Sh U
+MXS12-13	sh u	Sh O
+MXS12-14	sh u fvs1	Sh O
+MXS12-15	sh u fvs2	Sh U
+MXS12-16	sh oe	Sh Ue
+MXS12-17	sh oe fvs1	Sh Ue
+MXS12-18	sh oe fvs2	Sh O
+MXS12-19	sh oe fvs3	Sh U
+MXS12-20	sh ue	Sh Ue
+MXS12-21	sh ue fvs1	Sh Ue
+MXS12-22	sh ue fvs2	Sh O
+MXS12-23	sh ue fvs3	Sh U
+MXS12-24	sh ee	Sh W
+MXS12-25	sh nirugu nirugu nirugu a	Sh Ni Ni Ni A
+MXS12-26	sh nirugu nirugu nirugu e	Sh Ni Ni Ni A
+MXS12-27	sh nirugu nirugu nirugu i	Sh Ni Ni Ni I
+MXS12-28	sh nirugu nirugu nirugu o	Sh Ni Ni Ni O
+MXS12-29	sh nirugu nirugu nirugu u	Sh Ni Ni Ni O
+MXS12-30	sh nirugu nirugu nirugu oe	Sh Ni Ni Ni Ue
+MXS12-31	sh nirugu nirugu nirugu ue	Sh Ni Ni Ni Ue
+MXS12-32	sh nirugu nirugu nirugu ee	Sh Ni Ni Ni W
+MXS13-1	sh fvs2 i r ue	Sh I R U
+MXS13-2	sh fvs2 nirugu nirugu nirugu nirugu nirugu i r ue	Sh Ni Ni Ni Ni Ni I R U
+MXS13-3	sh fvs2 a l	Sh A L
+MXS13-4	sh fvs3 a l	Sh > Fvs3 < A L
+MXS13-5	sh fvs2 i n mvs e	Sh I N _ Aa
+MXS20-1	sh fvs1 nirugu	S Ni >
+MXS21-1	sh i n mvs e	S I N _ Aa
+MXS21-2	sh nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i n mvs e	S Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I N _ Aa
+MXS22-1	sh fvs1 o	S U
+MXS22-2	sh fvs1 o fvs1	S O
+MXS22-3	sh fvs1 o fvs2	S U
+MXS22-4	sh fvs1 o fvs3	S U Fvs3
+MXS22-5	sh fvs1 oe	S U
+MXS22-6	sh fvs1 oe fvs1	S Ue
+MXS22-7	sh fvs1 oe fvs2	S O
+MXS22-8	sh fvs1 oe fvs3	S U
+MXS22-9	sh fvs1 i n mvs e	S I N _ Aa
+MXS22-10	sh fvs1 nirugu nirugu nirugu nirugu nirugu nirugu i n mvs e	S Ni Ni Ni Ni Ni Ni I N _ Aa
+MXS22-11	sh fvs1 a l a	S A L A
+MXS22-12	sh fvs1 nirugu nirugu nirugu nirugu a l a	S Ni Ni Ni Ni A L A
+MXS22-13	sh fvs1 e g e l e h ue	S A G A L A G O
+MXS22-14	sh fvs1 o r u	S O R U
+MXS22-15	sh fvs1 oe l ue	S O I L U
+MXS22-16	sh fvs1 ue g ue r e l	S O I G O R A L
+MXS22-17	sh fvs1 i	S I
+MXS22-18	sh fvs1 ee ng	S W A G
+MXZ10-1	nirugu sh nirugu	< Ni Sh Ni >
+MXZ10-2	nirugu sh fvs2 nirugu	< Ni Sh Ni >
+MXZ11-1	h a sh a ng	H A Sh A A G
+MXZ11-2	h a sh fvs3 a ng	H A Sh > Fvs3 < A A G
+MXZ11-3	h a sh nirugu nirugu nirugu a ng	H A Sh Ni Ni Ni A A G
+MXZ12-1	j i sh fvs2 i y mvs e	I I Sh I I _ Aa
+MXZ12-2	h a sh fvs2 a ng	H A Sh A A G
+MXZ20-1	nirugu sh fvs1 nirugu	< Ni S Ni >
+MXZ21-1	j i sh i y mvs e	I I S I I _ Aa
+MXZ21-2	a sh i g	A A S I H
+MXZ21-3	a sh nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i g	A A S Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I H
+MXZ21-4	m a sh i	M A S I
+MXZ21-5	m a sh nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu i	M A S Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni I
+MXZ21-6	b ee l u r ue fvs1 sh i y mvs e	B W L O R O I S I I _ Aa
+MXZ22-1	h a sh fvs1 a ng	H A S A A G
+MXZ22-2	j i sh fvs1 i y mvs e	I I S I I _ Aa
+# MXZ30-1
+MXZ31-1	n i sh mvs e	N I Sh _ Aa
+MXM10-1	nirugu sh	< Ni Sh
+MXM10-2	nirugu sh mvs	< Ni Sh Mvs
+MXM11-1	t a sh	T A Sh
+MTD10-1	t	T >
+MTD11-1	t	T >
+MTS10-1	t nirugu	T Ni >
+MTS11-1	mvs t ue r	- T O R
+MTS11-2	t ue fvs3 r	T O R
+MTS11-3	mvs t ue n i	- T O N I
+MTS11-4	t ue fvs3 n i	T O N I
+MTZ10-1	nirugu t nirugu	< Ni D Ni >
+MTZ10-2	nirugu t fvs2 nirugu	< Ni D Ni >
+MTZ11-1	a t a r	A A D A R
+MTZ11-2	a t u r i y mvs a	A A D O R I I _ Aa
+MTZ12-1	m a t fvs2 ee r i y a l	M A D W R I Y A L
+MTZ12-2	n a t fvs2 r i	N A D R I
+MTZ12-3	t t fvs2 t	T D T
+MTZ12-4	w i y ee t fvs2 n a m	W I Y W D N A M
+MTZ20-1	nirugu t fvs1 nirugu	< Ni T Ni >
+MTZ21-1	m a t ee r i y a l	M A T W R I Y A L
+MTZ21-2	m a t nirugu nirugu nirugu ee r i y a l	M A T Ni Ni Ni W R I Y A L
+MTZ21-3	n a t r i	N A T R I
+MTZ21-4	n a t nirugu nirugu nirugu r i	N A T Ni Ni Ni R I
+MTZ21-5	w i y ee t n a m	W I Y W T N A M
+MTZ21-6	w i y ee t nirugu nirugu nirugu n a m	W I Y W T Ni Ni Ni N A M
+MTZ21-7	m ee t r	M W T R
+MTZ21-8	m ee t nirugu nirugu nirugu r	M W T Ni Ni Ni R
+MTZ21-9	n ee t ee	N W T W
+MTZ21-10	n ee t nirugu nirugu nirugu nirugu nirugu nirugu ee	N W T Ni Ni Ni Ni Ni Ni W
+MTZ21-11	t t t	T T T
+MTZ22-1	t a t fvs1 a r	T A T A R
+MTZ22-2	w i y ee n fvs1 t fvs1 i y a ng	W I Y W N T I Y A A G
+MTM10-1	nirugu t	< Ni T
+MTM11-1	k2 a r t	K2 A R T
+MTM11-2	n o t	N O T
+MDD10-1	d	D >
+MDD11-1	d	D >
+MDD11-2	d fvs2	D > Fvs2
+MDD11-3	d fvs3	D > Fvs3
+MDD20-1	d fvs1	T >
+MDD21-1	d fvs1	T >
+MDS10-1	d nirugu	T Ni >
+MDS10-2	d fvs2 nirugu	T Ni >
+MDS11-1	d a l a	T A L A
+MDS11-2	d fvs3 a l a	T > Fvs3 < A L A
+MDS11-3	d d d	T Dd Dd
+MDS12-1	d fvs2 a	T A
+MDS12-2	d fvs3 a	T > Fvs3 < A
+MDS12-3	d fvs2 e	T A
+MDS12-4	d fvs3 e	T > Fvs3 < A
+MDS12-5	d fvs2 i	T I
+MDS12-6	d fvs3 i	T > Fvs3 < I
+MDS12-7	d fvs2 o	T U
+MDS12-8	d fvs3 o	T > Fvs3 < U
+MDS12-9	d fvs2 o fvs1	T O
+MDS12-10	d fvs2 o fvs2	T U
+MDS12-11	d fvs2 u	T U
+MDS12-12	d fvs3 u	T > Fvs3 < U
+MDS12-13	d fvs2 u fvs1	T O
+MDS12-14	d fvs2 u fvs2	T U
+MDS12-15	d fvs2 oe	T U
+MDS12-16	d fvs3 oe	T > Fvs3 < U
+MDS12-17	d fvs2 oe fvs1	T Ue
+MDS12-18	d fvs2 oe fvs2	T O
+MDS12-19	d fvs2 oe fvs3	T U
+MDS12-20	d fvs2 ue	T U
+MDS12-21	d fvs3 ue	T > Fvs3 < U
+MDS12-22	d fvs2 ue fvs1	T Ue
+MDS12-23	d fvs2 ue fvs2	T O
+MDS12-24	d fvs2 ue fvs3	T U
+MDS12-25	d fvs2 ee	T W
+MDS12-26	d fvs3 ee	T > Fvs3 < W
+MDS12-27	d fvs2 a l a	T A L A
+MDS12-28	d fvs3 a l a	T > Fvs3 < A L A
+MDS20-1	d fvs1 nirugu	D Ni >
+MDS21-1	d a	D A
+MDS21-2	d a fvs1	T Aa
+MDS21-3	d a fvs2	T A
+MDS21-4	d a fvs3	T A Fvs3
+MDS21-5	d e	D A
+MDS21-6	d e fvs1	T Aa
+MDS21-7	d e fvs2	T A
+MDS21-8	d e fvs3	T A Fvs3
+MDS21-9	d i	D I
+MDS21-10	d i fvs3	T I Fvs3
+MDS21-11	d o	D O
+MDS21-12	d o fvs1	T O
+MDS21-13	d o fvs2	T U
+MDS21-14	d u	D O
+MDS21-15	d u fvs1	T O
+MDS21-16	d u fvs2	T U
+MDS21-17	d oe	D Ue
+MDS21-18	d oe fvs1	T Ue
+MDS21-19	d oe fvs2	T O
+MDS21-20	d oe fvs3	T U
+MDS21-21	d ue	D Ue
+MDS21-22	d ue fvs1	T Ue
+MDS21-23	d ue fvs2	T O
+MDS21-24	d ue fvs3	T U
+MDS21-25	d ee	D W
+MDS21-26	d ee fvs3	T W Fvs3
+MDS21-27	d nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu a	D Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni A
+MDS21-28	d nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu u	D Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni O
+MDS21-29	d nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue	D Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ue
+MDS22-1	b a g sh i mvs d a	B A H S I - D A
+MDS22-2	mvs d a	- D A
+MDS22-3	mvs d nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu a	- D Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni A
+MDS22-4	mvs d nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu e	- D Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni Ni A
+MDS23-1	b a g sh i mvs d a g a n	B A H S I - D A Hx A A
+MDS23-2	mvs d a g a n	- D A Hx A A
+MDS23-3	mvs d nirugu nirugu a nirugu nirugu g nirugu nirugu a nirugu nirugu n	- D Ni Ni A Ni Ni Hx Ni Ni A Ni Ni A
+MDS23-4	mvs d e g e n	- D A G A A
+MDS23-5	mvs d nirugu nirugu e nirugu nirugu g e nirugu nirugu n	- D Ni Ni A Ni Ni G A Ni Ni A
+MDS24-1	a b u mvs d u	A A B O - D U
+MDS24-2	mvs d u	- D U
+MDS24-3	mvs d nirugu nirugu nirugu u	- D Ni Ni Ni U
+MDS24-4	mvs d ue	- D U
+MDS24-5	mvs d nirugu nirugu nirugu ue	- D Ni Ni Ni U
+MDS25-1	mvs d a h i	- D A G I
+MDS25-2	mvs d nirugu nirugu a nirugu nirugu h i	- D Ni Ni A Ni Ni G I
+MDS25-3	mvs d e h i	- D A G I
+MDS25-4	mvs d nirugu nirugu e nirugu nirugu h i	- D Ni Ni A Ni Ni G I
+MDS26-1	mvs d a g	- D A H
+MDS26-2	mvs d nirugu nirugu a nirugu nirugu g	- D Ni Ni A Ni Ni H
+MDS26-3	mvs d e g	- D A G
+MDS26-4	mvs d nirugu nirugu e nirugu nirugu g	- D Ni Ni A Ni Ni G
+MDS27-1	mvs d u r	- D O R
+MDS27-2	mvs d nirugu nirugu u nirugu nirugu r	- D Ni Ni O Ni Ni R
+MDS27-3	mvs d ue r	- D O R
+MDS27-4	mvs d nirugu nirugu ue nirugu nirugu r	- D Ni Ni O Ni Ni R
+MDS28-1	mvs d ue n i	- D O N I
+MDS28-2	mvs d nirugu nirugu ue nirugu nirugu n nirugu nirugu i	- D Ni Ni O Ni Ni N Ni Ni I
+MDS28-3	mvs d u n i	- D O N I
+MDS28-4	mvs d nirugu nirugu u nirugu nirugu n nirugu nirugu i	- D Ni Ni O Ni Ni N Ni Ni I
+MDS29-1	mvs d ue g e r	- D O G A R
+MDS29-2	mvs d nirugu nirugu ue nirugu nirugu g e nirugu nirugu r	- D Ni Ni O Ni Ni G A Ni Ni R
+MDS29-3	mvs d u g a r	- D O Hx A R
+MDS29-4	mvs d nirugu nirugu u nirugu nirugu g nirugu nirugu a nirugu nirugu r	- D Ni Ni O Ni Ni Hx Ni Ni A Ni Ni R
+MDS2A-1	d fvs1 a l i y a n	D A L I Y A A
+MDS2A-2	d fvs1 d fvs1 d fvs1	D D D
+MDS2A-3	d fvs1 a	D A
+MDS2A-4	d fvs1 e	D A
+MDS2A-5	d fvs1 a g a n	D A Hx A A
+MDS2A-6	d fvs1 e g e n	D A G A A
+MDS2A-7	d fvs1 u	D U
+MDS2A-8	d fvs1 u fvs1	D O
+MDS2A-9	d fvs1 u fvs2	D U
+MDS2A-10	d fvs1 ue	D U
+MDS2A-11	d fvs1 ue fvs1	D Ue
+MDS2A-12	d fvs1 ue fvs2	D O
+MDS2A-13	d fvs1 ue fvs3	D U
+MDS2A-14	d fvs1 a h i	D A G I
+MDS2A-15	d fvs1 e h i	D A G I
+MDS2A-16	d fvs1 a g	D A H
+MDS2A-17	d fvs1 e g	D A G
+MDS2A-18	d fvs1 u r	D O R
+MDS2A-19	d fvs1 ue fvs3 r	D O R
+MDS2A-20	d fvs1 ue fvs3 n i	D O N I
+MDS2A-21	d fvs1 u n i	D O N I
+MDS2A-22	d fvs1 ue fvs3 g e r	D O G A R
+MDS2A-23	d fvs1 u g a r	D O Hx A R
+MDZ10-1	nirugu d nirugu	< Ni Dd Ni >
+MDZ10-2	nirugu d fvs2 nirugu	< Ni Dd Ni >
+MDZ11-1	a d h u	A A Dd H U
+MDZ11-2	a d nirugu nirugu nirugu h u	A A Dd Ni Ni Ni H U
+MDZ11-3	a d nirugu fvs3 nirugu nirugu h u	A A Dd Ni > Fvs3 < Ni Ni H U
+MDZ11-4	a d fvs3 h u	A A Dd > Fvs3 < H U
+MDZ11-5	d d d	T Dd Dd
+MDZ12-1	ch i m a d fvs2 o fvs1 d c a r	Ch I M A Dd A O Dd C A R
+MDZ12-2	a d fvs2 h u	A A Dd H U
+MDZ12-3	h a d fvs2 a	H A Dd A
+MDZ12-4	t a d fvs2 a	T A Dd A
+MDZ12-5	t e d fvs2 e fvs1	T A Dd Aa
+MDZ20-1	nirugu d fvs1 nirugu	< Ni D Ni >
+MDZ21-1	s u d u l h u	S O D O L H U
+MDZ21-2	s u d nirugu nirugu nirugu u l h u	S O D Ni Ni Ni O L H U
+MDZ21-3	s u d nirugu nirugu fvs3 nirugu nirugu nirugu u l h u	S O D Ni Ni > Fvs3 < Ni Ni Ni O L H U
+MDZ21-4	s u d fvs3 u l h u	S O D > Fvs3 < O L H U
+MDZ22-1	e d fvs1 l e h ue	A D L A G O
+MDZ22-2	d fvs1 d fvs1 d fvs1	D D D
+MDZ22-3	s u d fvs1 nirugu nirugu u l h u	S O D Ni Ni O L H U
+MDZ22-4	s u d fvs1 u l h u	S O D O L H U
+MDM10-1	nirugu d	< Ni Dd
+MDM11-1	a r a d	A A R A Dd
+MDM11-2	a r a d fvs2	A A R A Dd Fvs2
+MDM11-3	a r a d fvs3	A A R A Dd Fvs3
+MDM11-4	mvs u d	- O Dd
+MDM11-5	u fvs1 d	O Dd
+MDM11-6	mvs ue d	- O Dd
+MDM11-7	ue fvs1 d	O Dd
+MDM11-8	d d d	T Dd Dd
+MDM20-1	nirugu d fvs1	< Ni D
+MDM21-1	d fvs1 d fvs1 d fvs1	D D D
+MDM21-2	d e d fvs1	T A D
+MQD10-1	ch	Ch >
+MQD11-1	ch	Ch >
+MQS10-1	ch a g a n	Ch A Hx A A
+MQS11-1	ch a s u	Ch A S U
+MQZ10-1	nirugu ch nirugu	< Ni Ch Ni >
+MQZ11-1	e ch e h ue	A Ch A G O
+MQM10-1	nirugu ch	< Ni Ch
+MQM11-1	k2 a r a ch	K2 A R A Ch
+MJD10-1	j	I >
+MJD11-1	j	I >
+MJD20-1	j fvs1	I
+MJD21-1	j mvs a	I _ Aa
+MJD22-1	j fvs1	I
+MJS10-1	j nirugu	I Ni >
+MJS11-1	j a g u	I A Hx U
+MJS11-2	j fvs1 a g u	I > Fvs1 < A Hx U
+MJS20-1	j mvs	I > Mvs
+MJS21-1	j mvs a	I _ Aa
+MJS21-2	a m u i space j mvs a	A A M O I - I _ Aa
+MJS21-3	mvs j mvs a	- I _ Aa
+MJS21-4	j mvs a ch a	I > - A Ch A
+MJZ10-1	nirugu j nirugu	< Ni J Ni >
+MJZ11-1	g a j a r	Hx A J A R
+# MJZ20-1
+MJZ21-1	a m u i j mvs a	A A M O I I I _ Aa
+MJM10-1	nirugu j	< Ni J
+MJM10-2	nirugu j mvs	< Ni J Mvs
+MJM10-3	nirugu nirugu j mvs	< Ni Ni J Mvs
+MJM11-1	j u r j	I O R J
+MJM11-2	j u r j mvs u n	I O R J - O A
+MJM20-1	nirugu j fvs1	< Ni I
+MJM21-1	a m u i j mvs a	A A M O I I I _ Aa
+MJM22-1	j u r j fvs1	I O R I
+MJM22-2	j u r j fvs1 mvs u n	I O R I - O A
+# MJM22-1
+# MJM22-2
+MYD10-1	y	Y >
+MYD11-1	y	Y >
+MYD11-2	y fvs2	Y > Fvs2
+MYD11-3	y fvs3	Y > Fvs3
+MYD11-4	y mvs	Y > Mvs
+MYD11-5	mvs y mvs	- Y > Mvs
+MYD20-1	y fvs1	I >
+MYD21-1	y fvs1	I >
+MYS10-1	y nirugu	Y Ni >
+MYS10-2	y fvs2 nirugu	Y Ni >
+MYS11-1	y a m a r	Y A M A R
+MYS11-2	y y y	Y Y I
+MYS11-3	y y y mvs a	Y Y I _ Aa
+MYS11-4	y y y mvs y	Y Y I - Y >
+MYS11-5	y mvs a	Y > _ Aa
+MYS11-6	mvs y mvs a	- Y > _ Aa
+MYS11-7	y mvs a ch a	Y > - A Ch A
+MYS11-8	mvs y o	- Y O
+MYS11-9	y o fvs1	Y O
+MYS11-10	mvs y o fvs2	- Y U
+MYS11-11	mvs y o fvs3	- Y U Fvs3
+MYS11-12	mvs y oe	- Y Ue
+MYS11-13	mvs y oe fvs1	- Y Ue
+MYS11-14	mvs y oe fvs2	- Y O
+MYS11-15	mvs y oe fvs3	- Y U
+MYS12-1	b a g sh i mvs y fvs2 i n	B A H S I - Y I A
+MYS20-1	y fvs1 nirugu	I Ni >
+MYS21-1	mvs y i n	- I I A
+MYS21-2	mvs y nirugu nirugu i nirugu nirugu n	- I Ni Ni I Ni Ni A
+MYS22-1	mvs y i	- I I
+MYS22-2	mvs y nirugu nirugu i	- I Ni Ni I
+MYS23-1	y fvs1 o	I U
+MYS23-2	y fvs1 o fvs1	I O
+MYS23-3	y fvs1 o fvs2	I U
+MYS23-4	y fvs1 o fvs3	I U Fvs3
+MYS23-5	y fvs1 oe	I U
+MYS23-6	y fvs1 oe fvs1	I Ue
+MYS23-7	y fvs1 oe fvs2	I O
+MYS23-8	y fvs1 oe fvs3	I U
+MYS23-9	y fvs1 i n	I I A
+MYS23-10	y fvs1 i	I I
+MYS23-11	y fvs1 a m a r	I A M A R
+MYZ10-1	nirugu y nirugu	< Ni Y Ni >
+MYZ10-2	nirugu y fvs3 nirugu	< Ni Y Ni >
+MYZ11-1	y y y	Y Y I
+MYZ11-2	y y y mvs a	Y Y I _ Aa
+MYZ11-3	y y y mvs y	Y Y I - Y >
+MYZ11-4	h a y a h u	H A Y A H U
+MYZ11-5	s a y i h a n	S A Y I H A A
+MYZ11-6	ue y l e s	A O I Y L A S
+MYZ11-7	j i y ee r	I I Y W R
+MYZ11-8	j i y w r	I I Y W R
+MYZ12-1	h a y fvs3 a h u	H A Y A H U
+MYZ12-2	g e r mvs i y fvs3 e r	G A R - A I Y A R
+MYZ20-1	nirugu y fvs1 nirugu	< Ni I Ni >
+MYZ21-1	g e r mvs i y e r	G A R - I I A R
+MYZ21-2	g e r mvs i nirugu nirugu y nirugu nirugu e nirugu nirugu r	G A R - I Ni Ni I Ni Ni A Ni Ni R
+MYZ22-1	g e r mvs i y e n	G A R - I I A A
+MYZ22-2	g e r mvs i nirugu nirugu y nirugu nirugu e nirugu nirugu n	G A R - I Ni Ni I Ni Ni A Ni Ni A
+MYZ23-1	h a y fvs1 a h u	H A I A H U
+MYZ23-2	s a y fvs1 i h a n	S A I I H A A
+MYZ23-3	i fvs1 y fvs1 a r	I I A R
+MYZ23-4	i fvs1 y fvs1 e r	I I A R
+MYZ23-5	i fvs1 y fvs1 a n	I I A A
+MYZ23-6	i fvs1 y fvs1 e n	I I A A
+MYZ23-7	h a s u fvs1 y fvs1 u n	H A S A O I O A
+MYZ23-8	b u y fvs1 a n fvs2 oe fvs2 l j i	B O I A A A O I L J I
+MYZ23-9	b a y fvs1 h a u l a g a n	B A I H A O L A Hx A A
+MYZ30-1	nirugu y fvs2 nirugu	< Ni I I Ni >
+MYZ31-1	h a y fvs2 a h u	H A I I A H U
+MYZ31-2	a y fvs2 l	A A I I L
+MYZ31-3	nirugu y fvs2 n	< Ni I I A
+# MYZ40-1
+MYZ41-1	y y y mvs a	Y Y I _ Aa
+MYZ41-2	y y y mvs y	Y Y I - Y >
+MYZ41-3	y a b u y mvs a	Y A B O I _ Aa
+MYM10-1	nirugu y	< Ni I
+MYM10-2	nirugu y mvs	< Ni I Mvs
+MYM11-1	y y y	Y Y I
+MYM11-2	d a l a y	T A L A I
+MRD10-1	r	R >
+MRD11-1	r	R >
+MRD11-2	r mvs	R > Mvs
+MRD11-3	mvs r mvs	- R > Mvs
+MRS10-1	r nirugu	R Ni >
+MRS11-1	r a d i u s	R A D I O S
+MRS11-2	r w d a s t fvs1 u r	R W D A S T O R
+MRS11-3	r mvs a	R > _ Aa
+MRS11-4	mvs r mvs a	- R > _ Aa
+MRS11-5	r mvs a ch a	R > - A Ch A
+MRZ10-1	nirugu r nirugu	< Ni R Ni >
+MRZ11-1	s a r a l	S A R A L
+# MRZ20-1
+MRZ21-1	s a r mvs a	S A R _ Aa
+MRZ21-2	s a r nirugu mvs a	S A R Ni > _ Aa
+MRZ21-3	oe g e r mvs e	A O I G A R _ Aa
+MRM10-1	nirugu r	< Ni R
+MRM10-2	nirugu r mvs	< Ni R Mvs
+MRM11-1	a g a r	A A Hx A R
+XWD10-1	w	W >
+XWD11-1	w	W >
+XWD11-2	w mvs	W > Mvs
+XWD11-3	mvs w mvs	- W > Mvs
+XWS10-1	w nirugu	W Ni >
+XWS11-1	w a g a r	W A Hx A R
+XWS11-2	w mvs a	W > _ Aa
+XWS11-3	mvs w mvs a	- W > _ Aa
+XWS11-4	w mvs a ch a	W > - A Ch A
+XWZ10-1	nirugu w nirugu	< Ni W Ni >
+XWZ11-1	t a w a r	T A W A R
+XWZ11-2	t a w fvs2 a r	T A W > Fvs2 < A R
+XWZ11-3	t a w fvs3 a r	T A W > Fvs3 < A R
+XWZ20-1	nirugu w fvs1 nirugu	< Ni O Ni >
+XWZ21-1	a w fvs1 g mvs a	A A O Hx _ Aa
+# XWZ30-1
+XWZ31-1	g o w mvs a	Hx O U _ Aa
+XWZ32-1	g o w fvs1 mvs a	Hx O U _ Aa
+XWM10-1	nirugu w	< Ni W
+XWM10-2	nirugu w mvs	< Ni W Mvs
+XWM11-1	n a m i n u w	N A M I N O W
+XWM11-2	n a m i n u w fvs2	N A M I N O W Fvs2
+XWM11-3	n a m i n u w fvs3	N A M I N O W Fvs3
+XWM11-4	k2 u l i k2 u w	K2 O L I K2 O W
+XWM11-5	n a m i n u w mvs ue n	N A M I N O W - O A
+XWM20-1	nirugu w fvs1	< Ni U
+XWM21-1	a g u w fvs1	A A Hx O U
+XWM21-2	d e g ue w fvs1	T A G O U
+XWM21-3	n a m i n u w fvs1	N A M I N O U
+XFD10-1	f	F >
+XFD11-1	f	F >
+XFS10-1	f nirugu	F Ni >
+XFS11-1	f a	F Aa
+XFS11-2	f a fvs1	F Aa
+XFS11-3	f a fvs2	F A
+XFS11-4	f a fvs3	F Aa Fvs3
+XFS11-5	f e	F Aa
+XFS11-6	f e fvs1	F Aa
+XFS11-7	f e fvs2	F A
+XFS11-8	f e fvs3	F Aa Fvs3
+XFS11-9	f i	F I
+XFS11-10	f o	F O
+XFS11-11	f o fvs1	F O
+XFS11-12	f o fvs2	F U
+XFS11-13	f o fvs3	F O Fvs3
+XFS11-14	f u	F O
+XFS11-15	f u fvs1	F O
+XFS11-16	f u fvs2	F U
+XFS11-17	f u fvs3	F O Fvs3
+XFS11-18	f oe	F Ue
+XFS11-19	f oe fvs1	F Ue
+XFS11-20	f oe fvs2	F O
+XFS11-21	f oe fvs3	F U
+XFS11-22	f ue	F Ue
+XFS11-23	f ue fvs1	F Ue
+XFS11-24	f ue fvs2	F O
+XFS11-25	f ue fvs3	F U
+XFS11-26	f ee	F W
+XFS11-27	f a f a	F A F Aa
+XFS11-28	f a fvs1 f a	F A A F Aa
+XFS11-29	f a fvs2 f a	F A > Fvs2 < F Aa
+XFS11-30	f e f e	F A F Aa
+XFS11-31	f e fvs1 f e	F A > Fvs1 < F Aa
+XFS11-32	f i f i	F I F I
+XFS11-33	f i fvs1 f i	F A I F I
+XFS11-34	f i fvs2 f i	F I I F I
+XFS11-35	f i fvs3 f i	F I F I
+XFS11-36	f o f o	F O F O
+XFS11-37	f o fvs1 f o	F A O F O
+XFS11-38	f o fvs2 f o	F O > Fvs2 < F O
+XFS11-39	f u f u	F O F O
+XFS11-40	f u fvs1 f u	F A O F O
+XFS11-41	f u fvs2 f u	F O > Fvs2 < F O
+XFS11-42	f oe f oe	F O I F O
+XFS11-43	f oe fvs1 f oe	F O I F O
+XFS11-44	f oe fvs2 f oe	F A O I F O
+XFS11-45	f oe fvs3 f oe	F O F O
+XFS11-46	f ue f ue	F O I F O
+XFS11-47	f ue fvs1 f ue	F O I F O
+XFS11-48	f ue fvs2 f ue	F A O I F O
+XFS11-49	f ue fvs3 f ue	F O F O
+XFS11-50	f ee f ee	F W F W
+XFS11-51	f r u n fvs1 t	F R O N T
+XFS11-52	f i c i k2	F I C I K2
+XFZ10-1	nirugu f nirugu	< Ni F Ni >
+XFZ11-1	f a f a f a	F A F A F Aa
+XFZ11-2	f a f a fvs1 f a	F A F A A F Aa
+XFZ11-3	f a f a fvs2 f a	F A F A > Fvs2 < F Aa
+XFZ11-4	f e f e f e	F A F A F Aa
+XFZ11-5	f e f e fvs1 f e	F A F A > Fvs1 < F Aa
+XFZ11-6	f i f i f i	F I F I F I
+XFZ11-7	f i f i fvs1 f i	F I F A I F I
+XFZ11-8	f i f i fvs2 f i	F I F I I F I
+XFZ11-9	f i f i fvs3 f i	F I F I F I
+XFZ11-10	f o f o f o	F O F O F O
+XFZ11-11	f o f o fvs1 f o	F O F A O F O
+XFZ11-12	f o f o fvs2 f o	F O F O > Fvs2 < F O
+XFZ11-13	f u f u f u	F O F O F O
+XFZ11-14	f u f u fvs1 f u	F O F A O F O
+XFZ11-15	f u f u fvs2 f u	F O F O > Fvs2 < F O
+XFZ11-16	f oe f oe f oe	F O I F O F O
+XFZ11-17	f oe f oe fvs1 f oe	F O I F O I F O
+XFZ11-18	f oe f oe fvs2 f oe	F O I F A O I F O
+XFZ11-19	f oe f oe fvs3 f oe	F O I F O F O
+XFZ11-20	f ue f ue f ue	F O I F O F O
+XFZ11-21	f ue f ue fvs1 f ue	F O I F O I F O
+XFZ11-22	f ue f ue fvs2 f ue	F O I F A O I F O
+XFZ11-23	f ue f ue fvs3 f ue	F O I F O F O
+XFZ11-24	f ee f ee f ee	F W F W F W
+XFZ11-25	a f r i k2 a	A A F R I K2 Aa
+XFZ11-26	s u f i y mvs a	S O F I I _ Aa
+XFM10-1	nirugu f	< Ni F
+XFM11-1	h a n i f	H A N I F
+MKD10-1	k2	K2 >
+MKD11-1	k2	K2 >
+MKS10-1	k2 nirugu	K2 Ni >
+MKS11-1	k2 a	K2 Aa
+MKS11-2	k2 a fvs1	K2 Aa
+MKS11-3	k2 a fvs2	K2 A
+MKS11-4	k2 a fvs3	K2 Aa Fvs3
+MKS11-5	k2 e	K2 Aa
+MKS11-6	k2 e fvs1	K2 Aa
+MKS11-7	k2 e fvs2	K2 A
+MKS11-8	k2 e fvs3	K2 Aa Fvs3
+MKS11-9	k2 i	K2 I
+MKS11-10	k2 o	K2 O
+MKS11-11	k2 o fvs1	K2 O
+MKS11-12	k2 o fvs2	K2 U
+MKS11-13	k2 o fvs3	K2 O Fvs3
+MKS11-14	k2 u	K2 O
+MKS11-15	k2 u fvs1	K2 O
+MKS11-16	k2 u fvs2	K2 U
+MKS11-17	k2 u fvs3	K2 O Fvs3
+MKS11-18	k2 oe	K2 Ue
+MKS11-19	k2 oe fvs1	K2 Ue
+MKS11-20	k2 oe fvs2	K2 O
+MKS11-21	k2 oe fvs3	K2 U
+MKS11-22	k2 ue	K2 Ue
+MKS11-23	k2 ue fvs1	K2 Ue
+MKS11-24	k2 ue fvs2	K2 O
+MKS11-25	k2 ue fvs3	K2 U
+MKS11-26	k2 ee	K2 W
+MKS11-27	k2 a k2 a	K2 A K2 Aa
+MKS11-28	k2 a fvs1 k2 a	K2 A A K2 Aa
+MKS11-29	k2 a fvs2 k2 a	K2 A > Fvs2 < K2 Aa
+MKS11-30	k2 e k2 e	K2 A K2 Aa
+MKS11-31	k2 e fvs1 k2 e	K2 A > Fvs1 < K2 Aa
+MKS11-32	k2 i k2 i	K2 I K2 I
+MKS11-33	k2 i fvs1 k2 i	K2 A I K2 I
+MKS11-34	k2 i fvs2 k2 i	K2 I I K2 I
+MKS11-35	k2 i fvs3 k2 i	K2 I K2 I
+MKS11-36	k2 o k2 o	K2 O K2 O
+MKS11-37	k2 o fvs1 k2 o	K2 A O K2 O
+MKS11-38	k2 o fvs2 k2 o	K2 O > Fvs2 < K2 O
+MKS11-39	k2 u k2 u	K2 O K2 O
+MKS11-40	k2 u fvs1 k2 u	K2 A O K2 O
+MKS11-41	k2 u fvs2 k2 u	K2 O > Fvs2 < K2 O
+MKS11-42	k2 oe k2 oe	K2 O I K2 O
+MKS11-43	k2 oe fvs1 k2 oe	K2 O I K2 O
+MKS11-44	k2 oe fvs2 k2 oe	K2 A O I K2 O
+MKS11-45	k2 oe fvs3 k2 oe	K2 O K2 O
+MKS11-46	k2 ue k2 ue	K2 O I K2 O
+MKS11-47	k2 ue fvs1 k2 ue	K2 O I K2 O
+MKS11-48	k2 ue fvs2 k2 ue	K2 A O I K2 O
+MKS11-49	k2 ue fvs3 k2 ue	K2 O K2 O
+MKS11-50	k2 ee k2 ee	K2 W K2 W
+MKS11-51	k2 y ue r i	K2 Y O I R I
+MKS11-52	k2 o l o n i	K2 O L O N I
+MKZ10-1	nirugu k2 nirugu	< Ni K2 Ni >
+MKZ11-1	k2 a k2 a k2 a	K2 A K2 A K2 Aa
+MKZ11-2	k2 a k2 a fvs1 k2 a	K2 A K2 A A K2 Aa
+MKZ11-3	k2 a k2 a fvs2 k2 a	K2 A K2 A > Fvs2 < K2 Aa
+MKZ11-4	k2 e k2 e k2 e	K2 A K2 A K2 Aa
+MKZ11-5	k2 e k2 e fvs1 k2 e	K2 A K2 A > Fvs1 < K2 Aa
+MKZ11-6	k2 i k2 i k2 i	K2 I K2 I K2 I
+MKZ11-7	k2 i k2 i fvs1 k2 i	K2 I K2 A I K2 I
+MKZ11-8	k2 i k2 i fvs2 k2 i	K2 I K2 I I K2 I
+MKZ11-9	k2 i k2 i fvs3 k2 i	K2 I K2 I K2 I
+MKZ11-10	k2 o k2 o k2 o	K2 O K2 O K2 O
+MKZ11-11	k2 o k2 o fvs1 k2 o	K2 O K2 A O K2 O
+MKZ11-12	k2 o k2 o fvs2 k2 o	K2 O K2 O > Fvs2 < K2 O
+MKZ11-13	k2 u k2 u k2 u	K2 O K2 O K2 O
+MKZ11-14	k2 u k2 u fvs1 k2 u	K2 O K2 A O K2 O
+MKZ11-15	k2 u k2 u fvs2 k2 u	K2 O K2 O > Fvs2 < K2 O
+MKZ11-16	k2 oe k2 oe k2 oe	K2 O I K2 O K2 O
+MKZ11-17	k2 oe k2 oe fvs1 k2 oe	K2 O I K2 O I K2 O
+MKZ11-18	k2 oe k2 oe fvs2 k2 oe	K2 O I K2 A O I K2 O
+MKZ11-19	k2 oe k2 oe fvs3 k2 oe	K2 O I K2 O K2 O
+MKZ11-20	k2 ue k2 ue k2 ue	K2 O I K2 O K2 O
+MKZ11-21	k2 ue k2 ue fvs1 k2 ue	K2 O I K2 O I K2 O
+MKZ11-22	k2 ue k2 ue fvs2 k2 ue	K2 O I K2 A O I K2 O
+MKZ11-23	k2 ue k2 ue fvs3 k2 ue	K2 O I K2 O K2 O
+MKZ11-24	k2 ee k2 ee k2 ee	K2 W K2 W K2 W
+MKZ11-25	d fvs1 o k2 t fvs1 o r	D O K2 T O R
+MKZ11-26	m i k2 r u m w t fvs1 r	M I K2 R O M W T R
+MKM10-1	nirugu k2	< Ni K2
+MKM11-1	y u r k2	Y O R K2
+MKM11-2	b a ng k2 u k2	B A A G K2 O K2
+XKD10-1	k	K >
+XKD11-1	k	K >
+XKS10-1	k nirugu	K Ni >
+XKS11-1	k a	K Aa
+XKS11-2	k a fvs1	K Aa
+XKS11-3	k a fvs2	K A
+XKS11-4	k a fvs3	K Aa Fvs3
+XKS11-5	k e	K Aa
+XKS11-6	k e fvs1	K Aa
+XKS11-7	k e fvs2	K A
+XKS11-8	k e fvs3	K Aa Fvs3
+XKS11-9	k i	K I
+XKS11-10	k o	K O
+XKS11-11	k o fvs1	K O
+XKS11-12	k o fvs2	K U
+XKS11-13	k o fvs3	K O Fvs3
+XKS11-14	k u	K O
+XKS11-15	k u fvs1	K O
+XKS11-16	k u fvs2	K U
+XKS11-17	k u fvs3	K O Fvs3
+XKS11-18	k oe	K Ue
+XKS11-19	k oe fvs1	K Ue
+XKS11-20	k oe fvs2	K O
+XKS11-21	k oe fvs3	K U
+XKS11-22	k ue	K Ue
+XKS11-23	k ue fvs1	K Ue
+XKS11-24	k ue fvs2	K O
+XKS11-25	k ue fvs3	K U
+XKS11-26	k ee	K W
+XKS11-27	k a k a	K A K Aa
+XKS11-28	k a fvs1 k a	K A A K Aa
+XKS11-29	k a fvs2 k a	K A > Fvs2 < K Aa
+XKS11-30	k e k e	K A K Aa
+XKS11-31	k e fvs1 k e	K A > Fvs1 < K Aa
+XKS11-32	k i k i	K I K I
+XKS11-33	k i fvs1 k i	K A I K I
+XKS11-34	k i fvs2 k i	K I I K I
+XKS11-35	k i fvs3 k i	K I K I
+XKS11-36	k o k o	K O K O
+XKS11-37	k o fvs1 k o	K A O K O
+XKS11-38	k o fvs2 k o	K O > Fvs2 < K O
+XKS11-39	k u k u	K O K O
+XKS11-40	k u fvs1 k u	K A O K O
+XKS11-41	k u fvs2 k u	K O > Fvs2 < K O
+XKS11-42	k oe k oe	K O I K O
+XKS11-43	k oe fvs1 k oe	K O I K O
+XKS11-44	k oe fvs2 k oe	K A O I K O
+XKS11-45	k oe fvs3 k oe	K O K O
+XKS11-46	k ue k ue	K O I K O
+XKS11-47	k ue fvs1 k ue	K O I K O
+XKS11-48	k ue fvs2 k ue	K A O I K O
+XKS11-49	k ue fvs3 k ue	K O K O
+XKS11-50	k ee k ee	K W K W
+XKS11-51	k y ue r i	K Y O I R I
+XKS11-52	k l ue b	K L O I B
+XKZ10-1	nirugu k nirugu	< Ni K Ni >
+XKZ11-1	k a k a k a	K A K A K Aa
+XKZ11-2	k a k a fvs1 k a	K A K A A K Aa
+XKZ11-3	k a k a fvs2 k a	K A K A > Fvs2 < K Aa
+XKZ11-4	k e k e k e	K A K A K Aa
+XKZ11-5	k e k e fvs1 k e	K A K A > Fvs1 < K Aa
+XKZ11-6	k i k i k i	K I K I K I
+XKZ11-7	k i k i fvs1 k i	K I K A I K I
+XKZ11-8	k i k i fvs2 k i	K I K I I K I
+XKZ11-9	k i k i fvs3 k i	K I K I K I
+XKZ11-10	k o k o k o	K O K O K O
+XKZ11-11	k o k o fvs1 k o	K O K A O K O
+XKZ11-12	k o k o fvs2 k o	K O K O > Fvs2 < K O
+XKZ11-13	k u k u k u	K O K O K O
+XKZ11-14	k u k u fvs1 k u	K O K A O K O
+XKZ11-15	k u k u fvs2 k u	K O K O > Fvs2 < K O
+XKZ11-16	k oe k oe k oe	K O I K O K O
+XKZ11-17	k oe k oe fvs1 k oe	K O I K O I K O
+XKZ11-18	k oe k oe fvs2 k oe	K O I K A O I K O
+XKZ11-19	k oe k oe fvs3 k oe	K O I K O K O
+XKZ11-20	k ue k ue k ue	K O I K O K O
+XKZ11-21	k ue k ue fvs1 k ue	K O I K O I K O
+XKZ11-22	k ue k ue fvs2 k ue	K O I K A O I K O
+XKZ11-23	k ue k ue fvs3 k ue	K O I K O K O
+XKZ11-24	k ee k ee k ee	K W K W K W
+XKZ11-25	d fvs1 o k t fvs1 u r	D O K T O R
+XKZ11-26	m i k r u m w t fvs1 r	M I K R O M W T R
+XKM10-1	nirugu k	< Ni K
+XKM11-1	y u r k	Y O R K
+XKM11-2	b a ng k2 u k	B A A G K2 O K
+XCD10-1	c	C >
+XCD11-1	c	C >
+XCS10-1	c nirugu	C Ni >
+XCS11-1	c i f r	C I F R
+XCS11-2	c u u	C O U
+XCZ10-1	nirugu c nirugu	< Ni C Ni >
+XCZ11-1	c u u c u u	C O O C O U
+XCZ11-2	w a k2 c i n	W A K2 C I A
+XCM10-1	nirugu c	< Ni C
+XCM11-1	s t fvs1 a n c	S T A A C
+MZD10-1	z	Z >
+MZD11-1	z	Z >
+MZS10-1	z nirugu	Z Ni >
+MZS11-1	z a n d a n	Z A A D A A
+MZS11-2	z a n d i	Z A A D I
+MZZ10-1	nirugu z nirugu	< Ni Z Ni >
+MZZ11-1	w i z i	W I Z I
+MZZ11-2	p a r t fvs1 i z a n	P A R T I Z A A
+MZM10-1	nirugu z	< Ni Z
+MZM11-1	k2 w z	K2 W Z
+MZM11-2	w e d ue fvs1 z	W A D O I Z
+XHD10-1	hh	A Hr >
+XHD11-1	hh	A Hr >
+XHS10-1	hh nirugu	A Hr Ni >
+XHS11-1	hh w n a n	A Hr W N A A
+XHS11-2	hh w b w i	A Hr W B W I
+XHZ10-1	nirugu hh nirugu	< Ni Hr Ni >
+XHZ11-1	a n hh ue fvs1 i	A A A Hr O I I
+XHM10-1	nirugu hh	< Ni Hr
+XHM11-1	hh n hh	A Hr A Hr
+XHM11-2	w ee i hh	W W I I Hr
+XRD10-1	rh	Rh >
+XRD11-1	rh	Rh >
+XRS10-1	rh nirugu	Rh Ni >
+XRS11-1	rh i	Rh I
+XRZ10-1	nirugu rh nirugu	< Ni Rh Ni >
+XRZ11-1	rh ue rh w e	Rh O I Rh W A
+XRM10-1	nirugu rh	< Ni Rh
+XRM11-1	rh a rh a rh	Rh A Rh A Rh
+XLD10-1	lh	L Hr >
+XLD11-1	lh	L Hr >
+XLS10-1	lh nirugu	L Hr Ni >
+XLS11-1	lh a s a	L Hr A S A
+XLS11-2	lh a m u	L Hr A M U
+XLZ10-1	nirugu lh nirugu	< Ni L Hr Ni >
+XLZ11-1	lh a lh a	L Hr A L Hr A
+XLZ11-2	b a lh a j a b	B A L Hr A J A B
+XLM10-1	nirugu lh	< Ni L Hr >
+XLM11-1	lh a lh lh	L Hr A L Hr L Hr >
+XZD10-1	zr	Zr >
+XZD11-1	zr	Zr >
+XZS10-1	zr nirugu	Zr Ni >
+XZS11-1	zr i	Zr I
+XZZ10-1	nirugu zr nirugu	< Ni > Zr Ni >
+XZZ11-1	w ee r zr i n i y a	W W R > Zr I N I Y A
+XZM10-1	nirugu zr	< Ni > Zr >
+XZM11-1	zr a zr a zr	Zr A > Zr A > Zr >
+XQD10-1	cr	Cr >
+XQD11-1	cr	Cr >
+XQS10-1	cr nirugu	Cr Ni >
+XQS11-1	cr i	Cr I
+XQZ10-1	nirugu cr nirugu	< Ni > Cr Ni >
+XQZ11-1	cr i cr i cr i	Cr I > Cr I > Cr I
+XQM10-1	nirugu cr	< Ni > Cr >
+XQM11-1	cr i cr	Cr I > Cr >
+XID10-1	nirugu	< Ni >
+XID11-1	nirugu	< Ni >
+XIS10-1	nirugu nirugu	< Ni Ni >
+XIS11-1	nirugu d u g a r	< Ni D O Hx A R
+XIZ10-1	nirugu nirugu nirugu	< Ni Ni Ni >
+XIZ11-1	t a b u nirugu d u g a r	T A B O Ni D O Hx A R
+XIM10-1	nirugu nirugu	< Ni Ni >
+XIM11-1	t a b u nirugu	T A B O Ni >
+XIM11-2	nirugu g a nirugu	< Ni Hx A Ni >
+XIM11-3	nirugu m nirugu l nirugu	< Ni M Ni L Ni >
+XIM11-4	nirugu g a d	< Ni Hx A Dd
+XIM11-5	a g a r nirugu	A A Hx A R Ni >
+XIM11-6	s a fvs2 i n	S A > Fvs2 < I I A
+XIM11-7	e fvs2 l e s ue	A > Fvs2 < L A S U
+XIM11-8	s o fvs2 d o n	S O > Fvs2 < D O A
+XIM11-9	d u fvs2 r a n	T O > Fvs2 < R A A
+XIM11-10	oe fvs2	A Ue Fvs2
+XIM11-11	n fvs2 a r n	N > Fvs2 < A R A
+XIM11-12	a b fvs2	A A B Fvs2
+XIM11-13	h fvs3	H > Fvs3
+XIM11-14	sh fvs2	Sh > Fvs2
+XIM11-15	e s fvs3	A S Fvs3
+# XIM11-16	e s fvs2	A S Fvs2
+XIM11-17	d fvs2	D > Fvs2
+XIM11-18	e d fvs2	A Dd Fvs2
+XIM11-19	j o r j fvs2	I O R J Fvs2
+XIM11-20	y fvs2	Y > Fvs2
+XIM11-21	w a w fvs2 a	W A W > Fvs2 < A
+XIM11-22	w a w fvs2	W A W Fvs2
+XIM11-23	a r fvs1 a d	A A R > Fvs1 < A Dd
+XIM11-24	a r a d fvs2	A A R A Dd Fvs2
+XIM11-25	s a r mvs	S A R Mvs
+XIM11-26	s a r mvs mvs mvs a	S A R Mvs Mvs _ Aa
+XIM11-27	e n mvs a	A N _ Aa
+XIM11-28	e n fvs1 mvs a	A N _ Aa
+XIM11-29	e n fvs2 mvs e	A A _ Aa
+XIM11-30	a r a zwj	A A R A >
+XIM11-31	a r a zwj d	A A R A Dd
+XIM11-32	zwj d	< Dd
+XIM11-33	e j i mvs a b u	A J I - A A B O
+XIM11-34	e j i mvs mvs mvs	A J I Mvs Mvs Mvs
+XIM11-35	mvs mvs mvs e j i	Mvs Mvs - A J I
+# XIM11-36	one mvs two	-
+# XIM11-37	one nnbsp two	Nnbsp
+XIM11-38	nnbsp	Nnbsp
+XIM11-39	b a g nnbsp a	B A H Nnbsp A A
+XIM11-40	a b u nnbsp y i n	A A B O Nnbsp Y I A
+XIM11-41	a b u nnbsp e j i	A A B O Nnbsp A J I
+XIM11-42	fvs1 fvs2 fvs3	Fvs1 Fvs2 Fvs3
+XIM11-43	fvs1 a fvs2	Fvs1 Aa
+XIM11-44	mvs	Mvs
+XIM11-45	mvs l mvs	- L > Mvs
+XIM11-46	e n fvs3 mvs e	A A Fvs3 _ Aa
+# XIM11-47	one two three mvs u	- < U
+# XIM11-48	alatin mvs one mvs alatin	- -
+# XIM11-49	one andlatin mvs one	-
+XIM11-50	b i ch i g mvs n u g u d	B I Ch I G - N O Hx O Dd
+XIM11-51	b i ch i g mvs n ue g ue d	B I Ch I G - N O G O Dd
+XIM11-52	a g t a mvs b i ch i g	A A H D A - B I Ch I G
+XIM11-53	b i ch i g mvs a g t a	B I Ch I G - A A H D A
+XIM11-54	a b u mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu a	A A B O - < Ni Ni Ni Ni Ni Ni Ni Ni A
+XIM11-55	e j i mvs nirugu nirugu nirugu nirugu nirugu nirugu e	A J I - < Ni Ni Ni Ni Ni Ni A
+XIM11-56	g a r mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu i	Hx A R - < Ni Ni Ni Ni Ni Ni Ni I
+XIM11-57	b a g s i mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu y i	B A H S I - < Ni Ni Ni Ni Ni Ni Ni Y I
+XIM11-58	m a n mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu u	M A A - < Ni Ni Ni Ni Ni Ni Ni U
+XIM11-59	h e n mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue	G A A - < Ni Ni Ni Ni Ni Ni Ni U
+XIM11-60	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue n	G A R - < Ni Ni Ni Ni Ni Ni Ni Ni O A
+XIM11-61	g a r mvs nirugu nirugu nirugu nirugu nirugu u n	Hx A R - < Ni Ni Ni Ni Ni O A
+XIM11-62	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu ue d	G A R - < Ni Ni Ni Ni Ni Ni Ni Ni O Dd
+XIM11-63	g a r mvs nirugu nirugu nirugu nirugu nirugu u d	Hx A R - < Ni Ni Ni Ni Ni O Dd
+XIM11-64	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu t ue r	G A R - < Ni Ni Ni Ni Ni Ni Ni Ni D O R
+XIM11-65	g a r mvs nirugu nirugu nirugu nirugu nirugu t u r	Hx A R - < Ni Ni Ni Ni Ni D O R
+XIM11-66	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu t ue n i	G A R - < Ni Ni Ni Ni Ni Ni Ni Ni D O N I
+XIM11-67	g a r mvs nirugu nirugu nirugu nirugu nirugu t u n i	Hx A R - < Ni Ni Ni Ni Ni D O N I
+XIM11-68	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu y ue g e n	G A R - < Ni Ni Ni Ni Ni Ni Ni Ni Y O G A A
+XIM11-69	g a r mvs nirugu nirugu nirugu nirugu nirugu y u g a n	Hx A R - < Ni Ni Ni Ni Ni Y O Hx A A
+XIM11-70	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu nirugu e ch n	G A R - < Ni Ni Ni Ni Ni Ni Ni Ni A Ch A
+XIM11-71	g a r mvs nirugu nirugu nirugu nirugu nirugu a ch n	Hx A R - < Ni Ni Ni Ni Ni A Ch A
+XIM11-72	a mvs nirugu nirugu nirugu nirugu nirugu y i n	A A - < Ni Ni Ni Ni Ni Y I A
+XIM11-73	g a r mvs nirugu nirugu nirugu nirugu i y a r	Hx A R - < Ni Ni Ni Ni I Y A R
+XIM11-74	h e r mvs nirugu nirugu nirugu nirugu i y e r	G A R - < Ni Ni Ni Ni I Y A R
+XIM11-75	g a r mvs nirugu nirugu nirugu nirugu i y a n	Hx A R - < Ni Ni Ni Ni I Y A A
+XIM11-76	h e r mvs nirugu nirugu nirugu nirugu i y e n	G A R - < Ni Ni Ni Ni I Y A A
+XIM11-77	g a l mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu t a i	Hx A L - < Ni Ni Ni Ni Ni Ni Ni D A I
+XIM11-78	g a l mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu l u g mvs a	Hx A L - < Ni Ni Ni Ni Ni Ni Ni L O Hx _ Aa
+XIM11-79	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu l ue g e	G A R - < Ni Ni Ni Ni Ni Ni L O G Aa
+XIM11-80	g a l mvs nirugu nirugu nirugu nirugu nirugu nirugu nirugu n u g u d	Hx A L - < Ni Ni Ni Ni Ni Ni Ni N O Hx O Dd
+XIM11-81	g e r mvs nirugu nirugu nirugu nirugu nirugu nirugu n ue g ue d	G A R - < Ni Ni Ni Ni Ni Ni N O G O Dd
+# XIM11-82	n fvs3
+# XIM11-83	g fvs3
+# XIM11-84	m fvs3
+# XIM11-85	l fvs3
+# XIM11-86	sh fvs3
+# XIM11-87	c fvs3
+# XIM11-88	z fvs3
+# XIM11-89	rh fvs3
+# XIM11-90	oe fvs3
+XIM11-91	a l i mvs y i mvs n i mvs ch ue	A A L I - I I - N I - Ch U
+XIM11-92	b a g s i mvs y i n mvs i y a n	B A H S I - I I A - I I A A
+XIM11-93	g e r mvs ue n mvs i y e n	G A R - O A - I I A A
+XIM11-94	b a g sh i mvs y i n mvs d a g a n	B A H S I - I I A - D A Hx A A
+XIM11-95	a	A A
+XIM11-96	mvs a	_ Aa
+XIM11-97	mvs a fvs1	- A
+XIM11-98	mvs a fvs2	- Aa
+XIM11-99	mvs a fvs3	- A A
+XIM11-100	nnbsp a	_ Aa
+XIM11-101	nnbsp a fvs1	- A
+XIM11-102	nnbsp a fvs2	- Aa
+XIM11-103	nnbsp a fvs3	- A A
+XIM11-104	e	A
+XIM11-105	mvs e	_ Aa
+XIM11-106	mvs e fvs1	- Aa
+XIM11-107	mvs e fvs2	- A
+XIM11-108	nnbsp e	_ Aa
+XIM11-109	nnbsp e fvs1	- Aa
+XIM11-110	nnbsp e fvs2	- A
+XIM11-111	a ch a	A A Ch A
+XIM11-112	mvs a ch a	- A Ch A
+XIM11-113	mvs a fvs1 ch a	- A Ch A
+XIM11-114	mvs a fvs2 ch a	- A A Ch A
+XIM11-115	nnbsp a ch a	- A Ch A
+XIM11-116	nnbsp a fvs1 ch a	- A Ch A
+XIM11-117	nnbsp a fvs2 ch a	- A A Ch A
+XIM11-118	y i n	Y I A
+XIM11-119	mvs y i n	- I I A
+XIM11-120	mvs y fvs1 i n	- I I A
+XIM11-121	mvs y fvs1 i fvs1 n	- I A I A
+XIM11-122	mvs y fvs1 i fvs2 n	- I I I A
+XIM11-123	mvs y fvs1 i fvs3 n	- I I A
+XIM11-124	mvs y fvs2 i n	- Y I A
+XIM11-125	mvs y fvs2 i fvs1 n	- Y A I A
+XIM11-126	mvs y fvs2 i fvs2 n	- Y I I A
+XIM11-127	mvs y fvs2 i fvs3 n	- Y I A
+XIM11-128	nnbsp y i n	- I I A
+XIM11-129	nnbsp y fvs1 i n	- I I A
+XIM11-130	nnbsp y fvs1 i fvs1 n	- I A I A
+XIM11-131	nnbsp y fvs1 i fvs2 n	- I I I A
+XIM11-132	nnbsp y fvs1 i fvs3 n	- I I A
+XIM11-133	nnbsp y fvs2 i n	- Y I A
+XIM11-134	nnbsp y fvs2 i fvs1 n	- Y A I A
+XIM11-135	nnbsp y fvs2 i fvs2 n	- Y I I A
+XIM11-136	nnbsp y fvs2 i fvs3 n	- Y I A
+XIM11-137	i y a r	A I Y A R
+XIM11-138	mvs i y a r	- I I A R
+XIM11-139	mvs i y fvs1 a r	- A I I A R
+XIM11-140	mvs i y fvs2 a r	- A I I I A R
+XIM11-141	mvs i y fvs3 a r	- A I Y A R
+XIM11-142	mvs i fvs1 y a r	- I Y A R
+XIM11-143	mvs i fvs1 y fvs1 a r	- I I A R
+XIM11-144	mvs i fvs1 y fvs2 a r	- I I I A R
+XIM11-145	mvs i fvs1 y fvs3 a r	- I Y A R
+XIM11-146	nnbsp i y a r	- I I A R
+XIM11-147	nnbsp i y fvs1 a r	- A I I A R
+XIM11-148	nnbsp i y fvs2 a r	- A I I I A R
+XIM11-149	nnbsp i y fvs3 a r	- A I Y A R
+XIM11-150	nnbsp i fvs1 y a r	- I Y A R
+XIM11-151	nnbsp i fvs1 y fvs1 a r	- I I A R
+XIM11-152	nnbsp i fvs1 y fvs2 a r	- I I I A R
+XIM11-153	nnbsp i fvs1 y fvs3 a r	- I Y A R
+XIM11-154	i y e r	A I Y A R
+XIM11-155	mvs i y e r	- I I A R
+XIM11-156	mvs i y fvs1 e r	- A I I A R
+XIM11-157	mvs i y fvs2 e r	- A I I I A R
+XIM11-158	mvs i y fvs3 e r	- A I Y A R
+XIM11-159	mvs i fvs1 y e r	- I Y A R
+XIM11-160	mvs i fvs1 y fvs1 e r	- I I A R
+XIM11-161	mvs i fvs1 y fvs2 e r	- I I I A R
+XIM11-162	mvs i fvs1 y fvs3 e r	- I Y A R
+XIM11-163	nnbsp i y e r	- I I A R
+XIM11-164	nnbsp i y fvs1 e r	- A I I A R
+XIM11-165	nnbsp i y fvs2 e r	- A I I I A R
+XIM11-166	nnbsp i y fvs3 e r	- A I Y A R
+XIM11-167	nnbsp i fvs1 y e r	- I Y A R
+XIM11-168	nnbsp i fvs1 y fvs1 e r	- I I A R
+XIM11-169	nnbsp i fvs1 y fvs2 e r	- I I I A R
+XIM11-170	nnbsp i fvs1 y fvs3 e r	- I Y A R
+XIM11-171	i y a n	A I Y A A
+XIM11-172	mvs i y a n	- I I A A
+XIM11-173	mvs i y fvs1 a n	- A I I A A
+XIM11-174	mvs i y fvs2 a n	- A I I I A A
+XIM11-175	mvs i y fvs3 a n	- A I Y A A
+XIM11-176	mvs i fvs1 y a n	- I Y A A
+XIM11-177	mvs i fvs1 y fvs1 a n	- I I A A
+XIM11-178	mvs i fvs1 y fvs2 a n	- I I I A A
+XIM11-179	mvs i fvs1 y fvs3 a n	- I Y A A
+XIM11-180	nnbsp i y a n	- I I A A
+XIM11-181	nnbsp i y fvs1 a n	- A I I A A
+XIM11-182	nnbsp i y fvs2 a n	- A I I I A A
+XIM11-183	nnbsp i y fvs3 a n	- A I Y A A
+XIM11-184	nnbsp i fvs1 y a n	- I Y A A
+XIM11-185	nnbsp i fvs1 y fvs1 a n	- I I A A
+XIM11-186	nnbsp i fvs1 y fvs2 a n	- I I I A A
+XIM11-187	nnbsp i fvs1 y fvs3 a n	- I Y A A
+XIM11-188	i y e n	A I Y A A
+XIM11-189	mvs i y e n	- I I A A
+XIM11-190	mvs i y fvs1 e n	- A I I A A
+XIM11-191	mvs i y fvs2 e n	- A I I I A A
+XIM11-192	mvs i y fvs3 e n	- A I Y A A
+XIM11-193	mvs i fvs1 y e n	- I Y A A
+XIM11-194	mvs i fvs1 y fvs1 e n	- I I A A
+XIM11-195	mvs i fvs1 y fvs2 e n	- I I I A A
+XIM11-196	mvs i fvs1 y fvs3 e n	- I Y A A
+XIM11-197	nnbsp i y e n	- I I A A
+XIM11-198	nnbsp i y fvs1 e n	- A I I A A
+XIM11-199	nnbsp i y fvs2 e n	- A I I I A A
+XIM11-200	nnbsp i y fvs3 e n	- A I Y A A
+XIM11-201	nnbsp i fvs1 y e n	- I Y A A
+XIM11-202	nnbsp i fvs1 y fvs1 e n	- I I A A
+XIM11-203	nnbsp i fvs1 y fvs2 e n	- I I I A A
+XIM11-204	nnbsp i fvs1 y fvs3 e n	- I Y A A
+XIM11-205	u n	A O A
+XIM11-206	mvs u n	- O A
+XIM11-207	mvs u fvs1 n	- O A
+XIM11-208	mvs u fvs2 n	- A O A
+XIM11-209	nnbsp u n	- O A
+XIM11-210	nnbsp u fvs1 n	- O A
+XIM11-211	nnbsp u fvs2 n	- A O A
+XIM11-212	ue n	A O I A
+XIM11-213	mvs ue n	- O A
+XIM11-214	mvs ue fvs1 n	- O A
+XIM11-215	mvs ue fvs2 n	- A O I A
+XIM11-216	nnbsp ue n	- O A
+XIM11-217	nnbsp ue fvs1 n	- O A
+XIM11-218	nnbsp ue fvs2 n	- A O I A
+XIM11-219	u d	A O Dd
+XIM11-220	mvs u d	- O Dd
+XIM11-221	mvs u fvs1 d	- O Dd
+XIM11-222	mvs u fvs2 d	- A O Dd
+XIM11-223	nnbsp u d	- O Dd
+XIM11-224	nnbsp u fvs1 d	- O Dd
+XIM11-225	nnbsp u fvs2 d	- A O Dd
+XIM11-226	ue d	A O I Dd
+XIM11-227	mvs ue d	- O Dd
+XIM11-228	mvs ue fvs1 d	- O Dd
+XIM11-229	mvs ue fvs2 d	- A O I Dd
+XIM11-230	nnbsp ue d	- O Dd
+XIM11-231	nnbsp ue fvs1 d	- O Dd
+XIM11-232	nnbsp ue fvs2 d	- A O I Dd
+XIM11-233	y ue g e n	Y O I G A A
+XIM11-234	mvs y ue g e n	- Y O G A A
+XIM11-235	mvs y ue fvs1 g e n	- Y O I G A A
+XIM11-236	mvs y ue fvs2 g e n	- Y A O I G A A
+XIM11-237	mvs y ue fvs3 g e n	- Y O G A A
+XIM11-238	mvs y fvs1 ue g e n	- I O I G A A
+XIM11-239	mvs y fvs1 ue fvs1 g e n	- I O I G A A
+XIM11-240	mvs y fvs1 ue fvs2 g e n	- I A O I G A A
+XIM11-241	mvs y fvs1 ue fvs3 g e n	- I O G A A
+XIM11-242	nnbsp y ue g e n	- Y O G A A
+XIM11-243	nnbsp y ue fvs1 g e n	- Y O I G A A
+XIM11-244	nnbsp y ue fvs2 g e n	- Y A O I G A A
+XIM11-245	nnbsp y ue fvs3 g e n	- Y O G A A
+XIM11-246	nnbsp y fvs1 ue g e n	- I O I G A A
+XIM11-247	nnbsp y fvs1 ue fvs1 g e n	- I O I G A A
+XIM11-248	nnbsp y fvs1 ue fvs2 g e n	- I A O I G A A
+XIM11-249	nnbsp y fvs1 ue fvs3 g e n	- I O G A A
+XIM11-250	l ue g e	L O I G Aa
+XIM11-251	mvs l ue g e	- L O G Aa
+XIM11-252	mvs l ue fvs1 g e	- L O I G Aa
+XIM11-253	mvs l ue fvs2 g e	- L A O I G Aa
+XIM11-254	mvs l ue fvs3 g e	- L O G Aa
+XIM11-255	nnbsp l ue g e	- L O G Aa
+XIM11-256	nnbsp l ue fvs1 g e	- L O I G Aa
+XIM11-257	nnbsp l ue fvs2 g e	- L A O I G Aa
+XIM11-258	nnbsp l ue fvs3 g e	- L O G Aa
+XIM11-259	n ue g ue d	N O I G O Dd
+XIM11-260	mvs n ue g ue d	- N O G O Dd
+XIM11-261	mvs n ue fvs1 g ue d	- N O I G O Dd
+XIM11-262	mvs n ue fvs2 h ue d	- N A O I G O Dd
+XIM11-263	mvs n ue fvs3 g ue d	- N O G O Dd
+XIM11-264	nnbsp n ue g ue d	- N O G O Dd
+XIM11-265	nnbsp n ue fvs1 g ue d	- N O I G O Dd
+XIM11-266	nnbsp n ue fvs2 h ue d	- N A O I G O Dd
+XIM11-267	nnbsp n ue fvs3 g ue d	- N O G O Dd
+XIM11-268	y ue m	Y O I M
+XIM11-269	mvs y ue m	- Y O M
+XIM11-270	mvs y ue fvs1 m	- Y O I M
+XIM11-271	mvs y ue fvs2 m	- Y A O I M
+XIM11-272	mvs y ue fvs3 m	- Y O M
+XIM11-273	mvs y fvs1 ue m	- I O I M
+XIM11-274	mvs y fvs1 ue fvs1 m	- I O I M
+XIM11-275	mvs y fvs1 ue fvs2 m	- I A O I M
+XIM11-276	mvs y fvs1 ue fvs3 m	- I O M
+XIM11-277	nnbsp y ue m	- Y O M
+XIM11-278	nnbsp y ue fvs1 m	- Y O I M
+XIM11-279	nnbsp y ue fvs2 m	- Y A O I M
+XIM11-280	nnbsp y ue fvs3 m	- Y O M
+XIM11-281	nnbsp y fvs1 ue m	- I O I M
+XIM11-282	nnbsp y fvs1 ue fvs1 m	- I O I M
+XIM11-283	nnbsp y fvs1 ue fvs2 m	- I A O I M
+XIM11-284	nnbsp y fvs1 ue fvs3 m	- I O M
+XIM11-285	y ue m s e n	Y O I M S A A
+XIM11-286	mvs y ue m s e n	- Y O M S A A
+XIM11-287	mvs y ue fvs1 m s e n	- Y O I M S A A
+XIM11-288	mvs y ue fvs2 m s e n	- Y A O I M S A A
+XIM11-289	mvs y ue fvs3 m s e n	- Y O M S A A
+XIM11-290	mvs y fvs1 ue m s e n	- I O I M S A A
+XIM11-291	mvs y fvs1 ue fvs1 m s e n	- I O I M S A A
+XIM11-292	mvs y fvs1 ue fvs2 m s e n	- I A O I M S A A
+XIM11-293	mvs y fvs1 ue fvs3 m s e n	- I O M S A A
+XIM11-294	nnbsp y ue m s e n	- Y O M S A A
+XIM11-295	nnbsp y ue fvs1 m s e n	- Y O I M S A A
+XIM11-296	nnbsp y ue fvs2 m s e n	- Y A O I M S A A
+XIM11-297	nnbsp y ue fvs3 m s e n	- Y O M S A A
+XIM11-298	nnbsp y fvs1 ue m s e n	- I O I M S A A
+XIM11-299	nnbsp y fvs1 ue fvs1 m s e n	- I O I M S A A
+XIM11-300	nnbsp y fvs1 ue fvs2 m s e n	- I A O I M S A A
+XIM11-301	nnbsp y fvs1 ue fvs3 m s e n	- I O M S A A
+XIM11-302	d a g a n	T A Hx A A
+XIM11-303	mvs d a g a n	- D A Hx A A
+XIM11-304	mvs d fvs1 a g a n	- D A Hx A A
+XIM11-305	mvs d fvs2 a g a n	- T A Hx A A
+XIM11-306	nnbsp d a g a n	- D A Hx A A
+XIM11-307	nnbsp d fvs1 a g a n	- D A Hx A A
+XIM11-308	nnbsp d fvs2 a g a n	- T A Hx A A
+XIM11-309	d e g e n	T A G A A
+XIM11-310	mvs d e g e n	- D A G A A
+XIM11-311	mvs d fvs1 e g e n	- D A G A A
+XIM11-312	mvs d fvs2 e g e n	- T A G A A
+XIM11-313	nnbsp d e g e n	- D A G A A
+XIM11-314	nnbsp d fvs1 e g e n	- D A G A A
+XIM11-315	nnbsp d fvs2 e g e n	- T A G A A
+XIM11-316	d u	D O
+XIM11-317	mvs d u	- D U
+XIM11-318	mvs d u fvs1	- T O
+XIM11-319	mvs d u fvs2	- T U
+XIM11-320	mvs d fvs1 u	- D U
+XIM11-321	mvs d fvs1 u fvs1	- D O
+XIM11-322	mvs d fvs1 u fvs2	- D U
+XIM11-323	mvs d fvs2 u	- T U
+XIM11-324	mvs d fvs2 u fvs1	- T O
+XIM11-325	mvs d fvs2 u fvs2	- T U
+XIM11-326	nnbsp d u	- D U
+XIM11-327	nnbsp d u fvs1	- T O
+XIM11-328	nnbsp d u fvs2	- T U
+XIM11-329	nnbsp d fvs1 u	- D U
+XIM11-330	nnbsp d fvs1 u fvs1	- D O
+XIM11-331	nnbsp d fvs1 u fvs2	- D U
+XIM11-332	nnbsp d fvs2 u	- T U
+XIM11-333	nnbsp d fvs2 u fvs1	- T O
+XIM11-334	nnbsp d fvs2 u fvs2	- T U
+XIM11-335	d ue	D Ue
+XIM11-336	mvs d ue	- D U
+XIM11-337	mvs d ue fvs1	- T Ue
+XIM11-338	mvs d ue fvs2	- T O
+XIM11-339	mvs d ue fvs3	- T U
+XIM11-340	mvs d fvs1 ue	- D U
+XIM11-341	mvs d fvs1 ue fvs1	- D Ue
+XIM11-342	mvs d fvs1 ue fvs2	- D O
+XIM11-343	mvs d fvs1 ue fvs3	- D U
+XIM11-344	mvs d fvs2 ue	- T U
+XIM11-345	mvs d fvs2 ue fvs1	- T Ue
+XIM11-346	mvs d fvs2 ue fvs2	- T O
+XIM11-347	mvs d fvs2 ue fvs3	- T U
+XIM11-348	nnbsp d ue	- D U
+XIM11-349	nnbsp d ue fvs1	- T Ue
+XIM11-350	nnbsp d ue fvs2	- T O
+XIM11-351	nnbsp d ue fvs3	- T U
+XIM11-352	nnbsp d fvs1 ue	- D U
+XIM11-353	nnbsp d fvs1 ue fvs1	- D Ue
+XIM11-354	nnbsp d fvs1 ue fvs2	- D O
+XIM11-355	nnbsp d fvs1 ue fvs3	- D U
+XIM11-356	nnbsp d fvs2 ue	- T U
+XIM11-357	nnbsp d fvs2 ue fvs1	- T Ue
+XIM11-358	nnbsp d fvs2 ue fvs2	- T O
+XIM11-359	nnbsp d fvs2 ue fvs3	- T U
+XIM11-360	d a g	T A H
+XIM11-361	mvs d a g	- D A H
+XIM11-362	mvs d a g fvs1	- T A H
+XIM11-363	mvs d a g fvs2	- T A G
+XIM11-364	mvs d a g fvs3	- T A Hx
+XIM11-365	mvs d fvs1 a g	- D A H
+XIM11-366	mvs d fvs1 a g fvs1	- D A H
+XIM11-367	mvs d fvs1 a g fvs2	- D A G
+XIM11-368	mvs d fvs1 a g fvs3	- D A Hx
+XIM11-369	mvs d fvs2 a g	- T A H
+XIM11-370	mvs d fvs2 a g fvs1	- T A H
+XIM11-371	mvs d fvs2 a g fvs2	- T A G
+XIM11-372	mvs d fvs2 a g fvs3	- T A Hx
+XIM11-373	nnbsp d a g	- D A H
+XIM11-374	nnbsp d a g fvs1	- T A H
+XIM11-375	nnbsp d a g fvs2	- T A G
+XIM11-376	nnbsp d a g fvs3	- T A Hx
+XIM11-377	nnbsp d fvs1 a g	- D A H
+XIM11-378	nnbsp d fvs1 a g fvs1	- D A H
+XIM11-379	nnbsp d fvs1 a g fvs2	- D A G
+XIM11-380	nnbsp d fvs1 a g fvs3	- D A Hx
+XIM11-381	nnbsp d fvs2 a g	- T A H
+XIM11-382	nnbsp d fvs2 a g fvs1	- T A H
+XIM11-383	nnbsp d fvs2 a g fvs2	- T A G
+XIM11-384	nnbsp d fvs2 a g fvs3	- T A Hx
+XIM11-385	d e g	T A G
+XIM11-386	mvs d e g	- D A G
+XIM11-387	mvs d e g fvs1	- T A H
+XIM11-388	mvs d e g fvs2	- T A G
+XIM11-389	mvs d e g fvs3	- T A Hx
+XIM11-390	mvs d fvs1 e g	- D A G
+XIM11-391	mvs d fvs1 e g fvs1	- D A H
+XIM11-392	mvs d fvs1 e g fvs2	- D A G
+XIM11-393	mvs d fvs1 e g fvs3	- D A Hx
+XIM11-394	mvs d fvs2 e g	- T A G
+XIM11-395	mvs d fvs2 e g fvs1	- T A H
+XIM11-396	mvs d fvs2 e g fvs2	- T A G
+XIM11-397	mvs d fvs2 e g fvs3	- T A Hx
+XIM11-398	nnbsp d e g	- D A G
+XIM11-399	nnbsp d e g fvs1	- T A H
+XIM11-400	nnbsp d e g fvs2	- T A G
+XIM11-401	nnbsp d e g fvs3	- T A Hx
+XIM11-402	nnbsp d fvs1 e g	- D A G
+XIM11-403	nnbsp d fvs1 e g fvs1	- D A H
+XIM11-404	nnbsp d fvs1 e g fvs2	- D A G
+XIM11-405	nnbsp d fvs1 e g fvs3	- D A Hx
+XIM11-406	nnbsp d fvs2 e g	- T A G
+XIM11-407	nnbsp d fvs2 e g fvs1	- T A H
+XIM11-408	nnbsp d fvs2 e g fvs2	- T A G
+XIM11-409	nnbsp d fvs2 e g fvs3	- T A Hx
+XIM11-410	d u r	T O R
+XIM11-411	mvs d u r	- D O R
+XIM11-412	mvs d u fvs1 r	- T A O R
+XIM11-413	mvs d u fvs2 r	- T O > Fvs2 < R
+XIM11-414	mvs d fvs1 u r	- D O R
+XIM11-415	mvs d fvs1 u fvs1 r	- D A O R
+XIM11-416	mvs d fvs1 u fvs2 r	- D O > Fvs2 < R
+XIM11-417	mvs d fvs2 u r	- T O R
+XIM11-418	mvs d fvs2 u fvs1 r	- T A O R
+XIM11-419	mvs d fvs2 u fvs2 r	- T O > Fvs2 < R
+XIM11-420	nnbsp d u r	- D O R
+XIM11-421	nnbsp d u fvs1 r	- T A O R
+XIM11-422	nnbsp d u fvs2 r	- T O > Fvs2 < R
+XIM11-423	nnbsp d fvs1 u r	- D O R
+XIM11-424	nnbsp d fvs1 u fvs1 r	- D A O R
+XIM11-425	nnbsp d fvs1 u fvs2 r	- D O > Fvs2 < R
+XIM11-426	nnbsp d fvs2 u r	- T O R
+XIM11-427	nnbsp d fvs2 u fvs1 r	- T A O R
+XIM11-428	nnbsp d fvs2 u fvs2 r	- T O > Fvs2 < R
+XIM11-429	d ue r	T O I R
+XIM11-430	mvs d ue r	- D O R
+XIM11-431	mvs d ue fvs1 r	- T O I R
+XIM11-432	mvs d ue fvs2 r	- T A O I R
+XIM11-433	mvs d ue fvs3 r	- T O R
+XIM11-434	mvs d fvs1 ue r	- D O I R
+XIM11-435	mvs d fvs1 ue fvs1 r	- D O I R
+XIM11-436	mvs d fvs1 ue fvs2 r	- D A O I R
+XIM11-437	mvs d fvs1 ue fvs3 r	- D O R
+XIM11-438	mvs d fvs2 ue r	- T O I R
+XIM11-439	mvs d fvs2 ue fvs1 r	- T O I R
+XIM11-440	mvs d fvs2 ue fvs2 r	- T A O I R
+XIM11-441	mvs d fvs2 ue fvs3 r	- T O R
+XIM11-442	nnbsp d ue r	- D O R
+XIM11-443	nnbsp d ue fvs1 r	- T O I R
+XIM11-444	nnbsp d ue fvs2 r	- T A O I R
+XIM11-445	nnbsp d ue fvs3 r	- T O R
+XIM11-446	nnbsp d fvs1 ue r	- D O I R
+XIM11-447	nnbsp d fvs1 ue fvs1 r	- D O I R
+XIM11-448	nnbsp d fvs1 ue fvs2 r	- D A O I R
+XIM11-449	nnbsp d fvs1 ue fvs3 r	- D O R
+XIM11-450	nnbsp d fvs2 ue r	- T O I R
+XIM11-451	nnbsp d fvs2 ue fvs1 r	- T O I R
+XIM11-452	nnbsp d fvs2 ue fvs2 r	- T A O I R
+XIM11-453	nnbsp d fvs2 ue fvs3 r	- T O R
+XIM11-454	d u n i	T O N I
+XIM11-455	mvs d u n i	- D O N I
+XIM11-456	mvs d u fvs1 n i	- T A O N I
+XIM11-457	mvs d u fvs2 n i	- T O > Fvs2 < N I
+XIM11-458	mvs d fvs1 u n i	- D O N I
+XIM11-459	mvs d fvs1 u fvs1 n i	- D A O N I
+XIM11-460	mvs d fvs1 u fvs2 n i	- D O > Fvs2 < N I
+XIM11-461	mvs d fvs2 u n i	- T O N I
+XIM11-462	mvs d fvs2 u fvs1 n i	- T A O N I
+XIM11-463	mvs d fvs2 u fvs2 n i	- T O > Fvs2 < N I
+XIM11-464	nnbsp d u n i	- D O N I
+XIM11-465	nnbsp d u fvs1 n i	- T A O N I
+XIM11-466	nnbsp d u fvs2 n i	- T O > Fvs2 < N I
+XIM11-467	nnbsp d fvs1 u n i	- D O N I
+XIM11-468	nnbsp d fvs1 u fvs1 n i	- D A O N I
+XIM11-469	nnbsp d fvs1 u fvs2 n i	- D O > Fvs2 < N I
+XIM11-470	nnbsp d fvs2 u n i	- T O N I
+XIM11-471	nnbsp d fvs2 u fvs1 n i	- T A O N I
+XIM11-472	nnbsp d fvs2 u fvs2 n i	- T O > Fvs2 < N I
+XIM11-473	d ue n i	T O I N I
+XIM11-474	mvs d ue n i	- D O N I
+XIM11-475	mvs d ue fvs1 n i	- T O I N I
+XIM11-476	mvs d ue fvs2 n i	- T A O I N I
+XIM11-477	mvs d ue fvs3 n i	- T O N I
+XIM11-478	mvs d fvs1 ue n i	- D O I N I
+XIM11-479	mvs d fvs1 ue fvs1 n i	- D O I N I
+XIM11-480	mvs d fvs1 ue fvs2 n i	- D A O I N I
+XIM11-481	mvs d fvs1 ue fvs3 n i	- D O N I
+XIM11-482	mvs d fvs2 ue n i	- T O I N I
+XIM11-483	mvs d fvs2 ue fvs1 n i	- T O I N I
+XIM11-484	mvs d fvs2 ue fvs2 n i	- T A O I N I
+XIM11-485	mvs d fvs2 ue fvs3 n i	- T O N I
+XIM11-486	nnbsp d ue n i	- D O N I
+XIM11-487	nnbsp d ue fvs1 n i	- T O I N I
+XIM11-488	nnbsp d ue fvs2 n i	- T A O I N I
+XIM11-489	nnbsp d ue fvs3 n i	- T O N I
+XIM11-490	nnbsp d fvs1 ue n i	- D O I N I
+XIM11-491	nnbsp d fvs1 ue fvs1 n i	- D O I N I
+XIM11-492	nnbsp d fvs1 ue fvs2 n i	- D A O I N I
+XIM11-493	nnbsp d fvs1 ue fvs3 n i	- D O N I
+XIM11-494	nnbsp d fvs2 ue n i	- T O I N I
+XIM11-495	nnbsp d fvs2 ue fvs1 n i	- T O I N I
+XIM11-496	nnbsp d fvs2 ue fvs2 n i	- T A O I N I
+XIM11-497	nnbsp d fvs2 ue fvs3 n i	- T O N I
+XIM11-498	d u g a r	T O Hx A R
+XIM11-499	mvs d u g a r	- D O Hx A R
+XIM11-500	mvs d u fvs1 g a r	- T A O Hx A R
+XIM11-501	mvs d u fvs2 g a r	- T O > Fvs2 < Hx A R
+XIM11-502	mvs d fvs1 u g a r	- D O Hx A R
+XIM11-503	mvs d fvs1 u fvs1 g a r	- D A O Hx A R
+XIM11-504	mvs d fvs1 u fvs2 g a r	- D O > Fvs2 < Hx A R
+XIM11-505	mvs d fvs2 u g a r	- T O Hx A R
+XIM11-506	mvs d fvs2 u fvs1 g a r	- T A O Hx A R
+XIM11-507	mvs d fvs2 u fvs2 g a r	- T O > Fvs2 < Hx A R
+XIM11-508	nnbsp d u g a r	- D O Hx A R
+XIM11-509	nnbsp d u fvs1 g a r	- T A O Hx A R
+XIM11-510	nnbsp d u fvs2 g a r	- T O > Fvs2 < Hx A R
+XIM11-511	nnbsp d fvs1 u g a r	- D O Hx A R
+XIM11-512	nnbsp d fvs1 u fvs1 g a r	- D A O Hx A R
+XIM11-513	nnbsp d fvs1 u fvs2 g a r	- D O > Fvs2 < Hx A R
+XIM11-514	nnbsp d fvs2 u g a r	- T O Hx A R
+XIM11-515	nnbsp d fvs2 u fvs1 g a r	- T A O Hx A R
+XIM11-516	nnbsp d fvs2 u fvs2 g a r	- T O > Fvs2 < Hx A R
+XIM11-517	d ue g e r	T O I G A R
+XIM11-518	mvs d ue g e r	- D O G A R
+XIM11-519	mvs d ue fvs1 g e r	- T O I G A R
+XIM11-520	mvs d ue fvs2 g e r	- T A O I G A R
+XIM11-521	mvs d ue fvs3 g e r	- T O G A R
+XIM11-522	mvs d fvs1 ue g e r	- D O I G A R
+XIM11-523	mvs d fvs1 ue fvs1 g e r	- D O I G A R
+XIM11-524	mvs d fvs1 ue fvs2 g e r	- D A O I G A R
+XIM11-525	mvs d fvs1 ue fvs3 g e r	- D O G A R
+XIM11-526	mvs d fvs2 ue g e r	- T O I G A R
+XIM11-527	mvs d fvs2 ue fvs1 g e r	- T O I G A R
+XIM11-528	mvs d fvs2 ue fvs2 g e r	- T A O I G A R
+XIM11-529	mvs d fvs2 ue fvs3 g e r	- T O G A R
+XIM11-530	nnbsp d ue g e r	- D O G A R
+XIM11-531	nnbsp d ue fvs1 g e r	- T O I G A R
+XIM11-532	nnbsp d ue fvs2 g e r	- T A O I G A R
+XIM11-533	nnbsp d ue fvs3 g e r	- T O G A R
+XIM11-534	nnbsp d fvs1 ue g e r	- D O I G A R
+XIM11-535	nnbsp d fvs1 ue fvs1 g e r	- D O I G A R
+XIM11-536	nnbsp d fvs1 ue fvs2 g e r	- D A O I G A R
+XIM11-537	nnbsp d fvs1 ue fvs3 g e r	- D O G A R
+XIM11-538	nnbsp d fvs2 ue g e r	- T O I G A R
+XIM11-539	nnbsp d fvs2 ue fvs1 g e r	- T O I G A R
+XIM11-540	nnbsp d fvs2 ue fvs2 g e r	- T A O I G A R
+XIM11-541	nnbsp d fvs2 ue fvs3 g e r	- T O G A R
+XIM11-542	u	A O
+XIM11-543	mvs u	- U
+XIM11-544	mvs u fvs1	- U
+XIM11-545	mvs u fvs2	- Ux
+XIM11-546	mvs u fvs3	- A O
+XIM11-547	nnbsp u	- U
+XIM11-548	nnbsp u fvs1	- U
+XIM11-549	nnbsp u fvs2	- Ux
+XIM11-550	nnbsp u fvs3	- A O
+XIM11-551	ue	A Ue
+XIM11-552	mvs ue	- U
+XIM11-553	mvs ue fvs1	- A U
+XIM11-554	mvs ue fvs2	- U
+XIM11-555	mvs ue fvs3	- Ux
+XIM11-556	nnbsp ue	- U
+XIM11-557	nnbsp ue fvs1	- A U
+XIM11-558	nnbsp ue fvs2	- U
+XIM11-559	nnbsp ue fvs3	- Ux
+XIM11-560	u u	O U
+XIM11-561	u u fvs1	A O O
+XIM11-562	u u fvs2	A O U
+XIM11-563	u u fvs3	A O U Fvs3
+XIM11-564	u fvs1 u	O U
+XIM11-565	u fvs1 u fvs1	O O
+XIM11-566	u fvs1 u fvs2	O U
+XIM11-567	u fvs1 u fvs3	O U Fvs3
+XIM11-568	u fvs2 u	A O U
+XIM11-569	u fvs2 u fvs1	A O O
+XIM11-570	u fvs2 u fvs2	A O U
+XIM11-571	u fvs2 u fvs3	A O U Fvs3
+XIM11-572	u fvs3 u	A O > Fvs3 < U
+XIM11-573	u fvs3 u fvs1	A O > Fvs3 < O
+XIM11-574	u fvs3 u fvs2	A O > Fvs3 < U
+XIM11-575	u fvs3 u fvs3	A O > Fvs3 < U Fvs3
+XIM11-576	mvs u u	- O U
+XIM11-577	mvs u u fvs1	- A O O
+XIM11-578	mvs u u fvs2	- A O U
+XIM11-579	mvs u u fvs3	- A O U Fvs3
+XIM11-580	mvs u fvs1 u	- O U
+XIM11-581	mvs u fvs1 u fvs1	- O O
+XIM11-582	mvs u fvs1 u fvs2	- O U
+XIM11-583	mvs u fvs1 u fvs3	- O U Fvs3
+XIM11-584	mvs u fvs2 u	- A O U
+XIM11-585	mvs u fvs2 u fvs1	- A O O
+XIM11-586	mvs u fvs2 u fvs2	- A O U
+XIM11-587	mvs u fvs2 u fvs3	- A O U Fvs3
+XIM11-588	mvs u fvs3 u	- A O > Fvs3 < U
+XIM11-589	mvs u fvs3 u fvs1	- A O > Fvs3 < O
+XIM11-590	mvs u fvs3 u fvs2	- A O > Fvs3 < U
+XIM11-591	mvs u fvs3 u fvs3	- A O > Fvs3 < U Fvs3
+XIM11-592	ue ue	O U
+XIM11-593	ue ue fvs1	A O I Ue
+XIM11-594	ue ue fvs2	A O I O
+XIM11-595	ue ue fvs3	A O I U
+XIM11-596	ue fvs1 ue	O U
+XIM11-597	ue fvs1 ue fvs1	O Ue
+XIM11-598	ue fvs1 ue fvs2	O O
+XIM11-599	ue fvs1 ue fvs3	O U
+XIM11-600	ue fvs2 ue	A O I U
+XIM11-601	ue fvs2 ue fvs1	A O I Ue
+XIM11-602	ue fvs2 ue fvs2	A O I O
+XIM11-603	ue fvs2 ue fvs3	A O I U
+XIM11-604	ue fvs3 ue	A O I > Fvs3 < U
+XIM11-605	ue fvs3 ue fvs1	A O I > Fvs3 < Ue
+XIM11-606	ue fvs3 ue fvs2	A O I > Fvs3 < O
+XIM11-607	ue fvs3 ue fvs3	A O I > Fvs3 < U
+XIM11-608	mvs ue ue	- O U
+XIM11-609	mvs ue ue fvs1	- A O I Ue
+XIM11-610	mvs ue ue fvs2	- A O I O
+XIM11-611	mvs ue ue fvs3	- A O I U
+XIM11-612	mvs ue fvs1 ue	- O U
+XIM11-613	mvs ue fvs1 ue fvs1	- O Ue
+XIM11-614	mvs ue fvs1 ue fvs2	- O O
+XIM11-615	mvs ue fvs1 ue fvs3	- O U
+XIM11-616	mvs ue fvs2 ue	- A O I U
+XIM11-617	mvs ue fvs2 ue fvs1	- A O I Ue
+XIM11-618	mvs ue fvs2 ue fvs2	- A O I O
+XIM11-619	mvs ue fvs2 ue fvs3	- A O I U
+XIM11-620	mvs ue fvs3 ue	- A O I > Fvs3 < U
+XIM11-621	mvs ue fvs3 ue fvs1	- A O I > Fvs3 < Ue
+XIM11-622	mvs ue fvs3 ue fvs2	- A O I > Fvs3 < O
+XIM11-623	mvs ue fvs3 ue fvs3	- A O I > Fvs3 < U
+XIM11-624	b ue ue	B O U
+XIM11-625	b ue ue fvs1	B O I Ue
+XIM11-626	b ue ue fvs2	B O I O
+XIM11-627	b ue ue fvs3	B O I U
+XIM11-628	b ue fvs1 ue	B O I U
+XIM11-629	b ue fvs1 ue fvs1	B O I Ue
+XIM11-630	b ue fvs1 ue fvs2	B O I O
+XIM11-631	b ue fvs1 ue fvs3	B O I U
+XIM11-632	b ue fvs2 ue	B A O I U
+XIM11-633	b ue fvs2 ue fvs1	B A O I Ue
+XIM11-634	b ue fvs2 ue fvs2	B A O I O
+XIM11-635	b ue fvs2 ue fvs3	B A O I U
+XIM11-636	b ue fvs3 ue	B O U
+XIM11-637	b ue fvs3 ue fvs1	B O Ue
+XIM11-638	b ue fvs3 ue fvs2	B O O
+XIM11-639	b ue fvs3 ue fvs3	B O U
+XIM11-640	mvs b ue ue	- B O U
+XIM11-641	mvs b ue ue fvs1	- B O I Ue
+XIM11-642	mvs b ue ue fvs2	- B O I O
+XIM11-643	mvs b ue ue fvs3	- B O I U
+XIM11-644	mvs b ue fvs1 ue	- B O I U
+XIM11-645	mvs b ue fvs1 ue fvs1	- B O I Ue
+XIM11-646	mvs b ue fvs1 ue fvs2	- B O I O
+XIM11-647	mvs b ue fvs1 ue fvs3	- B O I U
+XIM11-648	mvs b ue fvs2 ue	- B A O I U
+XIM11-649	mvs b ue fvs2 ue fvs1	- B A O I Ue
+XIM11-650	mvs b ue fvs2 ue fvs2	- B A O I O
+XIM11-651	mvs b ue fvs2 ue fvs3	- B A O I U
+XIM11-652	mvs b ue fvs3 ue	- B O U
+XIM11-653	mvs b ue fvs3 ue fvs1	- B O Ue
+XIM11-654	mvs b ue fvs3 ue fvs2	- B O O
+XIM11-655	mvs b ue fvs3 ue fvs3	- B O U
+XIM11-656	g fvs1 ue	H U
+XIM11-657	g fvs2 ue	G Ue
+XIM11-658	sh fvs1 ue	S U
+XIM11-659	i r e h fvs3 ue	A I R A H U
+XIM11-660	i r e sh fvs1 ue	A I R A S U
+XIM11-661	sh fvs2 fvs1 i l ue g	Sh > Fvs1 < I L O G
+XIM11-662	sh fvs3 fvs1 i l ue g	S > Fvs3 Fvs1 < I L O G
+XIM11-663	sh fvs4 fvs1 i l ue g	S > Fvs4 Fvs1 < I L O G
+XIM11-664	a n fvs2 fvs1 a r	A A A > Fvs1 < A R
+XIM11-665	a n fvs2 fvs1 fvs2 a r	A A A > Fvs1 Fvs2 < A R
+XIM11-666	a n fvs2 fvs1 fvs2 fvs3 a r	A A A > Fvs1 Fvs2 Fvs3 < A R
+XIM11-667	a b u mvs y i n fvs1	A A B O - Y I N
+XIM11-668	a b u mvs y i fvs1 n	A A B O - Y A I A
+XIM11-669	a t fvs1 a r	A A T A R
+XIM11-670	a t fvs1 fvs1 a r	A A T > Fvs1 < A R
+XIM11-671	a t fvs1 fvs1 fvs2 a r	A A T > Fvs1 Fvs2 < A R
+XIM11-672	a t fvs1 fvs1 fvs2 fvs3 a r	A A T > Fvs1 Fvs2 Fvs3 < A R
+XIM11-673	mvs y i n fvs1	- Y I N
+XIM11-674	mvs y i n fvs2	- Y I A
+XIM11-675	mvs y i n fvs3	- Y I A Fvs3
+XIM11-676	mvs i y a n fvs1	- A I Y A N
+XIM11-677	mvs i y a n fvs2	- A I Y A A
+XIM11-678	mvs i y a n fvs3	- A I Y A A Fvs3
+XIM11-679	mvs i y e n fvs1	- A I Y A N
+XIM11-680	mvs i y e n fvs2	- A I Y A A
+XIM11-681	mvs i y e n fvs3	- A I Y A A Fvs3
+XIM11-682	mvs u n fvs1	- A O N
+XIM11-683	mvs u n fvs2	- A O A
+XIM11-684	mvs u n fvs3	- A O A Fvs3
+XIM11-685	mvs ue n fvs1	- A O I N
+XIM11-686	mvs ue n fvs2	- A O I A
+XIM11-687	mvs ue n fvs3	- A O I A Fvs3
+XIM11-688	mvs d a g a n fvs1	- T A Hx A N
+XIM11-689	mvs d a g a n fvs2	- T A Hx A A
+XIM11-690	mvs d a g a n fvs3	- T A Hx A A Fvs3
+XIM11-691	mvs d e g fvs2 e n	- T A G A A
+XIM11-692	mvs d e g fvs2 e n fvs1	- T A G A N
+XIM11-693	mvs d e g fvs2 e n fvs2	- T A G A A
+XIM11-694	mvs d e g fvs2 e n fvs3	- T A G A A Fvs3
+XIM11-695	mvs u d fvs1	- A O D
+XIM11-696	mvs u d fvs2	- A O Dd Fvs2
+XIM11-697	mvs u d fvs3	- A O Dd Fvs3
+XIM11-698	mvs ue d fvs1	- A O I D
+XIM11-699	mvs ue d fvs2	- A O I Dd Fvs2
+XIM11-700	mvs ue d fvs3	- A O I Dd Fvs3
+XIM11-701	b fvs1 a	B > Fvs1 < Aa
+XIM11-702	b fvs1 a fvs1	B > Fvs1 < Aa
+XIM11-703	b fvs1 a fvs2	B > Fvs1 < A
+XIM11-704	b fvs1 a fvs3	B > Fvs1 < Aa Fvs3
+XIM11-705	b fvs3 i	B > Fvs3 < I
+XIM11-706	b fvs3 i fvs3	B > Fvs3 < I Fvs3
+XIM11-707	b fvs3 u	B > Fvs3 < O
+XIM11-708	b fvs3 u fvs1	B > Fvs3 < O
+XIM11-709	b fvs3 u fvs2	B > Fvs3 < U
+XIM11-710	b fvs3 u fvs3	B > Fvs3 < O Fvs3
+XIM11-711	b fvs3 ue	B > Fvs3 < Ue
+XIM11-712	b fvs3 ue fvs1	B > Fvs3 < Ue
+XIM11-713	b fvs3 ue fvs2	B > Fvs3 < O
+XIM11-714	b fvs3 ue fvs3	B > Fvs3 < U
+XIM11-715	b fvs3 ee	B > Fvs3 < W
+XIM11-716	b fvs3 ee fvs3	B > Fvs3 < W Fvs3
+XIM11-717	y a b fvs3 a	Y A B > Fvs3 < Aa
+XIM11-718	y a b fvs3 a fvs1	Y A B > Fvs3 < Aa
+XIM11-719	y a b fvs3 a fvs2	Y A B > Fvs3 < A
+XIM11-720	y a b fvs3 a fvs3	Y A B > Fvs3 < Aa Fvs3
+XIM11-721	y a b fvs3 i	Y A B > Fvs3 < I
+XIM11-722	y a b fvs3 i fvs3	Y A B > Fvs3 < I Fvs3
+XIM11-723	y a b fvs3 u	Y A B > Fvs3 < O
+XIM11-724	y a b fvs3 u fvs1	Y A B > Fvs3 < O
+XIM11-725	y a b fvs3 u fvs2	Y A B > Fvs3 < U
+XIM11-726	y a b fvs3 u fvs3	Y A B > Fvs3 < O Fvs3
+XIM11-727	y a b fvs3 ue	Y A B > Fvs3 < O
+XIM11-728	y a b fvs3 ue fvs1	Y A B > Fvs3 < Ue
+XIM11-729	y a b fvs3 ue fvs2	Y A B > Fvs3 < O
+XIM11-730	y a b fvs3 ue fvs3	Y A B > Fvs3 < U
+XIM11-731	y a b fvs3 ee	Y A B > Fvs3 < W
+XIM11-732	y a b fvs3 ee fvs3	Y A B > Fvs3 < W Fvs3
+XIM11-733	h fvs1 a	Hx A
+XIM11-734	h fvs1 a fvs1	Hx Aa
+XIM11-735	h fvs1 a fvs2	Hx A
+XIM11-736	h fvs1 a fvs3	Hx A Fvs3
+XIM11-737	h fvs1 e	Hx A
+XIM11-738	h fvs1 e fvs1	Hx Aa
+XIM11-739	h fvs1 e fvs2	Hx A
+XIM11-740	h fvs1 e fvs3	Hx A Fvs3
+XIM11-741	h fvs1 i	Hx I
+XIM11-742	h fvs1 i fvs3	Hx I Fvs3
+XIM11-743	h fvs1 u	Hx U
+XIM11-744	h fvs1 u fvs1	Hx O
+XIM11-745	h fvs1 u fvs2	Hx U
+XIM11-746	h fvs1 u fvs3	Hx U Fvs3
+XIM11-747	h fvs1 ue	Hx U
+XIM11-748	h fvs1 ue fvs1	Hx Ue
+XIM11-749	h fvs1 ue fvs2	Hx O
+XIM11-750	h fvs1 ue fvs3	Hx U
+XIM11-751	h fvs1 ee	Hx W
+XIM11-752	h fvs1 ee fvs3	Hx W Fvs3
+XIM11-753	g fvs1 a	H A
+XIM11-754	g fvs1 a fvs1	H Aa
+XIM11-755	g fvs1 a fvs2	H A
+XIM11-756	g fvs1 a fvs3	H A Fvs3
+XIM11-757	g fvs1 e	H A
+XIM11-758	g fvs1 e fvs1	H Aa
+XIM11-759	g fvs1 e fvs2	H A
+XIM11-760	g fvs1 e fvs3	H A Fvs3
+XIM11-761	g fvs1 i	H I
+XIM11-762	g fvs1 i fvs3	H I Fvs3
+XIM11-763	g fvs1 u	H U
+XIM11-764	g fvs1 u fvs1	H O
+XIM11-765	g fvs1 u fvs2	H U
+XIM11-766	g fvs1 u fvs3	H U Fvs3
+XIM11-767	g fvs1 ue	H U
+XIM11-768	g fvs1 ue fvs1	H Ue
+XIM11-769	g fvs1 ue fvs2	H O
+XIM11-770	g fvs1 ue fvs3	H U
+XIM11-771	g fvs1 ee	H W
+XIM11-772	g fvs1 ee fvs3	H W Fvs3
+XIM11-773	y a g fvs1 a	Y A Hx A
+XIM11-774	y a g fvs1 a fvs1	Y A Hx Aa
+XIM11-775	y a g fvs1 a fvs2	Y A Hx A
+XIM11-776	y a g fvs1 a fvs3	Y A Hx A Fvs3
+XIM11-777	y a g fvs1 e	Y A Hx A
+XIM11-778	y a g fvs1 e fvs1	Y A Hx Aa
+XIM11-779	y a g fvs1 e fvs2	Y A Hx A
+XIM11-780	y a g fvs1 e fvs3	Y A Hx A Fvs3
+XIM11-781	y a g fvs1 i	Y A Hx I
+XIM11-782	y a g fvs1 i fvs3	Y A Hx I Fvs3
+XIM11-783	y a g fvs1 u	Y A Hx U
+XIM11-784	y a g fvs1 u fvs1	Y A Hx O
+XIM11-785	y a g fvs1 u fvs2	Y A Hx U
+XIM11-786	y a g fvs1 u fvs3	Y A Hx U Fvs3
+XIM11-787	y a g fvs1 ue	Y A Hx U
+XIM11-788	y a g fvs1 ue fvs1	Y A Hx Ue
+XIM11-789	y a g fvs1 ue fvs2	Y A Hx O
+XIM11-790	y a g fvs1 ue fvs3	Y A Hx U
+XIM11-791	h fvs2 a	G A
+XIM11-792	h fvs2 a fvs1	G Aa
+XIM11-793	h fvs2 a fvs2	G A
+XIM11-794	h fvs2 a fvs3	G A Fvs3
+XIM11-795	h fvs2 e	G Aa
+XIM11-796	h fvs2 e fvs1	G Aa
+XIM11-797	h fvs2 e fvs2	G A
+XIM11-798	h fvs2 e fvs3	G Aa Fvs3
+XIM11-799	h fvs2 i	G I
+XIM11-800	h fvs2 i fvs3	G I Fvs3
+XIM11-801	h fvs2 u	G U
+XIM11-802	h fvs2 u fvs1	G O
+XIM11-803	h fvs2 u fvs2	G U
+XIM11-804	h fvs2 u fvs3	G U Fvs3
+XIM11-805	h fvs2 ue	G Ue
+XIM11-806	h fvs2 ue fvs1	G Ue
+XIM11-807	h fvs2 ue fvs2	G O
+XIM11-808	h fvs2 ue fvs3	G U
+XIM11-809	h fvs2 ee	G W
+XIM11-810	h fvs2 ee fvs3	G W Fvs3
+XIM11-811	y e h fvs2 a	Y A G A
+XIM11-812	y e h fvs2 a fvs1	Y A G Aa
+XIM11-813	y e h fvs2 a fvs2	Y A G A
+XIM11-814	y e h fvs2 a fvs3	Y A G A Fvs3
+XIM11-815	y e h fvs2 e	Y A G Aa
+XIM11-816	y e h fvs2 e fvs1	Y A G Aa
+XIM11-817	y e h fvs2 e fvs2	Y A G A
+XIM11-818	y e h fvs2 e fvs3	Y A G Aa Fvs3
+XIM11-819	y e h fvs2 i	Y A G I
+XIM11-820	y e h fvs2 i fvs3	Y A G I Fvs3
+XIM11-821	y e h fvs2 u	Y A G U
+XIM11-822	y e h fvs2 u fvs1	Y A G O
+XIM11-823	y e h fvs2 u fvs2	Y A G U
+XIM11-824	y e h fvs2 u fvs3	Y A G U Fvs3
+XIM11-825	y e h fvs2 ue	Y A G O
+XIM11-826	y e h fvs2 ue fvs1	Y A G Ue
+XIM11-827	y e h fvs2 ue fvs2	Y A G O
+XIM11-828	y e h fvs2 ue fvs3	Y A G U
+XIM11-829	n fvs1 a	A A
+XIM11-830	n fvs1 a fvs1	A Aa
+XIM11-831	n fvs1 a fvs2	A A
+XIM11-832	n fvs1 a fvs3	A A Fvs3
+XIM11-833	n fvs1 i	A I
+XIM11-834	n fvs1 i fvs3	A I Fvs3
+XIM11-835	n fvs1 u	A U
+XIM11-836	n fvs1 u fvs1	A O
+XIM11-837	n fvs1 u fvs2	A U
+XIM11-838	n fvs1 u fvs3	A U Fvs3
+XIM11-839	n fvs1 ue	A U
+XIM11-840	n fvs1 ue fvs1	A Ue
+XIM11-841	n fvs1 ue fvs2	A O
+XIM11-842	n fvs1 ue fvs3	A U
+XIM11-843	n fvs1 ee	A W
+XIM11-844	n fvs1 ee fvs3	A W Fvs3
+XIM11-845	s fvs3 a	S > Fvs3 < A
+XIM11-846	s fvs3 a fvs1	S > Fvs3 < Aa
+XIM11-847	s fvs3 a fvs2	S > Fvs3 < A
+XIM11-848	s fvs3 a fvs3	S > Fvs3 < A Fvs3
+XIM11-849	s fvs3 i	S > Fvs3 < I
+XIM11-850	s fvs3 i fvs3	S > Fvs3 < I Fvs3
+XIM11-851	s fvs3 u	S > Fvs3 < U
+XIM11-852	s fvs3 u fvs1	S > Fvs3 < O
+XIM11-853	s fvs3 u fvs2	S > Fvs3 < U
+XIM11-854	s fvs3 u fvs3	S > Fvs3 < U Fvs3
+XIM11-855	s fvs3 ue	S > Fvs3 < U
+XIM11-856	s fvs3 ue fvs1	S > Fvs3 < Ue
+XIM11-857	s fvs3 ue fvs2	S > Fvs3 < O
+XIM11-858	s fvs3 ue fvs3	S > Fvs3 < U
+XIM11-859	s fvs3 ee	S > Fvs3 < W
+XIM11-860	s fvs3 ee fvs3	S > Fvs3 < W Fvs3
+XIM11-861	h a d fvs1 a	H A D A
+XIM11-862	h a d fvs1 a fvs1	H A D Aa
+XIM11-863	h a d fvs1 a fvs2	H A D A
+XIM11-864	h a d fvs1 a fvs3	H A D A Fvs3
+XIM11-865	h a d fvs1 i	H A D I
+XIM11-866	h a d fvs1 i fvs3	H A D I Fvs3
+XIM11-867	h a d fvs1 u	H A D U
+XIM11-868	h a d fvs1 u fvs1	H A D O
+XIM11-869	h a d fvs1 u fvs2	H A D U
+XIM11-870	h a d fvs1 u fvs3	H A D U Fvs3
+XIM11-871	h a d fvs1 ue	H A D U
+XIM11-872	h a d fvs1 ue fvs1	H A D Ue
+XIM11-873	h a d fvs1 ue fvs2	H A D O
+XIM11-874	h a d fvs1 ue fvs3	H A D U
+XIM11-875	h a d fvs1 ee	H A D W
+XIM11-876	h a d fvs1 ee fvs3	H A D W Fvs3
+XIM11-877	h a r fvs3 a	H A R > Fvs3 < A
+XIM11-878	h a r fvs3 a fvs1	H A R > Fvs3 < Aa
+XIM11-879	h a r fvs3 a fvs2	H A R > Fvs3 < A
+XIM11-880	h a r fvs3 a fvs3	H A R > Fvs3 < A Fvs3
+XIM11-881	h a r fvs3 i	H A R > Fvs3 < I
+XIM11-882	h a r fvs3 i fvs3	H A R > Fvs3 < I Fvs3
+XIM11-883	h a r fvs3 u	H A R > Fvs3 < U
+XIM11-884	h a r fvs3 u fvs1	H A R > Fvs3 < O
+XIM11-885	h a r fvs3 u fvs2	H A R > Fvs3 < U
+XIM11-886	h a r fvs3 u fvs3	H A R > Fvs3 < U Fvs3
+XIM11-887	h a r fvs3 ue	H A R > Fvs3 < U
+XIM11-888	h a r fvs3 ue fvs1	H A R > Fvs3 < Ue
+XIM11-889	h a r fvs3 ue fvs2	H A R > Fvs3 < O
+XIM11-890	h a r fvs3 ue fvs3	H A R > Fvs3 < U
+XIM11-891	h a r fvs3 ee	H A R > Fvs3 < W
+XIM11-892	h a r fvs3 ee fvs3	H A R > Fvs3 < W Fvs3
+XIM11-893	mvs y i	- I I
+XIM11-894	mvs y fvs2 i	- Y I
+XIM11-895	mvs y fvs3 i	- Y > Fvs3 < I
+XIM11-896	mvs y i fvs1	- Y I Fvs1
+XIM11-897	mvs y o fvs1	- Y O
+XIM11-898	mvs y o fvs2	- Y U
+XIM11-899	mvs y o fvs3	- Y U Fvs3
+XIM11-900	mvs y fvs2 o	- Y U
+XIM11-901	mvs d fvs3 ue	- T > Fvs3 < U
+XIM11-902	mvs d fvs2 ue	- T U
+XIM11-903	mvs d ue fvs3	- T U
+XIM11-904	mvs d a	- D A
+XIM11-905	mvs d i	- D I
+XIM11-906	mvs d u	- D U
+XIM11-907	mvs d ue	- D U
+XIM11-908	mvs b u	- B O
+XIM11-909	mvs b ue	- B Ue
+XIM11-910	mvs l u	- L O
+XIM11-911	mvs l ue	- L Ue
+XIM11-912	a b nirugu o h u	A A B Ni O H U
+XIM11-913	a b nirugu a h u	A A B Ni A H U
+XIM11-914	a b nirugu i h u	A A B Ni I H U
+XIM11-915	b nirugu ue t ue n	B Ni O I D O A
+XIM11-916	b nirugu a t ue n	B Ni A D O A
+XIM11-917	b nirugu i t ue n	B Ni I D O A
+XIM11-918	b fvs2 ue d ue n	B > Fvs2 < O I D O A
+XIM11-919	b fvs2 a t ue n	B > Fvs2 < A D O A
+XIM11-920	b fvs2 i t ue n	B > Fvs2 < I D O A
+XIM11-921	t a n nnbsp a	T A N _ Aa
+XIM11-922	t a n mvs a	T A N _ Aa
+XIM11-923	t a n fvs2 mvs a	T A A _ Aa
+XIM11-924	t a n fvs2 nnbsp a	T A A _ Aa
+XIM11-925	t a n fvs1 nnbsp a	T A N _ Aa
+XIM11-926	h oe	G Ue
+XIM11-927	h oe fvs1	G Ue
+XIM11-928	h oe fvs2	G O
+XIM11-929	h oe fvs3	G U
+XIM11-930	h ue	G Ue
+XIM11-931	h ue fvs1	G Ue
+XIM11-932	h ue fvs2	G O
+XIM11-933	h ue fvs3	G U
+XIM11-934	g oe	G Ue
+XIM11-935	g oe fvs1	G Ue
+XIM11-936	g oe fvs2	G O
+XIM11-937	g oe fvs3	G U
+XIM11-938	g ue	G Ue
+XIM11-939	g ue fvs1	G Ue
+XIM11-940	g ue fvs2	G O
+XIM11-941	g ue fvs3	G U
+XIM11-942	b a h oe	B A G O
+XIM11-943	b a h oe fvs1	B A G Ue
+XIM11-944	b a h oe fvs2	B A G O
+XIM11-945	b a h oe fvs3	B A G U
+XIM11-946	b a h ue	B A G O
+XIM11-947	b a h ue fvs1	B A G Ue
+XIM11-948	b a h ue fvs2	B A G O
+XIM11-949	b a h ue fvs3	B A G U
+XIM11-950	b a g oe	B A G O
+XIM11-951	b a g oe fvs1	B A G Ue
+XIM11-952	b a g oe fvs2	B A G O
+XIM11-953	b a g oe fvs3	B A G U
+XIM11-954	b a g ue	B A G O
+XIM11-955	b a g ue fvs1	B A G Ue
+XIM11-956	b a g ue fvs2	B A G O
+XIM11-957	b a g ue fvs3	B A G U
+XIM11-958	h e	G Aa
+XIM11-959	h e fvs1	G Aa
+XIM11-960	h e fvs2	G A
+XIM11-961	h e fvs3	G Aa Fvs3
+XIM11-962	g e	G Aa
+XIM11-963	g e fvs1	G Aa
+XIM11-964	g e fvs2	G A
+XIM11-965	g e fvs3	G Aa Fvs3
+XIM11-966	h e h e	G A G Aa
+XIM11-967	h e h e fvs1	G A G Aa
+XIM11-968	h e h e fvs2	G A G A
+XIM11-969	h e h e fvs3	G A G Aa Fvs3
+XIM11-970	g e g e	G A G Aa
+XIM11-971	g e g e fvs1	G A G Aa
+XIM11-972	g e g e fvs2	G A G A
+XIM11-973	g e g e fvs3	G A G Aa Fvs3
+XIM11-974	a r a d nnbsp t ue m e n	A A R A Dd - T O I M A A
+XIM11-975	t ue m e n	T O I M A A
+XIM11-976	nirugu nirugu g g ue l	< Ni Ni G G O L
+XIM11-977	nirugu nirugu m m ue l	< Ni Ni M M O L
+XIM11-978	nirugu h ue m ue n	< Ni G O M O A
+XIM11-979	nirugu m ue s ue	< Ni M O S U
+XIM11-980	g g g ue l	G G G O I L
+XIM11-981	g h i r	G G I R
+XIM11-982	g g nirugu g ue l	G G Ni G O I L
+XIM11-983	g nirugu h i r	G Ni G I R
+XIM11-984	b b b b ue m n	B B B B O I M A
+XIM11-985	nirugu b b ue m n	< Ni B B O M A
+XIM11-986	g g g b ue m ue n	G G G B O I M O A
+XIM11-987	g nirugu b ue n	G Ni B O I A
+XIM11-988	b nirugu b ue m n	B Ni B O I M A
+XIM11-989	h ue h e h o t a	G O I G A H O D A
+XIM11-990	e g e n i g t e	A G A N I G D A
+XIM11-991	e g e n i g t a	A G A N I G D A
+XIM11-992	h fvs2 fvs1 ue	G > Fvs1 < Ue
+XIM11-993	n ue h fvs2 fvs2 ue	N O I G > Fvs2 < O
+XIM11-994	h fvs4 fvs1 ue	Gx > Fvs1 < Ue
+XIM11-995	n ue h fvs4 fvs1 ue	N O I Gx > Fvs1 < O
+XIM11-996	g e r mvs ue g e i	G A R - A O I G A I
+XIM11-997	g e r nnbsp ue g e i	G A R - A O I G A I
+XIM11-998	n ue h fvs3 ue	N O I H U
+XIM11-999	n ue h fvs3 fvs2 ue	N O I H > Fvs2 < U
+XIM11-1000	n ue h fvs1 ue	N O I Hx U
+XIM11-1001	n ue h fvs1 fvs2 ue	N O I Hx > Fvs2 < U
+XIM11-1002	h fvs1 fvs2 ue	Hx > Fvs2 < U
+XIM11-1003	h fvs1 ue	Hx U
+XIM11-1004	h fvs3 fvs1 ue	H > Fvs1 < U
+XIM11-1005	h fvs3 ue	H U
+XIM11-1006	n ue h fvs1 fvs2 ue h ue	N O I Hx > Fvs2 < O G O
+XIM11-1007	n ue h fvs2 fvs2 ue h ue	N O I G > Fvs2 < O G O
+XIM11-1008	n ue h fvs3 fvs2 ue h ue	N O I H > Fvs2 < O G O
+XIM11-1009	n ue h fvs4 fvs2 ue h ue	N O I Gx > Fvs2 < O G O
+XIM11-1010	b a g mvs a	B A Hx _ Aa
+XIM11-1011	b a g fvs1 mvs a	B A H _ Aa
+XIM11-1012	b a g fvs2 mvs a	B A Hx Fvs2 _ Aa
+XIM11-1013	b a g fvs3 mvs a	B A Hx _ Aa
+XIM11-1014	n ue g fvs3 ue	N O I H U
+XIM11-1015	n ue g fvs3 fvs2 ue	N O I H > Fvs2 < U
+XIM11-1016	n ue g fvs1 ue	N O I Hx U
+XIM11-1017	n ue g fvs1 fvs2 ue	N O I Hx > Fvs2 < U

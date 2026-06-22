@@ -476,8 +476,12 @@ class MongolianShaper:
         延迟解析单个标记的书写单元。
 
         Resolution priority / 解析优先级:
-          1. Explicit FVS on the token → use that FVS variant directly
-             标记上有显式 FVS → 直接使用该 FVS 变体
+          1. Explicit FVS on the token → use that FVS variant directly,
+             FALLING BACK to default if the FVS doesn't match any variant
+             (mirrors iii.py behavior: FVS substitution doesn't fire,
+             glyph stays default)
+             标记上有显式 FVS → 直接使用该 FVS 变体;若数据里没对应变体,
+             回退到默认形(模拟 iii.py:FVS 替换不触发,字形保持默认)
           2. Condition assigned by 5-step pipeline → find which FVS has that condition
              5步管线分配的条件 → 查找哪个 FVS 具有该条件
           3. Bare letter (no FVS, no condition hit) → use default variant
@@ -506,6 +510,20 @@ class MongolianShaper:
                 fvs_int = dflt[0]
 
         written = self._get_written(tok.cp, tok.position, fvs_int)
+
+        # When an explicit FVS doesn't match any variant for this
+        # (cp, position) combo, fall back to the default form. In iii.py
+        # the FVS variant lookup simply wouldn't fire on an unknown FVS,
+        # so the letter renders at its default form. Without this
+        # fallback, our shaper would produce empty written units for
+        # cases like `e fvs3`, `o fvs1`, `n fvs2`, breaking many EAC
+        # compliance tests and the iii4 vowel_devsger "ends with I"
+        # check (which examines prev vowel's written form).
+        if not written and tok.fvs_cp:
+            dflt = self.default_variant.get((tok.cp, tok.position))
+            if dflt:
+                written = self._get_written(tok.cp, tok.position, dflt[0])
+
         tok.written = written if written else ()
     
     def _get_word_aliases(self, tokens):
@@ -561,9 +579,12 @@ class MongolianShaper:
         # ── Forward (preprocessing.A/B/C) ──
         # Scan backward from g/h. First fem vowel blocks; first masc
         # vowel at init/medi confirms forward marker reaches.
+        # MVS / NNBSP break propagation (preprocessing.B's input set
+        # only includes neut vowels and consonants at medi/fina; MVS
+        # isn't in it, so MASC can't propagate across it).
         for j in range(idx - 1, -1, -1):
             if not tokens[j].is_letter:
-                continue
+                break  # mvs/etc. blocks; fall through to backward check
             if self._is_fem_vowel(tokens[j]):
                 break  # blocks; fall through to backward check
             if self._is_masc_vowel(tokens[j]) and tokens[j].position in ("init", "medi"):
