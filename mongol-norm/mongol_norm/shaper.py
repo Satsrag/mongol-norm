@@ -100,13 +100,19 @@ class Token:
       alias     — human-readable name like 'A', 'S', 'n' / 人类可读的简称
     """
     __slots__ = [
-        'cp', 'fvs_cp', 'position', 'condition', 'written',
-        'alias', 'is_mvs', 'is_letter', 'index',
+        'cp', 'fvs_cp', 'fvs_cps', 'position', 'condition', 'written',
+        'alias', 'is_mvs', 'is_letter', 'is_nirugu', 'index',
     ]
 
     def __init__(self, cp, fvs_cp=None, index=0):
         self.cp = cp
         self.fvs_cp = fvs_cp
+        # Full stack of FVS codepoints attached to this letter (in stream
+        # order). `fvs_cp` mirrors `fvs_cps[0]` for the common
+        # single-FVS case; the resolver consults the full tuple to
+        # implement first-VALID-FVS-wins fallback (e.g. `sh fvs3 fvs1`
+        # → sh.init has no fvs3 variant, so fvs1 takes effect).
+        self.fvs_cps = (fvs_cp,) if fvs_cp is not None else ()
         self.position = "isol"
         self.condition = None
         self.written = None  # Lazily resolved — set during _resolve_token_written()
@@ -114,6 +120,7 @@ class Token:
         self.alias = ""
         self.is_mvs = (cp == MVS_CP or cp == NNBSP_CP)
         self.is_letter = is_mongolian_letter(cp)
+        self.is_nirugu = (cp == NIRUGU_CP)
         self.index = index
     
     def __repr__(self):
@@ -372,12 +379,22 @@ class MongolianShaper:
         while i < len(cps):
             cp = cps[i]
             if is_mongolian_letter(cp):
-                fvs_cp = None
+                # Collect ALL trailing FVS marks on this letter. The
+                # resolver tries them in stream order and picks the
+                # FIRST one that maps to an existing variant — matching
+                # iii.py's behavior where an invalid FVS produces no
+                # substitution and a later valid FVS still fires
+                # (`sh fvs3 fvs1 ...` → sh.init.fvs3 unknown, fvs1=S
+                # wins). When only one FVS is present (the common case),
+                # this collapses to the single-FVS behavior.
+                fvs_list = []
                 j = i + 1
                 while j < len(cps) and cps[j] in FVS_CPS:
-                    fvs_cp = cps[j]
+                    fvs_list.append(cps[j])
                     j += 1
+                fvs_cp = fvs_list[0] if fvs_list else None
                 tok = Token(cp, fvs_cp, index=idx)
+                tok.fvs_cps = tuple(fvs_list)
                 tok.alias = self.cp_to_alias.get(cp, "")
                 tokens.append(tok)
                 idx += 1
@@ -390,6 +407,16 @@ class MongolianShaper:
                 tokens.append(tok)
                 idx += 1
                 i += 1
+            elif cp == NIRUGU_CP:
+                # Nirugu is a joining marker (extends letter joining
+                # state). Tokenize it so `assign_positions` can count it
+                # in the chain, but it doesn't get a position itself and
+                # produces no written output.
+                tok = Token(NIRUGU_CP, index=idx)
+                tok.alias = "nirugu"
+                tokens.append(tok)
+                idx += 1
+                i += 1
             else:
                 i += 1
         return tokens
@@ -399,17 +426,23 @@ class MongolianShaper:
         Assign isol/init/medi/fina to letter tokens.
         为字母标记分配位置形式：独立/首/中/尾。
 
-        Position assignment is purely structural (word boundary detection):
+        Position assignment is structural (word boundary detection):
         single letter → isol, first → init, last → fina, middle → medi.
         MVS breaks the joining chain, so segments are assigned independently.
-        位置分配纯粹是结构性的（词边界检测）：
-        单字母 → 独立形式，首字母 → 首形式，末字母 → 尾形式，中间 → 中形式。
-        MVS 断开连接链，各段独立分配位置。
+        位置分配纯粹是结构性的（词边界检测）：MVS 断开连接链。
+
+        Nirugu (U+180A) is a joining marker that EXTENDS the chain — it
+        counts as a "virtual member" of the segment for position
+        purposes but doesn't get a position itself. So:
+          - `nirugu a` → a is at fina (a is index 1 of [nirugu, a])
+          - `a nirugu` → a is at init (a is index 0 of [a, nirugu])
+          - `nirugu a nirugu` → a is medi
+        Verified against DraftNew-Regular.otf via hb-shape.
         """
         segments = []
         current = []
         for t in tokens:
-            if t.is_letter:
+            if t.is_letter or t.is_nirugu:
                 current.append(t)
             elif t.is_mvs:
                 if current:
@@ -417,9 +450,11 @@ class MongolianShaper:
                     current = []
         if current:
             segments.append(current)
-        for ltoks in segments:
-            n = len(ltoks)
-            for i, tok in enumerate(ltoks):
+        for seg in segments:
+            n = len(seg)
+            for i, tok in enumerate(seg):
+                if not tok.is_letter:
+                    continue
                 if n == 1:
                     tok.position = "isol"
                 elif i == 0:
@@ -465,28 +500,40 @@ class MongolianShaper:
         return tokens[idx + 1] if idx + 1 < len(tokens) else None
 
     def _prev_adjacent_letter(self, tokens, idx):
-        """Return the IMMEDIATELY preceding letter (idx-1), or None if a
-        non-letter token (e.g. MVS) is at idx-1. Use this when a rule
-        requires strict GLYPH adjacency.
+        """Return the nearest preceding letter REACHING idx without an
+        intervening MVS. Nirugu (a joining marker) is transparent — we
+        skip past it — but MVS (a word boundary) blocks.
 
-        Rationale: in iii.py, rules that use `IgnoreMarks: True` make
-        FVS marks invisible during matching — but MVS is a *base glyph*,
-        not a mark, so it remains visible and breaks adjacency.
-        `_prev_letter` / `_next_letter` (which skip over MVS to find
-        the nearest letter) match across word boundaries — wrong for
-        rules like iii2f.h_g.harmony where adjacency matters.
+        Use this when a rule requires GLYPH adjacency for joining
+        purposes (e.g. iii2f.h_g.harmony's "adjacent vowel" checks).
         """
-        if idx <= 0:
+        j = idx - 1
+        while j >= 0:
+            tok = tokens[j]
+            if tok.is_mvs:
+                return None
+            if tok.is_letter:
+                return tok
+            if tok.is_nirugu:
+                j -= 1
+                continue
             return None
-        prev = tokens[idx - 1]
-        return prev if prev.is_letter else None
+        return None
 
     def _next_adjacent_letter(self, tokens, idx):
         """Mirror image of `_prev_adjacent_letter`."""
-        if idx + 1 >= len(tokens):
+        j = idx + 1
+        while j < len(tokens):
+            tok = tokens[j]
+            if tok.is_mvs:
+                return None
+            if tok.is_letter:
+                return tok
+            if tok.is_nirugu:
+                j += 1
+                continue
             return None
-        nxt = tokens[idx + 1]
-        return nxt if nxt.is_letter else None
+        return None
 
     def _has_fvs(self, tok):
         return tok.fvs_cp is not None
@@ -522,10 +569,14 @@ class MongolianShaper:
 
         written = None
 
-        # 1. Explicit FVS first — if it matches a variant
-        if tok.fvs_cp:
-            fvs_int = FVS_CP_TO_INT.get(tok.fvs_cp, 0)
-            written = self._get_written(tok.cp, tok.position, fvs_int)
+        # 1. Explicit FVS first — try each FVS attached in stream
+        #    order, accept the first that maps to a real variant.
+        for fvs_cp in tok.fvs_cps:
+            fvs_int = FVS_CP_TO_INT.get(fvs_cp, 0)
+            candidate = self._get_written(tok.cp, tok.position, fvs_int)
+            if candidate:
+                written = candidate
+                break
 
         # 2. Condition (rule-assigned) — also covers the case where
         #    explicit FVS didn't yield a variant
@@ -592,18 +643,18 @@ class MongolianShaper:
 
         Verified against `DraftNew-Regular.otf` via hb-shape.
         """
+        # Nirugu is transparent for all propagation scans (it's a joining
+        # marker, invisible to the harmony machinery). MVS still blocks.
         # ── Forward (preprocessing.A/B/C) ──
-        # Scan backward from g/h. First fem vowel blocks; first masc
-        # vowel at init/medi confirms forward marker reaches.
-        # MVS / NNBSP break propagation (preprocessing.B's input set
-        # only includes neut vowels and consonants at medi/fina; MVS
-        # isn't in it, so MASC can't propagate across it).
         for j in range(idx - 1, -1, -1):
-            if not tokens[j].is_letter:
+            t = tokens[j]
+            if not t.is_letter:
+                if t.is_nirugu:
+                    continue
                 break  # mvs/etc. blocks; fall through to backward check
-            if self._is_fem_vowel(tokens[j]):
+            if self._is_fem_vowel(t):
                 break  # blocks; fall through to backward check
-            if self._is_masc_vowel(tokens[j]) and tokens[j].position in ("init", "medi"):
+            if self._is_masc_vowel(t) and t.position in ("init", "medi"):
                 return True
 
         # ── Backward (preprocessing.G/H/J/K) ──
@@ -611,48 +662,46 @@ class MongolianShaper:
         if tokens[idx].position not in ("init", "medi"):
             return False
 
-        # Backward chain is also blocked by any fem vowel earlier in the
-        # word. iii.py's preprocessing.D/E/F propagate FEM markers forward
-        # from fem vowels; these markers settle on h/g letters downstream
-        # and prevent MASC-side promotion in iii2f.A even when a masc
-        # backward trigger exists later. Empirically verified against
-        # `DraftNew-Regular.otf`:
+        # Block backward chain when a fem vowel exists earlier in the word.
+        # (preprocessing.D/E/F propagates FEM forward; FEM settling on
+        # downstream h/g inhibits MASC promotion via iii2f.A. Empirically:
         #   `i g t a`         → first g = H  (no fem before)
-        #   `s i g s i g a`   → first g = H  (no fem before)
-        #   `e g e n i g t a` → second g = G (fem `e` earlier in word)
+        #   `e g e n i g t a` → second g = G (fem `e` earlier in word))
         for j in range(idx - 1, -1, -1):
-            if not tokens[j].is_letter:
-                break  # mvs breaks (FEM propagation also stopped by mvs)
-            if self._is_fem_vowel(tokens[j]):
+            t = tokens[j]
+            if not t.is_letter:
+                if t.is_nirugu:
+                    continue
+                break
+            if self._is_fem_vowel(t):
                 return False
 
-        # Walk forward through tokens; chain must be unbroken non-fem
-        # init/medi letters terminating at a backward-propagation trigger:
-        #   - a masc vowel (preprocessing.G first loop), OR
-        #   - a .fina letter immediately followed by MVS + isol a
-        #     (preprocessing.G second loop — iii.py:163-167: any fina
-        #     letter + mvs + a.isol → marks the fina letter, then H
-        #     reverse-propagates).
+        # Walk forward; chain must be unbroken non-fem init/medi letters
+        # terminating at a masc vowel OR `.fina letter + mvs + isol a`
+        # (preprocessing.G second loop).
         for j in range(idx + 1, len(tokens)):
             nxt = tokens[j]
             if not nxt.is_letter:
-                return False  # non-letter (mvs etc.) breaks chain
+                if nxt.is_nirugu:
+                    continue  # transparent
+                return False  # mvs etc. breaks chain
             if self._is_masc_vowel(nxt):
-                return True  # found masc vowel — backward chain succeeds
+                return True
             if self._is_fem_vowel(nxt):
-                return False  # fem vowel blocks propagation
-            # Non-vowel letter (consonant or neut vowel) — must be at
-            # init/medi for preprocessing.H to mark it.
+                return False
             if nxt.position in ("init", "medi"):
                 continue
-            # .fina position: check chachlag-trigger pattern
-            # (any fina letter + mvs + isol a) which acts like a
-            # backward-propagation seed via preprocessing.G's second loop.
-            if (nxt.position == "fina" and j + 2 < len(tokens)
-                    and tokens[j + 1].is_mvs
-                    and tokens[j + 2].is_letter
-                    and tokens[j + 2].alias == "a"
-                    and tokens[j + 2].position == "isol"):
+            # .fina position: check `fina + mvs + isol a` trigger.
+            # Skip past nirugu to find the actual next non-nirugu tokens.
+            k = j + 1
+            while k < len(tokens) and tokens[k].is_nirugu:
+                k += 1
+            if (nxt.position == "fina"
+                    and k < len(tokens) and tokens[k].is_mvs
+                    and k + 1 < len(tokens)
+                    and tokens[k + 1].is_letter
+                    and tokens[k + 1].alias == "a"
+                    and tokens[k + 1].position == "isol"):
                 return True
             return False
 

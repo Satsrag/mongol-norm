@@ -204,29 +204,54 @@ def _iii2a_oe_ue_cluster_marked(tokens, shaper):
 
 
 def _iii2a_oe_ue_cluster_marked_at(tokens, i, shaper):
+    """iii2a.GB.A/B/C combined — propagate `marked` through a leading
+    consonant cluster of any length to the following o/u/oe/ue.medi.
+
+    iii.py uses three rclt lookups that cascade left-to-right:
+      A) consonant.medi after [consonant.init OR _.marked] → _.marked
+      B) o/u/oe/ue.medi after [consonant.init OR _.marked] → marked
+      C) clean up the temporary _.marked from consonants
+    We collapse them into a single backward walk: if the vowel sits at
+    the end of an unbroken init→medi consonant chain (no vowel between),
+    mark it. Verified against DraftNew-Regular.otf:
+      `g ue l`         → ue stays default (iii2a.MAIN handles single init)
+      `g g ue l`       → ue marked (this rule fires)
+      `g g g g ue l`   → ue marked
+      `b a g ue l`     → ue stays default (vowel `a` breaks the chain)
+    """
     tok = tokens[i]
     if tok.condition is not None:
         return
     if not tok.is_letter:
         return
-    if tok.alias not in ("oe", "ue"):
+    if tok.alias not in ("o", "u", "oe", "ue"):
         return
     if tok.position != "medi":
         return
     if shaper._has_fvs(tok):
         return
-    prev = shaper._prev_letter(tokens, i)
-    if prev is None:
-        return
-    if not (shaper._is_consonant(prev) and prev.position == "medi"):
-        return
-    pp_idx = prev.index if hasattr(prev, "index") else i - 1
-    pp = shaper._prev_letter(tokens, pp_idx)
-    if pp is None:
-        return
-    if not (shaper._is_consonant(pp) and pp.position == "init"):
-        return
-    tok.condition = "marked"
+    # Walk back through consonants (nirugu transparent). Need ≥1
+    # consonant.medi then a consonant.init for this rule to fire (the
+    # single-init case is handled by iii2a.MAIN, not here).
+    j = i - 1
+    saw_medi = False
+    while j >= 0:
+        t = tokens[j]
+        if not t.is_letter:
+            if t.is_nirugu:
+                j -= 1
+                continue
+            return  # mvs/etc. blocks
+        if not shaper._is_consonant(t):
+            return  # vowel blocks the chain
+        if t.position == "init":
+            if saw_medi:
+                tok.condition = "marked"
+            return
+        if t.position != "medi":
+            return  # fina / isol — not a propagation source
+        saw_medi = True
+        j -= 1
 
 
 def _iii2a_d_marked(tokens, shaper):
@@ -595,7 +620,17 @@ _PARTICLE_TARGET_ALIASES = ("a", "e", "i", "u", "ue", "d", "y")
 def _iii3_particle(tokens, shaper):
     segments = _build_mvs_segments(tokens)
     for aliases, indices in segments:
+        # Try the segment as-is first, then (for mvs-headed segments)
+        # retry with mvs stripped — iii.py's particle dict also contains
+        # patterns like `u u` / `ue ue` / `b ue ue` that match anywhere,
+        # not just word-initial; the GSUB lookup fires regardless of
+        # whether mvs precedes (per iii.py line 785: "Apply `particle`
+        # for letters in particles not following MVS in Hudum").
         particle_indices = shaper.particle_dict.get(" ".join(aliases))
+        used_indices = indices
+        if particle_indices is None and aliases and aliases[0] == "mvs":
+            particle_indices = shaper.particle_dict.get(" ".join(aliases[1:]))
+            used_indices = indices[1:]
         if particle_indices is None:
             continue  # loop filter — no particle match for this segment
         # iii.py iii3 uses `UseMarkFilteringSet @fvs` (iii.py:795), so
@@ -610,10 +645,26 @@ def _iii3_particle(tokens, shaper):
         if any(tokens[idx].is_letter and tokens[idx].fvs_cp is not None
                for idx in indices):
             continue
+        # iii3's lookup keys on position-specific classes (e.g.
+        # `MNG-y.init`, `MNG-i.fina`). If nirugu sits between mvs and the
+        # first chain letter, that letter's joining position shifts off
+        # `init` (single-letter chains: `isol` → `fina`; multi-letter:
+        # `init` → `medi`), so the lookup's first-letter class no longer
+        # matches and particle doesn't fire. Verified against
+        # DraftNew-Regular.otf:
+        #   `mvs y i`               → particle fires (y=I)
+        #   `mvs nirugu y i`        → does NOT fire (y stays default Y)
+        #   `mvs i nirugu y a r`    → particle fires (i=I, y=I)
+        #   `mvs i`                 → particle fires (i.isol → I)
+        first_letter_idx = next(
+            (idx for idx in indices if tokens[idx].is_letter), None)
+        if (first_letter_idx is not None
+                and tokens[first_letter_idx].position not in ("init", "isol")):
+            continue
         for pidx in particle_indices:
-            if pidx >= len(indices):
+            if pidx >= len(used_indices):
                 continue  # defensive; never expected to fire
-            tok = tokens[indices[pidx]]
+            tok = tokens[used_indices[pidx]]
             if tok.is_letter and tok.alias in _PARTICLE_TARGET_ALIASES:
                 tok.condition = "particle"
 
