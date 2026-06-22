@@ -87,6 +87,37 @@ def _shape_aliases(shaper, aliases: str) -> list:
 _FONT_NAMING_ARTIFACTS = {'Ni', '<', '>', 'Fvs1', 'Fvs2', 'Fvs3', 'Fvs4', 'Nnbsp'}
 
 
+# Cases where the EAC spec and the UTN model intentionally disagree.
+# mongfontbuilder marks the exact same set as `pytest.mark.xfail` in
+# its own suite (see mongfontbuilder/tests/test_font.py:42-69). We
+# follow UTN, so we exclude these here and verify the UTN-correct
+# shaping in `test_shaper.py` instead.
+#
+# XIM11-38/39/40/41 — "EAC assumes ALL features of NNBSP should be
+#   disabled" (i.e. NNBSP should be a plain wide space that triggers
+#   no shaping). UTN keeps NNBSP equivalent to MVS: it still drives
+#   chachlag on `a/e.isol`, particle dict matches, etc. mongfontbuilder
+#   xfail reason: "The UTN model considers this test case incorrect.
+#   The UTN model considers that the old functionality of NNBSP should
+#   be retained."
+#
+# XIM11-1012 — EAC says `g + FVS2 + MVS + a` should fire chachlag_onset
+#   on g (Hx) AND keep FVS2 valid. UTN says: an FVS attached to the
+#   pre-MVS letter blocks chachlag shaping, so the user's FVS form
+#   wins (g.fvs2 = G). The UTN-correct path uses FVS3 to explicitly
+#   select g.chachlag_onset (Hx). mongfontbuilder xfail reason: "When
+#   an FVS after a letter prevents the MVS shaping step, the MVS is
+#   treated as an NBSP. In this case, the FVS remains valid. The UTN
+#   model considers this test case incorrect."
+_UTN_XFAIL_CASES = frozenset({
+    'XIM11-38',    # `nnbsp` alone
+    'XIM11-39',    # `b a g nnbsp a`
+    'XIM11-40',    # `a b u nnbsp y i n`
+    'XIM11-41',    # `a b u nnbsp e j i`
+    'XIM11-1012',  # `b a g fvs2 mvs a`
+})
+
+
 def _normalize_expected(expected: str) -> list:
     """
     Normalize mongfontbuilder's expected-output tokens for comparison
@@ -134,12 +165,19 @@ class TestEacHud(unittest.TestCase):
     def test_eac_hud_all(self):
         failures = []
         skipped_tokens = set()
+        utn_xfailed = 0
         for index, aliases, expected in self.rows:
             # Skip any case using tokens we don't have in our alias map
             tokens = aliases.split()
             unknown = [t for t in tokens if t != 'space' and t not in _ALIAS_TO_CP]
             if unknown:
                 skipped_tokens.update(unknown)
+                continue
+            # Skip cases where EAC and UTN intentionally disagree (see
+            # `_UTN_XFAIL_CASES` above). UTN-correct shaping for these is
+            # exercised in tests/test_shaper.py.
+            if index in _UTN_XFAIL_CASES:
+                utn_xfailed += 1
                 continue
             try:
                 actual = _shape_aliases(self.s, aliases)
@@ -153,10 +191,10 @@ class TestEacHud(unittest.TestCase):
                     f"              got     {actual}\n"
                     f"              expect  {expected_norm}"
                 )
-        passed = len(self.rows) - len(failures)
-        pct = 100 * passed / len(self.rows) if self.rows else 0
-        print(f"\n\n{passed} / {len(self.rows)} passed ({pct:.1f}%); "
-              f"{len(failures)} failed")
+        passed = len(self.rows) - len(failures) - utn_xfailed
+        pct = 100 * passed / (len(self.rows) - utn_xfailed) if self.rows else 0
+        print(f"\n\n{passed} / {len(self.rows) - utn_xfailed} passed ({pct:.1f}%); "
+              f"{len(failures)} failed; {utn_xfailed} UTN-xfail (skipped)")
         if skipped_tokens:
             print(f"  Skipped (unknown tokens): {sorted(skipped_tokens)}")
         if failures:
@@ -165,6 +203,7 @@ class TestEacHud(unittest.TestCase):
             for f in failures[:30]:
                 print(f)
             print(f"\n... ({len(failures) - 30} more)" if len(failures) > 30 else "")
-            self.fail(f"{len(failures)} of {len(self.rows)} eac-hud cases failed")
+            self.fail(f"{len(failures)} of {len(self.rows) - utn_xfailed} eac-hud cases failed")
         else:
-            print(f"\nAll {len(self.rows)} eac-hud cases passed.")
+            print(f"\nAll {len(self.rows) - utn_xfailed} eac-hud cases passed "
+                  f"(excluding {utn_xfailed} UTN-xfail).")

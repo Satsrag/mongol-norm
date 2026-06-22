@@ -814,6 +814,104 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(nnbsp_text), self.s.shape(mvs_text))
 
     # ══════════════════════════════════════════════════════════
+    # UTN-vs-EAC divergences  (UTN57 ↔ GB/T 25914 EAC 分歧)
+    # ══════════════════════════════════════════════════════════
+    #
+    # GB/T 25914-2023 (EAC) and the UTN57 model disagree on a small
+    # number of edge cases. mongfontbuilder follows UTN57 and marks the
+    # EAC counter-examples as `pytest.mark.xfail`
+    # (mongfontbuilder/tests/test_font.py:42-69); we follow UTN too and
+    # excludethe matching rows from `test_eac_hud.py` (see
+    # `_UTN_XFAIL_CASES` there). The cases below pin down the
+    # UTN-correct shaping that the EAC suite cannot.
+    #
+    # GB/T 25914-2023 (EAC) 与 UTN57 模型在少数边缘情况上有分歧。
+    # mongfontbuilder 遵循 UTN57 并在自己的测试里把这几条 EAC 反例
+    # 标为 `pytest.mark.xfail`；我们也遵循 UTN, 并在
+    # `test_eac_hud.py` 的 `_UTN_XFAIL_CASES` 里跳过对应行。下面这些
+    # 测试用例钉死了 EAC 套件无法表达的 UTN 正确行为。
+
+    # ── A. FVS attached to pre-MVS letter blocks chachlag_onset ────
+    # iii.py iii2c (mongfontbuilder): user FVS on h/g/n/j/w
+    # immediately before `MVS + a/e.isol` SUPPRESSES the chachlag_onset
+    # substitution, so the letter keeps its user-chosen FVS form.
+    # iii.py iii2c (mongfontbuilder): h/g/n/j/w 紧邻 `MVS + a/e.isol`
+    # 前面若挂了用户 FVS, 则抑制 chachlag_onset 替换, 字母保持 FVS
+    # 指定的形态。
+    # (counter-example: EAC XIM11-1012 expects `Hx` here.)
+
+    def test_utn_g_fvs2_blocks_chachlag_onset(self):
+        # `b a g fvs2 mvs a` — UTN: g.fvs2=G (feminine, user wins).
+        # `b a g fvs2 mvs a` — UTN: g.fvs2=G (阴性变体, 用户胜)。
+        # EAC counter-example: expects Hx (chachlag_onset).
+        self.assertEqual(
+            self.s.shape(_mgl("b a g fvs2 mvs a")),
+            ["B", "A", "G", "mvs", "Aa"],
+        )
+
+    def test_utn_g_fvs3_picks_chachlag_onset(self):
+        # `b a g fvs3 mvs a` — FVS3 IS the chachlag_onset slot for
+        # g.fina (variants: fvs3→Hx, conditions=[chachlag_onset]). User
+        # and rule agree → Hx fires the UTN-correct way.
+        # `b a g fvs3 mvs a` — FVS3 正好是 g.fina chachlag_onset 槽位,
+        # 用户和规则一致 → Hx 按 UTN 正确路径触发。
+        self.assertEqual(
+            self.s.shape(_mgl("b a g fvs3 mvs a")),
+            ["B", "A", "Hx", "mvs", "Aa"],
+        )
+
+    # ── B. NNBSP is equivalent to MVS (UTN: "old NNBSP function") ──
+    # iii.py keeps NNBSP in the `mvs` glyph class so chachlag /
+    # particle / mvs.narrow / mvs.wide all fire as if it were MVS. The
+    # EAC spec wants NNBSP to disable every shaping feature; UTN
+    # explicitly rejects that (mongfontbuilder xfail reason:
+    # "the old functionality of NNBSP should be retained").
+    # iii.py 把 NNBSP 放在 `mvs` glyph 类里, chachlag/particle/
+    # mvs.narrow/mvs.wide 全部按 MVS 触发。EAC 期望 NNBSP 禁用所有整形
+    # 特性, 但 UTN 明文拒绝 ("the old functionality of NNBSP should
+    # be retained")。
+    # (counter-examples: EAC XIM11-38/39/40/41.)
+
+    def test_utn_nnbsp_alone_renders_as_mvs(self):
+        # Standalone NNBSP — UTN renders the MVS slot; EAC wants empty.
+        # 单独的 NNBSP — UTN 渲染 MVS 槽位; EAC 期望空。
+        self.assertEqual(self.s.shape(_mgl("nnbsp")), ["mvs"])
+
+    def test_utn_nnbsp_triggers_chachlag(self):
+        # `b a g nnbsp a` — UTN treats NNBSP as MVS, so the trailing
+        # a.isol triggers chachlag (Aa) and g.fina takes chachlag_onset
+        # (Hx). EAC XIM11-39 wants `B A H A A` (no chachlag).
+        # `b a g nnbsp a` — UTN 把 NNBSP 当 MVS, 尾部 a.isol 触发
+        # chachlag (Aa), g.fina 取 chachlag_onset (Hx)。EAC XIM11-39
+        # 期望 `B A H A A` (不触发 chachlag)。
+        self.assertEqual(
+            self.s.shape(_mgl("b a g nnbsp a")),
+            ["B", "A", "Hx", "mvs", "Aa"],
+        )
+
+    def test_utn_nnbsp_triggers_particle(self):
+        # `a b u nnbsp y i n` — UTN: particle dict matches `mvs y i n`
+        # (NNBSP ≡ MVS) → y.init = I (particle.fvs1 form).
+        # EAC XIM11-40 wants `A A B O Y I A` (no particle).
+        # `a b u nnbsp y i n` — UTN: particle 词典匹配 `mvs y i n`
+        # (NNBSP ≡ MVS) → y.init = I (particle.fvs1 形态)。
+        # EAC XIM11-40 期望 `A A B O Y I A` (不触发 particle)。
+        self.assertEqual(
+            self.s.shape(_mgl("a b u nnbsp y i n")),
+            ["A", "A", "B", "O", "mvs", "I", "I", "A"],
+        )
+
+    def test_utn_nnbsp_renders_mvs_token(self):
+        # `a b u nnbsp e j i` — UTN emits the `mvs` separator between
+        # the two words; EAC XIM11-41 wants no separator.
+        # `a b u nnbsp e j i` — UTN 在两个词之间发出 `mvs` 分隔符;
+        # EAC XIM11-41 期望无分隔符。
+        self.assertEqual(
+            self.s.shape(_mgl("a b u nnbsp e j i")),
+            ["A", "A", "B", "O", "mvs", "A", "J", "I"],
+        )
+
+    # ══════════════════════════════════════════════════════════
     # Edge cases
     # ══════════════════════════════════════════════════════════
 
