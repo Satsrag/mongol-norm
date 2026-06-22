@@ -407,13 +407,18 @@ class MongolianShaper:
                 tokens.append(tok)
                 idx += 1
                 i += 1
-            elif cp == NIRUGU_CP:
-                # Nirugu is a joining marker (extends letter joining
-                # state). Tokenize it so `assign_positions` can count it
-                # in the chain, but it doesn't get a position itself and
-                # produces no written output.
-                tok = Token(NIRUGU_CP, index=idx)
-                tok.alias = "nirugu"
+            elif cp == NIRUGU_CP or cp == ZWJ_CP:
+                # Nirugu (U+180A) and ZWJ (U+200D) are both joining
+                # markers that extend the chain. Tokenize them as
+                # nirugu-equivalent so `assign_positions` counts them
+                # toward the chain — `zwj + d` becomes [zwj.init,
+                # d.fina], so d.fina default (`Dd`) is emitted. iii.py
+                # preprocessing (line 42) collapses nirugu/zwj/zwnj into
+                # the same "ignored" class, so reusing `is_nirugu` here
+                # for ZWJ matches that grouping.
+                tok = Token(cp, index=idx)
+                tok.alias = "nirugu" if cp == NIRUGU_CP else "zwj"
+                tok.is_nirugu = True
                 tokens.append(tok)
                 idx += 1
                 i += 1

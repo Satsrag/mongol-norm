@@ -366,8 +366,13 @@ def _iii2e_n_t_d_onset_devsger_at(tokens, i, shaper):
         return
     if not tok.is_letter or tok.alias not in ("n", "t", "d"):
         return
-    if shaper._has_fvs(tok):
-        return
+    # iii.py iii2e uses `IgnoreMarks: True` (iii.py:516), so the
+    # onset/devsger context match fires regardless of attached FVS.
+    # The condition still gets set; if the user's FVS happens to
+    # name a variant on this letter, the resolver picks the FVS form
+    # (matching iii.py's later FVS-substitution stage), otherwise the
+    # condition's variant fires — e.g. `ue n fvs3 ue` → fvs3 unknown
+    # on n.medi, onset condition picks fvs1=N.
     nxt = shaper._next_letter(tokens, i)
     if nxt is not None and shaper._is_vowel(nxt):
         # iii2g.t.devsger owns the `t + ee` case (see block comment above).
