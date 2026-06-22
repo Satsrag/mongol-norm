@@ -644,28 +644,51 @@ class TestShape(unittest.TestCase):
         )
 
     # ══════════════════════════════════════════════════════════
-    # Step 4 · Devsger — i double tooth after vowel
+    # Step 4 · Devsger — i.medi after vowel → vowel_devsger (double tooth)
     # ══════════════════════════════════════════════════════════
+    #
+    # Rule (iii.py iii4): i.medi gets `vowel_devsger` IF the immediately
+    # preceding vowel's WRITTEN form (post-FVS substitution) does NOT end
+    # with the unit "I". The "consider FVS" wording in the docs is just
+    # making explicit that the check uses the FVS-resolved form — same
+    # mechanism, one rule. Verified against `DraftNew-Regular.otf` via
+    # hb-shape.
 
+    # 4-1  prev vowel does NOT end with "I" → devsger fires
     def test_step4_devsger_ail(self):
-        # ᠠᠢᠯ (ail) — i.medi after vowel a → vowel_devsger I,I
+        # ᠠᠢᠯ - a.init = "AA" (ends with A) → fires → i.medi.vowel_devsger = "II"
         self.assertEqual(
             self.s.shape(_mgl("a i l")),
             ["A", "A", "I", "I", "L"],
         )
 
-    def test_step4_no_devsger_final(self):
-        # ᠠᠢ (ai) — i.fina: devsger does NOT apply at final
+    # 4-2  prev vowel ENDS with "I" (default form) → devsger does NOT fire
+    def test_step4_no_devsger_tueil(self):
+        # ᠲᠦᠢᠯ - ue.medi default = "OI" (ends with I) → no devsger → i.medi default "I"
         self.assertEqual(
-            self.s.shape(_mgl("a i")),
-            ["A", "A", "I"],
+            self.s.shape(_mgl("t ue i l")),
+            ["T", "O", "I", "I", "L"],
         )
 
-    def test_step4_devsger_naima(self):
-        # ᠨᠠᠢᠮᠠ (naima) — i after a → vowel_devsger I,I
+    # 4-3  prev vowel + FVS — FVS-resolved form STILL ends with "I" → no devsger.
+    # Demonstrates the rule looks at the post-FVS form: ue.medi.fvs1 = "OI"
+    # still ends with I, so devsger doesn't fire (same outcome as 4-2 but
+    # arrived at via the FVS path).
+    def test_step4_no_devsger_aueil_fvs1(self):
+        # ᠠᠦ᠋ᠢᠯ - a.init "AA" + ue.medi+fvs1 "OI" + i.medi + l.fina
         self.assertEqual(
-            self.s.shape(_mgl("n a i m a")),
-            ["N", "A", "I", "I", "M", "A"],
+            self.s.shape(_mgl("a ue fvs1 i l")),
+            ["A", "A", "O", "I", "I", "L"],
+        )
+
+    # 4-4  FVS on i ITSELF → rule bows out (i's FVS forces a specific variant)
+    def test_step4_no_devsger_naima_fvs3(self):
+        # ᠨᠠᠢ᠍ᠮᠠ - n + a + i.medi+fvs3 + m + a
+        # i has explicit FVS3 → devsger rule skipped → i.medi.fvs3 = "I" (default)
+        # Without the FVS3, this would be naima → i.medi devsger = "II".
+        self.assertEqual(
+            self.s.shape(_mgl("n a i fvs3 m a")),
+            ["N", "A", "I", "M", "A"],
         )
 
     # ══════════════════════════════════════════════════════════
