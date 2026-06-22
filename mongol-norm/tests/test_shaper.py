@@ -694,28 +694,74 @@ class TestShape(unittest.TestCase):
     # ══════════════════════════════════════════════════════════
     # Step 5 · Post-bowed — vowels after bowed consonants
     # ══════════════════════════════════════════════════════════
+    #
+    # Rule (iii.py iii5): vowel.FINA gets `post_bowed` if the preceding
+    # consonant renders as a "bowed" written unit. The bowed units are:
+    #   bowedB = B, P, F   (letters b, p, f)
+    #   bowedK = K, K2     (letters k, k2)
+    #   bowedG = G, Gx     (g/h after feminine harmony — `g`/`h` only
+    #                       become G/Gx via iii2f.feminine; their default
+    #                       Hx/H are NOT bowed)
+    # Per-input-set restrictions:
+    #   bowedB / bowedK accept: a, e, o, u, oe, ue  (all fina vowels)
+    #   bowedG accepts only:    e                   (a after bowedG is
+    #                                                 explicitly excluded)
+    # All values verified against `DraftNew-Regular.otf` via hb-shape.
 
-    # 5-1  a/e after bowed → post_bowed
-    def test_step5_post_bowed_uge(self):
-        # ᠥᠭᠡ (üge) — e after G(bowed) → post_bowed "Aa"
+    # 5-1  bowedB (b/p/f) + vowel.fina → post_bowed
+    def test_step5_post_bowed_after_b(self):
+        # ᠪᠠ - a.fina post_bowed → "Aa"
+        self.assertEqual(self.s.shape(_mgl("b a")), ["B", "Aa"])
+        # ᠪᠡ - e.fina post_bowed → "Aa"
+        self.assertEqual(self.s.shape(_mgl("b e")), ["B", "Aa"])
+        # ᠪᠣ - o.fina post_bowed → "O" (also iii2a.marked applies; same glyph)
+        self.assertEqual(self.s.shape(_mgl("b o")), ["B", "O"])
+        # ᠫᠠ - p (bowedB) + a → "Aa"
+        self.assertEqual(self.s.shape(_mgl("p a")), ["P", "Aa"])
+        # ᠹᠢ - i.fina after F: i is NOT in the post_bowed input set → "I"
+        self.assertEqual(self.s.shape(_mgl("f i")), ["F", "I"])
+
+    # 5-2  bowedK (k/k2) + vowel.fina → post_bowed
+    def test_step5_post_bowed_after_k(self):
+        # ᠻᠠ - k + a.fina → "Aa"
+        self.assertEqual(self.s.shape(_mgl("k a")), ["K", "Aa"])
+        # ᠺᠡ - k2 + e.fina → "Aa"
+        self.assertEqual(self.s.shape(_mgl("k2 e")), ["K2", "Aa"])
+
+    # 5-3  bowedG (g/h with feminine form G/Gx) + e.fina → post_bowed
+    # G/Gx only appears when g/h gets `feminine` from iii2f. With masc
+    # vowel context (g+a), g becomes Hx instead — NOT bowed.
+    def test_step5_post_bowed_after_g(self):
+        # ᠭᠡ - g.init + e: g→feminine "G", e.fina post_bowed → "Aa"
+        self.assertEqual(self.s.shape(_mgl("g e")), ["G", "Aa"])
+        # ᠥᠭᠡ - oe.init + g.medi + e.fina: g→feminine "G", e post_bowed
         self.assertEqual(
             self.s.shape(_mgl("oe g e")),
             ["A", "O", "I", "G", "Aa"],
         )
-
-    def test_step5_post_bowed_ger(self):
-        # ᠭᠡᠷ (ger) — e after G(bowed) → post_bowed "A"
-        self.assertEqual(
-            self.s.shape(_mgl("g e r")),
-            ["G", "A", "R"],
-        )
-
-    def test_step5_post_bowed_boge(self):
-        # ᠪᠣᠭᠡ (boge) — e after G(bowed) → post_bowed "Aa"
+        # ᠪᠣᠭᠡ - composite: b+o+g.medi+e.fina
         self.assertEqual(
             self.s.shape(_mgl("b o g e")),
             ["B", "O", "G", "Aa"],
         )
+
+    # 5-4  g.init + a (masc): g becomes Hx (masc_onset), NOT G — so a does
+    # NOT get post_bowed. Shows the harmony rule's interaction.
+    def test_step5_no_post_bowed_g_init_plus_a(self):
+        # ᠭᠠ - g.init + masc a → g masc_onset "Hx", a default "A"
+        self.assertEqual(self.s.shape(_mgl("g a")), ["Hx", "A"])
+
+    # 5-5  vowel at MEDI position after bowed → no post_bowed
+    # post_bowed only applies to .fina vowels. data has no post_bowed
+    # variant for medi vowels, so even though our rule may set the
+    # condition, the resolver falls back to default (same glyph).
+    def test_step5_no_post_bowed_medi(self):
+        # ᠪᠠᠯ - a.medi after b → default "A" (NOT post_bowed)
+        self.assertEqual(self.s.shape(_mgl("b a l")), ["B", "A", "L"])
+        # ᠪᠡᠷ - e.medi after b → default "A"
+        self.assertEqual(self.s.shape(_mgl("b e r")), ["B", "A", "R"])
+        # ᠭᠡᠷ - g + e.medi + r → e.medi default (NOT post_bowed Aa)
+        self.assertEqual(self.s.shape(_mgl("g e r")), ["G", "A", "R"])
 
     # ══════════════════════════════════════════════════════════
     # Position assignment
