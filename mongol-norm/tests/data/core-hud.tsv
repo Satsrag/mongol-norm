@@ -1,0 +1,229 @@
+# regular test
+
+a-1	a	A A
+a-2	a fvs1	A
+a-3	a n a g mvs a	A A N A Hx _ Aa
+a-4	a m b a	A A M B Aa
+a-5	u u l mvs a ch a	A O O L - A Ch A
+# a-6	b u y a n zwj a r b i n	B O Y A A A A R B I A
+
+e-1	e	A
+e-2	e n e t e g e	A N A D A G Aa
+e-3	ue n mvs e	A O I N _ Aa
+e-4	e i m ue mvs e ch e	A I I M U - A Ch A
+
+ee-1	ee	A W
+ee-2	ee ue fvs1 r o p a	A W O I R O P Aa
+ee-3	s ee k2 ue fvs1 n fvs1 d fvs1	S W K2 O I N D
+ee-4	hh ee l ee	A Hr W L W
+
+i-1	i	A I
+i-2	i l i g e ch i	A I L I G A Ch I
+i-3	h e b mvs i space s a h i h u	G A B - I - S A G I H U
+i-4	t u s mvs i y a r mvs i y a n	T O S - I I A R - I I A A
+# i-5	s a i n zwj i r oe g e l	S A I I A A I R O G A L
+i-6	n a i fvs3 m a	N A I M A
+
+o-1	o	A O
+o-2	o ng h o	A O A G H U
+o-3	h o m h o	H O M H U
+# o-4	u r a n zwj o d o	A O R A A A O D U
+o-5	k2 i n o fvs1	K2 I N O
+
+u-1	u	A O
+u-2	u r u g u	A O R O Hx U
+u-3	o n mvs u space t o l i	A O A - U - T O L I
+u-4	n a m mvs u n space t u g	N A M - O A - T O H
+# u-5	n a s u n zwj u r t u	N A S O A A O R D U
+u-6	t a k2 a n u fvs1	T A K2 A N O
+
+oe-1	oe	A Ue
+oe-2	oe d oe space s oe d oe	A O I D U - S O I D U
+oe-3	t oe s oe b	T O I S O B
+# oe-4	s a n a g a zwj oe l j e i	S A N A Hx A A O I L J A I
+oe-5	a space h oe	A A - G Ue
+oe-6	h oe r h oe	G O I R G O
+
+ue-1	ue	A Ue
+ue-2	ue r ue h ue	A O I R O G O
+ue-3	s ue n space s i d ue	S O I A - S I D U
+ue-4	s ue space e r g ue h ue	S Ue - A R G O G O
+ue-5	t a n mvs u space h i	T A A - U - G I
+ue-6	e ng mvs ue n space ue g e	A A G - O A - A O I G Aa
+# ue-7	ch i ng zwj ue n e n	Ch I A G A O I N A A
+ue-8	t e g ue n mvs ue fvs3	T A G O A - Ux
+
+n-1	n a n d i n	N A A D I A
+n-2	ch a n mvs a space u n u h u	Ch A N _ Aa - A O N O H U
+
+ng-1	s i ng g e n	S I A G G A A
+ng-2	s a ng space h i h ue	S A A G - G I G O
+
+b-1	b a b a ng	B A B A A G
+b-2	sh a b space sh a b	Sh A B - Sh A B
+
+p-1	p a p a	P A P Aa
+p-2	w i d i o fvs1 space t a i p	W I D I O - T A I I P
+
+h-1	h a h a i	H A H A I
+h-2	b o r o space h oe h e	B O R U - G O I G Aa
+h-3	a m i n space s i r h mvs a	A A M I A - S I R H _ Aa
+
+g-1	g a g a g	Hx A Hx A H
+g-2	b a r i g ch i	B A R I H Ch I
+g-3	g e g e h ue	G A G A G O
+g-4	u g space s a n a g mvs a	A O H - S A N A Hx _ Aa
+g-5	j o o space b i ch i g	I O U - B I Ch I G
+
+m-1	m a m mvs a	M A M _ Aa
+m-2	m o r i n space e r d e m	M O R I A - A R D A M
+m-3	e b space h a m t u ch u d	A B - H A M D O Ch O Dd
+
+l-1	j a r l a l	I A R L A L
+l-2	l a l u	L A L U
+
+s-1	s o g s o s	S O H S O S
+
+sh-1	sh o sh fvs2 i g mvs a	Sh O Sh I Hx _ Aa
+sh-2	l a g sh a n	L A H Sh A A
+sh-3	h e i sh	G A I I Sh
+
+t-1	t a t a g	T A D A H
+t-2	k2 ue b space m ee t r	K2 O I B - M W T R
+t-3	f r o n t	F R O A T
+
+d-1	d a d h u	T A Dd H U
+d-2	d o d o m d a h u	T O D O M D A H U
+d-3	d fvs1 a l i y mvs a	D A L I I _ Aa
+d-4	o i d	A O I I Dd
+d-5	e d fvs1 space b u d fvs1	A D - B O D
+
+ch-1	ch a ch u l g mvs a	Ch A Ch O L Hx _ Aa
+ch-2	k2 a r a ch	K2 A R A Ch
+
+j-1	b u i space j mvs a	B O I - I _ Aa
+j-2	j a j i g u r	I A J I Hx O R
+j-3	j o r j	I O R J
+
+y-1	y a y a t u h u	Y A Y A D O H U
+y-2	h u d a mvs y i n	H O D A - I I A
+y-3	g e r mvs i y a r	G A R - I I A R
+y-4	a m a n space j a h i y mvs a	A A M A A - I A G I I _ Aa
+
+r-1	r a d a r	R A D A R
+r-2	a r a m	A A R A M
+
+w-1	w a ng space n o y a n	W A A G - N O Y A A
+w-2	i d e r space g u w mvs a	A I D A R - Hx O U _ Aa
+w-3	d fvs1 i y a ng h u w a	D I Y A A G H O W A
+w-4	s l a w	S L A W
+
+f-1	f i l i m	F I L I M
+f-2	a f r i k2 a	A A F R I K2 Aa
+f-3	h a n i f	H A N I F
+
+k2-1	k2 a ch ee	K2 A Ch W
+k2-2	d o k2 t o r	T O K2 D O R
+k2-3	t a ng k2	T A A G K2
+k-1	k a ch ee	K A Ch W
+k-2	d o k t o r	T O K D O R
+k-3	t a ng k	T A A G K
+
+c-1	c i r k2	C I R K2
+c-2	b ue w ee c a i	B O I W W C A I
+c-3	t a n c	T A A C
+
+z-1	z a i r ue fvs1 ng	Z A I I R O I A G
+z-2	a b i z i	A A B I Z I
+z-3	a i z	A A I I Z
+
+hh-1	hh l o r	A Hr L O R
+hh-2	b ue d fvs1 d fvs1 hh a	B O I D D Hr A
+hh-3	w ee i hh	W W I I Hr
+
+rh-1	rh ee ue rh a n	Rh W O Rh A A
+rh-2	ch i a ng rh	Ch I A A G Rh
+
+lh-1	lh a s a	L Hr A S A
+lh-2	g ue lh ee hh ue	G O I L Hr W Hr U
+
+zr-1	zr i space p i y o u	Zr I - P I Y O U
+
+cr-1	d fvs1 i y a n space cr i	D I Y A A - Cr I
+
+# Mongolian specific
+
+chachlag-1	a n mvs a	A A N _ Aa
+chachlag-2	ue n mvs e	A O I N _ Aa
+
+syllabic-o/u-1	n o space n u	N O - N O
+syllabic-o/u-2	n oe space n ue	N Ue - N Ue
+syllabic-o/u-3	b o space b u	B O - B O
+syllabic-o/u-4	b oe space b ue	B Ue - B Ue
+syllabic-o/u-5	k2 l ue b	K2 L O I B
+syllabic-d-1	d a space d e space d i	D A - D A - D I
+syllabic-d-2	d o space d u	D O - D O
+syllabic-d-3	d oe space d ue	D Ue - D Ue
+
+syllabic-mvs-1	h a n mvs a	H A N _ Aa
+syllabic-mvs-2	a l o i j mvs a	A A L O I I I _ Aa
+syllabic-mvs-3	j i w mvs a	I I U _ Aa
+syllabic-mvs-4	s i r h mvs a	S I R H _ Aa
+syllabic-mvs-5	a y a g mvs a	A A Y A Hx _ Aa
+
+syllabic-n/t/d-1	b a n a t a d a s a	B A N A D A D A S A
+syllabic-n/t/d-2	a n b a t b a d s a	A A A B A T B A Dd S A
+
+syllabic-h/g-1	h a h o n	H A H O A
+syllabic-h/g-2	g a g o n	Hx A Hx O A
+syllabic-h/g-3	h e h i n	G A G I A
+syllabic-h/g-4	g e g i n	G A G I A
+syllabic-h/g-5	b a g space b a h	B A H - B A H
+syllabic-h/g-6	a g s space o h s	A A H S - A O H S
+syllabic-h/g-7	b e g s	B A G S
+syllabic-h/g-8	a s i g s i g	A A S I H S I H
+syllabic-h/g-9	e s i g s i g	A S I G S I G
+syllabic-h/g-10	s i g s i g a	S I H S I Hx A
+syllabic-h/g-11	s i g s i g e	S I G S I G Aa
+syllabic-h/g-12	g h i r	G G I R
+syllabic-h/g-13	s g s g b	S G S G B
+
+syllabic-eac-1	ee t s t r	A W T S T R
+syllabic-eac-2	sh i space sh i r	Sh I - S I R
+syllabic-eac-3	a sh i r space e sh i	A A S I R - A S I
+syllabic-eac-4	a s g a space a d g a	A A S H A - A A Dd H A
+
+particle-1	mvs a mvs e	_ Aa _ Aa
+particle-2	mvs a ch a mvs e u e	- A Ch A - A O A
+particle-3	mvs a ch a g a n	- A Ch A Hx A A
+particle-4	mvs i mvs u mvs ue	- I - U - U
+particle-5	mvs i y a r mvs i y e r	- I I A R - I I A R
+particle-6	mvs i y a n mvs i y e n	- I I A A - I I A A
+particle-7	mvs u n mvs ue n	- O A - O A
+particle-8	mvs u d mvs ue d	- O Dd - O Dd
+particle-9	mvs ch u mvs ch ue	- Ch U - Ch U
+particle-10	mvs t u mvs t ue	- T U - T U
+particle-11	mvs t ue r mvs t ue n i	- T O R - T O N I
+particle-12	mvs y ue g e n mvs l ue g e	- Y O G A A - L O G Aa
+particle-13	mvs n ue g ue d mvs n ue g e n	- N O G O Dd - N O G A A
+particle-14	mvs y ue m mvs y ue m s e n	- Y O M - Y O M S A A
+particle-15	mvs h ue mvs y i mvs y i n	- G O - I I - I I A
+particle-16	mvs d a g a n mvs d e g e n	- D A Hx A A - D A G A A
+particle-17	mvs d u mvs d ue	- D U - D U
+particle-18	mvs d a g mvs d e g	- D A H - D A G
+particle-19	mvs d a h i mvs d e h i	- D A G I - D A G I
+particle-20	mvs d u r mvs d ue r	- D O R - D O R
+particle-21	mvs d u n i mvs d ue n i	- D O N I - D O N I
+particle-22	mvs d u g a r mvs d ue g e r	- D O Hx A R - D O G A R
+particle-23	mvs d a mvs d e	- D A - D A
+particle-24	u u space ue ue	O U - O U
+particle-25	b ue ue	B O U
+
+devsger-1	a i n space e i n	A A I I A - A I I A
+devsger-2	o i n space u i n	A O I I A - A O I I A
+devsger-3	oe i n space ue i n	A O I I A - A O I I A
+
+bowed-1	a b o space a p u	A A B O - A A P O
+bowed-2	e g oe space e h ue	A G O - A G O
+bowed-3	a b a space e p e	A A B Aa - A P Aa
+bowed-4	a k2 a space e h e	A A K2 Aa - A G Aa

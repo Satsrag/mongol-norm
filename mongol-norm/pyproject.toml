@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mongol-norm"
+version = "0.2.0"
+description = "Shape-aware normalizer for Traditional Mongolian script. Implements the UTN #57 v4 shaping pipeline in pure Python."
+readme = "README.md"
+requires-python = ">=3.6"
+license = { text = "OFL-1.1" }
+keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = [
+    "mongol-shape-data>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/Satsrag/mongol-norm"
+
+[tool.setuptools.packages.find]
+include = ["mongol_norm*"]

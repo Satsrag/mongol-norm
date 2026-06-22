@@ -1,5 +1,7 @@
 # mongol-norm
 
+[![Test](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml/badge.svg)](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml)
+
 [English](#english) | [中文](#中文)
 
 ---
@@ -7,16 +9,26 @@
 <a id="english"></a>
 ## English
 
-### ⚠️ Status: Experimental
+### Status
 
-**This project was generated with [Claude Code](https://claude.ai/code) (AI-assisted coding).** The shaping logic is based on UTN #57 v4 and the `mongfontbuilder` data, but **the normalization output has not been independently validated** against a ground-truth corpus or reference implementation. There may be edge cases, incorrect canonical forms, or missed equivalences — especially for:
+**Shaping** (MNG / Hudum) is verified against two cross-implementation TSV suites:
+
+| Suite | Cases | Pass | Notes |
+|---|---|---|---|
+| `mongfontbuilder/core-hud.tsv` | 177 | **100%** | curated regression set |
+| `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3512 | **100%** | 5 cases excluded as UTN ↔ EAC xfail, matching mongfontbuilder's own `pytest.mark.xfail` set |
+| Hand-written shaper unit tests | 113 | **100%** | shape / same_shape / normalize / normalize_text |
+
+CI runs the full suite on Python 3.9 – 3.13 on every push.
+
+**Normalization** is exercised by the hand-written tests but does NOT yet have a third-party corpus regression set. Edge cases may still mis-canonicalize, especially:
 
 - Words with ambiguous vowel harmony (no unambiguous o/u/oe/ue vowel)
-- Rare FVS combinations
-- MVS particle forms
-- Todo / Sibe / Manchu locales (normalization not implemented)
+- Todo / Sibe / Manchu locales (shaping rules loaded; normalization unimplemented)
 
-**Contributions of test data and bug reports are very welcome** — see [Help Wanted](#help-wanted-test-data) below.
+**Contributions of normalization test data and bug reports are welcome** — see [Help Wanted](#help-wanted-test-data) below.
+
+This project was developed with [Claude Code](https://claude.ai/code) (AI-assisted coding). Shaping logic is derived from UTN #57 v4 and mongfontbuilder; the implementation is independently tested against the upstream TSV regression suites.
 
 ---
 
@@ -70,16 +82,19 @@ After shaping, the normalizer selects the canonical letter for each position:
 
 ### Installation
 
+This repo contains two sibling Python packages: `mongol-shape-data` (flat rule data) and `mongol-norm` (the shaper, depends on `mongol-shape-data`). Neither is on PyPI yet — install from source:
+
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
-pip install mongfontbuilder
+pip install ./mongol-shape-data
+pip install ./mongol-norm
 ```
 
 ### Usage
 
 ```python
-from shaper import MongolianShaper
+from mongol_norm import MongolianShaper
 
 shaper = MongolianShaper(locale="MNG")  # Hudum Traditional Mongolian
 
@@ -132,27 +147,35 @@ print(f"{len(words)} inputs → {len(unique)} unique form(s): {unique}")
 ### Running Tests
 
 ```bash
-# Run all unit tests
-python -m pytest test_shaper.py -v
+# Hand-written shaper / same_shape / normalize tests (113 cases)
+cd mongol-norm
+python -m unittest tests.test_shaper -v
 
-# Or with the built-in unittest runner
-python -m unittest test_shaper -v
+# mongfontbuilder cross-implementation regression (177 cases)
+python -m unittest tests.test_core_hud
+
+# GB/T 25914-2023 EAC compliance suite (3507 cases, 5 UTN-xfail)
+python -m unittest tests.test_eac_hud
+
+# Or all together
+python -m unittest tests.test_shaper tests.test_core_hud tests.test_eac_hud
 ```
 
-The test suite covers:
+The hand-written suite covers:
 
 | Test class | What it checks |
 |------------|---------------|
-| `TestShape` | `shape()` returns correct written-unit sequence (sain variants, vowel harmony, devsger, edge cases) |
+| `TestShape` | `shape()` returns correct written-unit sequence (sain variants, the 5 shaping phases step-by-step, UTN-vs-EAC divergences) |
 | `TestSameShape` | `same_shape()` correctly identifies visually identical vs. distinct encodings |
 | `TestNormalize` | `normalize()` produces canonical output; idempotency; normalized result matches original visually |
 | `TestNormalizeText` | `normalize_text()` handles multi-word, mixed-script, punctuation, empty input; idempotency; word independence |
+| `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current test count: **31 test cases** — all covering the MNG (Hudum) locale.
+Current totals: **113 hand-written + 177 core-hud + 3507 eac-hud = 3797 test cases**, all green on Python 3.9 – 3.13.
 
 ### Help Wanted: Test Data
 
-The shaping logic is machine-derived from UTN #57 v4 data. **What we lack is a ground-truth corpus** — a set of (input encoding, expected normalized form) pairs verified by a human expert or a reference renderer.
+Shaping is now verified against the mongfontbuilder + GB/T 25914 cross-implementation suites (3684/3684 = 100%, with 5 UTN-xfail mirroring mongfontbuilder's own). **What's still missing is a real-world normalization corpus** — a set of (input encoding, expected normalized form) pairs verified by a human expert.
 
 Useful contributions:
 
@@ -175,19 +198,33 @@ If you can contribute, please **open an issue or pull request** at [github.com/S
 ### Project Structure
 
 ```
-mongol-norm/
-├── shaper.py        # Core: shaping engine + normalizer
-├── test_shaper.py   # Unit tests (pytest / unittest)
-└── README.md
+mongol-norm/                          # the repo (Satsrag/mongol-norm)
+├── .github/workflows/test.yml        # CI: Python 3.9-3.13 on every push
+├── mongol-shape-data/                # sibling package: flat shaping rules
+│   ├── mongol_shape_data/rules/
+│   │   ├── MNG.json                  # Hudum
+│   │   ├── TOD.json  SIB.json  MCH.json
+│   │   └── particles.json
+│   └── pyproject.toml
+└── mongol-norm/                      # sibling package: the shaper
+    ├── mongol_norm/
+    │   ├── shaper.py                 # tokenize / assign_positions / shape / normalize
+    │   └── rules.py                  # the 5 shaping phases (iii1..iii5) mirroring iii.py
+    ├── tests/
+    │   ├── test_shaper.py            # 113 hand-written
+    │   ├── test_core_hud.py          # 177 mongfontbuilder cases
+    │   ├── test_eac_hud.py           # 3507 GB/T 25914 cases
+    │   └── data/{core,eac}-hud.tsv   # vendored from mongfontbuilder
+    └── pyproject.toml
 ```
 
-Data is loaded directly from the [`mongfontbuilder`](https://pypi.org/project/mongfontbuilder/) PyPI package — no local data files needed.
+`mongol-norm` declares `mongol-shape-data>=0.1.0` as a runtime dependency. Neither package is on PyPI yet — both install from the local sibling paths.
 
 ### Data Sources & Acknowledgments
 
 - **[UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html)** — Unicode Technical Note: Encoding and Shaping of the Mongolian Script. The authoritative specification for Mongolian shaping rules.
-- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)** by Kushim Jiang — Machine-readable variant data (`variants.json`) that encodes the complete letter × position × FVS → glyph mapping. Both UTN #57 and mongfontbuilder are authored by the same person.
-- **[GB/T 25914—2023](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=BD6429DE5A7FC782FAAE13938A07166E)** — China national standard for Traditional Mongolian nominal characters.
+- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)** by Kushim Jiang — Source for `mongol-shape-data`'s flat variant tables (preprocessed from `data.variants` / `data.particles`) and for the `core-hud.tsv` / `eac-hud.tsv` regression suites we vendor into `tests/data/`. Both UTN #57 and mongfontbuilder are authored by the same person.
+- **[GB/T 25914—2023](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=BD6429DE5A7FC782FAAE13938A07166E)** — China national standard for Traditional Mongolian nominal characters; source of the EAC compliance test set.
 - **[Claude Code](https://claude.ai/code)** — This project was developed with AI assistance. The shaping rules are derived from the above sources; Claude Code was used to implement and structure the engine.
 
 ### Supported Locales
@@ -201,28 +238,38 @@ Data is loaded directly from the [`mongfontbuilder`](https://pypi.org/project/mo
 
 ### Requirements
 
-- Python 3.6+
-- [`mongfontbuilder`](https://pypi.org/project/mongfontbuilder/) (PyPI)
+- Python 3.9+ (CI matrix: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
+- `mongol-shape-data` (sibling package, installed automatically when you `pip install ./mongol-norm`)
 
 ### License
 
-The shaping rule data is derived from Unicode Technical Notes and the mongfontbuilder project. Please respect their respective licenses.
+SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuilder` and UTN #57 sources.
 
 ---
 
 <a id="中文"></a>
 ## 中文
 
-### ⚠️ 状态：实验性
+### 状态
 
-**本项目由 [Claude Code](https://claude.ai/code)（AI 辅助编码）生成。** shaping 逻辑基于 UTN #57 v4 和 `mongfontbuilder` 数据，但**规范化输出尚未经过独立验证**，没有与权威语料库或参考实现对比。可能存在边界情况、错误的规范形式或遗漏的等价序列，尤其是：
+**Shaping**(MNG / Hudum)对照两套跨实现 TSV 套件已全部验证:
 
-- 元音和谐不明确的词（没有 o/u/oe/ue 等不模糊元音）
-- 罕见的 FVS 组合
-- MVS 小品词形式
-- Todo / 锡伯文 / 满文（规范化尚未实现）
+| 套件 | 用例数 | 通过 | 说明 |
+|---|---|---|---|
+| `mongfontbuilder/core-hud.tsv` | 177 | **100%** | 精选回归集 |
+| `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3512 | **100%** | 5 个 UTN ↔ EAC 分歧 case 跳过(跟 mongfontbuilder 自己的 `pytest.mark.xfail` 列表一致) |
+| 手写 shaper 单元测试 | 113 | **100%** | shape / same_shape / normalize / normalize_text |
 
-**欢迎贡献测试数据和报告问题** — 详见下方[求助：测试数据](#求助测试数据)。
+CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。
+
+**规范化**目前由手写测试覆盖,但**还没有第三方语料库回归集**。边缘情况可能输出错误的规范形式,尤其是:
+
+- 元音和谐不明确的词(没有 o/u/oe/ue 等不模糊元音)
+- Todo / 锡伯文 / 满文(shaping 规则已加载,规范化未实现)
+
+**欢迎贡献规范化测试数据和报告问题** — 详见下方[求助:测试数据](#求助测试数据)。
+
+本项目由 [Claude Code](https://claude.ai/code)(AI 辅助编码)开发。Shaping 逻辑源自 UTN #57 v4 和 mongfontbuilder; 实现独立对照上游 TSV 回归套件验证。
 
 ---
 
@@ -278,16 +325,19 @@ shaping 后，规范化器为每个位置选择规范字母：
 
 ### 安装
 
+本仓库包含两个并列 Python 包: `mongol-shape-data`(扁平规则数据)和 `mongol-norm`(整形器,依赖前者)。两者都还没发布到 PyPI,从源码本地安装:
+
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
-pip install mongfontbuilder
+pip install ./mongol-shape-data
+pip install ./mongol-norm
 ```
 
 ### 使用方法
 
 ```python
-from shaper import MongolianShaper
+from mongol_norm import MongolianShaper
 
 shaper = MongolianShaper(locale="MNG")  # Hudum 传统蒙文
 
@@ -340,27 +390,35 @@ print(f"{len(words)} 个输入 → {len(unique)} 个唯一形态：{unique}")
 ### 运行测试
 
 ```bash
-# 使用 pytest 运行全部测试
-python -m pytest test_shaper.py -v
+# 手写 shaper / same_shape / normalize 测试(113 个)
+cd mongol-norm
+python -m unittest tests.test_shaper -v
 
-# 或使用内置 unittest
-python -m unittest test_shaper -v
+# mongfontbuilder 跨实现回归(177 个)
+python -m unittest tests.test_core_hud
+
+# GB/T 25914-2023 EAC 一致性套件(3507 个,5 个 UTN-xfail)
+python -m unittest tests.test_eac_hud
+
+# 或一次跑全部
+python -m unittest tests.test_shaper tests.test_core_hud tests.test_eac_hud
 ```
 
-测试覆盖范围：
+手写套件覆盖范围:
 
 | 测试类 | 测试内容 |
 |--------|---------|
-| `TestShape` | `shape()` 输出正确的书写单元序列（sain 变体、元音和谐、devsger、边界情况） |
+| `TestShape` | `shape()` 输出正确的书写单元序列(sain 变体、5 步 shaping 分步测试、UTN-vs-EAC 分歧) |
 | `TestSameShape` | `same_shape()` 正确识别外形相同 vs 不同的编码 |
-| `TestNormalize` | `normalize()` 输出规范结果；幂等性；规范化后与原始词形视觉相同 |
-| `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入；幂等性；词独立性 |
+| `TestNormalize` | `normalize()` 输出规范结果; 幂等性; 规范化后与原始词形视觉相同 |
+| `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入; 幂等性; 词独立性 |
+| `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前共 **31 个测试用例**，均覆盖 MNG（Hudum）语种。
+当前总数: **113 手写 + 177 core-hud + 3507 eac-hud = 3797 个测试用例**, 在 Python 3.9 – 3.13 上全绿。
 
 ### 求助：测试数据
 
-shaping 逻辑是从 UTN #57 v4 数据机器推导而来的。**目前缺乏的是基准语料库**——由人工专家或参考渲染器验证的（输入编码, 期望规范形式）对。
+Shaping 已经对照 mongfontbuilder + GB/T 25914 跨实现套件验证完毕(3684/3684 = 100%, 5 个 UTN-xfail 跟 mongfontbuilder 自己一致)。**目前还缺一个真实世界的规范化语料库**——由人工专家验证的(输入编码, 期望规范形式)对。
 
 欢迎以下形式的贡献：
 
@@ -383,19 +441,33 @@ shaping 逻辑是从 UTN #57 v4 数据机器推导而来的。**目前缺乏的�
 ### 项目结构
 
 ```
-mongol-norm/
-├── shaper.py        # 核心：shaping 引擎 + 规范化器
-├── test_shaper.py   # 单元测试（pytest / unittest）
-└── README.md
+mongol-norm/                          # 仓库 (Satsrag/mongol-norm)
+├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.13
+├── mongol-shape-data/                # 并列包: 扁平 shaping 规则
+│   ├── mongol_shape_data/rules/
+│   │   ├── MNG.json                  # Hudum
+│   │   ├── TOD.json  SIB.json  MCH.json
+│   │   └── particles.json
+│   └── pyproject.toml
+└── mongol-norm/                      # 并列包: 整形器
+    ├── mongol_norm/
+    │   ├── shaper.py                 # tokenize / assign_positions / shape / normalize
+    │   └── rules.py                  # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
+    ├── tests/
+    │   ├── test_shaper.py            # 113 手写
+    │   ├── test_core_hud.py          # 177 mongfontbuilder case
+    │   ├── test_eac_hud.py           # 3507 GB/T 25914 case
+    │   └── data/{core,eac}-hud.tsv   # 来自 mongfontbuilder
+    └── pyproject.toml
 ```
 
-数据直接从 [`mongfontbuilder`](https://pypi.org/project/mongfontbuilder/) PyPI 包加载，无需本地数据文件。
+`mongol-norm` 在 `pyproject.toml` 里声明 `mongol-shape-data>=0.1.0` 为运行时依赖。两个包都还没上 PyPI, 都从本地兄弟路径安装。
 
 ### 数据来源与致谢
 
 - **[UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html)** — Unicode 技术注释：蒙古文编码与字形化。蒙古文 shaping 规则的权威规范。
-- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)**（Kushim Jiang）— 机器可读的变体数据（`variants.json`），编码了完整的「字母 × 位置 × FVS → 字形」映射。UTN #57 和 mongfontbuilder 的作者是同一人。
-- **[GB/T 25914—2023](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=BD6429DE5A7FC782FAAE13938A07166E)** — 中国国家标准：传统蒙古文名义字符、表现字符和控制字符使用规则。
+- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)**(Kushim Jiang)— `mongol-shape-data` 的扁平变体表来源(从 `data.variants` / `data.particles` 预处理而来), 同时也是我们 vendor 进 `tests/data/` 的 `core-hud.tsv` / `eac-hud.tsv` 回归套件的来源。UTN #57 和 mongfontbuilder 的作者是同一人。
+- **[GB/T 25914—2023](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=BD6429DE5A7FC782FAAE13938A07166E)** — 中国国家标准：传统蒙古文名义字符、表现字符和控制字符使用规则; EAC 一致性测试集的来源。
 - **[Claude Code](https://claude.ai/code)** — 本项目使用 AI 辅助开发。shaping 规则来源于上述数据；Claude Code 用于实现和组织引擎代码。
 
 ### 支持的语种
@@ -409,5 +481,9 @@ mongol-norm/
 
 ### 环境要求
 
-- Python 3.6+
-- [`mongfontbuilder`](https://pypi.org/project/mongfontbuilder/)（PyPI）
+- Python 3.9+ (CI 矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
+- `mongol-shape-data`(并列包, `pip install ./mongol-norm` 时自动安装)
+
+### 许可证
+
+SIL Open Font License 1.1 (`OFL-1.1`) — 跟上游 `mongfontbuilder` 和 UTN #57 一致。
