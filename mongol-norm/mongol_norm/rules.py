@@ -641,6 +641,20 @@ def _iii4_vowel_devsger_at(tokens, i, shaper):
 #
 # A vowel following a bowed consonant (G, Gx, K, K2, B, P, F) takes the
 # `post_bowed` form to attach smoothly to the bow's rightward stroke.
+#
+# Like iii2g.t.devsger and iii2g.g.dotless, this rule OVERRIDES any
+# condition set by earlier phases (notably iii3.particle and
+# iii2a.marked) when its precise context fires. In iii.py the same
+# effect comes from OpenType's class-membership semantics: iii5 matches
+# `bowed letter + vowel.fina` regardless of any earlier substitution
+# and re-substitutes the vowel via `condition.MNG:post_bowed`. We mirror
+# this by dropping the `if tok.condition is not None: return` guard.
+#
+# Concrete example fixed by the override (see `core-hud.tsv: particle-15`):
+#   `mvs h ue` — h.init+ue.fina, iii2f gives h the feminine form "G"
+#   which is bowedG. iii3 particle dict `mvs h ue` → [2] would set ue's
+#   condition to `particle` (→ "U"). iii5 then OVERRIDES with
+#   `post_bowed` (→ "O"), matching DraftNew font output.
 
 def _iii5_post_bowed(tokens, shaper):
     for i in range(len(tokens)):
@@ -649,13 +663,26 @@ def _iii5_post_bowed(tokens, shaper):
 
 def _iii5_post_bowed_at(tokens, i, shaper):
     tok = tokens[i]
-    if tok.condition is not None:
+    # iii5 overrides most prior conditions (notably iii3.particle), but
+    # explicitly defers when iii2a has set `marked` — iii.py's iii5 has a
+    # leading ignore pattern for `u1825.Ue.fina` / `u1826.Ue.fina`
+    # (`iii.py:966`), which are exactly the post-marked glyphs of oe/ue.
+    # Skipping `marked` here mirrors that ignore.
+    if tok.condition == "marked":
         return
     if not tok.is_letter:
         return
     if shaper._has_fvs(tok):
         return
     if tok.alias not in ("o", "u", "oe", "ue", "a", "e"):
+        return
+    # iii.py iii5 restricts the input to .FINA position only (`iii.py:970,
+    # 977, 982`). Skipping non-fina here matches that and prevents us from
+    # over-applying post_bowed to medi/init/isol vowels (which have no
+    # post_bowed variant anyway and would fall back to default — fine in
+    # isolation but harmful when our override stomps a prior iii3.particle
+    # condition that DOES have a variant).
+    if tok.position != "fina":
         return
     prev = shaper._prev_letter(tokens, i)
     if prev is None:

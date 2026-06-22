@@ -521,49 +521,72 @@ class MongolianShaper:
     def _masc_marker_reaches_g_h(self, tokens, idx):
         """
         Mirror MARKER_MASCULINE propagation from mongfontbuilder iii.py
-        preprocessing.A/B/C (`mongfontbuilder/lib/mongfontbuilder/otl/iii.py:78-101`).
-        模拟 mongfontbuilder iii.py 中 MARKER_MASCULINE 的传播 + 清理链。
+        preprocessing — both FORWARD (A/B/C) and BACKWARD (G/H/I/J/K).
+        模拟 mongfontbuilder iii.py 中 MARKER_MASCULINE 的双向传播链。
 
         Returns True iff a MASC marker would sit *immediately after* the g/h
         at `idx` after the full preprocessing chain — the precondition for
         the iii2f.A pattern 5 substitution `i + g/h + MASC → masculine_devsger`.
-        当 MASC marker 会留在该 g/h 紧邻其后位置时返回 True，对应 iii2f.A
-        pattern 5 的触发条件。
 
-        Mechanism (verified empirically against DraftNew-Regular.otf):
+        Two complementary mechanisms in iii.py (`iii.py:78-212`):
 
-          - preprocessing.A adds a MASC marker after every masc vowel default
-            glyph at init/medi (fina is NOT marked).
-          - preprocessing.B is a CHAIN context substitution
-            `MASC + X → X + MASC`. Each application *adds* a new MASC after
-            each non-fem letter following the masc vowel (does not "move"
-            the marker; it duplicates it forward). Fem vowels are not in
-            the input set, so they block further propagation.
-          - preprocessing.C strips MASC after every non-h/g letter, leaving
-            MASC only immediately after h/g letters.
+        ── FORWARD (preprocessing.A + B + C) ──
+        A masc vowel at init/medi position seeds a MASC marker which
+        propagates forward through non-fem letters via chain-context sub
+        (each step duplicates a new MASC after the matched letter).
+        preprocessing.C strips MASC from after non-h/g letters but
+        preserves it after h/g. Net: MASC sits after every h/g preceded
+        somewhere by a masc vowel (init/medi) with no fem vowel between.
 
-        Net effect: MASC ends up immediately after every h/g letter that
-        is preceded (anywhere) by a masc vowel with no fem vowel in between.
-        Whether g/h is the last letter is irrelevant — letters after g/h
-        also have their MASCs stripped by preprocessing.C, but g/h's own
-        trailing MASC is preserved.
-        净效果:词内只要在 g/h 之前存在 masc vowel 且中间没有 fem vowel
-        阻断,MASC 就会落在该 g/h 紧邻其后。g/h 后面有没有字母无关紧要。
+        ── BACKWARD (preprocessing.G + H + J + K) ──
+        Documented in iii0b: "G to K implement masculinity indefinitely
+        passing backward". A masc vowel triggers preprocessing.G on the
+        immediately preceding init/medi consonant/neut vowel, marking it.
+        preprocessing.H is a ReverseChainSingleSubst that propagates
+        marked-ness backward through chain of init/medi non-fem letters.
+        preprocessing.J reverts non-h/g letters to unmarked (they were
+        only intermediate carriers). preprocessing.K converts marked h/g
+        back to unmarked + adds MASC marker after. Net: a g/h at
+        init/medi gets MASC after it if there's a later masc vowel
+        reachable through unbroken chain of init/medi non-fem letters.
 
-        Two conditions:
-        1. Some masc vowel exists earlier in the word at init/medi position.
-        2. No fem vowel sits between that masc vowel and g/h.
+        Both mechanisms feed into the same iii2f.A pattern 5 substitution.
+        For test coverage of the backward path, see `s i g s i g a → S I H
+        S I Hx A` (`tests/data/core-hud.tsv: syllabic-h/g-10`): the first
+        g(idx 2) has prev=i + reachable masc a(idx 6) via the chain
+        g→s→i→g, so backward propagation marks it → "H".
+
+        Verified against `DraftNew-Regular.otf` via hb-shape.
         """
-        # Scan backward from g/h. The first fem vowel we hit blocks any
-        # earlier masc; the first masc vowel we hit (if at init/medi)
-        # confirms the marker reaches g/h.
+        # ── Forward (preprocessing.A/B/C) ──
+        # Scan backward from g/h. First fem vowel blocks; first masc
+        # vowel at init/medi confirms forward marker reaches.
         for j in range(idx - 1, -1, -1):
             if not tokens[j].is_letter:
                 continue
             if self._is_fem_vowel(tokens[j]):
-                return False
+                break  # blocks; fall through to backward check
             if self._is_masc_vowel(tokens[j]) and tokens[j].position in ("init", "medi"):
                 return True
+
+        # ── Backward (preprocessing.G/H/J/K) ──
+        # g/h must itself be at init/medi to participate in preprocessing.H.
+        if tokens[idx].position not in ("init", "medi"):
+            return False
+        # Walk forward through tokens; chain must be unbroken non-fem
+        # init/medi letters terminating at a masc vowel.
+        for j in range(idx + 1, len(tokens)):
+            nxt = tokens[j]
+            if not nxt.is_letter:
+                return False  # non-letter (mvs etc.) breaks chain
+            if self._is_masc_vowel(nxt):
+                return True  # found masc vowel — backward chain succeeds
+            if self._is_fem_vowel(nxt):
+                return False  # fem vowel blocks propagation
+            # Non-vowel letter (consonant or neut vowel) — must be at
+            # init/medi for preprocessing.H to mark it.
+            if nxt.position not in ("init", "medi"):
+                return False
 
         return False
 
