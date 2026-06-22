@@ -148,6 +148,19 @@ def _iii2a_o_u_oe_ue_marked_gb_a_at(tokens, i, shaper):
         return
     if tok.condition != "marked":
         return
+    # GB.A reset is observed only on .FINA-position vowels (verified
+    # against DraftNew-Regular.otf via hb-shape):
+    #   `h fvs3 oe`   (oe.fina) → reset to default "U"
+    #   `h fvs3 oe l` (oe.medi) → STAYS marked "OI"
+    #   `d fvs1 ue`   (ue.fina) → reset to default "U"
+    #   `d fvs1 ue l` (ue.medi) → STAYS marked "OI"
+    # iii.py's GB.A pattern uses `c.variants("MNG", ..., (medi, fina))`
+    # which by the time iii2a.MAIN has substituted the input glyph to
+    # the marked variant, no longer matches at medi position (the marked
+    # medi glyph isn't in the class). Net effect: only fina vowels get
+    # reset. We mirror that with an explicit position gate.
+    if tok.position != "fina":
+        return
     if shaper._has_fvs(tok):
         tok.condition = None
         return
@@ -405,8 +418,15 @@ def _iii2f_h_g_harmony_at(tokens, i, shaper):
         return
     if shaper._has_fvs(tok):
         return
-    nxt = shaper._next_letter(tokens, i)
-    prev = shaper._prev_letter(tokens, i)
+    # Adjacency-strict prev/nxt: iii.py's iii2f main rules run with
+    # `IgnoreMarks: True` (FVS marks invisible) but MVS is a base glyph
+    # that BREAKS adjacency. Skipping past MVS via `_prev/_next_letter`
+    # would let us false-match vowels across word boundaries (e.g.
+    # `b a d a g mvs u n` would otherwise see u as g.fina's "next masc
+    # vowel" and fire masculine_onset, but iii.py keeps them apart so
+    # g.fina sees only its adjacent prev=a and gets masculine_devsger).
+    nxt = shaper._next_adjacent_letter(tokens, i)
+    prev = shaper._prev_adjacent_letter(tokens, i)
 
     # ── (a) Adjacent vowel decides ──
     if nxt is not None and shaper._is_masc_vowel(nxt):
@@ -578,6 +598,18 @@ def _iii3_particle(tokens, shaper):
         particle_indices = shaper.particle_dict.get(" ".join(aliases))
         if particle_indices is None:
             continue  # loop filter — no particle match for this segment
+        # iii.py iii3 uses `UseMarkFilteringSet @fvs` (iii.py:795), so
+        # FVS marks are VISIBLE during the contextual match. A particle
+        # dict entry like `mvs i y a r` requires the 5 base glyphs to be
+        # adjacent; any FVS attached to a letter in the segment breaks
+        # that adjacency and the lookup doesn't fire. Mirror by skipping
+        # this segment if any letter carries an FVS.
+        # Verified against DraftNew-Regular.otf:
+        #   `mvs i y a r`       → particle fires (i=I, y=I)
+        #   `mvs i y fvs1 a r`  → particle does NOT fire (i=AI, y=I default)
+        if any(tokens[idx].is_letter and tokens[idx].fvs_cp is not None
+               for idx in indices):
+            continue
         for pidx in particle_indices:
             if pidx >= len(indices):
                 continue  # defensive; never expected to fire
@@ -667,21 +699,17 @@ def _iii5_post_bowed_at(tokens, i, shaper):
     # explicitly defers when iii2a has set `marked` — iii.py's iii5 has a
     # leading ignore pattern for `u1825.Ue.fina` / `u1826.Ue.fina`
     # (`iii.py:966`), which are exactly the post-marked glyphs of oe/ue.
-    # Skipping `marked` here mirrors that ignore.
     if tok.condition == "marked":
         return
     if not tok.is_letter:
         return
-    if shaper._has_fvs(tok):
-        return
+    # NOTE: no `if shaper._has_fvs(tok): return` — iii.py iii5 uses
+    # IgnoreMarks, so FVS on the vowel doesn't block the rule. When FVS
+    # matches a variant the resolver's FVS-first priority wins; when it
+    # doesn't (e.g. `b a fvs3`), the resolver falls through to the
+    # condition and applies post_bowed correctly.
     if tok.alias not in ("o", "u", "oe", "ue", "a", "e"):
         return
-    # iii.py iii5 restricts the input to .FINA position only (`iii.py:970,
-    # 977, 982`). Skipping non-fina here matches that and prevents us from
-    # over-applying post_bowed to medi/init/isol vowels (which have no
-    # post_bowed variant anyway and would fall back to default — fine in
-    # isolation but harmful when our override stomps a prior iii3.particle
-    # condition that DOES have a variant).
     if tok.position != "fina":
         return
     prev = shaper._prev_letter(tokens, i)
@@ -690,8 +718,48 @@ def _iii5_post_bowed_at(tokens, i, shaper):
     shaper._resolve_token_written(prev)
     if not prev.written:
         return
-    if prev.written[-1] not in BOWED_UNITS:
+
+    last_unit = prev.written[-1]
+    is_bowedG = last_unit in ("G", "Gx")
+    is_bowedBK = last_unit in ("B", "P", "F", "K", "K2")
+    if not (is_bowedG or is_bowedBK):
         return
+
+    # iii.py iii5 main rule input sets (iii.py:967-984):
+    #   bowed (any)            + [o,u,oe,ue].fina → post_bowed
+    #   bowedB + bowedK        + [a,e].fina       → post_bowed
+    #   bowedG                 + e.fina           → post_bowed (a EXCLUDED)
+    # So bowedG + a does NOT fire post_bowed. Verified against
+    # `DraftNew-Regular.otf`: `h fvs2 a → G A` (default, not Aa).
+    if is_bowedG and tok.alias == "a":
+        return
+
+    # ── iii5.GB rules (FVS-aware, iii.py:993-1036) ──
+    # Verified against DraftNew-Regular.otf via hb-shape.
+    if prev.fvs_cp is not None:
+        FVS2 = 0x180C
+        FVS4 = 0x180F
+        # Rule E: g/h.(init|medi) + fvs2/fvs4 + [o,u].fina → reset
+        # (suppress post_bowed). Example: `h fvs2 o → "U"` (default),
+        # NOT `"O"` (post_bowed).
+        if (is_bowedG and prev.alias in ("g", "h")
+                and prev.fvs_cp in (FVS2, FVS4)
+                and tok.alias in ("o", "u")):
+            return
+        # Rule C: bowedB/bowedK.init + fvs + [oe,ue].fina → MARKED
+        # (not post_bowed). Example: `b fvs1 ue → "Ue"` (marked),
+        # NOT `"O"` (post_bowed).
+        if (is_bowedBK and prev.position == "init"
+                and tok.alias in ("oe", "ue")):
+            tok.condition = "marked"
+            return
+        # Note: iii.py's other GB rules (B, D for h/g+fvs1/3 → reset;
+        # G for h/g.init+fvs2/4+oe/ue → marked) are already covered by
+        # our existing pipeline. B/D: h/g+fvs1/3 renders as Hx/H (not
+        # bowed) → iii5 main wouldn't fire anyway, and iii2a.GB.A
+        # has already reset any marked condition. G: handled by
+        # iii2a.GB.B which we implement directly.
+
     tok.condition = "post_bowed"
 
 

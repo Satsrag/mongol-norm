@@ -463,7 +463,31 @@ class MongolianShaper:
     
     def _next_tok(self, tokens, idx):
         return tokens[idx + 1] if idx + 1 < len(tokens) else None
-    
+
+    def _prev_adjacent_letter(self, tokens, idx):
+        """Return the IMMEDIATELY preceding letter (idx-1), or None if a
+        non-letter token (e.g. MVS) is at idx-1. Use this when a rule
+        requires strict GLYPH adjacency.
+
+        Rationale: in iii.py, rules that use `IgnoreMarks: True` make
+        FVS marks invisible during matching — but MVS is a *base glyph*,
+        not a mark, so it remains visible and breaks adjacency.
+        `_prev_letter` / `_next_letter` (which skip over MVS to find
+        the nearest letter) match across word boundaries — wrong for
+        rules like iii2f.h_g.harmony where adjacency matters.
+        """
+        if idx <= 0:
+            return None
+        prev = tokens[idx - 1]
+        return prev if prev.is_letter else None
+
+    def _next_adjacent_letter(self, tokens, idx):
+        """Mirror image of `_prev_adjacent_letter`."""
+        if idx + 1 >= len(tokens):
+            return None
+        nxt = tokens[idx + 1]
+        return nxt if nxt.is_letter else None
+
     def _has_fvs(self, tok):
         return tok.fvs_cp is not None
     
@@ -476,16 +500,19 @@ class MongolianShaper:
         延迟解析单个标记的书写单元。
 
         Resolution priority / 解析优先级:
-          1. Explicit FVS on the token → use that FVS variant directly,
-             FALLING BACK to default if the FVS doesn't match any variant
-             (mirrors iii.py behavior: FVS substitution doesn't fire,
-             glyph stays default)
-             标记上有显式 FVS → 直接使用该 FVS 变体;若数据里没对应变体,
-             回退到默认形(模拟 iii.py:FVS 替换不触发,字形保持默认)
-          2. Condition assigned by 5-step pipeline → find which FVS has that condition
-             5步管线分配的条件 → 查找哪个 FVS 具有该条件
-          3. Bare letter (no FVS, no condition hit) → use default variant
-             裸字母（无 FVS、无条件命中）→ 使用默认变体
+          1. Explicit FVS on the token → use that FVS variant IF it
+             matches a variant in the data. Mirrors iii.py: the FVS
+             variant lookup substitutes the glyph to its FVS variant.
+             标记上有显式 FVS 且数据里有对应变体 → 用该 FVS 变体。
+          2. Condition assigned by the rule pipeline → use the FVS that
+             carries that condition. This is also the FALLBACK PATH for
+             cases where the explicit FVS doesn't match any variant
+             (mirrors iii.py: FVS substitution doesn't fire, but a later
+             rule's substitution can still apply on the default glyph).
+             规则管线分配的 condition → 用带该 condition 的 FVS;同时
+             也是「显式 FVS 不命中数据」时的回退路径。
+          3. Default variant (no FVS, no condition).
+             默认变体(无 FVS 也无 condition 时)。
         """
         if tok.written is not None:
             return
@@ -493,33 +520,22 @@ class MongolianShaper:
             tok.written = ()
             return
 
-        fvs_int = FVS_CP_TO_INT.get(tok.fvs_cp, 0) if tok.fvs_cp else 0
+        written = None
 
-        # Condition → FVS mapping (only if user didn't specify an explicit FVS)
-        # 条件 → FVS 映射（仅当用户未指定显式 FVS 时）
-        if tok.condition and not tok.fvs_cp:
+        # 1. Explicit FVS first — if it matches a variant
+        if tok.fvs_cp:
+            fvs_int = FVS_CP_TO_INT.get(tok.fvs_cp, 0)
+            written = self._get_written(tok.cp, tok.position, fvs_int)
+
+        # 2. Condition (rule-assigned) — also covers the case where
+        #    explicit FVS didn't yield a variant
+        if not written and tok.condition:
             cond_fvs = self._get_condition_fvs(tok.cp, tok.position, tok.condition)
             if cond_fvs is not None:
-                fvs_int = cond_fvs
+                written = self._get_written(tok.cp, tok.position, cond_fvs)
 
-        # Fallback to default variant for bare letters
-        # 裸字母回退到默认变体
-        if fvs_int == 0 and not tok.fvs_cp:
-            dflt = self.default_variant.get((tok.cp, tok.position))
-            if dflt:
-                fvs_int = dflt[0]
-
-        written = self._get_written(tok.cp, tok.position, fvs_int)
-
-        # When an explicit FVS doesn't match any variant for this
-        # (cp, position) combo, fall back to the default form. In iii.py
-        # the FVS variant lookup simply wouldn't fire on an unknown FVS,
-        # so the letter renders at its default form. Without this
-        # fallback, our shaper would produce empty written units for
-        # cases like `e fvs3`, `o fvs1`, `n fvs2`, breaking many EAC
-        # compliance tests and the iii4 vowel_devsger "ends with I"
-        # check (which examines prev vowel's written form).
-        if not written and tok.fvs_cp:
+        # 3. Default
+        if not written:
             dflt = self.default_variant.get((tok.cp, tok.position))
             if dflt:
                 written = self._get_written(tok.cp, tok.position, dflt[0])
@@ -594,8 +610,29 @@ class MongolianShaper:
         # g/h must itself be at init/medi to participate in preprocessing.H.
         if tokens[idx].position not in ("init", "medi"):
             return False
+
+        # Backward chain is also blocked by any fem vowel earlier in the
+        # word. iii.py's preprocessing.D/E/F propagate FEM markers forward
+        # from fem vowels; these markers settle on h/g letters downstream
+        # and prevent MASC-side promotion in iii2f.A even when a masc
+        # backward trigger exists later. Empirically verified against
+        # `DraftNew-Regular.otf`:
+        #   `i g t a`         → first g = H  (no fem before)
+        #   `s i g s i g a`   → first g = H  (no fem before)
+        #   `e g e n i g t a` → second g = G (fem `e` earlier in word)
+        for j in range(idx - 1, -1, -1):
+            if not tokens[j].is_letter:
+                break  # mvs breaks (FEM propagation also stopped by mvs)
+            if self._is_fem_vowel(tokens[j]):
+                return False
+
         # Walk forward through tokens; chain must be unbroken non-fem
-        # init/medi letters terminating at a masc vowel.
+        # init/medi letters terminating at a backward-propagation trigger:
+        #   - a masc vowel (preprocessing.G first loop), OR
+        #   - a .fina letter immediately followed by MVS + isol a
+        #     (preprocessing.G second loop — iii.py:163-167: any fina
+        #     letter + mvs + a.isol → marks the fina letter, then H
+        #     reverse-propagates).
         for j in range(idx + 1, len(tokens)):
             nxt = tokens[j]
             if not nxt.is_letter:
@@ -606,8 +643,18 @@ class MongolianShaper:
                 return False  # fem vowel blocks propagation
             # Non-vowel letter (consonant or neut vowel) — must be at
             # init/medi for preprocessing.H to mark it.
-            if nxt.position not in ("init", "medi"):
-                return False
+            if nxt.position in ("init", "medi"):
+                continue
+            # .fina position: check chachlag-trigger pattern
+            # (any fina letter + mvs + isol a) which acts like a
+            # backward-propagation seed via preprocessing.G's second loop.
+            if (nxt.position == "fina" and j + 2 < len(tokens)
+                    and tokens[j + 1].is_mvs
+                    and tokens[j + 2].is_letter
+                    and tokens[j + 2].alias == "a"
+                    and tokens[j + 2].position == "isol"):
+                return True
+            return False
 
         return False
 
