@@ -1,16 +1,23 @@
 # mongol-norm (Python)
 
+[![Test](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml/badge.svg)](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml)
+
 Shape-aware normalizer for Traditional Mongolian script. Python reference implementation of the UTN #57 v4 shaping pipeline — no font files, no HarfBuzz required.
+
+Verified against `mongfontbuilder/core-hud.tsv` (177/177) and the GB/T 25914-2023 `eac-hud.tsv` suite (3507/3507, with 5 UTN ↔ EAC xfail cases matching mongfontbuilder's own `pytest.mark.xfail` set).
 
 > Background, motivation, and the "why five encodings of *sain* look identical" story is in the [root README](../README.md). This page is the Python install/usage only.
 
 ## Install
 
-```sh
-pip install mongol-norm
-```
+Neither package is on PyPI yet — install both from this repo:
 
-This pulls in [`mongol-shape-data`](../mongol-shape-data/) automatically.
+```sh
+git clone https://github.com/Satsrag/mongol-norm
+cd mongol-norm
+pip install ./mongol-shape-data
+pip install ./mongol-norm
+```
 
 ## Usage
 
@@ -52,12 +59,15 @@ git clone https://github.com/Satsrag/mongol-norm
 cd mongol-norm
 pip install -e "./mongol-shape-data"
 pip install -e "./mongol-norm[dev]"
-pytest mongol-norm/tests/
+
+# Run all tests (113 hand-written + 177 core-hud + 3507 eac-hud)
+cd mongol-norm
+python -m unittest tests.test_shaper tests.test_core_hud tests.test_eac_hud
 ```
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.9+ (CI matrix: 3.9 – 3.13)
 - `mongol-shape-data` (installed automatically)
 
 ## License
