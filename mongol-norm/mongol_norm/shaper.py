@@ -1087,10 +1087,178 @@ class MongolianShaper:
     # 这样像 ['O'] 这类只出现在 medi 的 shape 才有编码。
     _NIRUGU_WRAPS = ((0, 0), (0, 1), (1, 0), (1, 1))
 
+    def _build_pos_tables(self):
+        """
+        Per-position lookup: {pos: {written_tuple: [(cp, fvs_cp_or_None), ...]}}.
+        每位置查表:{位置: {written 元组: 候选列表}}.
+
+        Candidates sorted by rule A preference: bare (no FVS) first, then
+        by cp ascending, then by fvs_cp ascending. The greedy encoder
+        iterates candidates in this order so the first valid match found
+        is the canonical (rule A) choice for the slot.
+        候选按规则 A 偏好排序:裸字母优先,然后 cp、fvs_cp 升序。贪婪
+        编码器按此顺序枚举,首个有效匹配即为该槽的 canonical 选择。
+        """
+        if not hasattr(self, '_candidates_map'):
+            self._build_candidates_map()
+        self._pos_tables = {}
+        for (pos, written), raw in self._candidates_map.items():
+            seen = set()
+            pairs = []
+            for c in raw:
+                fvs_cp = FVS_INT_TO_CP.get(c['fvs'])
+                key = (c['cp'], fvs_cp)
+                if key not in seen:
+                    seen.add(key)
+                    pairs.append(key)
+            # bare-first, then cp asc, then fvs_cp asc (None < any int)
+            pairs.sort(key=lambda p: (p[1] is not None, p[0], p[1] or 0))
+            self._pos_tables[(pos, written)] = pairs
+
+    def _greedy_encode_chain(self, chain_shape, prev_mvs, suffix_text, suffix_target):
+        """
+        Fast path: iterate total encoded length ascending, DFS within each
+        budget to find the first (= lex-smallest) valid encoding.
+        快速路径:按总编码长度升序枚举,每个长度内做 DFS 找首个(= 字典序最小)
+        有效编码。
+
+        Encoding cost / 编码花销:
+          Each letter contributes 1 char if bare, 2 if FVS. Wraps add
+          1 char per nirugu. The DFS sums these along the way and prunes
+          when the running cost exceeds the budget.
+          每个字母裸=1 字符,带 FVS=2 字符;每个 nirugu 包裹+1 字符。
+          DFS 沿途累加并按预算剪枝。
+
+        Per-slot candidate order: by (cp asc, fvs_cp asc with None first).
+        Combined with budget-ascending outer loop, the first valid encoding
+        found is the canonical under rule A.
+        每槽候选按 (cp 升序, fvs_cp 升序 - None 在前) 排序。配合预算升序,
+        DFS 找到的首个有效解即为规则 A 下的 canonical。
+
+        Returns None if no valid encoding within any budget — caller falls
+        back to exhaustive enumeration.
+        若任何预算下都找不到 → 返回 None,调用方走穷举回退。
+        """
+        if not hasattr(self, '_pos_tables'):
+            self._build_pos_tables()
+
+        n_units = len(chain_shape)
+        mvs_ch = chr(MVS_CP)
+        nirugu_ch = chr(NIRUGU_CP)
+        prefix_text = mvs_ch if prev_mvs else ''
+        verify_target = (('mvs',) if prev_mvs else ()) + chain_shape + suffix_target
+
+        # Generous upper bound: every letter has 2 chars, plus 2 wrap nirugus.
+        # In practice canonical is far shorter; the for-loop exits on first hit.
+        # 上界宽松:每字母 2 字符 + 最多 2 个 nirugu。canonical 通常远短于此,
+        # 循环找到即退出。
+        max_total = 2 * n_units + 2
+
+        for total_chars in range(1, max_total + 1):
+            for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
+                wrap_cost = wrap_pre + wrap_post
+                if wrap_cost >= total_chars:
+                    continue
+                letters_budget = total_chars - wrap_cost
+                # Must have at least n_units / max_L_per_letter letters; cheap
+                # lower-bound check: each letter consumes ≥1 unit and costs ≥1
+                # char, so letters_budget ≥ ceil(n_units / max_L) ≥ 1.
+                # 每字母至少 1 unit 且 ≥1 字符;letters_budget 至少 1。
+                if letters_budget < 1:
+                    continue
+                letters = []
+                result = self._dfs_budget(
+                    chain_shape, n_units, 0, letters_budget, letters,
+                    wrap_pre, wrap_post,
+                    prefix_text, suffix_text, verify_target, nirugu_ch,
+                )
+                if result is not None:
+                    return result
+        return None
+
+    def _dfs_budget(self, chain_shape, n_units, i, budget, letters,
+                    wrap_pre, wrap_post,
+                    prefix_text, suffix_text, verify_target, nirugu_ch):
+        """DFS one slot; returns text on first valid encoding, else None."""
+        if i == n_units:
+            if budget != 0:
+                return None
+            letters_text = "".join(
+                chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
+                for cp, fvs_cp in letters
+            )
+            text = nirugu_ch * wrap_pre + letters_text + nirugu_ch * wrap_post
+            if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
+                return text
+            return None
+
+        if budget < 1:
+            return None
+
+        k = len(letters)
+        # Collect all (cost, L, cp, fvs_cp) options at this slot across
+        # every possible L, then sort by (cp, fvs_cp) for lex-min iteration.
+        # 汇总此槽所有 (cost, L, cp, fvs_cp) 选项,按 (cp, fvs_cp) 排序,
+        # 字典序最小先试。
+        slot_options = []
+        for L in range(1, n_units - i + 1):
+            is_last_letter = (i + L == n_units)
+            chain_idx = wrap_pre + k
+            if is_last_letter:
+                eff_chain = k + 1 + wrap_pre + wrap_post
+                if eff_chain == 1:
+                    pos = 'isol'
+                elif chain_idx == 0:
+                    pos = 'init'
+                elif chain_idx == eff_chain - 1:
+                    pos = 'fina'
+                else:
+                    pos = 'medi'
+            else:
+                pos = 'init' if chain_idx == 0 else 'medi'
+
+            written = tuple(chain_shape[i:i + L])
+            cands = self._pos_tables.get((pos, written), ())
+            for cp, fvs_cp in cands:
+                cost = 1 if fvs_cp is None else 2
+                if cost <= budget:
+                    slot_options.append((cost, L, cp, fvs_cp))
+
+        # Sort lex: cp asc, then bare (None) before FVS, then fvs_cp asc.
+        # 字典序:cp 升序,裸优先,fvs_cp 升序。
+        slot_options.sort(key=lambda o: (o[2], o[3] is not None, o[3] or 0))
+
+        for cost, L, cp, fvs_cp in slot_options:
+            letters.append((cp, fvs_cp))
+            result = self._dfs_budget(
+                chain_shape, n_units, i + L, budget - cost, letters,
+                wrap_pre, wrap_post,
+                prefix_text, suffix_text, verify_target, nirugu_ch,
+            )
+            if result is not None:
+                return result
+            letters.pop()
+        return None
+
     def _compute_chain_canonical(self, chain_shape, prev_mvs=False,
                                   suffix_text="", suffix_target=()):
         """
-        Enumerate encodings of chain_shape and return the canonical one.
+        Canonical encoding for chain_shape. Tries fast greedy path first,
+        falls back to exhaustive enumeration on greedy failure.
+        canonical 编码:先走贪婪快路径,失败回退到穷举。
+        """
+        result = self._greedy_encode_chain(chain_shape, prev_mvs, suffix_text, suffix_target)
+        if result is not None:
+            return result
+        return self._exhaustive_chain_canonical(chain_shape, prev_mvs, suffix_text, suffix_target)
+
+    def _exhaustive_chain_canonical(self, chain_shape, prev_mvs=False,
+                                     suffix_text="", suffix_target=()):
+        """
+        Exhaustive search fallback (slow). Used when greedy can't find an
+        encoding. Same algorithm as before greedy was added.
+        穷举回退(慢)。贪婪找不到时使用,算法同加入贪婪之前。
+
         Each "encoding" is a sequence of letters (with optional FVS each),
         optionally wrapped by nirugu before / after. Canonical = min by
         (total char length, lex).
