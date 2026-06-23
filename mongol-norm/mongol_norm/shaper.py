@@ -878,80 +878,31 @@ class MongolianShaper:
                 result.append("?")
         return "".join(result)
     
-    def _detect_vowel_harmony(self, tokens):
-        """
-        Detect the vowel harmony class of a word.
-        检测一个词的元音和谐类别。
-
-        Mongolian vowel harmony is a phonological constraint: a native word
-        contains EITHER masculine vowels (o, u) OR feminine vowels (oe, ue, ee),
-        never both. The neuter vowel 'i' can appear in either class.
-        蒙古文元音和谐是一种语音学约束：一个本族词只包含阳性元音（o, u）或
-        阴性元音（oe, ue, ee），不会两者兼有。中性元音 'i' 可以出现在任一类中。
-
-        This matters for normalization because a/e and h/g are harmony-ambiguous
-        pairs: 'a' appears in masculine words, 'e' in feminine, but both produce
-        the SAME glyph in medial/final positions. Knowing the harmony class lets
-        us pick the correct canonical letter.
-        这对规范化很重要，因为 a/e 和 h/g 是和谐歧义对：'a' 出现在阳性词中，
-        'e' 出现在阴性词中，但两者在中间/尾部位置产生相同的字形。
-        知道和谐类别让我们能选择正确的规范字母。
-
-        Priority order / 优先级:
-        1. Unambiguous vowels: o/u → masculine, oe/ue/ee → feminine
-           明确元音：o/u → 阳性，oe/ue/ee → 阴性
-        2. h/g condition from syllabic step (most reliable when a/e is ambiguous)
-           第2步中 h/g 的条件（当 a/e 歧义时最可靠）
-        3. Default to masculine (conventional choice)
-           默认阳性（惯例选择）
-        """
-        # Priority 1: unambiguous vowels
-        has_masc = False
-        has_fem = False
-        UNAMB_MASC = {"o", "u"}
-        UNAMB_FEM = {"oe", "ue", "ee"}
-        
-        for tok in tokens:
-            if not tok.is_letter:
-                continue
-            if tok.alias in UNAMB_MASC:
-                has_masc = True
-            elif tok.alias in UNAMB_FEM:
-                has_fem = True
-        
-        if has_masc and not has_fem:
-            return "masculine"
-        if has_fem and not has_masc:
-            return "feminine"
-        if has_masc and has_fem:
-            # Mixed — use first unambiguous vowel
-            for tok in tokens:
-                if tok.alias in UNAMB_MASC:
-                    return "masculine"
-                if tok.alias in UNAMB_FEM:
-                    return "feminine"
-        
-        # Priority 2: h/g condition from syllabic step
-        # These conditions are computed from vowel context, so they're reliable
-        for tok in tokens:
-            if tok.alias not in ("h", "g"):
-                continue
-            if tok.condition == "feminine":
-                return "feminine"
-            if tok.condition in ("masculine_onset", "masculine_devsger"):
-                return "masculine"
-        
-        # Priority 3: default to masculine
-        return "masculine"
-    
-    def _get_candidates(self, pos, written):
-        """Get all (cp, fvs_int) candidates that produce the given written at pos."""
-        if not hasattr(self, '_candidates_map'):
-            self._build_candidates_map()
-        return self._candidates_map.get((pos, written), [])
-    
     def _build_candidates_map(self):
-        """Build (pos, written) → list of candidate dicts."""
+        """
+        Build (pos, written) → list of {cp, fvs, alias, default} dicts.
+        构建 (pos, written) → 候选 dict 列表。
+
+        Each variant contributes TWO candidates / 每个变体贡献两个候选:
+          1. (cp, fvs)  — the explicit FVS encoding from data
+          2. (cp, 0)    — the BARE encoding, which can produce the same
+                          written when a runtime rule fires the matching
+                          condition (e.g. bare `i.medi` after vowel →
+                          vowel_devsger → ('I','I') even though data only
+                          records this written under fvs=2)
+        Bare encodings are added only when missing; shape() verification
+        in `_compute_chain_canonical` filters out combos whose rules
+        don't actually fire.
+        裸编码会被加入(若不存在):某些 shape 只能通过运行时规则触发
+        condition 才能从裸字母得到(如元音后的 i.medi 经 vowel_devsger
+        变成 ('I','I'),数据里只在 fvs=2 下记录)。
+
+        Includes ALL variants for the locale — including archaic and
+        unrecommended ones — so every shape that shape() can produce
+        has at least one candidate encoding.
+        包含此 locale 下所有变体(含 archaic / unrecommended),保证 shape()
+        能产出的每个 shape 都至少有一个候选编码。
+        """
         self._candidates_map = {}
         for char_name, pos_data in self.variants.items():
             cp = self.name_to_cp.get(char_name)
@@ -971,11 +922,6 @@ class MongolianShaper:
                     written = self._resolve_written(w_raw, char_name)
                     if not written:
                         continue
-                    archaic = locale_data.get("archaic", False)
-                    unrec = locale_data.get("unrecommended", False)
-                    if archaic or unrec:
-                        continue
-                    
                     key = (pos, written)
                     if key not in self._candidates_map:
                         self._candidates_map[key] = []
@@ -983,283 +929,323 @@ class MongolianShaper:
                         "cp": cp, "fvs": fvs_int, "alias": alias,
                         "default": vdata.get("default", False),
                     })
-    
-    # Harmony-aware letter pairs: these letter pairs are visually indistinguishable
-    # in certain positions, so the choice between them depends on vowel harmony.
-    # 和谐相关字母对：这些字母对在某些位置视觉上不可区分，因此它们之间的选择取决于元音和谐。
-    HARMONY_PAIRS = {
-        # (masculine_alias, feminine_alias)
-        ("a", "e"),    # same medi/fina written / 中/尾部书写单元相同
-        ("h", "g"),    # QA/GA — same written in many positions / 多个位置书写单元相同
-    }
-    
-    def _pick_by_harmony(self, candidates, harmony, original_alias, pos=None, written=None):
-        """
-        Pick the best candidate considering vowel harmony.
-        考虑元音和谐选择最佳候选字母。
 
-        This is the heart of normalization's letter selection. Multiple Unicode
-        letters can produce the same written unit at the same position. We must
-        pick exactly one as canonical.
-        这是规范化字母选择的核心。多个 Unicode 字母可以在同一位置产生相同的
-        书写单元。我们必须精确选择一个作为规范形式。
+        # Add bare (fvs=0) encoding for any cp that appears in a slot
+        # but only under non-zero FVS. shape() verification will weed
+        # out cases where context doesn't fire the needed rule.
+        # 为只在非零 FVS 出现的 cp 补加裸编码,shape() 校验会筛掉
+        # 上下文不触发所需规则的情况。
+        for key, cands in list(self._candidates_map.items()):
+            existing_bare_cps = {c["cp"] for c in cands if c["fvs"] == 0}
+            for cp in {c["cp"] for c in cands} - existing_bare_cps:
+                alias = self.cp_to_alias.get(cp, "")
+                cands.append({
+                    "cp": cp, "fvs": 0, "alias": alias,
+                    "default": False,
+                })
 
-        Strategy / 策略:
-          1. If original letter is among candidates AND not part of a harmony pair
-             → preserve it (minimal change principle)
-             如果原字母在候选中且不属于和谐对 → 保留（最小变更原则）
-          2. For a/e pair: masculine→a, feminine→e
-             a/e 对：阳性→a，阴性→e
-          3. For h/g pair: masculine→h, feminine→g
-             h/g 对：阳性→h，阴性→g
-          4. For other ambiguities: keep original if candidate, else pick default
-             其他歧义：保留原字母（如果是候选），否则选默认
-        """
-        if not candidates:
-            return None
-        
-        # Check if original letter is among candidates
-        orig_candidates = [c for c in candidates if c["alias"] == original_alias]
-        
-        # If original is a candidate AND is NOT part of a harmony pair → preserve it immediately
-        # This prevents e.g. 'n' being replaced by 'a' just because they share the same written
-        cand_aliases = {c["alias"] for c in candidates}
-        harmony_aliases = set()
-        for masc_alias, fem_alias in self.HARMONY_PAIRS:
-            if masc_alias in cand_aliases and fem_alias in cand_aliases:
-                harmony_aliases.add(masc_alias)
-                harmony_aliases.add(fem_alias)
-        
-        if orig_candidates and original_alias not in harmony_aliases:
-            # Original is valid but not part of a harmony pair.
-            # 
-            # Preserve original ONLY when:
-            #   1. No harmony ambiguity at all among candidates, OR
-            #   2. Position is init/fina/isol AND original is NOT producing a
-            #      "foreign" written (e.g. consonant NA producing vowel-like 'A')
-            #
-            # A consonant producing vowel written = likely misencoded → replace
-            # A letter at boundary producing its natural written = keep
-            
-            if not harmony_aliases:
-                # No a/e or h/g pair in candidates → no ambiguity → preserve original
-                for c in orig_candidates:
-                    if c["default"]:
-                        return c
-                return orig_candidates[0]
-            
-            # Harmony pair exists. Check if original is "naturally" producing this written.
-            # A consonant whose default at THIS position produces the same written 
-            # is "acting as" that vowel form → should be replaced by the vowel.
-            # But at word boundaries (init/fina), if original's bare form naturally
-            # produces this written, it might be correct (e.g. NA@fina → 'A' is normal).
-            is_boundary = pos in ("init", "fina", "isol")
-            if is_boundary:
-                # At boundaries: preserve original (NA@fina → 'A' is the normal form of N in final)
-                for c in orig_candidates:
-                    if c["default"]:
-                        return c
-                return orig_candidates[0]
-            
-            # In medi: let harmony pick the canonical vowel letter
-            # This replaces e.g. NA@medi(producing 'A') with A@medi
-        
-        # Apply harmony resolution for a/e, h/g pairs
-        for masc_alias, fem_alias in self.HARMONY_PAIRS:
-            if masc_alias in cand_aliases and fem_alias in cand_aliases:
-                if harmony == "masculine":
-                    target_alias = masc_alias
-                elif harmony == "feminine":
-                    target_alias = fem_alias
-                else:
-                    if original_alias in (masc_alias, fem_alias):
-                        target_alias = original_alias
-                    else:
-                        target_alias = masc_alias
-                
-                target_cands = [c for c in candidates if c["alias"] == target_alias]
-                if target_cands:
-                    for c in target_cands:
-                        if c["default"]:
-                            return c
-                    return target_cands[0]
-        
-        # Preserve original if possible
-        if orig_candidates:
-            for c in orig_candidates:
-                if c["default"]:
-                    return c
-            return orig_candidates[0]
-        
-        # Original not among candidates → pick default
-        for c in candidates:
-            if c["default"]:
-                return c
-        return candidates[0]
-    
     def normalize(self, text):
         """
-        Normalize text to canonical bare-Unicode encoding.
-        将文本规范化为规范的裸 Unicode 编码。
+        Canonical normalize: a pure function of shape.
+        规范化:纯粹的 shape → Unicode 函数。
 
-        MINIMAL ENCODING principle: bare Unicode (no FVS) is the canonical form.
-        最小编码原则：裸 Unicode（无 FVS）是规范形式。
+        Stronger than round-trip / 比保形更强的性质:
+          shape(x) == shape(y)  ⟹  normalize(x) == normalize(y)
+        Two inputs with the same shape always normalize to the SAME Unicode
+        sequence. This is achieved by deriving the output from shape() alone,
+        not from the input encoding's token structure.
+        同 shape 的两个输入必然得到完全相同的 Unicode 输出。算法只依赖 shape,
+        不读输入的编码细节,从而保证多对一。
 
-        Key insight / 核心洞察:
-          The shaping engine automatically selects the correct default variant
-          for bare letters based on context. So we only need to:
-          字形引擎会根据上下文自动为裸字母选择正确的默认变体。所以我们只需：
-            1. Select the CORRECT LETTER (resolving a/e and h/g via vowel harmony)
-               选择正确的字母（通过元音和谐解决 a/e 和 h/g 歧义）
-            2. Output bare Unicode (no FVS)
-               输出裸 Unicode（无 FVS）
+        Canonical = SHORTEST encoding, lex-smallest tiebreak.
+        规范形 = 最短编码,字典序最小作为 tiebreak。
+          - Fewest letters wins (so `y+fvs1 + y+fvs1 → i` collapses).
+            字母数最少胜出 (故 `y+fvs1 + y+fvs1 → i` 折叠)。
+          - Among same-length, lex-smallest Unicode wins (so `o` beats `u`
+            when both produce ['A','O'] at isol).
+            同长度下,Unicode 字典序最小胜出 (故同 shape 时 `o` 胜 `u`)。
 
         Algorithm / 算法:
-          1. Shape input → get written units per token
-             字形处理输入 → 获取每个标记的书写单元
-          2. Detect vowel harmony from unambiguous vowels
-             从明确元音检测元音和谐
-          3. Merge adjacent identical single-unit written (I+I → devsger)
-             合并相邻的相同单书写单元（I+I → 连接齿）
-          4. For each token, pick canonical letter via harmony + original preservation
-             为每个标记通过和谐+原字母保留选择规范字母
-          5. Output bare Unicode (no FVS for default variants)
-             输出裸 Unicode（默认变体无 FVS）
+          1. shape(text) → target  (a list of written units + 'mvs' tokens)
+          2. Split target at 'mvs' into chains.
+             按 'mvs' 切分 target 为多个 chain。
+          3. For each chain, enumerate encodings via DP over partitions:
+             for each n_letters from 1 to chain_len, for each partition of
+             chain shape into n_letters slots, pick deterministic candidate
+             from `_candidates_map`, verify by reshape, keep lex-smallest.
+             Cache by chain shape for repeats.
+             对每个 chain 通过 DP 枚举编码:按 n_letters 从小到大,枚举划分,
+             从 `_candidates_map` 选候选,reshape 校验,保留字典序最小。
+             按 chain shape 缓存以加速重复。
+          4. Concatenate chain encodings with MVS between them.
+             用 MVS 拼接各 chain 编码。
 
-        Example / 例: "ᠰᠡᠢᠨ" (sain with E) → "ᠰᠠᠢᠨ" (sain with A)
-          E→A because this is a masculine word (no oe/ue/ee), so a/e resolves to 'a'.
-          E→A 因为这是阳性词（无 oe/ue/ee），所以 a/e 解析为 'a'。
+        Examples / 例:
+          shape ['S','A','I','I','A']
+            All five sain encodings collapse to `s a i n` (4 letters, lex-min).
+            所有五种 sain 编码都落到 `s a i n` (4 字母,字典序最小)。
+          shape ['A','O','R','O','A']
+            Both `o r o n` and `o r u n` collapse to `o r o n` (o beats u lex).
+            两种 oron 编码都落到 `o r o n` (o 字典序 < u)。
         """
-        tokens = self.tokenize(text)
-        self.assign_positions(tokens)
-        _rules.run_rules(self._shaping_rules, tokens, self)
-        for tok in tokens:
-            self._resolve_token_written(tok)
+        if not text:
+            return text
 
-        if not hasattr(self, '_reverse_map'):
-            self.build_reverse_map()
-        
-        # Detect vowel harmony — this determines whether a/e → 'a' or 'e', h/g → 'h' or 'g'
-        # 检测元音和谐——决定 a/e → 'a' 还是 'e'，h/g → 'h' 还是 'g'
-        harmony = self._detect_vowel_harmony(tokens)
+        target = self.shape(text)
+        if not target:
+            # Empty shape ⟹ canonical is empty string. This drops
+            # input that has only joining markers / FVS but no letter
+            # (e.g. lone nirugu) — they're invisible, so canonical = "".
+            # 空 shape ⟹ canonical 为空串。输入只有 nirugu / FVS 等不可见
+            # 内容时统一归并到 ""(它们没有视觉,canonical 应一致)。
+            return ""
 
-        # Build segments preserving original alias (needed for harmony resolution later)
-        # 构建段落，保留原始别名（后续和谐解析需要）
-        segments = []  # (type, written, original_alias) or ('mvs', (), '')
-        for tok in tokens:
-            if tok.is_mvs:
-                segments.append(('mvs', (), ''))
-            elif tok.is_letter and tok.written:
-                segments.append(('letter', tok.written, tok.alias))
-        
-        # Merge identical adjacent single-unit letter segments.
-        # This handles the YA+FVS1 + YA+FVS1 → single I case: two tokens each
-        # producing ('I',) get merged into one token producing ('I', 'I'),
-        # which maps to the devsger form of the letter 'i'.
-        # 合并相邻的相同单书写单元字母段。
-        # 这处理了 YA+FVS1 + YA+FVS1 → 单个 I 的情况：两个各产生 ('I',) 的标记
-        # 合并为一个产生 ('I', 'I') 的标记，映射到字母 'i' 的连接齿形式。
-        changed = True
-        while changed:
-            changed = False
-            new_segments = []
-            i = 0
-            while i < len(segments):
-                if segments[i][0] == 'mvs':
-                    new_segments.append(segments[i])
-                    i += 1
-                    continue
-                
-                cur_written = segments[i][1]
-                cur_alias = segments[i][2]
-                
-                if (i + 1 < len(segments)
-                        and segments[i + 1][0] == 'letter'
-                        and segments[i + 1][1] == cur_written
-                        and len(cur_written) == 1):
-                    
-                    combined = cur_written + cur_written
-                    # Check if combined exists in any medi position
-                    letter_before = sum(1 for s in new_segments if s[0] == 'letter')
-                    letter_after = sum(1 for s in segments[i + 2:] if s[0] == 'letter')
-                    total = letter_before + 1 + letter_after
-                    
-                    if total == 1: est_pos = "isol"
-                    elif letter_before == 0: est_pos = "init"
-                    elif letter_after == 0: est_pos = "fina"
-                    else: est_pos = "medi"
-                    
-                    if (est_pos, combined) in self._reverse_map:
-                        # Keep the alias of the first token for harmony resolution
-                        new_segments.append(('letter', combined, cur_alias))
-                        i += 2
-                        changed = True
-                        continue
-                
-                new_segments.append(segments[i])
-                i += 1
-            segments = new_segments
-        
-        # Assign positions and pick canonical letters.
-        # Re-derive positions from the merged segment list (not original tokens,
-        # since merging may have changed the letter count).
-        # MVS breaks the joining chain, so each MVS-delimited group gets
-        # positions assigned independently.
-        # 分配位置并选择规范字母。
-        # 从合并后的段落列表重新推导位置（不是原始标记，因为合并可能改变了字母数量）。
-        # MVS 断开连接链，每个 MVS 分隔的组独立分配位置。
-        
-        # Split segments into groups at MVS boundaries
-        groups = []
-        current_group = []
-        for seg in segments:
-            if seg[0] == 'mvs':
-                if current_group:
-                    groups.append(current_group)
-                groups.append([seg])  # MVS as its own group
-                current_group = []
+        canonical = self._canonical_for_shape(target)
+
+        # Safety net: if our enumeration somehow missed a valid encoding,
+        # fall back to the input. By construction this should not fire on
+        # valid Mongolian shapes — the candidates map covers every
+        # production rule that shape() emits.
+        # 安全网:若枚举失败,回退到原文。对正常蒙古文应不会触发。
+        if not canonical or self.shape(canonical) != target:
+            return text
+
+        return canonical
+
+    # ── Shape → canonical Unicode (pure function) ──────────────────
+    # The chain shape acts as the key: any two inputs whose shape() output
+    # is identical land in the same cache slot and get the same Unicode.
+    # 链 shape 作为 key:任何 shape 相同的输入命中同一缓存,得同一 Unicode。
+
+    def _canonical_for_shape(self, shape_list):
+        """
+        Build canonical Unicode from a full shape list (incl. 'mvs').
+        从完整 shape 列表(含 'mvs')构建 canonical Unicode。
+
+        Processes chains RIGHT-TO-LEFT so that each chain's encoding
+        verification can include the already-encoded canonical of all
+        following chains as suffix. This is necessary because of
+        cross-MVS rule interactions: e.g. masc-vowel after MVS can
+        propagate backward through MVS to mark a g/h in the previous
+        chain (changing its rendering between G and H). Per-chain
+        verification with only adjacent MVS is insufficient.
+        从右向左处理 chain,每个 chain 的编码校验可以拿到后续 chain
+        已确定的 canonical 作为 suffix。必要 —— MVS 之间存在跨链规则
+        交互:MVS 后的阳性元音可能反向传播,影响 MVS 前的 g/h 渲染。
+        仅包含相邻 MVS 的校验不足以捕获这类交互。
+        """
+        # Parse into structural (mvs) + chain segments.
+        parts = []  # list of ('mvs', None) | ('chain', tuple)
+        cur = []
+        for u in shape_list:
+            if u == 'mvs':
+                if cur:
+                    parts.append(('chain', tuple(cur)))
+                    cur = []
+                parts.append(('mvs', None))
             else:
-                current_group.append(seg)
-        if current_group:
-            groups.append(current_group)
-        
-        result = []
-        
-        for group in groups:
-            if len(group) == 1 and group[0][0] == 'mvs':
-                # Always output MVS — NNBSP was already normalized during tokenization.
-                # 始终输出 MVS——NNBSP 已在分词阶段被规范化。
-                result.append(chr(MVS_CP))
-                continue
-            
-            n_letters = len(group)
-            for letter_seq, seg in enumerate(group):
-                written = seg[1]
-                orig_alias = seg[2]
-                
-                if n_letters == 1: pos = "isol"
-                elif letter_seq == 0: pos = "init"
-                elif letter_seq == n_letters - 1: pos = "fina"
-                else: pos = "medi"
-                
-                # Get all candidates for this (pos, written)
-                candidates = self._get_candidates(pos, written)
-                
-                # Pick best candidate using harmony + original preservation
-                best = self._pick_by_harmony(candidates, harmony, orig_alias, pos=pos, written=written)
-                
-                if best:
-                    # BARE ENCODING: output only the letter codepoint, no FVS.
-                    # The shaping engine will automatically pick the correct default
-                    # variant based on context — this is the entire point of normalization.
-                    # 裸编码：只输出字母码位，不加 FVS。
-                    # 字形引擎会根据上下文自动选择正确的默认变体——这正是规范化的意义所在。
-                    result.append(chr(best["cp"]))
-                else:
-                    # Absolute fallback: preserve original token  
-                    result.append(f"<{'|'.join(written)}>")
-        
-        return "".join(result)
+                cur.append(u)
+        if cur:
+            parts.append(('chain', tuple(cur)))
+
+        encoded = [None] * len(parts)
+        suffix_text = ""
+        suffix_target = ()
+        for i in range(len(parts) - 1, -1, -1):
+            kind, body = parts[i]
+            if kind == 'mvs':
+                encoded[i] = chr(MVS_CP)
+                suffix_text = chr(MVS_CP) + suffix_text
+                suffix_target = ('mvs',) + suffix_target
+            else:
+                prev_mvs = i > 0 and parts[i - 1][0] == 'mvs'
+                chain_canon = self._encode_chain_canonical(
+                    body, prev_mvs, suffix_text, suffix_target,
+                )
+                encoded[i] = chain_canon
+                suffix_text = chain_canon + suffix_text
+                suffix_target = body + suffix_target
+        return "".join(encoded)
+
+    def _encode_chain_canonical(self, chain_shape, prev_mvs, suffix_text, suffix_target):
+        """Memoised canonical encoding for a chain shape under MVS / suffix context."""
+        if not hasattr(self, '_chain_canon_cache'):
+            self._chain_canon_cache = {}
+        cache_key = (chain_shape, prev_mvs, suffix_text, suffix_target)
+        cached = self._chain_canon_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        result = self._compute_chain_canonical(chain_shape, prev_mvs, suffix_text, suffix_target)
+        self._chain_canon_cache[cache_key] = result
+        return result
+
+    # Nirugu-wrap permutations tried per chain. Each (pre, post) shifts
+    # letter positions: e.g. (1,1) puts a single letter at 'medi' instead
+    # of 'isol', enabling shapes like ['O'] that only appear in medi.
+    # Multiple nirugus don't change shape further, so {0,1}² covers it.
+    # 每个 chain 尝试的 nirugu 包裹组合。如 (1,1) 把单字母放到 medi,
+    # 这样像 ['O'] 这类只出现在 medi 的 shape 才有编码。
+    _NIRUGU_WRAPS = ((0, 0), (0, 1), (1, 0), (1, 1))
+
+    def _compute_chain_canonical(self, chain_shape, prev_mvs=False,
+                                  suffix_text="", suffix_target=()):
+        """
+        Enumerate encodings of chain_shape and return the canonical one.
+        Each "encoding" is a sequence of letters (with optional FVS each),
+        optionally wrapped by nirugu before / after. Canonical = min by
+        (total char length, lex).
+
+        Search strategy / 搜索策略:
+          Outer:  iterate n_letters from 1 upward.
+                  从 1 开始递增枚举字母数。
+          Middle: iterate nirugu wraps {(0,0),(0,1),(1,0),(1,1)}.
+                  枚举 nirugu 包裹组合。
+          Inner:  for each partition, iterate n_fvs_target (FVS count)
+                  from 0 upward and stop as soon as length exceeds
+                  best_len. With FVS count fixed, every combo has known
+                  encoded length so we can length-prune without per-combo
+                  sum().
+                  按 FVS 数量递增枚举,长度即可一次性算出,无需逐组合 sum()。
+
+        Why wraps / 为什么有 wraps:
+          Some shape-units only appear at non-default positions. For
+          example ['O'] can only be produced when a vowel is at medi —
+          which a 1-letter chain doesn't have. Wrapping with nirugu
+          extends the chain and shifts position: nirugu+o+nirugu → o at medi.
+          某些 shape 单元只在非默认位置出现 (如 ['O'] 仅在元音处于 medi
+          时才有)。nirugu 包裹延长 chain、移动位置。
+        """
+        if not hasattr(self, '_candidates_map'):
+            self._build_candidates_map()
+        if not hasattr(self, '_slot_candidates_cache'):
+            self._slot_candidates_cache = {}
+
+        from itertools import combinations as iter_combos, product as iter_product
+        n_units = len(chain_shape)
+        chain_list = list(chain_shape)
+        nirugu_ch = chr(NIRUGU_CP)
+        mvs_ch = chr(MVS_CP)
+        # Verification context: prepend MVS if previous part is MVS; append
+        # the caller-supplied suffix (which contains MVS + following chain
+        # canonicals for cross-chain rule interactions like backward masc
+        # propagation through MVS).
+        # 校验上下文:前置 MVS(若前一段是 MVS);后置 suffix_text(由调用方
+        # 提供 —— 含 MVS 及后续链的 canonical,以捕获跨 MVS 规则交互)。
+        prefix_text = mvs_ch if prev_mvs else ''
+        verify_target = (
+            (('mvs',) if prev_mvs else ()) + chain_shape + suffix_target
+        )
+
+        best_len = None
+        best_text = None
+
+        for n_letters in range(1, n_units + 1):
+            if best_len is not None and n_letters > best_len:
+                break
+
+            for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
+                min_total_no_fvs = n_letters + wrap_pre + wrap_post
+                if best_len is not None and min_total_no_fvs > best_len:
+                    continue
+                eff_chain = n_letters + wrap_pre + wrap_post
+                positions = []
+                for i in range(n_letters):
+                    chain_idx = wrap_pre + i
+                    if eff_chain == 1:
+                        positions.append('isol')
+                    elif chain_idx == 0:
+                        positions.append('init')
+                    elif chain_idx == eff_chain - 1:
+                        positions.append('fina')
+                    else:
+                        positions.append('medi')
+                positions = tuple(positions)
+
+                for partition in self._iter_chain_partitions(n_units, n_letters):
+                    # Build slot candidates split into (bare, fvs) per slot.
+                    # Each cached as a 2-tuple of cp-sorted tuples.
+                    # 每个 slot 候选拆为 (bare, fvs) 两份,按 cp 排序后缓存。
+                    slot_bare = []
+                    slot_fvs = []
+                    idx = 0
+                    ok = True
+                    for size, pos in zip(partition, positions):
+                        sl = tuple(chain_list[idx:idx + size])
+                        idx += size
+                        key = (pos, sl)
+                        cached = self._slot_candidates_cache.get(key)
+                        if cached is None:
+                            raw = self._candidates_map.get(key, [])
+                            bare_set = set()
+                            fvs_set = set()
+                            for c in raw:
+                                fvs_cp = FVS_INT_TO_CP.get(c['fvs'])
+                                if fvs_cp is None:
+                                    bare_set.add(c['cp'])
+                                else:
+                                    fvs_set.add((c['cp'], fvs_cp))
+                            bare_tuple = tuple(
+                                (cp, None) for cp in sorted(bare_set)
+                            )
+                            fvs_tuple = tuple(sorted(fvs_set))
+                            cached = (bare_tuple, fvs_tuple)
+                            self._slot_candidates_cache[key] = cached
+                        if not cached[0] and not cached[1]:
+                            ok = False
+                            break
+                        slot_bare.append(cached[0])
+                        slot_fvs.append(cached[1])
+                    if not ok:
+                        continue
+
+                    # Iterate by FVS count so each pass has fixed length L.
+                    # 按 FVS 数量分层,每层长度固定,length-prune 无需 per-combo sum。
+                    for n_fvs_target in range(0, n_letters + 1):
+                        L = n_letters + n_fvs_target + wrap_pre + wrap_post
+                        if best_len is not None and L > best_len:
+                            break
+                        for fvs_indices in iter_combos(range(n_letters), n_fvs_target):
+                            fvs_idx_set = set(fvs_indices)
+                            per_slot = []
+                            slot_skip = False
+                            for i in range(n_letters):
+                                cands = slot_fvs[i] if i in fvs_idx_set else slot_bare[i]
+                                if not cands:
+                                    slot_skip = True
+                                    break
+                                per_slot.append(cands)
+                            if slot_skip:
+                                continue
+                            for combo in iter_product(*per_slot):
+                                letters_text = "".join(
+                                    chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
+                                    for cp, fvs_cp in combo
+                                )
+                                text = nirugu_ch * wrap_pre + letters_text + nirugu_ch * wrap_post
+                                if best_len is not None and L == best_len and text >= best_text:
+                                    continue
+                                # Verify in MVS context — shape of
+                                # (prefix MVS) + text + (suffix MVS)
+                                # must equal the parent shape's
+                                # corresponding window.
+                                if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
+                                    if best_len is None or L < best_len or text < best_text:
+                                        best_len = L
+                                        best_text = text
+
+        return best_text or ""
+
+    def _iter_chain_partitions(self, n, k):
+        """Yield all ordered compositions of n into exactly k positive parts."""
+        if k == 1:
+            yield (n,)
+            return
+        # Each first-part size leaves n-first for the remaining k-1 parts;
+        # the smallest remaining sum is k-1, so first ranges 1..n-k+1.
+        # 第一部分大小留 n-first 给后 k-1 部分;后部最小和为 k-1,故 first 取 1..n-k+1。
+        for first in range(1, n - k + 2):
+            for rest in self._iter_chain_partitions(n - first, k - 1):
+                yield (first,) + rest
 
     def normalize_text(self, text):
         """

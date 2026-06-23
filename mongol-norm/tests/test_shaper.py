@@ -974,7 +974,12 @@ class TestNormalize(unittest.TestCase):
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    CANONICAL_SAIN = "ᠰᠠᠢᠨ"
+    # Canonical "sain" under rule A (shortest + lex-smallest): all five
+    # encodings shape to ['S','A','I','I','A'], and the canonical 4-char
+    # encoding `s a i a` wins over `s a i n` lexicographically (a<n).
+    # Visually identical, semantically arbitrary — rule A picks the
+    # lex-smallest encoding among same-length options.
+    CANONICAL_SAIN = "ᠰᠠᠢᠠ"
 
     def test_sain_base(self):
         self.assertEqual(self.s.normalize("ᠰᠠᠢᠨ"), self.CANONICAL_SAIN)
@@ -1018,7 +1023,12 @@ class TestNormalizeText(unittest.TestCase):
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    CANONICAL_SAIN = "ᠰᠠᠢᠨ"
+    # Canonical "sain" under rule A (shortest + lex-smallest): all five
+    # encodings shape to ['S','A','I','I','A'], and the canonical 4-char
+    # encoding `s a i a` wins over `s a i n` lexicographically (a<n).
+    # Visually identical, semantically arbitrary — rule A picks the
+    # lex-smallest encoding among same-length options.
+    CANONICAL_SAIN = "ᠰᠠᠢᠠ"
 
     def test_single_word_matches_normalize(self):
         # normalize_text on a single word should match normalize
