@@ -1474,44 +1474,146 @@ class MongolianShaper:
 # 四个命令：shape、same、normalize（单词）、normalize-text（全文）。
 # 都接受 --locale 参数用于非 MNG 文字。
 
+def _read_input(text_arg, input_file):
+    """
+    Resolve input from CLI args: positional text, `-` for stdin, or
+    `-i FILE`. Returns the input string.
+    解析 CLI 输入:位置参数文本、`-` 从 stdin、或 `-i FILE` 从文件。
+    """
+    import sys
+    if input_file is not None:
+        with open(input_file, "r", encoding="utf-8") as f:
+            return f.read()
+    if text_arg is None:
+        # Default to stdin if no input given
+        return sys.stdin.read()
+    if text_arg == "-":
+        return sys.stdin.read()
+    return text_arg
+
+
+def _write_output(text, output_file):
+    """Write to `-o FILE` or stdout."""
+    if output_file is not None:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(text)
+    else:
+        # print() handles the trailing newline; use sys.stdout.write to
+        # preserve the caller's text exactly (including or excluding \n).
+        # print() 会加换行;用 sys.stdout.write 保留原样。
+        import sys
+        sys.stdout.write(text)
+        if not text.endswith("\n"):
+            sys.stdout.write("\n")
+
+
+def _process_batch(lines, fn):
+    """Apply `fn` to each non-trailing line; preserve line count."""
+    # Split keeps line endings stripped; rejoin with \n at the end.
+    # split() 不带分隔符会丢空行,所以用 splitlines。
+    out = []
+    for line in lines.splitlines():
+        out.append(fn(line))
+    return "\n".join(out) + ("\n" if lines.endswith("\n") else "")
+
+
+def _add_io_args(p, with_input=True):
+    """Add common I/O flags to subparser."""
+    if with_input:
+        p.add_argument("text", nargs="?",
+                       help="Input text (or `-` for stdin; omit to use --input)")
+        p.add_argument("-i", "--input", metavar="FILE",
+                       help="Read input from FILE (UTF-8)")
+    p.add_argument("-o", "--output", metavar="FILE",
+                   help="Write output to FILE (UTF-8); default stdout")
+    p.add_argument("--batch", action="store_true",
+                   help="Process input line by line, emit one result per line")
+
+
 def main():
     import argparse
     import sys
 
     parser = argparse.ArgumentParser(
-        prog="shaper",
-        description="Mongolian shaping tool (UTN #57 v4)",
+        prog="mongol-norm",
+        description=(
+            "Mongolian shaping / normalization tool (UTN #57 v4 + GB/T 25914-2023).\n"
+            "蒙古文字形 / 规范化工具 (UTN #57 v4 + GB/T 25914-2023)。"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples / 示例:\n"
+            "  mongol-norm normalize 'ᠰᠡᠢᠨ'\n"
+            "  echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -\n"
+            "  mongol-norm normalize -i words.txt -o canonical.txt\n"
+            "  mongol-norm normalize --batch -i words.txt    # one word per line\n"
+            "  mongol-norm shape 'ᠰᠠᠢᠨ'                       # → S+A+I+I+A\n"
+            "  mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ world'  # mixed script\n"
+        ),
     )
-    parser.add_argument("--locale", default="MNG", help="Locale (default: MNG)")
-    sub = parser.add_subparsers(dest="cmd", required=True)
+    parser.add_argument("--locale", default="MNG",
+                        help="Locale: MNG (default), TOD, SIB, MCH, etc.")
+    sub = parser.add_subparsers(dest="cmd", required=True, metavar="CMD")
 
-    p_shape = sub.add_parser("shape", help="Return written-unit sequence for TEXT")
-    p_shape.add_argument("text")
+    p_shape = sub.add_parser(
+        "shape",
+        help="Return '+'-joined written-unit sequence",
+        description="Shape input through the UTN57 pipeline; output written units joined by '+'.",
+    )
+    _add_io_args(p_shape)
 
-    p_same = sub.add_parser("same", help="Check if TEXT1 and TEXT2 are visually identical")
+    p_norm = sub.add_parser(
+        "normalize",
+        help="Normalize a single Mongolian WORD to canonical Unicode",
+        description=(
+            "Normalize a single Mongolian word (no spaces / non-Mongolian).\n"
+            "Property: same shape → same Unicode. For mixed-script / multi-word\n"
+            "text use `normalize-text` instead."
+        ),
+    )
+    _add_io_args(p_norm)
+
+    p_normt = sub.add_parser(
+        "normalize-text",
+        help="Normalize full text (multi-word, mixed script)",
+        description="Segment input into Mongolian runs vs others; normalize Mongolian, pass through rest.",
+    )
+    _add_io_args(p_normt)
+
+    p_same = sub.add_parser(
+        "same",
+        help="Check if TEXT1 and TEXT2 shape identically (exit 0 if yes)",
+    )
     p_same.add_argument("text1")
     p_same.add_argument("text2")
-
-    p_norm = sub.add_parser("normalize", help="Normalize TEXT to canonical bare Unicode")
-    p_norm.add_argument("text")
-
-    p_normt = sub.add_parser("normalize-text", help="Normalize full text (multi-word, mixed script)")
-    p_normt.add_argument("text")
 
     args = parser.parse_args()
     shaper = MongolianShaper(locale=args.locale)
 
-    if args.cmd == "shape":
-        units = shaper.shape(args.text)
-        print("+".join(units))
-    elif args.cmd == "same":
+    if args.cmd == "same":
         result = shaper.same_shape(args.text1, args.text2)
         print("true" if result else "false")
         sys.exit(0 if result else 1)
+
+    # All other commands share the I/O pattern.
+    text = _read_input(args.text, args.input)
+
+    if args.cmd == "shape":
+        op = lambda s: "+".join(shaper.shape(s))
     elif args.cmd == "normalize":
-        print(shaper.normalize(args.text))
+        op = shaper.normalize
     elif args.cmd == "normalize-text":
-        print(shaper.normalize_text(args.text))
+        op = shaper.normalize_text
+    else:
+        parser.error(f"unknown command: {args.cmd}")
+        return
+
+    if args.batch:
+        result = _process_batch(text, op)
+    else:
+        result = op(text)
+
+    _write_output(result, args.output)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,8 @@ pip install ./mongol-norm
 
 ## Usage
 
+### Python API
+
 ```python
 from mongol_norm import MongolianShaper
 
@@ -34,14 +36,45 @@ shaper.shape("ᠰᠠᠢᠨ")
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")
 # → True
 
-# Normalize: canonical bare Unicode
+# Normalize: canonical Unicode (same shape ⟹ same Unicode)
 shaper.normalize("ᠰᠡᠢᠨ")
-# → 'ᠰᠠᠢᠨ'
+# → 'ᠰᠠᠢᠠ'
 
 # Full-text (per-word normalization, preserves non-Mongolian)
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
-# → 'Hello ᠰᠠᠢᠨ world'
+# → 'Hello ᠰᠠᠢᠠ world'
 ```
+
+### CLI
+
+After `pip install ./mongol-norm`, the `mongol-norm` command is on `PATH`.
+Without installing: `python -m mongol_norm.shaper ...`.
+
+```bash
+# Inline text
+mongol-norm shape 'ᠰᠠᠢᠨ'                  # → S+A+I+I+A
+mongol-norm normalize 'ᠰᠡᠢᠨ'              # → ᠰᠠᠢᠠ
+mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # mixed-script
+
+# Pipe / stdin (use `-` as the text)
+echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
+cat doc.txt | mongol-norm normalize-text -
+
+# File in / out
+mongol-norm normalize-text -i in.txt -o out.txt
+
+# Batch: one word per line in, one canonical per line out
+mongol-norm normalize --batch -i words.txt -o canonical.txt
+cat words.txt | mongol-norm shape --batch -    # one shape per line
+
+# Visual-identity check (exit 0 if same, 1 if different)
+mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'             # → true (exit 0)
+```
+
+**Tip:** `normalize` (single-word) skips non-Mongolian chars including
+newlines, so a multi-line file fed to plain `normalize` is treated as
+one giant concatenated word (slow and meaningless). Use `--batch` for
+one-word-per-line files, or `normalize-text` for free-form text.
 
 ## Supported locales
 

@@ -21,6 +21,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 
+[project.scripts]
+mongol-norm = "mongol_norm.shaper:main"
+
 [project.urls]
 Homepage = "https://github.com/Satsrag/mongol-norm"
 
