@@ -84,6 +84,35 @@ def is_mongolian_letter(cp):
     return cp in MONGOLIAN_BLOCK
 
 
+def _check_word_chars(text):
+    """
+    Raise ValueError if `text` contains any char that is not a Mongolian
+    letter, FVS, MVS, NNBSP, Nirugu, or ZWJ. Used by `shape()` and
+    `normalize()` to refuse mixed-script input early — silently dropping
+    spaces / Latin / Chinese / etc. would mask user errors. For free-form
+    mixed text use `normalize_text()` instead.
+    若 `text` 含非蒙古字母 / FVS / MVS / NNBSP / Nirugu / ZWJ 之外的字符,
+    抛 ValueError。`shape()` 与 `normalize()` 借此拒绝混合文本输入 ——
+    静默吞掉空格 / 英文 / 中文等会掩盖用户错误。处理自由文本请用 `normalize_text()`。
+    """
+    for i, ch in enumerate(text):
+        cp = ord(ch)
+        if (is_mongolian_letter(cp)
+                or cp in FVS_CPS
+                or cp == MVS_CP
+                or cp == NNBSP_CP
+                or cp == NIRUGU_CP
+                or cp == ZWJ_CP):
+            continue
+        # Build a helpful error with the offending char's position and id.
+        # 报错信息含越位字符的位置和码位。
+        raise ValueError(
+            f"non-Mongolian character {ch!r} (U+{cp:04X}) at index {i}: "
+            f"shape() / normalize() accept only Mongolian letters + FVS/MVS/"
+            f"NNBSP/Nirugu/ZWJ. For mixed-script input use normalize_text()."
+        )
+
+
 # ── Token ───────────────────────────────────────────────────────
 
 class Token:
@@ -732,7 +761,14 @@ class MongolianShaper:
 
         Returns: list of written unit strings, e.g. ['S', 'A', 'I', 'I', 'A']
         返回：书写单元字符串列表，例如 ['S', 'A', 'I', 'I', 'A']
+
+        Raises ValueError if `text` contains non-Mongolian characters
+        (spaces, Latin, Chinese, punctuation, etc.). Use `normalize_text()`
+        for free-form mixed-script input.
+        若 `text` 含非蒙古文字符(空格、英文、中文、标点等)则抛 ValueError。
+        混合文本请用 `normalize_text()`。
         """
+        _check_word_chars(text)
         tokens = self.tokenize(text)
         self.assign_positions(tokens)
 
@@ -768,7 +804,8 @@ class MongolianShaper:
         return self.shape(text1) == self.shape(text2)
 
     def shape_detailed(self, text):
-        """Return detailed shaping breakdown per token. / 返回每个标记的详细字形分解。"""
+        """Return detailed shaping breakdown per token. Raises on non-Mongolian input."""
+        _check_word_chars(text)
         tokens = self.tokenize(text)
         self.assign_positions(tokens)
         _rules.run_rules(self._shaping_rules, tokens, self)
@@ -1508,12 +1545,13 @@ def _write_output(text, output_file):
 
 
 def _process_batch(lines, fn):
-    """Apply `fn` to each non-trailing line; preserve line count."""
-    # Split keeps line endings stripped; rejoin with \n at the end.
-    # split() 不带分隔符会丢空行,所以用 splitlines。
+    """Apply `fn` to each line; preserve line count. Errors include line no."""
     out = []
-    for line in lines.splitlines():
-        out.append(fn(line))
+    for lineno, line in enumerate(lines.splitlines(), start=1):
+        try:
+            out.append(fn(line))
+        except ValueError as e:
+            raise ValueError(f"line {lineno}: {e}") from None
     return "\n".join(out) + ("\n" if lines.endswith("\n") else "")
 
 
@@ -1608,10 +1646,16 @@ def main():
         parser.error(f"unknown command: {args.cmd}")
         return
 
-    if args.batch:
-        result = _process_batch(text, op)
-    else:
-        result = op(text)
+    try:
+        if args.batch:
+            result = _process_batch(text, op)
+        else:
+            result = op(text)
+    except ValueError as e:
+        # Friendly CLI error — no Python traceback.
+        # CLI 友好错误,不抛 Python 栈。
+        sys.stderr.write(f"error: {e}\n")
+        sys.exit(2)
 
     _write_output(result, args.output)
 
