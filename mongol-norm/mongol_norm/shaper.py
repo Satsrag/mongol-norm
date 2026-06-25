@@ -1135,6 +1135,18 @@ class MongolianShaper:
         is the canonical (rule A) choice for the slot.
         候选按规则 A 偏好排序:裸字母优先,然后 cp、fvs_cp 升序。贪婪
         编码器按此顺序枚举,首个有效匹配即为该槽的 canonical 选择。
+
+        After building raw tables, runs a pre-filter pass that probes each
+        (cp, fvs_cp) candidate in plausible neighbor contexts (vowel-prev,
+        consonant-prev, etc.) and keeps only those whose shaped output
+        for the letter actually equals the slot's `written`. This removes
+        speculative bare candidates added by `_build_candidates_map`
+        (e.g. bare `j` for slot (medi, ('A',))) that never produce the
+        right written in any real context, drastically pruning DFS dead
+        branches.
+        构建后做预过滤:用合理的邻居上下文测试每个候选,只保留实际能产
+        出 slot 的 written 的那些。剔除 `_build_candidates_map` 的投机
+        裸候选(如 (medi, ('A',)) slot 里的裸 j),大幅剪枝 DFS 死分支。
         """
         if not hasattr(self, '_candidates_map'):
             self._build_candidates_map()
@@ -1151,6 +1163,81 @@ class MongolianShaper:
             # bare-first, then cp asc, then fvs_cp asc (None < any int)
             pairs.sort(key=lambda p: (p[1] is not None, p[0], p[1] or 0))
             self._pos_tables[(pos, written)] = pairs
+
+        self._filter_pos_tables()
+
+    # Neighbor letters used to probe whether a candidate actually produces
+    # the slot's written in plausible contexts. 'a' covers vowel neighbors
+    # (triggers vowel_devsger, onset/devsger on n/t/d, etc.); 'n' covers
+    # consonant neighbors (default rules).
+    # 测试邻居:'a' 覆盖元音(触发 vowel_devsger / n.onset 等),'n' 覆盖辅音。
+    _PROBE_VOWEL_CP = 0x1820  # MONGOLIAN LETTER A
+    _PROBE_CONS_CP = 0x1828   # MONGOLIAN LETTER NA
+
+    def _probe_contexts(self, pos, letter_text):
+        """Yield test strings that place `letter_text` at `pos`."""
+        v = chr(self._PROBE_VOWEL_CP)
+        c = chr(self._PROBE_CONS_CP)
+        if pos == 'isol':
+            yield letter_text
+        elif pos == 'init':
+            yield letter_text + v
+            yield letter_text + c
+        elif pos == 'fina':
+            yield v + letter_text
+            yield c + letter_text
+        else:  # medi
+            yield v + letter_text + v
+            yield c + letter_text + c
+            yield v + letter_text + c
+            yield c + letter_text + v
+
+    def _filter_pos_tables(self):
+        """
+        Remove candidates that don't produce the slot's `written` in any
+        plausible test context. See `_build_pos_tables` for rationale.
+        剔除任何测试上下文都产不出 slot written 的候选。
+        """
+        # Cache per-letter probe results to avoid re-shaping the same
+        # (cp, fvs_cp, pos) combo across many slots.
+        # 缓存 (cp, fvs_cp, pos) 的探测结果,避免跨 slot 重复 shape。
+        probe_cache = {}
+
+        def probe(cp, fvs_cp, pos):
+            key = (cp, fvs_cp, pos)
+            if key in probe_cache:
+                return probe_cache[key]
+            letter_text = chr(cp) + (chr(fvs_cp) if fvs_cp is not None else '')
+            results = set()
+            for test_text in self._probe_contexts(pos, letter_text):
+                try:
+                    details = self.shape_detailed(test_text)
+                except Exception:
+                    continue
+                # Find the test letter (cp matches) and record its written.
+                # The probe letter sits at index wrap_pre in the chain;
+                # match by cp ordinal.
+                for d in details:
+                    if d['cp'] == f'U+{cp:04X}':
+                        if d.get('written'):
+                            results.add(tuple(d['written']))
+                        break
+            probe_cache[key] = results
+            return results
+
+        for key in list(self._pos_tables.keys()):
+            pos, written = key
+            filtered = []
+            for cp, fvs_cp in self._pos_tables[key]:
+                produced = probe(cp, fvs_cp, pos)
+                if written in produced:
+                    filtered.append((cp, fvs_cp))
+            # Only replace if filtering left at least one candidate; otherwise
+            # keep the unfiltered list as a safety net (shouldn't happen with
+            # data-derived slots, but guards against over-aggressive probes).
+            # 仅在过滤后还有候选时替换;否则保留原表作为安全网。
+            if filtered:
+                self._pos_tables[key] = filtered
 
     def _greedy_encode_chain(self, chain_shape, prev_mvs, suffix_text, suffix_target):
         """
@@ -1185,6 +1272,20 @@ class MongolianShaper:
         prefix_text = mvs_ch if prev_mvs else ''
         verify_target = (('mvs',) if prev_mvs else ()) + chain_shape + suffix_target
 
+        # Ultra-fast path: deterministic greedy, one verify, no backtrack.
+        # Per slot, take the BEST candidate (longest written that matches +
+        # lex-smallest cp + bare-preferred); concatenate; shape-verify once.
+        # Works for the vast majority of chains (typical Mongolian words).
+        # Falls through to the budget DFS only when greedy verify fails.
+        # 极快路径:贪婪一遍,单次校验,无回溯。每槽取最佳候选(最长 written
+        # + 字典序最小 cp + 裸优先),拼接,shape 校验一次。绝大多数 chain 走这条路。
+        result = self._greedy_one_shot(
+            chain_shape, n_units, prev_mvs,
+            prefix_text, suffix_text, verify_target, nirugu_ch,
+        )
+        if result is not None:
+            return result
+
         # Generous upper bound: every letter has 2 chars, plus 2 wrap nirugus.
         # In practice canonical is far shorter; the for-loop exits on first hit.
         # 上界宽松:每字母 2 字符 + 最多 2 个 nirugu。canonical 通常远短于此,
@@ -1211,6 +1312,90 @@ class MongolianShaper:
                 )
                 if result is not None:
                     return result
+        return None
+
+    def _greedy_one_shot(self, chain_shape, n_units, prev_mvs,
+                          prefix_text, suffix_text, verify_target, nirugu_ch):
+        """
+        Deterministic greedy: scan chain left-to-right, pick the best
+        candidate per slot, verify the whole encoding once. No backtracking.
+        Returns text on success or None if any slot has no candidate or
+        the final shape check fails.
+        左到右一遍贪婪,每槽取最佳候选,最后整体校验一次。失败返回 None。
+
+        "Best" per slot is chosen with full canonical-rule precedence:
+          1. shortest encoding (longest L bare wins over shorter L with FVS)
+          2. among ties, lex-smallest (cp, fvs_cp)
+        With pre-filtered `_pos_tables`, the top candidate is reliable for
+        the common case.
+        """
+        # Try without nirugu wraps first (common case); only fall back to
+        # wrapped variants when an unwrapped greedy can't even produce a
+        # candidate (e.g. shape ['O'] needs medi position).
+        for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
+            letters = []
+            i = 0
+            k = 0
+            ok = True
+            while i < n_units:
+                # Per-slot ordering for canonical (rule A) at a single slot:
+                #   1. Try bare candidates (cost=1) at longest L first.
+                #   2. Only if no bare anywhere, try FVS candidates
+                #      (cost=2) at longest L first.
+                # Bare beats FVS even at smaller L because each bare slot
+                # costs 1 char vs 2 for FVS. Among bare, longer L → fewer
+                # total slots → fewer total chars.
+                # 单槽规则 A:先按最长 L 找 bare,任何 L 找不到 bare 再退
+                # 到最长 L 的 FVS。bare 比 FVS 短 1 字符,优先级更高。
+                picked = None
+                for prefer_bare in (True, False):
+                    for L in range(n_units - i, 0, -1):
+                        is_last_letter = (i + L == n_units)
+                        chain_idx = wrap_pre + k
+                        if is_last_letter:
+                            eff_chain = k + 1 + wrap_pre + wrap_post
+                            if eff_chain == 1:
+                                pos = 'isol'
+                            elif chain_idx == 0:
+                                pos = 'init'
+                            elif chain_idx == eff_chain - 1:
+                                pos = 'fina'
+                            else:
+                                pos = 'medi'
+                        else:
+                            pos = 'init' if chain_idx == 0 else 'medi'
+                        written = tuple(chain_shape[i:i + L])
+                        cands = self._pos_tables.get((pos, written), ())
+                        if not cands:
+                            continue
+                        for cp, fvs_cp in cands:
+                            is_bare = fvs_cp is None
+                            if prefer_bare and not is_bare:
+                                continue
+                            if not prefer_bare and is_bare:
+                                continue
+                            picked = (L, cp, fvs_cp)
+                            break
+                        if picked is not None:
+                            break
+                    if picked is not None:
+                        break
+                if picked is None:
+                    ok = False
+                    break
+                L, cp, fvs_cp = picked
+                letters.append((cp, fvs_cp))
+                i += L
+                k += 1
+            if not ok:
+                continue
+            letters_text = "".join(
+                chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
+                for cp, fvs_cp in letters
+            )
+            text = nirugu_ch * wrap_pre + letters_text + nirugu_ch * wrap_post
+            if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
+                return text
         return None
 
     def _dfs_budget(self, chain_shape, n_units, i, budget, letters,
