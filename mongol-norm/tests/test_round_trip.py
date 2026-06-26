@@ -559,20 +559,20 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
         47 MNG particle patterns include multi-letter chains like
         `mvs y i n`, `mvs d ue r`, `mvs ch ue` etc. For each particle
         starting with 'mvs', apply the user's pseudo-code shape-
-        uniformity check. Chachlag (first chain after mvs == ('Aa',))
-        is the documented exception and skipped.
+        uniformity check.
         数据驱动:用 mongfontbuilder 的完整 particle 列表(47 个 MNG
         条目,含多字母短语)。每个以 mvs 开头的条目都跑伪代码 shape 对比。
-        chachlag 例外。
+
+        Note: particles.json doesn't include pure `mvs+a` / `mvs+e`,
+        so no chachlag exception is needed here.
+        注:particles.json 不含纯 `mvs+a`/`mvs+e`,故无需 chachlag 例外。
         """
-        chachlag_first_chain = ('Aa',)
         mvs_char = chr(0x180E)
 
         particles = sorted(self.s.particles_data.get('MNG', {}).keys())
         failures = []
         checked = 0
         skipped_no_mvs = 0
-        skipped_chachlag = 0
 
         for alias_string in particles:
             try:
@@ -588,26 +588,19 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                 skipped_no_mvs += 1
                 continue
 
-            # Chachlag exception: first chain after mvs is ('Aa',).
-            shape = self.s.shape(word_text)
-            if shape and shape[0] == 'mvs':
-                first_chain = []
-                for u in shape[1:]:
-                    if u == 'mvs':
-                        break
-                    first_chain.append(u)
-                if tuple(first_chain) == chachlag_first_chain:
-                    skipped_chachlag += 1
-                    continue
-
+            # No chachlag exception needed — particles.json doesn't
+            # include pure `mvs+a` / `mvs+e`; the chachlag check would
+            # never fire here. (See test_mvs_uniform_no_mvs_dependency
+            # for the chachlag-aware version that handles PARTICLE_CASES
+            # which DOES include chachlag inputs.)
+            # 无需 chachlag 例外 —— particles.json 不含纯 `mvs+a`/`mvs+e`。
             fail = self._check_chain_shape_uniform(word_text)
             if fail:
                 failures.append(f"particle {alias_string!r}:\n   {fail}")
             checked += 1
 
         print(f"\nparticle data sweep: {len(particles)} particles total, "
-              f"{checked} checked, {skipped_no_mvs} no-mvs skipped, "
-              f"{skipped_chachlag} chachlag skipped")
+              f"{checked} checked, {skipped_no_mvs} no-mvs skipped")
         if failures:
             for f in failures[:20]:
                 print(f)
