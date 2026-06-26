@@ -514,20 +514,14 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
         normalize encoding is identical.
         用户要求:有没有 MVS,这个 chain 的 normalize 编码必须一致。
 
-        Concretely, for every input `mvs + X` (non-chachlag), let
+        For every input `mvs + X` (non-chachlag), let
         chain_text = normalize(mvs + X)[len(mvs):]. Then
         normalize(chain_text) must equal chain_text itself — i.e., the
         chain text is already in canonical form as a standalone input.
 
-        Examples:
-          normalize('mvs+i')  = 'mvs + i+fvs1'   →  chain='i+fvs1'
-          normalize('i+fvs1') = 'i+fvs1'           ✓ same
-
-          normalize('mvs+u')  = 'mvs + u+fvs1'   →  chain='u+fvs1'
-          normalize('u+fvs1') = 'u+fvs1'           ✓ same
-
-          normalize('mvs+yin')= 'mvs + j+i+a'    →  chain='j+i+a'
-          normalize('j+i+a')  = 'j+i+a'            ✓ same
+        This version walks the PARTICLE_CASES list; see
+        `test_chain_uniformity_corpus_wide` and
+        `test_mvs_plus_every_letter` for the broader sweeps.
         """
         mvs = chr(0x180E)
         chachlag_chain = ('Aa',)
@@ -558,6 +552,128 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
             for f in failures:
                 print(f)
             self.fail(f"{len(failures)} cases: chain encoding differs with/without MVS")
+
+    def test_mvs_plus_every_letter(self):
+        """
+        Exhaustive sweep: for EVERY Mongolian letter L, build `mvs + L`
+        (single-letter chain after MVS) and verify chain-uniformity.
+        This catches any particle / init-form letter we forgot to handle.
+        逐字母 sweep:对每个蒙古字母 L 构造 `mvs + L`,验证 chain 一致性。
+        防止漏掉某个 particle / init-形态字母。
+        """
+        mvs = chr(0x180E)
+        chachlag_chain = ('Aa',)
+        # Enumerate all Mongolian-block letter codepoints (skip FVS/MVS/Nirugu).
+        # 枚举蒙古字符块的所有字母码位。
+        from mongol_norm.shaper import is_mongolian_letter
+        failures = []
+        for cp in range(0x1820, 0x18B0):
+            if not is_mongolian_letter(cp):
+                continue
+            word_text = mvs + chr(cp)
+            try:
+                norm = self.s.normalize(word_text)
+            except Exception as e:
+                failures.append(f"U+{cp:04X} ({chr(cp)}): CRASH {type(e).__name__}: {e}")
+                continue
+            if not norm.startswith(mvs):
+                continue
+            in_ctx_shape = tuple(self.s.shape(word_text))
+            chain_shape = tuple(u for u in in_ctx_shape if u != 'mvs')
+            if chain_shape == chachlag_chain:
+                continue
+            chain_text = norm[len(mvs):]
+            chain_normalize = self.s.normalize(chain_text)
+            if chain_normalize != chain_text:
+                failures.append(
+                    f"mvs + U+{cp:04X} ({chr(cp)}):\n"
+                    f"   input shape     : {list(in_ctx_shape)}\n"
+                    f"   normalize       : {norm!r}\n"
+                    f"   chain text      : {chain_text!r}\n"
+                    f"   normalize(chain): {chain_normalize!r}"
+                )
+        if failures:
+            for f in failures[:20]:
+                print(f)
+            if len(failures) > 20:
+                print(f"... ({len(failures) - 20} more)")
+            self.fail(f"{len(failures)} `mvs + letter` cases fail chain-uniformity")
+
+    def test_chain_uniformity_corpus_wide(self):
+        """
+        Walk every input from all three test corpora; whenever an input
+        produces a shape containing 'mvs', verify that each chain segment
+        of normalize() is self-canonical (chain-uniformity rule).
+        遍历三套语料的每条输入;凡 shape 含 'mvs' 的,检查每个 chain 段是
+        否自身即 canonical。
+
+        A chain after MVS may NEED a different encoding from its
+        standalone form when the standalone canonical would, with an
+        MVS prefix, fire chachlag / particle rules and SHAPE TO SOMETHING
+        DIFFERENT than the chain's MVS-context shape. These cases are
+        legitimate exceptions: the encoding MUST differ to preserve shape.
+        Such chains are skipped from this test.
+        若某 chain 在独立 canonical 加 MVS 前缀后会触发 chachlag / particle
+        规则、产生不同 shape,则这些情况是合理例外,跳过。
+
+        Exceptions found this way effectively include chachlag (chain
+        ('Aa',)) plus all "would-be-shape-altered-by-MVS" chains.
+        """
+        mvs = chr(0x180E)
+        all_words = []
+        for _, aliases in INLINE_CASES:
+            all_words.extend(w for w in _aliases_to_words(aliases) if w)
+        for _, aliases, _ in _load_tsv('core-hud.tsv'):
+            all_words.extend(w for w in _aliases_to_words(aliases) if w)
+        for _, aliases, _ in _load_tsv('eac-hud.tsv'):
+            toks = aliases.split()
+            if any(t != 'space' and t not in _ALIAS_TO_CP for t in toks):
+                continue
+            all_words.extend(w for w in _aliases_to_words(aliases) if w)
+
+        seen = set()
+        failures = []
+        checked = 0
+        skipped_exception = 0
+        for word in all_words:
+            in_shape = self.s.shape(word)
+            if 'mvs' not in in_shape:
+                continue
+            norm = self.s.normalize(word)
+            pieces = norm.split(mvs)
+            for chain in pieces[1:]:
+                if not chain or chain in seen:
+                    continue
+                seen.add(chain)
+                chain_shape_mvs = tuple(self.s.shape(chain))
+                # If standalone canonical of this chain, when prefixed
+                # with MVS, produces a DIFFERENT shape than the chain's
+                # MVS-context shape, it's a necessary exception — skip.
+                chain_norm = self.s.normalize(chain)
+                if chain_norm == chain:
+                    checked += 1
+                    continue  # passes uniformity
+                # standalone canonical differs from current chain; is it
+                # because MVS-context would alter its shape?
+                with_mvs_shape = tuple(self.s.shape(mvs + chain_norm))
+                expected_with_mvs = ('mvs',) + chain_shape_mvs
+                if with_mvs_shape != expected_with_mvs:
+                    skipped_exception += 1
+                    continue  # necessary exception (chachlag etc.)
+                checked += 1
+                failures.append(
+                    f"chain {chain!r} (shape {list(chain_shape_mvs)})\n"
+                    f"   normalize(chain) = {chain_norm!r}\n"
+                    f"   first seen in input: {word!r}"
+                )
+        print(f"\nchain-uniformity corpus sweep: "
+              f"{checked} unique chains checked, {skipped_exception} necessary exceptions skipped")
+        if failures:
+            for f in failures[:15]:
+                print(f)
+            if len(failures) > 15:
+                print(f"... ({len(failures) - 15} more)")
+            self.fail(f"{len(failures)} corpus chains fail uniformity")
 
 
 if __name__ == '__main__':
