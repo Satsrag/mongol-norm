@@ -1117,12 +1117,67 @@ class MongolianShaper:
             chunks.append(['chain', ''.join(cur)])
 
         changed = False
+
+        def chunk_ctx(i):
+            """Return (prev_mvs, next_mvs, prefix, suffix) for chunk i."""
+            pm = i > 0 and chunks[i - 1][0] == 'mvs'
+            nm = i + 1 < len(chunks) and chunks[i + 1][0] == 'mvs'
+            return pm, nm, (chr(MVS_CP) if pm else ''), (chr(MVS_CP) if nm else '')
+
+        def chunk_chain_shape(i, body):
+            pm, nm, p, su = chunk_ctx(i)
+            with_ctx = tuple(self.shape(p + body + su))
+            cs = with_ctx
+            if pm:
+                cs = cs[1:]
+            if nm:
+                cs = cs[:-1]
+            return cs, with_ctx, p, su, pm
+
+        # ── Pass 1: chains AFTER MVS use the standalone canonical so the
+        #    encoding doesn't rely on MVS to fire particle / init-form
+        #    rules. Skip chachlag (chain ('Aa',)) — user wants
+        #    `mvs + bare a/e` preserved.
+        #    MVS 后的 chain 改用 standalone canonical,不依赖 MVS 触发规则。
+        #    Chachlag(chain ('Aa',))跳过,保留 `mvs + bare a/e`。
         for i, (kind, body) in enumerate(chunks):
-            if kind != 'chain':
+            if kind != 'chain' or not body:
                 continue
-            # Only single-letter bodies (1 cp, possibly followed by 0 or 1 FVS).
-            # 仅处理单字母(1 cp + 可选 1 FVS)的 body。
-            if not body:
+            pm, nm, prefix, suffix = chunk_ctx(i)
+            if not pm:
+                continue
+            chain_shape, with_ctx_shape, _, _, _ = chunk_chain_shape(i, body)
+
+            if chain_shape in self._CHACHLAG_CHAIN_SHAPES:
+                # Strip FVS for chachlag: prefer `mvs + bare a/e` over
+                # `mvs + a+fvs2`/`mvs + e+fvs1`. Try removing the FVS
+                # from the body and verify shape preserved.
+                # chachlag 去 FVS:把 a+fvs2/e+fvs1 还原为 bare。
+                cps = [ord(c) for c in body]
+                if len(cps) == 2 and is_mongolian_letter(cps[0]) and cps[1] in FVS_CPS:
+                    bare_body = chr(cps[0])
+                    if tuple(self.shape(prefix + bare_body + suffix)) == with_ctx_shape:
+                        chunks[i] = ['chain', bare_body]
+                        changed = True
+                continue
+
+            # Compute the standalone canonical of this chain shape (the
+            # one that works without MVS context). If it verifies with
+            # MVS prefix, swap it in. This makes `mvs + du` → `mvs +
+            # d+u+fvs2` (and similar multi-letter particle chains).
+            # 算 chain shape 的 standalone canonical,用 MVS 上下文校验。
+            standalone = self._encode_chain_canonical(chain_shape, False, '', ())
+            if not standalone or standalone == body:
+                continue
+            if tuple(self.shape(prefix + standalone + suffix)) == with_ctx_shape:
+                chunks[i] = ['chain', standalone]
+                changed = True
+
+        # ── Pass 2: single-letter chains get isol-particle preference.
+        #    Handles Rule 1 (`I` iso → `i+fvs1`, replacing bare `j`).
+        #    单字母 chain 用 isol particle(规则 1:I iso → i+fvs1)。
+        for i, (kind, body) in enumerate(chunks):
+            if kind != 'chain' or not body:
                 continue
             cps = [ord(c) for c in body]
             if len(cps) == 1:
@@ -1134,39 +1189,10 @@ class MongolianShaper:
             else:
                 continue
 
-            prev_mvs = i > 0 and chunks[i - 1][0] == 'mvs'
-            next_mvs = i + 1 < len(chunks) and chunks[i + 1][0] == 'mvs'
-            prefix = chr(MVS_CP) if prev_mvs else ''
-            suffix = chr(MVS_CP) if next_mvs else ''
-
-            with_ctx_shape = tuple(self.shape(prefix + body + suffix))
-            chain_shape = with_ctx_shape
-            if prev_mvs:
-                chain_shape = chain_shape[1:]
-            if next_mvs:
-                chain_shape = chain_shape[:-1]
-
-            # Chachlag exception: chain shape ('Aa',) in MVS context
-            # should use the BARE form (`mvs + a` / `mvs + e`), NOT the
-            # particle FVS form. If we already have a particle form
-            # (a+fvs2 or e+fvs1), try stripping the FVS — if `mvs + bare`
-            # still shapes to ('mvs','Aa',...), use it.
-            # chachlag 例外:MVS 上下文中 chain shape ('Aa',) 用 bare a/e
-            # 而非 particle FVS。已是 particle 形则试着去 FVS。
-            if chain_shape in self._CHACHLAG_CHAIN_SHAPES and prev_mvs and len(cps) == 2:
-                bare_body = chr(cps[0])
-                if tuple(self.shape(prefix + bare_body + suffix)) == with_ctx_shape:
-                    chunks[i] = ['chain', bare_body]
-                    changed = True
-                continue
-
-            # Non-chachlag particle preference: at isol, prefer particle.
-            # 非 chachlag 的 particle 偏好:isol 优先用 particle。
+            chain_shape, with_ctx_shape, prefix, suffix, _ = chunk_chain_shape(i, body)
             if chain_shape in self._CHACHLAG_CHAIN_SHAPES:
                 continue
 
-            # Find a particle variant at (isol, chain_shape).
-            # 找 (isol, chain_shape) 的 particle 变体。
             cands = self._candidates_map.get(('isol', chain_shape), [])
             particle_cands = sorted(
                 ((c['cp'], FVS_INT_TO_CP.get(c['fvs'])) for c in cands if c.get('particle')),
@@ -1179,7 +1205,6 @@ class MongolianShaper:
                     new_body = chr(cp) + chr(fvs_cp)
                 if new_body == body:
                     break  # already in particle form
-                # Verify shape preservation in this chunk's MVS context.
                 if tuple(self.shape(prefix + new_body + suffix)) == with_ctx_shape:
                     chunks[i] = ['chain', new_body]
                     changed = True
@@ -1421,32 +1446,43 @@ class MongolianShaper:
         prefix_text = mvs_ch if prev_mvs else ''
         verify_target = (('mvs',) if prev_mvs else ()) + chain_shape + suffix_target
 
-        # Try greedy first. If it returns an encoding LONGER than the
-        # chain has units (i.e., it used a nirugu wrap or FVS), suspect
-        # a shorter encoding exists — run DFS at smaller budgets to find
-        # it. Otherwise trust greedy (typical case, fast).
-        # 先贪婪;若结果长度 > n_units(用了 wrap/FVS),怀疑有更短解,
-        # 跑 DFS 找短的;否则信任贪婪(常见情况,快)。
-        greedy = self._greedy_one_shot(
+        # Encoding preference: no-wrap > nirugu-wrapped. Nirugu is a
+        # joining marker; using it in normalize output is awkward when a
+        # non-wrap encoding exists. So we exhaust all no-wrap budgets
+        # first; only chains unreachable without nirugu (e.g. shape ['O']
+        # which requires medi position) fall through to wrapped DFS.
+        # 编码偏好:无 wrap > nirugu 包裹。nirugu 是连接标记,normalize 输出
+        # 里出现它不直观。先穷尽所有无 wrap 预算,再考虑 nirugu 包裹。
+
+        # 1) Greedy single-pass no-wrap.
+        greedy_nw = self._greedy_one_shot_no_wrap(
             chain_shape, n_units, prev_mvs,
-            prefix_text, suffix_text, verify_target, nirugu_ch,
+            prefix_text, suffix_text, verify_target,
         )
+        if greedy_nw is not None and len(greedy_nw) <= n_units:
+            return greedy_nw
 
-        # If greedy succeeded with length ≤ n_units, that's at the
-        # theoretical minimum (≤ 1 char per shape unit; some letters
-        # can compress 2+ units into 1 char via vowel_devsger etc.).
-        # Trust it without re-searching.
-        # 若贪婪长度 ≤ n_units,已是理论最小(每 unit ≤1 字符;部分字母可
-        # 压缩多 unit 到 1 字符),直接信任。
-        if greedy is not None and len(greedy) <= n_units:
-            return greedy
+        # 2) DFS no-wrap, budgets ascending. Stop at first valid.
+        no_wrap_upper = (
+            len(greedy_nw) if greedy_nw is not None else (2 * n_units + 2)
+        )
+        for total_chars in range(1, no_wrap_upper + 1):
+            letters = []
+            result = self._dfs_budget(
+                chain_shape, n_units, 0, total_chars, letters,
+                0, 0,  # wrap_pre, wrap_post
+                prefix_text, suffix_text, verify_target, nirugu_ch,
+            )
+            if result is not None:
+                return result
+        if greedy_nw is not None:
+            return greedy_nw  # equal or larger budgets already exhausted
 
-        upper_bound = len(greedy) if greedy is not None else (2 * n_units + 2)
-
-        # DFS strictly shorter than greedy (greedy already covers that length).
-        # DFS 只搜更短预算;greedy 已覆盖自身长度。
-        for total_chars in range(1, upper_bound):
-            for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
+        # 3) Wrapped DFS — chains unreachable without nirugu (rare).
+        # 包含 nirugu 的 DFS —— 仅在无 wrap 编码不存在时使用。
+        max_total = 2 * n_units + 2
+        for total_chars in range(1, max_total + 1):
+            for wrap_pre, wrap_post in ((0, 1), (1, 0), (1, 1)):
                 wrap_cost = wrap_pre + wrap_post
                 if wrap_cost >= total_chars:
                     continue
@@ -1461,28 +1497,56 @@ class MongolianShaper:
                 )
                 if result is not None:
                     return result
-        # DFS didn't find anything shorter; if greedy succeeded use it,
-        # else run DFS at the upper bound and beyond as a fallback.
-        if greedy is not None:
-            return greedy
-        # Exhaustive fallback (greedy returned None, e.g. chain unencodable
-        # in any wrap config).
-        for total_chars in range(upper_bound, 2 * n_units + 3):
-            for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
-                wrap_cost = wrap_pre + wrap_post
-                if wrap_cost >= total_chars:
-                    continue
-                letters_budget = total_chars - wrap_cost
-                if letters_budget < 1:
-                    continue
-                letters = []
-                result = self._dfs_budget(
-                    chain_shape, n_units, 0, letters_budget, letters,
-                    wrap_pre, wrap_post,
-                    prefix_text, suffix_text, verify_target, nirugu_ch,
-                )
-                if result is not None:
-                    return result
+        return None
+
+    def _greedy_one_shot_no_wrap(self, chain_shape, n_units, prev_mvs,
+                                  prefix_text, suffix_text, verify_target):
+        """Deterministic greedy without nirugu wraps. Returns text or None."""
+        letters = []
+        i = 0
+        k = 0
+        while i < n_units:
+            picked = None
+            for prefer_bare in (True, False):
+                for L in range(n_units - i, 0, -1):
+                    is_last_letter = (i + L == n_units)
+                    if is_last_letter:
+                        if k + 1 == 1:
+                            pos = 'isol'
+                        elif k == 0:
+                            pos = 'init'
+                        else:
+                            pos = 'fina'
+                    else:
+                        pos = 'init' if k == 0 else 'medi'
+                    written = tuple(chain_shape[i:i + L])
+                    cands = self._pos_tables.get((pos, written), ())
+                    if not cands:
+                        continue
+                    for cp, fvs_cp in cands:
+                        is_bare = fvs_cp is None
+                        if prefer_bare and not is_bare:
+                            continue
+                        if not prefer_bare and is_bare:
+                            continue
+                        picked = (L, cp, fvs_cp)
+                        break
+                    if picked is not None:
+                        break
+                if picked is not None:
+                    break
+            if picked is None:
+                return None
+            L, cp, fvs_cp = picked
+            letters.append((cp, fvs_cp))
+            i += L
+            k += 1
+        letters_text = "".join(
+            chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
+            for cp, fvs_cp in letters
+        )
+        if tuple(self.shape(prefix_text + letters_text + suffix_text)) == verify_target:
+            return letters_text
         return None
 
     def _greedy_one_shot(self, chain_shape, n_units, prev_mvs,
