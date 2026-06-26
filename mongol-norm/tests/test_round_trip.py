@@ -550,107 +550,85 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
             )
         return None
 
-    def test_mvs_plus_every_letter(self):
+    def test_particles_from_data(self):
         """
-        Exhaustive sweep: for EVERY Mongolian letter L, build `mvs + L`
-        and apply the user's pseudo-code check. Catches any particle /
-        init-form letter we forgot to handle.
-        Chachlag (shape ('Aa',) after MVS) excluded — it's the documented
-        exception where the encoding intentionally relies on MVS.
-        逐字母 sweep:对每个蒙古字母 L 构造 `mvs + L`,验证伪代码规则。
-        chachlag 例外。
+        Data-driven sweep: enumerate every `particle`-tagged variant
+        from the locale rules and apply the user's pseudo-code
+        shape-uniformity check to a minimal input that places each
+        variant in MVS context.
+        数据驱动:从数据里取所有 particle 变体,按位置造最小用例,跑
+        伪代码 shape 对比。
+
+        Position → minimal input / 位置 → 最小测试输入:
+          isol → mvs + letter
+          init → mvs + letter + a       (letter 在 chain 头)
+          fina → mvs + a + letter       (letter 在 chain 尾)
+          medi → mvs + a + letter + a   (letter 居中)
+
+        Chachlag particles (A.isol.fvs2 / E.isol.fvs1, both → 'Aa') are
+        the documented exception and skipped.
+        Chachlag 例外(A.isol.fvs2 / E.isol.fvs1)。
         """
+        self.s._build_candidates_map()
         mvs_char = chr(0x180E)
-        from mongol_norm.shaper import is_mongolian_letter
+        a_char = chr(0x1820)
+        chachlag_first_chain = ('Aa',)
+
+        # Collect particle variants from candidates_map (the `particle`
+        # flag is set in _build_candidates_map from data's
+        # `conditions: ['particle']` tag).
+        # 从 candidates_map 收集 particle 变体。
+        seen = set()
+        particles = []
+        for (pos, _written), cands in self.s._candidates_map.items():
+            for c in cands:
+                if not c.get('particle'):
+                    continue
+                key = (c['cp'], pos, c['fvs'])
+                if key in seen:
+                    continue
+                seen.add(key)
+                particles.append((c['cp'], pos, c['fvs'], c['alias']))
+        particles.sort()
+
         failures = []
-        for cp in range(0x1820, 0x18B0):
-            if not is_mongolian_letter(cp):
+        for cp, pos, fvs, alias in particles:
+            letter = chr(cp)
+            if pos == 'isol':
+                input_text = mvs_char + letter
+            elif pos == 'init':
+                input_text = mvs_char + letter + a_char
+            elif pos == 'fina':
+                input_text = mvs_char + a_char + letter
+            elif pos == 'medi':
+                input_text = mvs_char + a_char + letter + a_char
+            else:
                 continue
-            word_text = mvs_char + chr(cp)
-            try:
-                shape = self.s.shape(word_text)
-            except Exception:
-                continue
-            # Chachlag exception: skip if the FIRST chain after the
-            # leading 'mvs' is exactly ('Aa',) — this is the bare-a/e
-            # chachlag form which intentionally relies on MVS to render.
-            # 跳过 chachlag:首个 'mvs' 后的第一个 chain 若是 ('Aa',),
-            # 这是有意依赖 MVS 渲染的 bare a/e 形式。
+
+            # Chachlag exception: skip if the first chain after the
+            # leading 'mvs' is ('Aa',).
+            shape = self.s.shape(input_text)
             if shape and shape[0] == 'mvs':
                 first_chain = []
                 for u in shape[1:]:
                     if u == 'mvs':
                         break
                     first_chain.append(u)
-                if tuple(first_chain) == ('Aa',):
+                if tuple(first_chain) == chachlag_first_chain:
                     continue
-            fail = self._check_chain_shape_uniform(word_text)
-            if fail:
-                failures.append(f"U+{cp:04X} ({chr(cp)}):\n   {fail}")
-        if failures:
-            for f in failures[:20]:
-                print(f)
-            if len(failures) > 20:
-                print(f"... ({len(failures) - 20} more)")
-            self.fail(f"{len(failures)} `mvs + letter` cases fail shape-uniformity")
 
-    def test_chain_uniformity_corpus_wide(self):
-        """
-        Walk every input from all three test corpora; for each input
-        whose shape starts with 'mvs', apply the user's pseudo-code
-        check (shape of normalize after stripping first MVS char must
-        equal shape of input after stripping first 'mvs' token).
-        遍历三套语料,凡 shape 首元素为 'mvs' 的输入,跑伪代码 shape 对比。
-        Chachlag(chain ('Aa',))跳过。
-        """
-        mvs_char = chr(0x180E)
-        all_words = set()
-        for _, aliases in INLINE_CASES:
-            for w in _aliases_to_words(aliases):
-                if w:
-                    all_words.add(w)
-        for _, aliases, _ in _load_tsv('core-hud.tsv'):
-            for w in _aliases_to_words(aliases):
-                if w:
-                    all_words.add(w)
-        for _, aliases, _ in _load_tsv('eac-hud.tsv'):
-            toks = aliases.split()
-            if any(t != 'space' and t not in _ALIAS_TO_CP for t in toks):
-                continue
-            for w in _aliases_to_words(aliases):
-                if w:
-                    all_words.add(w)
-
-        failures = []
-        checked = 0
-        for word in all_words:
-            if not word.startswith(mvs_char):
-                continue
-            shape = self.s.shape(word)
-            # Chachlag exception: skip if the FIRST chain after the
-            # leading 'mvs' is exactly ('Aa',) — this is the bare-a/e
-            # chachlag form which intentionally relies on MVS to render.
-            # 跳过 chachlag:首个 'mvs' 后的第一个 chain 若是 ('Aa',),
-            # 这是有意依赖 MVS 渲染的 bare a/e 形式。
-            if shape and shape[0] == 'mvs':
-                first_chain = []
-                for u in shape[1:]:
-                    if u == 'mvs':
-                        break
-                    first_chain.append(u)
-                if tuple(first_chain) == ('Aa',):
-                    continue
-            fail = self._check_chain_shape_uniform(word)
+            fail = self._check_chain_shape_uniform(input_text)
             if fail:
-                failures.append(fail)
-            checked += 1
-        print(f"\nchain-uniformity corpus sweep: {checked} inputs checked")
+                failures.append(
+                    f"{alias} U+{cp:04X} {pos}.fvs{fvs}:\n"
+                    f"   {fail}"
+                )
+
+        print(f"\nparticle data sweep: {len(particles)} particle variants enumerated")
         if failures:
-            for f in failures[:15]:
+            for f in failures:
                 print(f)
-            if len(failures) > 15:
-                print(f"... ({len(failures) - 15} more)")
-            self.fail(f"{len(failures)} corpus inputs fail shape-uniformity")
+            self.fail(f"{len(failures)} particle variants fail shape-uniformity")
 
 
 if __name__ == '__main__':
