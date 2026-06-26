@@ -1979,13 +1979,33 @@ def _add_io_args(p, with_input=True):
     """Add common I/O flags to subparser."""
     if with_input:
         p.add_argument("text", nargs="?",
-                       help="Input text (or `-` for stdin; omit to use --input)")
+                       help=("Input text (positional). Use `-` to read from "
+                             "stdin; omit and pass `-i FILE` to read from a file."))
         p.add_argument("-i", "--input", metavar="FILE",
-                       help="Read input from FILE (UTF-8)")
+                       help="Read input from FILE (UTF-8). Mutually exclusive with positional text.")
     p.add_argument("-o", "--output", metavar="FILE",
-                   help="Write output to FILE (UTF-8); default stdout")
+                   help="Write output to FILE (UTF-8). Default: stdout.")
     p.add_argument("--batch", action="store_true",
-                   help="Process input line by line, emit one result per line")
+                   help=("Process input line by line, emit one result per line. "
+                         "Use this when -i/stdin is a multi-line file (one word/text per line)."))
+
+
+# Reusable examples block shown in each subcommand's --help epilog.
+# 每个子命令 --help 末尾共享的示例块。
+_IO_EXAMPLES_TEMPLATE = """\
+I/O modes / I/O 模式:
+  inline text :    mongol-norm {cmd} '{ex_in}'
+  stdin       :    echo '{ex_in}' | mongol-norm {cmd} -
+                   cat file.txt | mongol-norm {cmd} -
+  file in     :    mongol-norm {cmd} -i input.txt
+  file out    :    mongol-norm {cmd} -i input.txt -o output.txt
+  batch mode  :    mongol-norm {cmd} --batch -i words.txt -o out.txt
+                   cat words.txt | mongol-norm {cmd} --batch -
+"""
+
+
+def _io_epilog(cmd, example_input):
+    return _IO_EXAMPLES_TEMPLATE.format(cmd=cmd, ex_in=example_input)
 
 
 def main():
@@ -2000,13 +2020,26 @@ def main():
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
+            "I/O modes (apply to shape / normalize / normalize-text):\n"
+            "I/O 模式(适用于 shape / normalize / normalize-text):\n"
+            "  inline      :  mongol-norm <cmd> 'TEXT'\n"
+            "  stdin       :  echo 'TEXT' | mongol-norm <cmd> -\n"
+            "                 cat file.txt  | mongol-norm <cmd> -\n"
+            "  file input  :  mongol-norm <cmd> -i input.txt\n"
+            "  file output :  mongol-norm <cmd> -i input.txt -o output.txt\n"
+            "  batch       :  mongol-norm <cmd> --batch -i words.txt -o out.txt\n"
+            "                 (one word/text per line in, one result per line out)\n"
+            "\n"
             "Examples / 示例:\n"
-            "  mongol-norm normalize 'ᠰᠡᠢᠨ'\n"
+            "  mongol-norm normalize 'ᠰᠡᠢᠨ'                      # → ᠰᠠᠢᠠ\n"
+            "  mongol-norm shape 'ᠰᠠᠢᠨ'                          # → S+A+I+I+A\n"
+            "  mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ world'      # mixed script\n"
             "  echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -\n"
-            "  mongol-norm normalize -i words.txt -o canonical.txt\n"
-            "  mongol-norm normalize --batch -i words.txt    # one word per line\n"
-            "  mongol-norm shape 'ᠰᠠᠢᠨ'                       # → S+A+I+I+A\n"
-            "  mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ world'  # mixed script\n"
+            "  mongol-norm normalize --batch -i words.txt -o canonical.txt\n"
+            "  cat doc.txt | mongol-norm normalize-text - > doc.norm.txt\n"
+            "\n"
+            "See `mongol-norm <cmd> --help` for per-command details.\n"
+            "查看具体命令帮助: `mongol-norm <cmd> --help`\n"
         ),
     )
     parser.add_argument("--locale", default="MNG",
@@ -2017,6 +2050,8 @@ def main():
         "shape",
         help="Return '+'-joined written-unit sequence",
         description="Shape input through the UTN57 pipeline; output written units joined by '+'.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_io_epilog("shape", "ᠰᠠᠢᠨ"),
     )
     _add_io_args(p_shape)
 
@@ -2028,6 +2063,8 @@ def main():
             "Property: same shape → same Unicode. For mixed-script / multi-word\n"
             "text use `normalize-text` instead."
         ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_io_epilog("normalize", "ᠰᠡᠢᠨ"),
     )
     _add_io_args(p_norm)
 
@@ -2035,12 +2072,18 @@ def main():
         "normalize-text",
         help="Normalize full text (multi-word, mixed script)",
         description="Segment input into Mongolian runs vs others; normalize Mongolian, pass through rest.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_io_epilog("normalize-text", "Hello ᠰᠡᠢᠨ world"),
     )
     _add_io_args(p_normt)
 
     p_same = sub.add_parser(
         "same",
         help="Check if TEXT1 and TEXT2 shape identically (exit 0 if yes)",
+        description=(
+            "Compare two inputs by shape. Exit 0 if visually identical, 1 otherwise.\n"
+            "Inline-text only (no file I/O — this command takes two args)."
+        ),
     )
     p_same.add_argument("text1")
     p_same.add_argument("text2")
