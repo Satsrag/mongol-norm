@@ -120,6 +120,9 @@ INLINE_CASES = [
     ('plain.morin',          'm o r i n'),
     ('plain.nom',            'n o m'),
     ('plain.tngri',          't ng r i'),
+
+    ('paticle.i',            'mvs i'),
+    ('paticle.i.iso',         'i fvs1'),
 ]
 
 
@@ -317,6 +320,193 @@ class TestRoundTripEacHud(unittest.TestCase, _RoundTripBase):
             if len(failures) > 30:
                 print(f"... ({len(failures) - 30} more)")
             self.fail(f"{len(failures)} of {word_count} eac-hud round-trips failed")
+
+
+# ────────────────────────────────────────────────────────────────────
+# Particle test cases — verify the user-requested rules:
+#   1. `I` at iso always normalizes to `i+fvs1` (not bare `j`)
+#   2. `mvs + particle` and `particle alone` give the same encoding
+#      (the chain portion after MVS doesn't rely on MVS to render)
+# Exception: chachlag (chain shape ('Aa',) after MVS) keeps `mvs + bare a/e`.
+# Also: normalize output must not contain nirugu (U+180A).
+# 粒子用例 —— 验证用户规则:I iso 总归 i+fvs1;mvs+particle 与 particle
+# 编码一致(不依赖 MVS 渲染)。chachlag 例外。normalize 不应含 nirugu。
+# ────────────────────────────────────────────────────────────────────
+PARTICLE_CASES = [
+    # Single-letter chains after MVS — vowel particles
+    ('mvs+i',                'mvs i'),
+    ('mvs+u (masc)',         'mvs u'),
+    ('mvs+ue (fem)',         'mvs ue'),
+    # Chachlag — special case, keeps bare a/e
+    ('mvs+a chachlag',       'mvs a'),
+    ('mvs+e chachlag',       'mvs e'),
+    # Multi-letter particle chains after MVS
+    ('mvs+yin (genitive)',   'mvs y i n'),
+    ('mvs+un (u variant)',   'mvs u n'),
+    ('mvs+un (ue variant)',  'mvs ue n'),
+    ('mvs+du (u dative)',    'mvs d u'),
+    ('mvs+du (ue dative)',   'mvs d ue'),
+    ('mvs+tu (t-dative)',    'mvs t u'),
+    ('mvs+ban (reflexive)',  'mvs b a n'),
+    ('mvs+ben (reflexive)',  'mvs b e n'),
+    ('mvs+daga (locative)',  'mvs d a g a'),
+    ('mvs+yi (acc)',         'mvs y i'),
+    ('mvs+iyer (instr)',     'mvs i y e r'),
+    # Single-letter I at iso — rule 1
+    ('I iso (j alone)',      'j'),
+    ('I iso (i+fvs1)',       'i fvs1'),
+]
+
+# Groups of inputs whose shape is identical and therefore whose
+# normalize output must also be identical (shape-canonicity).
+# 同 shape 必同 normalize 的输入组(canonicity 检查)。
+PARTICLE_EQUIVALENCE_GROUPS = [
+    ('mvs+u vs mvs+ue',      ['mvs u', 'mvs ue']),
+    ('mvs+a vs mvs+e (chachlag)', ['mvs a', 'mvs e']),
+    ('mvs+un (u/ue)',        ['mvs u n', 'mvs ue n']),
+    ('mvs+du (u/ue)',        ['mvs d u', 'mvs d ue']),
+    ('mvs+ban vs mvs+ben',   ['mvs b a n', 'mvs b e n']),
+    ('I iso (j vs i+fvs1)',  ['j', 'i fvs1']),
+]
+
+
+class TestParticleUniform(unittest.TestCase, _RoundTripBase):
+    """
+    Particle rules: chain encoding after MVS shouldn't rely on MVS to
+    render correctly (Rule 2). Single-letter `I` at iso always uses the
+    vowel particle `i+fvs1` (Rule 1). Chachlag (`mvs + bare a/e`) is the
+    explicit exception. Normalize output must not contain nirugu.
+    粒子规则:MVS 后的 chain 编码不依赖 MVS 渲染;`I` iso 总用 `i+fvs1`;
+    chachlag 例外;normalize 输出不应含 nirugu。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        _RoundTripBase.setUpClass.__func__(cls)
+
+    def test_particles_round_trip(self):
+        """Each particle case must round-trip (shape preserved)."""
+        failures = []
+        for label, aliases in PARTICLE_CASES:
+            for word_text in _aliases_to_words(aliases):
+                if not word_text:
+                    continue
+                self._check_word(label, word_text, failures)
+        if failures:
+            for f in failures:
+                print(f)
+            self.fail(f"{len(failures)} of {len(PARTICLE_CASES)} particle round-trips failed")
+
+    def test_mvs_uniform_no_mvs_dependency(self):
+        """
+        For chain after MVS (except chachlag), stripping the MVS prefix
+        from normalize() output must give a chain that, when shaped
+        ALONE, equals the chain portion of the MVS-context shape.
+        I.e., the chain encoding doesn't depend on MVS to render correctly.
+        MVS 后的 chain(chachlag 除外):去 MVS 前缀后独立 shape 应等于
+        其在 MVS 上下文中的 shape。
+        """
+        mvs_ch = chr(0x180E)
+        chachlag_chain = ('Aa',)
+        failures = []
+        for label, aliases in PARTICLE_CASES:
+            for word_text in _aliases_to_words(aliases):
+                if not word_text or not word_text.startswith(mvs_ch):
+                    continue
+                norm = self.s.normalize(word_text)
+                if not norm.startswith(mvs_ch):
+                    failures.append(f"{label}: normalize lost MVS prefix: {norm!r}")
+                    continue
+                in_ctx_shape = self.s.shape(word_text)
+                chain_shape = tuple(u for u in in_ctx_shape if u != 'mvs')
+                if chain_shape == chachlag_chain:
+                    continue
+                chain_text = norm[len(mvs_ch):]
+                alone_shape = tuple(self.s.shape(chain_text))
+                if alone_shape != chain_shape:
+                    failures.append(
+                        f"{label}: chain after MVS depends on MVS to render\n"
+                        f"   input        : {word_text!r}\n"
+                        f"   normalize    : {norm!r}\n"
+                        f"   shape(input) : {list(in_ctx_shape)}\n"
+                        f"   chain alone  : {list(alone_shape)}\n"
+                        f"   chain in ctx : {list(chain_shape)}"
+                    )
+        if failures:
+            for f in failures:
+                print(f)
+            self.fail(f"{len(failures)} particle cases depend on MVS for chain rendering")
+
+    def test_i_iso_always_i_fvs1(self):
+        """Rule 1: shape ['I'] at iso → `i+fvs1` (not bare `j`)."""
+        i_cp = chr(0x1822)
+        fvs1_cp = chr(0x180B)
+        expected = i_cp + fvs1_cp
+        failures = []
+        for aliases in ('j', 'i fvs1'):
+            word = _mgl(aliases)
+            norm = self.s.normalize(word)
+            if norm != expected:
+                failures.append(
+                    f"input={word!r} ({aliases}) normalize→{norm!r}, expected {expected!r}"
+                )
+        if failures:
+            for f in failures:
+                print(f)
+            self.fail("`I` iso normalize must be `i+fvs1`")
+
+    def test_no_nirugu_in_normalize_output(self):
+        """
+        Normalize output for particle cases must not contain nirugu
+        (U+180A). Canonical should prefer explicit FVS encoding instead
+        of nirugu wraps.
+        normalize 输出中不应有 nirugu。
+        """
+        nirugu = chr(0x180A)
+        failures = []
+        for label, aliases in PARTICLE_CASES:
+            for word_text in _aliases_to_words(aliases):
+                if not word_text:
+                    continue
+                norm = self.s.normalize(word_text)
+                if nirugu in norm:
+                    failures.append(f"{label}: normalize({word_text!r}) = {norm!r} contains nirugu")
+        if failures:
+            for f in failures:
+                print(f)
+            self.fail(f"{len(failures)} particle normalize outputs contain nirugu")
+
+    def test_equivalence_groups_converge(self):
+        """
+        Each equivalence group of same-shape inputs must converge to
+        ONE normalize output (shape-canonicity for these specific cases).
+        每个等价组内所有输入的 normalize 必须完全一致。
+        """
+        failures = []
+        for label, alias_list in PARTICLE_EQUIVALENCE_GROUPS:
+            outputs = set()
+            shapes = set()
+            for aliases in alias_list:
+                for word_text in _aliases_to_words(aliases):
+                    if not word_text:
+                        continue
+                    shapes.add(tuple(self.s.shape(word_text)))
+                    outputs.add(self.s.normalize(word_text))
+            if len(shapes) != 1:
+                failures.append(
+                    f"{label}: inputs have DIFFERENT shapes — not a valid equivalence group\n"
+                    f"   shapes: {shapes}"
+                )
+                continue
+            if len(outputs) != 1:
+                failures.append(
+                    f"{label}: inputs {alias_list} produced {len(outputs)} distinct normalize:\n"
+                    f"   {outputs}"
+                )
+        if failures:
+            for f in failures:
+                print(f)
+            self.fail(f"{len(failures)} equivalence groups diverged")
 
 
 if __name__ == '__main__':
