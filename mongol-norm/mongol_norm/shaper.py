@@ -959,12 +959,25 @@ class MongolianShaper:
                     written = self._resolve_written(w_raw, char_name)
                     if not written:
                         continue
+                    # `conditions` in the source data is a list of named
+                    # conditions this variant fires for (e.g. ['particle']
+                    # for i.isol.fvs1). We track 'particle' explicitly so
+                    # the canonical encoder can prefer particle variants
+                    # at isol position (user-requested rule: shape ['I']
+                    # at iso → i+fvs1, not bare j).
+                    # `conditions` 记录该变体触发的命名条件(如 i.isol.fvs1
+                    # 的 ['particle'])。canonical 编码器据此在 isol 位置
+                    # 优先选 particle 变体。
+                    raw_conds = locale_data.get("conditions") or vdata.get("conditions") or []
+                    is_particle = (isinstance(raw_conds, list)
+                                   and 'particle' in raw_conds)
                     key = (pos, written)
                     if key not in self._candidates_map:
                         self._candidates_map[key] = []
                     self._candidates_map[key].append({
                         "cp": cp, "fvs": fvs_int, "alias": alias,
                         "default": vdata.get("default", False),
+                        "particle": is_particle,
                     })
 
         # Add bare (fvs=0) encoding for any cp that appears in a slot
@@ -979,6 +992,7 @@ class MongolianShaper:
                 cands.append({
                     "cp": cp, "fvs": 0, "alias": alias,
                     "default": False,
+                    "particle": False,  # speculative bare is never a real particle variant
                 })
 
     def normalize(self, text):
@@ -1047,7 +1061,142 @@ class MongolianShaper:
         if not canonical or self.shape(canonical) != target:
             return text
 
+        # Post-process: rewrite single-letter chains so non-chachlag
+        # particles get their explicit particle-FVS encoding instead of
+        # relying on positional context (MVS / init-form rendering).
+        # See `_apply_particle_substitution` for the rule.
+        # 后处理:把单字母 chain 改为显式 particle 编码(非 chachlag),
+        # 不依赖 MVS / init-形态渲染。
+        canonical = self._apply_particle_substitution(canonical, target)
         return canonical
+
+    # Shapes that should KEEP the chachlag (bare a/e + MVS) encoding —
+    # per user request, particle post-processing skips these. The chachlag
+    # rule fires on a/e after MVS to give 'Aa'; explicit particle form
+    # would replace bare a with a+fvs2, which the user wants to avoid.
+    # 跳过 particle 替换的 shape:chachlag 'Aa' 保留 bare a/e + MVS 编码。
+    _CHACHLAG_CHAIN_SHAPES = frozenset({('Aa',)})
+
+    def _apply_particle_substitution(self, text, target_shape):
+        """
+        Post-process canonical text: for each single-letter chain whose
+        context-aware shape matches a particle-tagged variant at isol,
+        replace the chain encoding with that explicit particle form.
+        对每个单字母 chain,若其上下文 shape 匹配 isol 的 particle 变体,
+        将该 chain 改为显式 particle 编码。
+
+        Handles two user-requested rules:
+        处理用户提出的两条规则:
+          1. shape ['I'] at iso always → i+fvs1 (not bare j)
+             单字母 'I' 总归到 i+fvs1(而非 bare j)
+          2. mvs + bare-particle → mvs + particle+fvs (mvs-independent rendering)
+             mvs 后的裸 particle → mvs + particle+fvs(渲染不依赖 mvs)
+
+        Chachlag (chain ['Aa']) is excluded; bare a/e + MVS stays.
+        Chachlag(chain ['Aa'])排除;bare a/e + MVS 保留。
+
+        Verifies shape-preservation per substitution; reverts on mismatch.
+        每次替换都校验保形,不通过则回滚。
+        """
+        if not text:
+            return text
+
+        # Chunk text into (kind, body) where kind is 'mvs' or 'chain'.
+        # 切分文本为 (kind, body),kind 是 'mvs' 或 'chain'。
+        chunks = []
+        cur = []
+        for ch in text:
+            if ord(ch) == MVS_CP:
+                if cur:
+                    chunks.append(['chain', ''.join(cur)])
+                    cur = []
+                chunks.append(['mvs', chr(MVS_CP)])
+            else:
+                cur.append(ch)
+        if cur:
+            chunks.append(['chain', ''.join(cur)])
+
+        changed = False
+        for i, (kind, body) in enumerate(chunks):
+            if kind != 'chain':
+                continue
+            # Only single-letter bodies (1 cp, possibly followed by 0 or 1 FVS).
+            # 仅处理单字母(1 cp + 可选 1 FVS)的 body。
+            if not body:
+                continue
+            cps = [ord(c) for c in body]
+            if len(cps) == 1:
+                if not is_mongolian_letter(cps[0]):
+                    continue
+            elif len(cps) == 2:
+                if not (is_mongolian_letter(cps[0]) and cps[1] in FVS_CPS):
+                    continue
+            else:
+                continue
+
+            prev_mvs = i > 0 and chunks[i - 1][0] == 'mvs'
+            next_mvs = i + 1 < len(chunks) and chunks[i + 1][0] == 'mvs'
+            prefix = chr(MVS_CP) if prev_mvs else ''
+            suffix = chr(MVS_CP) if next_mvs else ''
+
+            with_ctx_shape = tuple(self.shape(prefix + body + suffix))
+            chain_shape = with_ctx_shape
+            if prev_mvs:
+                chain_shape = chain_shape[1:]
+            if next_mvs:
+                chain_shape = chain_shape[:-1]
+
+            # Chachlag exception: chain shape ('Aa',) in MVS context
+            # should use the BARE form (`mvs + a` / `mvs + e`), NOT the
+            # particle FVS form. If we already have a particle form
+            # (a+fvs2 or e+fvs1), try stripping the FVS — if `mvs + bare`
+            # still shapes to ('mvs','Aa',...), use it.
+            # chachlag 例外:MVS 上下文中 chain shape ('Aa',) 用 bare a/e
+            # 而非 particle FVS。已是 particle 形则试着去 FVS。
+            if chain_shape in self._CHACHLAG_CHAIN_SHAPES and prev_mvs and len(cps) == 2:
+                bare_body = chr(cps[0])
+                if tuple(self.shape(prefix + bare_body + suffix)) == with_ctx_shape:
+                    chunks[i] = ['chain', bare_body]
+                    changed = True
+                continue
+
+            # Non-chachlag particle preference: at isol, prefer particle.
+            # 非 chachlag 的 particle 偏好:isol 优先用 particle。
+            if chain_shape in self._CHACHLAG_CHAIN_SHAPES:
+                continue
+
+            # Find a particle variant at (isol, chain_shape).
+            # 找 (isol, chain_shape) 的 particle 变体。
+            cands = self._candidates_map.get(('isol', chain_shape), [])
+            particle_cands = sorted(
+                ((c['cp'], FVS_INT_TO_CP.get(c['fvs'])) for c in cands if c.get('particle')),
+                key=lambda p: (p[0], (p[1] or 0))
+            )
+            for cp, fvs_cp in particle_cands:
+                if fvs_cp is None:
+                    new_body = chr(cp)
+                else:
+                    new_body = chr(cp) + chr(fvs_cp)
+                if new_body == body:
+                    break  # already in particle form
+                # Verify shape preservation in this chunk's MVS context.
+                if tuple(self.shape(prefix + new_body + suffix)) == with_ctx_shape:
+                    chunks[i] = ['chain', new_body]
+                    changed = True
+                    break
+
+        if not changed:
+            return text
+
+        new_text = ''.join(body for _, body in chunks)
+        # Whole-text safety verification — the per-chunk verify catches
+        # local issues but a final shape() check guards against any
+        # cross-chain interaction we might have missed. Compare as lists
+        # so the equality works regardless of how the caller passed it.
+        # 整体校验,防御跨链交互。比较 list 形式以匹配 shape() 返回值。
+        if self.shape(new_text) != list(target_shape):
+            return text  # post-process broke something; revert
+        return new_text
 
     # ── Shape → canonical Unicode (pure function) ──────────────────
     # The chain shape acts as the key: any two inputs whose shape() output
@@ -1272,36 +1421,58 @@ class MongolianShaper:
         prefix_text = mvs_ch if prev_mvs else ''
         verify_target = (('mvs',) if prev_mvs else ()) + chain_shape + suffix_target
 
-        # Ultra-fast path: deterministic greedy, one verify, no backtrack.
-        # Per slot, take the BEST candidate (longest written that matches +
-        # lex-smallest cp + bare-preferred); concatenate; shape-verify once.
-        # Works for the vast majority of chains (typical Mongolian words).
-        # Falls through to the budget DFS only when greedy verify fails.
-        # 极快路径:贪婪一遍,单次校验,无回溯。每槽取最佳候选(最长 written
-        # + 字典序最小 cp + 裸优先),拼接,shape 校验一次。绝大多数 chain 走这条路。
-        result = self._greedy_one_shot(
+        # Try greedy first. If it returns an encoding LONGER than the
+        # chain has units (i.e., it used a nirugu wrap or FVS), suspect
+        # a shorter encoding exists — run DFS at smaller budgets to find
+        # it. Otherwise trust greedy (typical case, fast).
+        # 先贪婪;若结果长度 > n_units(用了 wrap/FVS),怀疑有更短解,
+        # 跑 DFS 找短的;否则信任贪婪(常见情况,快)。
+        greedy = self._greedy_one_shot(
             chain_shape, n_units, prev_mvs,
             prefix_text, suffix_text, verify_target, nirugu_ch,
         )
-        if result is not None:
-            return result
 
-        # Generous upper bound: every letter has 2 chars, plus 2 wrap nirugus.
-        # In practice canonical is far shorter; the for-loop exits on first hit.
-        # 上界宽松:每字母 2 字符 + 最多 2 个 nirugu。canonical 通常远短于此,
-        # 循环找到即退出。
-        max_total = 2 * n_units + 2
+        # If greedy succeeded with length ≤ n_units, that's at the
+        # theoretical minimum (≤ 1 char per shape unit; some letters
+        # can compress 2+ units into 1 char via vowel_devsger etc.).
+        # Trust it without re-searching.
+        # 若贪婪长度 ≤ n_units,已是理论最小(每 unit ≤1 字符;部分字母可
+        # 压缩多 unit 到 1 字符),直接信任。
+        if greedy is not None and len(greedy) <= n_units:
+            return greedy
 
-        for total_chars in range(1, max_total + 1):
+        upper_bound = len(greedy) if greedy is not None else (2 * n_units + 2)
+
+        # DFS strictly shorter than greedy (greedy already covers that length).
+        # DFS 只搜更短预算;greedy 已覆盖自身长度。
+        for total_chars in range(1, upper_bound):
             for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
                 wrap_cost = wrap_pre + wrap_post
                 if wrap_cost >= total_chars:
                     continue
                 letters_budget = total_chars - wrap_cost
-                # Must have at least n_units / max_L_per_letter letters; cheap
-                # lower-bound check: each letter consumes ≥1 unit and costs ≥1
-                # char, so letters_budget ≥ ceil(n_units / max_L) ≥ 1.
-                # 每字母至少 1 unit 且 ≥1 字符;letters_budget 至少 1。
+                if letters_budget < 1:
+                    continue
+                letters = []
+                result = self._dfs_budget(
+                    chain_shape, n_units, 0, letters_budget, letters,
+                    wrap_pre, wrap_post,
+                    prefix_text, suffix_text, verify_target, nirugu_ch,
+                )
+                if result is not None:
+                    return result
+        # DFS didn't find anything shorter; if greedy succeeded use it,
+        # else run DFS at the upper bound and beyond as a fallback.
+        if greedy is not None:
+            return greedy
+        # Exhaustive fallback (greedy returned None, e.g. chain unencodable
+        # in any wrap config).
+        for total_chars in range(upper_bound, 2 * n_units + 3):
+            for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
+                wrap_cost = wrap_pre + wrap_post
+                if wrap_cost >= total_chars:
+                    continue
+                letters_budget = total_chars - wrap_cost
                 if letters_budget < 1:
                     continue
                 letters = []
