@@ -511,21 +511,14 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
 
     def _check_chain_shape_uniform(self, word_text):
         """
-        User's pseudo-code (literal translation):
-          withMvsShape = shape(word_text)
-          if not withMvsShape.startswith(['mvs']): skip
-          exceptShape = withMvsShape - first 'mvs'
-          withMvsNorm = normalize(word_text)
-          if not withMvsNorm.startswith(MVS_CHAR): skip
-          withoutMvsNorm = withMvsNorm - first MVS char
-          withoutMvsShape = shape(withoutMvsNorm)
-          assert exceptShape == withoutMvsShape
+        Verify that the chain after MVS doesn't depend on MVS to render
+        correctly: the chain part of normalize, shaped alone, equals the
+        chain part of the input's shape.
+        校验 MVS 后的 chain 不依赖 MVS 渲染:normalize 去掉首个 MVS 后
+        独立 shape 应等于输入 shape 去掉首个 'mvs' 后的部分。
 
-        Returns None if check passes or input doesn't qualify; returns
-        a failure description string if the assertion fails.
-        伪代码逐字翻译:对 word_text 跑 shape 和 normalize,各自去掉
-        第一个 mvs,再对去掉 MVS 的 normalize 跑 shape,与去掉 'mvs' 的
-        原 shape 对比;不等则报错。
+        Returns None on pass / N/A; returns an error description on fail.
+        通过或不适用返回 None,失败返回错误描述。
         """
         mvs_char = chr(0x180E)
         with_mvs_shape = self.s.shape(word_text)
@@ -588,12 +581,6 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                 skipped_no_mvs += 1
                 continue
 
-            # No chachlag exception needed — particles.json doesn't
-            # include pure `mvs+a` / `mvs+e`; the chachlag check would
-            # never fire here. (See test_mvs_uniform_no_mvs_dependency
-            # for the chachlag-aware version that handles PARTICLE_CASES
-            # which DOES include chachlag inputs.)
-            # 无需 chachlag 例外 —— particles.json 不含纯 `mvs+a`/`mvs+e`。
             fail = self._check_chain_shape_uniform(word_text)
             if fail:
                 failures.append(f"particle {alias_string!r}:\n   {fail}")
