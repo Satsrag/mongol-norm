@@ -508,6 +508,57 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                 print(f)
             self.fail(f"{len(failures)} equivalence groups diverged")
 
+    def test_chain_part_matches_standalone(self):
+        """
+        User-requested property: with or without MVS, the chain part's
+        normalize encoding is identical.
+        用户要求:有没有 MVS,这个 chain 的 normalize 编码必须一致。
+
+        Concretely, for every input `mvs + X` (non-chachlag), let
+        chain_text = normalize(mvs + X)[len(mvs):]. Then
+        normalize(chain_text) must equal chain_text itself — i.e., the
+        chain text is already in canonical form as a standalone input.
+
+        Examples:
+          normalize('mvs+i')  = 'mvs + i+fvs1'   →  chain='i+fvs1'
+          normalize('i+fvs1') = 'i+fvs1'           ✓ same
+
+          normalize('mvs+u')  = 'mvs + u+fvs1'   →  chain='u+fvs1'
+          normalize('u+fvs1') = 'u+fvs1'           ✓ same
+
+          normalize('mvs+yin')= 'mvs + j+i+a'    →  chain='j+i+a'
+          normalize('j+i+a')  = 'j+i+a'            ✓ same
+        """
+        mvs = chr(0x180E)
+        chachlag_chain = ('Aa',)
+        failures = []
+        for label, aliases in PARTICLE_CASES:
+            for word_text in _aliases_to_words(aliases):
+                if not word_text or not word_text.startswith(mvs):
+                    continue
+                norm = self.s.normalize(word_text)
+                if not norm.startswith(mvs):
+                    continue
+                in_ctx_shape = self.s.shape(word_text)
+                chain_shape = tuple(u for u in in_ctx_shape if u != 'mvs')
+                if chain_shape == chachlag_chain:
+                    continue  # chachlag is the documented exception
+                chain_text = norm[len(mvs):]
+                chain_normalize = self.s.normalize(chain_text)
+                if chain_normalize != chain_text:
+                    failures.append(
+                        f"{label}:\n"
+                        f"   input            : {word_text!r}\n"
+                        f"   normalize        : {norm!r}\n"
+                        f"   chain (strip mvs): {chain_text!r}\n"
+                        f"   normalize(chain) : {chain_normalize!r}\n"
+                        f"   — chain text isn't its own normalize, so encoding differs with/without MVS"
+                    )
+        if failures:
+            for f in failures:
+                print(f)
+            self.fail(f"{len(failures)} cases: chain encoding differs with/without MVS")
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
