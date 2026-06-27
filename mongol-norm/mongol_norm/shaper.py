@@ -1878,14 +1878,329 @@ class MongolianShaper:
     def _compute_chain_canonical(self, chain_shape, prev_mvs=False,
                                   suffix_text="", suffix_target=()):
         """
-        Canonical encoding for chain_shape. Tries fast greedy path first,
-        falls back to exhaustive enumeration on greedy failure.
-        canonical 编码:先走贪婪快路径,失败回退到穷举。
+        Canonical encoding for chain_shape.
+        canonical 编码。
+
+        Strategy / 策略:
+          0. _unit_encode_chain — PRIMARY. A per-(position, written-unit)
+             FVS-pinned table lookup: deterministic, O(N), prefix-stable.
+             Returns None on a gap (rare), then we fall through.
+             主路径:逐(位置, written 单元)的 FVS 钉死查表,确定性、O(N)、
+             前缀稳定。缺口(罕见)返回 None 再回退。
+          1. greedy/Viterbi/exhaustive search — FALLBACK only, the
+             correctness net (also supplies nirugu wraps for shapes the
+             table can't reach).
+             搜索回退:正确性安全网(也提供表够不到的 nirugu 包裹)。
+        Every returned encoding is shape()-verified by the caller.
         """
+        result = self._unit_encode_chain(chain_shape, prev_mvs, suffix_text, suffix_target)
+        if result is not None:
+            return result
         result = self._greedy_encode_chain(chain_shape, prev_mvs, suffix_text, suffix_target)
         if result is not None:
             return result
         return self._exhaustive_chain_canonical(chain_shape, prev_mvs, suffix_text, suffix_target)
+
+    # ── Unit-encoder (FVS-pinned per-(position, unit) table) ─────────
+    # Each shape unit is encoded by a context-INDEPENDENT (letter, fvs):
+    # one that produces exactly that unit at that position regardless of
+    # neighbor letters. So encoding is a deterministic function of the
+    # shape, giving prefix-stability + same-shape-same-output for free.
+    # 每个 shape 单元用 context 无关的 (字母,fvs) 编码:在该位置、任何邻居
+    # 下都恰好产出该单元。编码因此是 shape 的确定性函数,白拿前缀稳定 +
+    # 同 shape 同输出。
+
+    # Velar feminine forms: the adjacent ambiguous vowel is encoded with
+    # its FEMININE letter for clean output (g+fvs2+o round-trips but looks
+    # wrong; oe is the linguistically-correct partner of a 'G' velar).
+    # velar 阴形:相邻歧义元音用阴性字母,输出更自然(g+fvs2+o 虽能还原但
+    # 字难看;oe 才是 'G' velar 的语言学搭档)。
+    _VELAR_FEM_UNITS = frozenset({'G', 'Gx'})
+    _MASC_TO_FEM_CP = {0x1820: 0x1821,   # a → e
+                       0x1823: 0x1825,   # o → oe
+                       0x1824: 0x1826}   # u → ue
+
+    # Context battery: neighbor letters used to probe context-independence.
+    # Cover masc vowel (a), fem vowel (e), masc round vowel (o), neutral (i),
+    # plain consonant (n), sibilant (s), velar (g).
+    # 上下文电池:探测 context 无关性的邻居字母。
+    _CI_PROBE_LETTERS = (0x1820, 0x1821, 0x1823, 0x1822, 0x1828, 0x1830, 0x182D)
+
+    def _build_unit_enc(self):
+        """
+        Build `_unit_enc`: {(position, written_tuple): (cp, fvs_cp)} where
+        each value is context-independent (produces exactly written_tuple at
+        position in every probed neighbor context). Cached on the instance.
+        构建 `_unit_enc`,值为 context 无关编码,实例级缓存。
+        """
+        if hasattr(self, '_unit_enc'):
+            return
+        if not hasattr(self, '_candidates_map'):
+            self._build_candidates_map()
+        table = {}
+        for (pos, written), cands in self._candidates_map.items():
+            # rule-A-ish but MASCULINE-first for vowels: bare<fvs is NOT the
+            # primary key here — context-independence is. We sort candidates
+            # masc-first, bare-first, cp asc, fvs asc, then keep the FIRST
+            # that passes the battery.
+            ordered = sorted(
+                ((c['cp'], FVS_INT_TO_CP.get(c['fvs'])) for c in cands),
+                key=lambda cf: (
+                    self.cp_to_alias.get(cf[0]) in self.feminine_vowels,
+                    cf[1] is not None, cf[0], cf[1] or 0,
+                )
+            )
+            seen = set()
+            for cp, fvs_cp in ordered:
+                if (cp, fvs_cp) in seen:
+                    continue
+                seen.add((cp, fvs_cp))
+                if self._is_context_independent(pos, written, cp, fvs_cp):
+                    table[(pos, written)] = (cp, fvs_cp)
+                    break
+        # Hand-pins (battery should already pick these; insurance):
+        #   'G' → g+fvs2 (the only all-position context-independent G);
+        #   fina 'J' → j+fvs2 (absent from candidates_map but battery-proven).
+        g2 = (0x182D, 0x180C)
+        for p in ('isol', 'init', 'medi', 'fina'):
+            if self._is_context_independent(p, ('G',), *g2):
+                table[(p, ('G',))] = g2
+        jf = (0x1835, 0x180C)
+        if ('fina', ('J',)) not in table and self._is_context_independent('fina', ('J',), *jf):
+            table[('fina', ('J',))] = jf
+        self._unit_enc = table
+        # longest written-tuple length, to bound multi-unit lookahead
+        self._unit_enc_max_len = max((len(w) for (_, w) in table), default=1)
+
+        # Feminine alternative table for the velar-fem refinement: for each
+        # single-unit slot, a FEMININE (e/oe/ue) context-independent encoding
+        # producing the same unit, if one exists. The refinement swaps a
+        # velar-coupled vowel to this so 'G' velars get their fem partner
+        # WITHOUT breaking round-trip (a naive cp-swap can change the unit,
+        # e.g. o+fvs1='O'@fina but oe+fvs1='Ue'@fina).
+        # 阴性候选表:每个单单元槽,产出同单元的阴性 context 无关编码(若有)。
+        fem_vowels_cp = {self.alias_to_cp[a] for a in self.feminine_vowels
+                         if a in self.alias_to_cp}
+        femtbl = {}
+        for (pos, written), cands in self._candidates_map.items():
+            if len(written) != 1:
+                continue
+            ordered = sorted(
+                ((c['cp'], FVS_INT_TO_CP.get(c['fvs'])) for c in cands
+                 if c['cp'] in fem_vowels_cp),
+                key=lambda cf: (cf[1] is not None, cf[0], cf[1] or 0)
+            )
+            seen = set()
+            for cp, fvs_cp in ordered:
+                if (cp, fvs_cp) in seen:
+                    continue
+                seen.add((cp, fvs_cp))
+                if self._is_context_independent(pos, written, cp, fvs_cp):
+                    femtbl[(pos, written)] = (cp, fvs_cp)
+                    break
+        self._unit_enc_fem = femtbl
+
+        # Required-multi set: multi-unit table entries whose written tuple
+        # CANNOT be reproduced by concatenating single-unit entries (e.g.
+        # oe → [A,O,I]; a+o+i adds a spurious tooth). Only these force a
+        # multi-unit letter; everything else uses single units. Making this
+        # a FIXED set lets the partition be a single deterministic local
+        # pass (prefer required-multi, else single), which is prefix-stable
+        # — a two-pass "shortest-then-longest with whole-chain verify" was
+        # not (whether shortest succeeds depends on the whole chain).
+        # 必需多单元集:无法用单单元拼出的多单元 written。仅这些强制多单元,
+        # 其余用单单元。固定此集 → partition 单趟确定性局部决策 → 前缀稳定。
+        required = set()
+        for (pos, written) in table:
+            if len(written) <= 1:
+                continue
+            if not self._decomposable_into_singles(written):
+                required.add((pos, written))
+        self._required_multi = required
+
+    def _decomposable_into_singles(self, written):
+        """
+        True iff `written` (a multi-unit tuple) can be produced by
+        concatenating single-unit table entries (treated as a standalone
+        chain) and round-trips. If so we DON'T need the multi-unit letter.
+        若 `written` 能用单单元表项拼出并还原,则可分解(不需要多单元字母)。
+        """
+        tbl = self._unit_enc
+        m = len(written)
+        parts = []
+        for j, u in enumerate(written):
+            p = 'isol' if m == 1 else 'init' if j == 0 else 'fina' if j == m - 1 else 'medi'
+            hit = tbl.get((p, (u,)))
+            if hit is None:
+                return False
+            parts.append(chr(hit[0]) + (chr(hit[1]) if hit[1] is not None else ''))
+        text = ''.join(parts)
+        return tuple(self.shape(text)) == tuple(written)
+
+    def _is_context_independent(self, pos, written, cp, fvs_cp):
+        """
+        True iff letter (cp, fvs_cp) placed at `pos` produces exactly
+        `written` in EVERY probed neighbor context (and at least one probe
+        actually lands it at `pos`).
+        当 (cp,fvs_cp) 放在 pos、在所有探测上下文下都恰好产出 written 时为真。
+        """
+        letter = chr(cp) + (chr(fvs_cp) if fvs_cp is not None else '')
+        target_written = list(written)
+        landed = False
+        probes = self._CI_PROBE_LETTERS
+        # Build neighbor option lists by position.
+        lefts = [''] if pos in ('isol', 'init') else [chr(p) for p in probes]
+        rights = [''] if pos in ('isol', 'fina') else [chr(p) for p in probes]
+        for lft in lefts:
+            for rgt in rights:
+                text = lft + letter + rgt
+                try:
+                    details = self.shape_detailed(text)
+                except Exception:
+                    return False
+                # target letter is the token right after the left context's
+                # letters (left context is 0 or 1 letter here).
+                tgt_idx = (1 if lft else 0)
+                if tgt_idx >= len(details):
+                    continue
+                d = details[tgt_idx]
+                if d.get('position') != pos:
+                    continue
+                landed = True
+                if list(d.get('written') or []) != target_written:
+                    return False
+        return landed
+
+    def _unit_encode_chain(self, chain_shape, prev_mvs, suffix_text, verify_target_unused):
+        """
+        Encode a chain by per-unit table lookup (PRIMARY path). Returns the
+        encoding str, or None if no table partition round-trips (→ fallback).
+        逐单元查表编码(主路径)。无可还原的查表划分时返回 None(→ 回退)。
+
+        Tries SHORTEST-first partition first (prefer single-unit letters →
+        clean output: a+g not ng, a+i not i+fvs1); only falls to
+        LONGEST-first when shortest fails verify (genuinely multi-unit-only
+        vowel forms like oe → [A,O,I]). Both are deterministic functions of
+        the shape, so prefix-stability / same-shape-same-output hold.
+        先试最短优先划分(优先单单元 → 干净:a+g 而非 ng);失败再退到最长优先
+        (真正只能多单元的元音形,如 oe→[A,O,I])。两者都是 shape 的确定性函数。
+        """
+        self._build_unit_enc()
+        text = self._unit_partition(chain_shape)
+        if text is None:
+            return None
+        prefix = chr(MVS_CP) if prev_mvs else ''
+        want = (('mvs',) if prev_mvs else ()) + tuple(chain_shape)
+        if tuple(self.shape(prefix + text + suffix_text)) == want:
+            return text
+        return None
+
+    def _unit_partition(self, chain_shape):
+        """
+        Single deterministic local partition+encode pass. At each position:
+          1. take the longest REQUIRED-multi tuple that matches (oe forms),
+          2. else the single unit,
+          3. else the longest available multi.
+        Local + deterministic ⇒ prefix-stable. Returns text or None.
+        单趟确定性局部划分:优先必需多单元 → 单单元 → 其余多单元。局部确定 →
+        前缀稳定。
+        """
+        tbl = self._unit_enc
+        req = self._required_multi
+        n = len(chain_shape)
+        letters = []          # [cp, fvs_cp] per emitted letter
+        unit_at = []          # single unit this letter covers, or None (multi)
+        i = 0
+        while i < n:
+            span = min(self._unit_enc_max_len, n - i)
+            hit = None
+            hit_len = 0
+            # 1) longest required-multi
+            for L in range(span, 1, -1):
+                p = self._slot_position(i, L, n)
+                key = (p, tuple(chain_shape[i:i + L]))
+                if key in req and key in tbl:
+                    hit = tbl[key]; hit_len = L; break
+            # 2) single unit
+            if hit is None:
+                p = self._slot_position(i, 1, n)
+                key = (p, (chain_shape[i],))
+                if key in tbl:
+                    hit = tbl[key]; hit_len = 1
+            # 3) any longest multi (last resort)
+            if hit is None:
+                for L in range(span, 1, -1):
+                    p = self._slot_position(i, L, n)
+                    key = (p, tuple(chain_shape[i:i + L]))
+                    if key in tbl:
+                        hit = tbl[key]; hit_len = L; break
+            if hit is None:
+                return None
+            letters.append([hit[0], hit[1]])
+            unit_at.append(chain_shape[i] if hit_len == 1 else None)
+            i += hit_len
+        # velar-feminine refinement (clean output for G/Gx-coupled vowels)
+        self._apply_velar_fem(chain_shape, letters, unit_at)
+        return ''.join(
+            chr(cp) + (chr(fvs) if fvs is not None else '')
+            for cp, fvs in letters
+        )
+
+    def _apply_velar_fem(self, chain_shape, letters, unit_at):
+        """
+        In-place: switch the ambiguous vowel coupled to each G/Gx velar to
+        its feminine letter. Coupling: init/medi velar ↔ following vowel;
+        fina velar ↔ preceding vowel. Only flips a/o/u → e/oe/ue.
+        把每个 G/Gx velar 耦合的歧义元音改阴性。耦合:init/medi 取后、fina 取前。
+        """
+        total = len(letters)
+        for li, u in enumerate(unit_at):
+            if u not in self._VELAR_FEM_UNITS:
+                continue
+            # FORWARD coupling only (init/medi velar → following vowel).
+            # We deliberately SKIP backward coupling (fina velar → preceding
+            # vowel): a fina velar becomes medi when a suffix is appended,
+            # flipping its coupling direction, which would make the
+            # shared-prefix vowel diverge between B and A. The FVS-pinned
+            # velar (g+fvs2) renders G regardless, so a masculine preceding
+            # vowel still round-trips — we trade that one's prettiness for
+            # prefix-stability. Forward coupling is stable (the following
+            # vowel keeps its place).
+            # 只做前向耦合(init/medi velar → 后元音)。跳过后向(fina velar →
+            # 前元音):fina 加后缀变 medi 会翻转耦合方向,破坏前缀稳定。FVS 钉死
+            # 的 velar 无论前元音阴阳都渲染 G,故前元音保持阳性仍能还原。
+            pos = self._letter_position(li, total)
+            tgt = li + 1 if pos in ('init', 'medi') else None
+            if tgt is None or not (0 <= tgt < total):
+                continue
+            tgt_unit = unit_at[tgt]
+            if tgt_unit is None:
+                continue  # multi-unit coupled letter — leave it
+            cp, _ = letters[tgt]
+            # only flip if the coupled vowel is currently a masculine vowel
+            if cp not in self._MASC_TO_FEM_CP:
+                continue
+            tgt_pos = self._letter_position(tgt, total)
+            fem = self._unit_enc_fem.get((tgt_pos, (tgt_unit,)))
+            if fem is None:
+                continue  # no round-trip-safe feminine form → leave masculine
+            letters[tgt] = [fem[0], fem[1]]
+
+    def _slot_position(self, i, L, n):
+        """Position of a letter spanning units [i, i+L) in a chain of n units."""
+        if i == 0 and i + L == n:
+            return 'isol'
+        if i == 0:
+            return 'init'
+        return 'fina' if i + L == n else 'medi'
+
+    def _letter_position(self, k, total):
+        """Position of the k-th letter out of `total` letters."""
+        if total == 1:
+            return 'isol'
+        if k == 0:
+            return 'init'
+        return 'fina' if k == total - 1 else 'medi'
 
     def _exhaustive_chain_canonical(self, chain_shape, prev_mvs=False,
                                      suffix_text="", suffix_target=()):

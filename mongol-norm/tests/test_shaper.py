@@ -974,12 +974,15 @@ class TestNormalize(unittest.TestCase):
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    # Canonical "sain" under rule A (shortest + lex-smallest): all five
-    # encodings shape to ['S','A','I','I','A'], and the canonical 4-char
-    # encoding `s a i a` wins over `s a i n` lexicographically (a<n).
-    # Visually identical, semantically arbitrary — rule A picks the
-    # lex-smallest encoding among same-length options.
-    CANONICAL_SAIN = "ᠰᠠᠢᠠ"
+    # Canonical "sain" under the FVS-pinned per-unit encoder: all five
+    # encodings shape to ['S','A','I','I','A'] and converge to ONE output.
+    # The encoder pins each unit to a context-independent (letter, fvs):
+    # s, a, i+fvs3, i+fvs3, a — so prefixes encode stably regardless of
+    # what follows (medial 'I' needs fvs3 to be context-independent; that
+    # FVS clutter is the deliberate price of prefix-stability).
+    # 每个单元钉死为 context 无关编码,故前缀稳定;中位 I 需 fvs3 才 context
+    # 无关,FVS 杂讯是前缀稳定的代价。
+    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ"
 
     def test_sain_base(self):
         self.assertEqual(self.s.normalize("ᠰᠠᠢᠨ"), self.CANONICAL_SAIN)
@@ -1023,12 +1026,9 @@ class TestNormalizeText(unittest.TestCase):
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    # Canonical "sain" under rule A (shortest + lex-smallest): all five
-    # encodings shape to ['S','A','I','I','A'], and the canonical 4-char
-    # encoding `s a i a` wins over `s a i n` lexicographically (a<n).
-    # Visually identical, semantically arbitrary — rule A picks the
-    # lex-smallest encoding among same-length options.
-    CANONICAL_SAIN = "ᠰᠠᠢᠠ"
+    # Canonical "sain" under the FVS-pinned per-unit encoder (see
+    # TestNormalize for the rationale). All variants converge to one output.
+    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ"
 
     def test_single_word_matches_normalize(self):
         # normalize_text on a single word should match normalize

@@ -640,5 +640,107 @@ class TestNormalizeFast(unittest.TestCase, _RoundTripBase):
                         f"long-word batch took {elapsed:.1f}s (want <5s)")
 
 
+def _split_letters(text):
+    """Split a Unicode string into per-letter chunks: each Mongolian letter
+    plus any trailing FVS marks; MVS/nirugu/ZWJ are their own chunk.
+    把字符串拆成逐字母块:每个蒙古字母 + 其后的 FVS;MVS/nirugu 各自成块。"""
+    FVS = {0x180B, 0x180C, 0x180D, 0x180F}
+    chunks = []
+    for ch in text:
+        cp = ord(ch)
+        if cp in FVS and chunks:
+            chunks[-1] += ch
+        else:
+            chunks.append(ch)
+    return chunks
+
+
+class TestPrefixStability(unittest.TestCase, _RoundTripBase):
+    """
+    Prefix stability (user requirement): if word A = word B + suffix and
+    their shapes agree on the shared prefix, normalize must encode that
+    shared prefix IDENTICALLY — except the single boundary letter whose
+    position changes (fina in B -> medi in A).
+    前缀稳定:A = B + 后缀 且共享前缀 shape 相同时,normalize 的共享前缀
+    编码必须逐字母相同,只有位置翻转的边界字母(B 的 fina -> A 的 medi)可不同。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        _RoundTripBase.setUpClass.__func__(cls)
+
+    def test_AB_shared_prefix_identical(self):
+        # A is the 18-unit compound; B is the 9-unit word that is A's
+        # shape-prefix. B's last letter is the boundary (fina in B, medi in
+        # A) and is excluded; every earlier letter must match.
+        A = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L', 'G',
+             'A', 'J', 'I', 'G', 'O', 'L', 'G', 'O')
+        B = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L')
+        encA = self.s._encode_chain_canonical(A, False, '', ())
+        encB = self.s._encode_chain_canonical(B, False, '', ())
+        lettersA = _split_letters(encA)
+        lettersB = _split_letters(encB)
+        # shared region = all of B's letters except its last (the boundary)
+        shared = len(lettersB) - 1
+        self.assertEqual(
+            lettersA[:shared], lettersB[:shared],
+            f"shared prefix diverges:\n"
+            f"  A={encA!r} letters={lettersA}\n"
+            f"  B={encB!r} letters={lettersB}\n"
+            f"  A[:{shared}]={lettersA[:shared]}\n"
+            f"  B[:{shared}]={lettersB[:shared]}"
+        )
+
+    def test_corpus_real_pair_stability(self):
+        """
+        Over REAL corpus word pairs where shape(B) is a shape-prefix of
+        shape(A), the shared region (all of B's letters except the boundary)
+        must encode identically. We require >=99% (a handful of deep
+        partition/pinning edge cases remain — units like 'Y'/'Sh' whose
+        encoding flips fina->medi as the word grows).
+        真实语料词对(shape(B) 是 shape(A) 前缀)的共享区编码必须一致,>=99%。
+        """
+        shapes = {}
+        for _, aliases in INLINE_CASES:
+            for w in _aliases_to_words(aliases):
+                if w:
+                    sh = tuple(self.s.shape(w))
+                    if 'mvs' not in sh:
+                        shapes[sh] = self.s._encode_chain_canonical(sh, False, '', ())
+        for fn in ('core-hud.tsv', 'eac-hud.tsv'):
+            for _, aliases, _exp in _load_tsv(fn):
+                toks = aliases.split()
+                if any(t != 'space' and t not in _ALIAS_TO_CP for t in toks):
+                    continue
+                for w in _aliases_to_words(aliases):
+                    if w:
+                        sh = tuple(self.s.shape(w))
+                        if 'mvs' not in sh:
+                            shapes[sh] = self.s._encode_chain_canonical(sh, False, '', ())
+        shapeset = set(shapes)
+        pairs = viol = 0
+        examples = []
+        for A in shapeset:
+            for m in range(1, len(A)):
+                B = A[:m]
+                if B not in shapeset:
+                    continue
+                pairs += 1
+                lF = _split_letters(shapes[A])
+                lP = _split_letters(shapes[B])
+                shared = len(lP) - 1
+                if shared > 0 and lF[:shared] != lP[:shared]:
+                    viol += 1
+                    if len(examples) < 5:
+                        examples.append((list(A), list(B), lF, lP))
+        rate = (pairs - viol) / pairs if pairs else 1.0
+        print(f"\nprefix-stability (real corpus pairs): "
+              f"{pairs - viol}/{pairs} = {rate*100:.2f}%")
+        if rate < 0.99:
+            for A, B, lF, lP in examples:
+                print(f"  VIOL A={A} B={B}\n    full={lF}\n    pre ={lP}")
+            self.fail(f"prefix-stability {rate*100:.2f}% < 99%")
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
