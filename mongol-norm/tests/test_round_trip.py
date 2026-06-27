@@ -596,5 +596,49 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
             self.fail(f"{len(failures)} particles fail shape-uniformity")
 
 
+class TestNormalizeFast(unittest.TestCase, _RoundTripBase):
+    """
+    Long chains must stay fast. An 18-unit single morpheme used to take
+    ~9s via the budget-ladder DFS; the lazy Viterbi path brings it to ~ms.
+    长 chain 必须快。18-unit 单语素曾经 ~9s,Viterbi 降到毫秒级。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        _RoundTripBase.setUpClass.__func__(cls)
+
+    def test_long_chain_is_fast(self):
+        import time
+        chain = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L', 'G',
+                 'A', 'J', 'I', 'G', 'O', 'L', 'G', 'O')
+        self.s._chain_canon_cache = {}  # cold
+        t = time.time()
+        enc = self.s._compute_chain_canonical(chain, False, '', ())
+        elapsed = time.time() - t
+        self.assertEqual(tuple(self.s.shape(enc)), chain,
+                         "long-chain encoding must round-trip")
+        self.assertLess(elapsed, 0.2,
+                        f"18-unit chain took {elapsed*1000:.0f}ms (want <200ms)")
+
+    def test_normalize_text_throughput(self):
+        """A paragraph of long compound words normalizes well under the old
+        ~10-20s. Cold (no cache) must be < 5s, and each word round-trips.
+        长复合词段落必须远快于旧的 ~10-20s:冷启动 < 5s,且每词保形。"""
+        import time
+        words = [
+            'ᠦᠢᠯᠡᠳᠦᠯᠭᠡᠵᠢᠭᠦᠯᠬᠦ', 'ᠳᠡᠭᠡᠭᠰᠢᠯᠡᠭᠦᠯᠬᠦ',
+            'ᠲᠡᠷᠭᠡᠯᠰᠢᠭᠦᠯᠬᠦ', 'ᠪᠦᠯᠬᠦᠮᠳᠡᠰᠦᠭᠡᠢ',
+        ]
+        self.s._chain_canon_cache = {}
+        t = time.time()
+        for w in words:
+            norm = self.s.normalize(w)
+            self.assertEqual(self.s.shape(norm), self.s.shape(w),
+                             f"{w!r} did not round-trip")
+        elapsed = time.time() - t
+        self.assertLess(elapsed, 5.0,
+                        f"long-word batch took {elapsed:.1f}s (want <5s)")
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

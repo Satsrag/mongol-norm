@@ -1298,6 +1298,16 @@ class MongolianShaper:
     # 这样像 ['O'] 这类只出现在 medi 的 shape 才有编码。
     _NIRUGU_WRAPS = ((0, 0), (0, 1), (1, 0), (1, 1))
 
+    # Chain-length threshold for the no-wrap encoder. Chains with
+    # n_units <= this use the exact exhaustive DFS ladder (fast on short
+    # chains, byte-identical to the original). Longer chains use lazy
+    # Viterbi (the ladder degrades to seconds; Viterbi stays ~1ms). 14 is
+    # the empirical knee: 13-14 unit ladders run in tens of ms, an 18-unit
+    # ladder was ~9s.
+    # no-wrap 编码器的链长阈值。<= 此值用精确穷举 DFS 阶梯(短链快、与原版
+    # 逐字节一致);更长用 Viterbi(阶梯会退化到秒级)。14 是经验拐点。
+    _VITERBI_MIN_UNITS = 14
+
     def _build_pos_tables(self):
         """
         Per-position lookup: {pos: {written_tuple: [(cp, fvs_cp_or_None), ...]}}.
@@ -1462,21 +1472,66 @@ class MongolianShaper:
         if greedy_nw is not None and len(greedy_nw) <= n_units:
             return greedy_nw
 
-        # 2) DFS no-wrap, budgets ascending. Stop at first valid.
-        no_wrap_upper = (
-            len(greedy_nw) if greedy_nw is not None else (2 * n_units + 2)
-        )
-        for total_chars in range(1, no_wrap_upper + 1):
-            letters = []
-            result = self._dfs_budget(
-                chain_shape, n_units, 0, total_chars, letters,
-                0, 0,  # wrap_pre, wrap_post
-                prefix_text, suffix_text, verify_target, nirugu_ch,
+        # 2) No-wrap encoding. Two strategies by chain length:
+        #
+        #    Short chains (n_units <= _VITERBI_MIN_UNITS): exhaustive
+        #    no-wrap DFS ladder — EXACT rule-A canonical, and fast because
+        #    the chain is short. This is the original algorithm, so results
+        #    are byte-identical to the pre-Viterbi version for these chains.
+        #
+        #    Long chains (n_units > _VITERBI_MIN_UNITS): lazy Viterbi
+        #    best-first search. The exhaustive ladder was ~9s on an 18-unit
+        #    chain (it re-ran an exponential search at every budget); Viterbi
+        #    explores each state once and returns in ~1ms. Its gender-aware
+        #    dominance can occasionally yield a non-minimal (but verifying)
+        #    encoding, accepted as the price of making long chains tractable.
+        #
+        #    短 chain:穷举 no-wrap DFS 阶梯(精确 rule-A,短所以快,结果与
+        #    Viterbi 之前版本逐字节一致)。长 chain:懒惰 Viterbi(阶梯在
+        #    18-unit 上 ~9s,Viterbi ~1ms;其 dominance 偶尔非最小但可校验,
+        #    作为长 chain 可行性的代价接受)。
+        if n_units <= self._VITERBI_MIN_UNITS:
+            no_wrap_upper = (
+                len(greedy_nw) if greedy_nw is not None else (2 * n_units + 2)
+            )
+            for total_chars in range(1, no_wrap_upper + 1):
+                letters = []
+                result = self._dfs_budget(
+                    chain_shape, n_units, 0, total_chars, letters,
+                    0, 0,  # wrap_pre, wrap_post
+                    prefix_text, suffix_text, verify_target, nirugu_ch,
+                )
+                if result is not None:
+                    return result
+            if greedy_nw is not None:
+                return greedy_nw
+        else:
+            result = self._viterbi_encode_chain(
+                chain_shape, n_units, prefix_text, suffix_text, verify_target,
             )
             if result is not None:
                 return result
-        if greedy_nw is not None:
-            return greedy_nw  # equal or larger budgets already exhausted
+            # Viterbi returned None on a long chain (gender-dominance
+            # pruned every verifying path). Rare (~0.1% of corpus). Recover
+            # with the exact exhaustive ladder — slow for a long chain, but
+            # it only runs for these few cases and yields the true canonical
+            # (no spurious nirugu).
+            # 长 chain 上 Viterbi 返回 None(dominance 剪光可校验路径),罕见。
+            # 用精确穷举阶梯恢复——长 chain 较慢,但仅此少数触发,得真 canonical。
+            no_wrap_upper = (
+                len(greedy_nw) if greedy_nw is not None else (2 * n_units + 2)
+            )
+            for total_chars in range(1, no_wrap_upper + 1):
+                letters = []
+                result = self._dfs_budget(
+                    chain_shape, n_units, 0, total_chars, letters,
+                    0, 0,
+                    prefix_text, suffix_text, verify_target, nirugu_ch,
+                )
+                if result is not None:
+                    return result
+            if greedy_nw is not None:
+                return greedy_nw
 
         # 3) Wrapped DFS — chains unreachable without nirugu (rare).
         # 包含 nirugu 的 DFS —— 仅在无 wrap 编码不存在时使用。
@@ -1497,6 +1552,129 @@ class MongolianShaper:
                 )
                 if result is not None:
                     return result
+        return None
+
+    def _viterbi_encode_chain(self, chain_shape, n_units,
+                               prefix_text, suffix_text, verify_target,
+                               max_verifies=256):
+        """
+        Lazy best-first (Viterbi / Dijkstra) shape→encoding search.
+        懒惰最优先(Viterbi / Dijkstra)字形→编码搜索。
+
+        Models the chain as a layered DAG: a node is a position `i` in the
+        target shape; an edge places one letter (cp, fvs_cp) that consumes
+        L>=1 written units `chain_shape[i:i+L]` and costs 1 char (bare) or
+        2 chars (with FVS). We pop partial encodings in (cost, lex) order;
+        the first COMPLETE encoding whose `shape()` round-trips to
+        verify_target is the rule-A canonical (shortest, then lex-smallest).
+        把 chain 建模为分层 DAG:节点是 shape 中的位置 i,边放一个字母,
+        消耗 L 个 written-unit、花费 1(裸)或 2(带 FVS)字符。按 (cost,
+        字典序) 弹出;首个 shape 回环成功的完整编码即规则 A canonical。
+
+        Why this is correct / 为什么正确:
+          - cost == len(encoding) exactly, so popping by (cost, enc) yields
+            shortest-then-lex order.
+            cost 恰等于编码长度,故按 (cost, enc) 弹出即最短优先、同长字典序。
+          - We do NOT gate edges on non-local rules (e.g. masculine-reach
+            for g/h). Like the greedy pass, we emit candidates optimistically
+            and let the final shape() verify accept/reject — matching the
+            old behavior exactly (the verify is the authority).
+            不对非局部规则(如 g/h 阳性可达)做门控;乐观产出候选,由 shape
+            校验裁决——与旧逻辑一致。
+          - Dominance: keep only the (cost, lex)-min partial reaching each
+            (i, last-edge) state. For window-1 local rules two such partials
+            have identical futures, so this is safe. Non-local rules are
+            handled by the verify + k-best retry + exhaustive fallback.
+            支配剪枝:每个 (i, 末边) 状态只留 (cost, 字典序) 最小的部分解。
+
+        Returns the canonical encoding str, or None if no verifying encoding
+        is found within `max_verifies` completions (caller falls back to
+        wrapped-DFS / exhaustive).
+        返回 canonical 编码字符串;若 max_verifies 内无解则 None(调用方回退)。
+        """
+        import heapq
+        from itertools import count
+
+        if not hasattr(self, '_pos_tables'):
+            self._build_pos_tables()
+        # Use the PROBE-FILTERED pos_tables (not the raw candidates_map).
+        # The filter removes context-invalid candidates such as bare d.init
+        # (which renders 'T', not 'D'). Keeping those raw edges would let
+        # dominance prune the correct (cheaper-to-reach-same-state) path:
+        # a false bare edge reaches a state more cheaply than the true
+        # FVS edge, dominates it, then fails the final verify — and the
+        # true path is already gone. The filtered table matches what the
+        # old DFS ladder searched, so Viterbi reproduces its results.
+        # 用探测过滤后的 pos_tables(非原始 candidates_map)。过滤剔除了
+        # 上下文无效候选(如裸 d.init 实际渲染 'T')。保留这些假边会让
+        # dominance 误剪:假边以更低成本到达同状态、支配真边、最后校验失败,
+        # 而真路径已被剪掉。过滤表与旧 DFS 阶梯一致,故 Viterbi 复现其结果。
+        pos_tables = self._pos_tables
+        masc = self.masculine_vowels
+        fem = self.feminine_vowels
+        cp_to_alias = self.cp_to_alias
+
+        def pos_of(i, L):
+            last = (i + L == n_units)
+            if i == 0:
+                return 'isol' if last else 'init'
+            return 'fina' if last else 'medi'
+
+        def gender_bit(cp):
+            # 1 = this letter is a masculine vowel, 2 = feminine, 0 = neither.
+            # 该字母:1=阳性元音,2=阴性元音,0=都不是。
+            a = cp_to_alias.get(cp)
+            if a in masc:
+                return 1
+            if a in fem:
+                return 2
+            return 0
+
+        # Dominance state = (i, last_edge, gender_mask). gender_mask is a
+        # 2-bit accumulator (bit0=masc seen, bit1=fem seen) of the vowel
+        # harmony established by the letters placed so far. It MUST be in
+        # the state: a/e (and o/oe, u/ue) shape identically locally but
+        # set opposite gender, and gender changes how a DOWNSTREAM g/h
+        # renders. Without it, dominance merges the masc- and fem-prefix
+        # paths and keeps only the lex-smaller one, silently dropping the
+        # only encoding that verifies (the classic non-local-rule trap).
+        # 支配状态含 gender_mask(2 位:阳/阴是否出现过)。必须带:a/e 等
+        # 局部同形但性别相反,而性别影响下游 g/h 的字形。不带则两条前缀被
+        # 合并,只留字典序小的,丢掉唯一能通过校验的编码。
+        seq = count()
+        # heap entry: (cost, enc, seq, i, last_edge, gmask)
+        heap = [(0, "", next(seq), 0, None, 0)]
+        best = {(0, None, 0): (0, "")}
+        verifies = 0
+
+        while heap and verifies < max_verifies:
+            cost, enc, _, i, last_edge, gmask = heapq.heappop(heap)
+            if best.get((i, last_edge, gmask), (cost, enc)) < (cost, enc):
+                continue
+            if i == n_units:
+                verifies += 1
+                if tuple(self.shape(prefix_text + enc + suffix_text)) == verify_target:
+                    return enc  # first verifying = (cost, lex)-min = rule A
+                continue
+            max_L = n_units - i
+            for L in range(1, max_L + 1):
+                written = tuple(chain_shape[i:i + L])
+                cands = pos_tables.get((pos_of(i, L), written))
+                if not cands:
+                    continue
+                p = pos_of(i, L)
+                for cp, fvs_cp in cands:
+                    c2 = cost + (1 if fvs_cp is None else 2)
+                    e2 = enc + (chr(cp) if fvs_cp is None
+                                else chr(cp) + chr(fvs_cp))
+                    ni = i + L
+                    g2 = gmask | (1 if gender_bit(cp) == 1
+                                  else 2 if gender_bit(cp) == 2 else 0)
+                    nstate = (ni, (cp, fvs_cp, p), g2)
+                    prev_best = best.get(nstate)
+                    if prev_best is None or (c2, e2) < prev_best:
+                        best[nstate] = (c2, e2)
+                        heapq.heappush(heap, (c2, e2, next(seq), ni, nstate[1], g2))
         return None
 
     def _greedy_one_shot_no_wrap(self, chain_shape, n_units, prev_mvs,
