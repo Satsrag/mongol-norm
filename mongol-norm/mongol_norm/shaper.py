@@ -34,7 +34,7 @@ Data source / 数据来源: mongol-shape-data (flat pre-processed rules JSON).
 The rules are generated from mongfontbuilder + UTN #57 by the preprocess
 script in the mongol-shape-data package.
 """
-from typing import List, Tuple, Optional, Dict, Set
+from typing import Dict
 
 from mongol_shape_data import load_rules
 from . import rules as _rules
@@ -2071,7 +2071,7 @@ class MongolianShaper:
                     return False
         return landed
 
-    def _unit_encode_chain(self, chain_shape, prev_mvs, suffix_text, verify_target_unused):
+    def _unit_encode_chain(self, chain_shape, prev_mvs, suffix_text, suffix_target):
         """
         Encode a chain by per-unit table lookup (PRIMARY path). Returns the
         encoding str, or None if no table partition round-trips (→ fallback).
@@ -2089,8 +2089,17 @@ class MongolianShaper:
         text = self._unit_partition(chain_shape)
         if text is None:
             return None
+        # Verify the encoding in its FULL context: a leading MVS if this
+        # chain follows one, and the already-encoded following chains
+        # (suffix_text / suffix_target) so cross-MVS interactions are
+        # checked. `want` MUST include suffix_target — otherwise multi-chain
+        # (MVS) words' non-last chains never verify and fall back to the
+        # search encoder (which can emit junk like 'ng' for [A,G]).
+        # 在完整上下文中校验:前导 MVS + 后续已编码 chain。want 必须含
+        # suffix_target,否则多-MVS 词的非末尾 chain 永远校验失败、回退旧搜索
+        # (会对 [A,G] 吐出 ng 这种 junk)。
         prefix = chr(MVS_CP) if prev_mvs else ''
-        want = (('mvs',) if prev_mvs else ()) + tuple(chain_shape)
+        want = (('mvs',) if prev_mvs else ()) + tuple(chain_shape) + tuple(suffix_target)
         if tuple(self.shape(prefix + text + suffix_text)) == want:
             return text
         return None
