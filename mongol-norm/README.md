@@ -10,12 +10,12 @@ Verified against `mongfontbuilder/core-hud.tsv` (177/177) and the GB/T 25914-202
 
 ## Install
 
-Neither package is on PyPI yet — install both from this repo:
+Not on PyPI yet — install from this repo. The shaping/normalize data is
+bundled, so this is the only package you need:
 
 ```sh
 git clone https://github.com/Satsrag/mongol-norm
 cd mongol-norm
-pip install ./mongol-shape-data
 pip install ./mongol-norm
 ```
 
@@ -134,18 +134,16 @@ The whole table is exported as language-agnostic JSON, so a port needs only a
 JSON parser plus the partition algorithm above — no shaping engine:
 
 ```
-mongol-shape-data/mongol_shape_data/rules/MNG.normalize.json
+mongol_norm/data/MNG.normalize.json
 ```
 
-The Python runtime loads this same file at startup (and falls back to running
-the battery if the data package ships no spec). Schema and the consuming
-algorithm are documented in the
-[mongol-shape-data README](../mongol-shape-data/README.md#normalize-table-mngnormalizejson).
-Regenerate with:
+The Python runtime loads this same file at startup (falling back to running the
+battery if no spec is bundled). Schema and the consuming algorithm are
+documented in [docs/data-format.md](docs/data-format.md#normalize-table-mngnormalizejson).
+Regenerate after a shaping/battery change with:
 
 ```sh
-pip install -e ./mongol-norm
-python mongol-shape-data/scripts/gen_normalize_table.py
+python scripts/gen_normalize_table.py
 ```
 
 ## Supported locales
@@ -161,21 +159,22 @@ python mongol-shape-data/scripts/gen_normalize_table.py
 
 ```sh
 git clone https://github.com/Satsrag/mongol-norm
-cd mongol-norm
-pip install -e "./mongol-shape-data"
-pip install -e "./mongol-norm[dev]"
+cd mongol-norm/mongol-norm
+pip install -e ".[dev]"
 
 # Run all tests (hand-written + round-trip/canonicity/prefix-stability
 # + normalize-table export + 225 core-hud + 3513 eac-hud)
-cd mongol-norm
 python -m unittest tests.test_shaper tests.test_round_trip \
     tests.test_normalize_table tests.test_core_hud tests.test_eac_hud
 ```
 
+The bundled JSON in `mongol_norm/data/` is generated; regenerate with the
+scripts in [`scripts/`](scripts/) (see [docs/data-format.md](docs/data-format.md)).
+
 ## Requirements
 
 - Python 3.9+ (CI matrix: 3.9 – 3.13)
-- `mongol-shape-data` (installed automatically)
+- No runtime dependencies (shaping/normalize data is bundled)
 
 ## License
 

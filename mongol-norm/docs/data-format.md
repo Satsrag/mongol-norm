@@ -1,10 +1,10 @@
-# mongol-shape-data
+# mongol-norm data format
 
-Flat, language-agnostic shaping rules for Traditional Mongolian script.
+Flat, language-agnostic data for Traditional Mongolian shaping + normalization.
 
-This package ships pre-processed JSON that encodes the **letter × position × FVS → written-unit** mapping plus vowel-harmony categories, shaping conditions, and the MVS particle dictionary — everything a UTN #57 shaper needs, minus the algorithm itself.
+mongol-norm bundles pre-processed JSON in [`mongol_norm/data/`](../mongol_norm/data/) that encodes the **letter × position × FVS → written-unit** mapping plus vowel-harmony categories, shaping conditions, the MVS particle dictionary, and the normalize table — everything a UTN #57 shaper/normalizer needs, minus the algorithm itself.
 
-**Audience:** anyone implementing a Mongolian shaper in any language (Python, JS, Dart, Java, C, PHP, …). The JSON has no Python-specific structure.
+**Audience:** anyone implementing a Mongolian shaper or normalizer in any language (Python, JS, Dart, Java, C, PHP, …). The JSON has no Python-specific structure — it is generated once (see [Regenerating](#regenerating)) and committed; there is no separate data package to install.
 
 The rules are derived from:
 - [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) — Unicode technical note defining the shaping algorithm.
@@ -12,16 +12,15 @@ The rules are derived from:
 
 ---
 
-## What's in the package
+## What's in `mongol_norm/data/`
 
 ```
-mongol_shape_data/
-└── rules/
-    ├── MNG.json            — Hudum (Traditional Mongolian) shape rules
-    ├── MNG.normalize.json  — Hudum normalize table (see below)
-    ├── TOD.json            — Todo
-    ├── SIB.json            — Sibe
-    └── MCH.json            — Manchu
+mongol_norm/data/
+├── MNG.json            — Hudum (Traditional Mongolian) shape rules
+├── MNG.normalize.json  — Hudum normalize table (see below)
+├── TOD.json            — Todo
+├── SIB.json            — Sibe
+└── MCH.json            — Manchu
 ```
 
 Each `<LOCALE>.json` is self-contained: one JSON document with every piece of data needed to shape that locale. A `<LOCALE>.normalize.json` (currently `MNG` only) additionally supports *normalization* — see [Normalize table](#normalize-table-mngnormalizejson).
@@ -32,13 +31,13 @@ Size: shape rules 45–60 KB each; the normalize table ~16 KB.
 
 ### Python
 
-```sh
-pip install mongol-shape-data
-```
+The data ships inside `mongol-norm`; the shaper loads it for you. To read it
+directly, internal helpers are available:
 
 ```python
-from mongol_shape_data import load_rules
-rules = load_rules("MNG")  # -> dict
+from mongol_norm._data import load_rules, load_normalize_table
+rules = load_rules("MNG")             # -> dict
+table = load_normalize_table("MNG")   # -> dict
 ```
 
 ### Any other language
@@ -46,7 +45,7 @@ rules = load_rules("MNG")  # -> dict
 Grab the raw files directly:
 
 - From the released GitHub artifact, or
-- From the repo: [`mongol_shape_data/rules/*.json`](./mongol_shape_data/rules/)
+- From the repo: [`mongol_norm/data/*.json`](../mongol_norm/data/)
 
 Bundle the file with your package. Parse with any JSON library.
 
@@ -174,10 +173,10 @@ Other locales may expose a different subset.
 
 ## Algorithm
 
-This package is **data only**. For the algorithm, see:
+This document is **data only**. For the algorithm, see:
 
 - **Spec:** [UTN #57 v4, section 3 ("Shaping")](https://www.unicode.org/notes/tn57/tn57-4.html) — the 5-step Mongolian-specific shaping phase.
-- **Reference implementation:** [`mongol-norm/mongol_norm/shaper.py`](../mongol-norm/mongol_norm/shaper.py) in this repo — ~1900 lines of Python, readable.
+- **Reference implementation:** [`mongol_norm/shaper.py`](../mongol_norm/shaper.py) — readable pure Python.
 
 The 5 steps summarized:
 
@@ -210,12 +209,12 @@ The reference Python implementation (`shaper.py`) shows exactly how these are bu
 
 ## Normalize table (`MNG.normalize.json`)
 
-Alongside the shape rules, the package ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
+Alongside the shape rules, `mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
 
-It exists so other languages can implement [`mongol-norm`](../mongol-norm/)'s `normalize` (same shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. The Python runtime loads this exact file too.
+It exists so other languages can implement mongol-norm's `normalize` (same shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. The Python runtime loads this exact file too.
 
 ```python
-from mongol_shape_data import load_normalize_table
+from mongol_norm._data import load_normalize_table
 tbl = load_normalize_table("MNG")   # -> dict
 ```
 
@@ -258,30 +257,33 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 1. `shape()` the word (needs the shape rules) and split the shape at MVS into chains.
 2. For each chain, left-to-right, pick at each position the longest `required_multi` unit, else the single unit, else the longest unit present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
-4. Verify by reshaping. The rare chains the table can't express (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`, and bowed-consonant + final-vowel finals) need the nirugu-wrap fallback described in the [mongol-norm README](../mongol-norm/README.md#how-normalize-works).
+4. Verify by reshaping. The rare chains the table can't express (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`, and bowed-consonant + final-vowel finals) need the nirugu-wrap fallback described in the [README](../README.md#how-normalize-works).
 
-Full reference: [`mongol-norm/mongol_norm/shaper.py`](../mongol-norm/mongol_norm/shaper.py) — `_unit_encode_chain`, `_unit_partition`, `_apply_velar_fem`.
+Full reference: [`mongol_norm/shaper.py`](../mongol_norm/shaper.py) — `_unit_encode_chain`, `_unit_partition`, `_apply_velar_fem`.
 
 ---
 
 ## Regenerating
 
-For maintainers bumping `mongfontbuilder` (shape rules):
+The JSON in `mongol_norm/data/` is generated and committed. Run these from the
+`mongol-norm` package directory after the relevant upstream/code change.
+
+Shape rules (when bumping `mongfontbuilder`):
 
 ```sh
-pip install -e "mongol-shape-data[preprocess]"
-python mongol-shape-data/scripts/preprocess.py           # all locales
-python mongol-shape-data/scripts/preprocess.py MNG TOD   # specific
+pip install -e ".[preprocess]"
+python scripts/preprocess.py           # all locales
+python scripts/preprocess.py MNG TOD   # specific
 ```
 
-The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `mongol_shape_data/rules/`.
+The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `mongol_norm/data/`.
 
-For the **normalize table** (needs `mongol-norm`, which runs the selection battery):
+Normalize table (after a change to shaping or the selection battery — no extra
+dependency, it uses this package's own shaper):
 
 ```sh
-pip install -e ./mongol-norm
-python mongol-shape-data/scripts/gen_normalize_table.py        # all locales
-python mongol-shape-data/scripts/gen_normalize_table.py MNG    # specific
+python scripts/gen_normalize_table.py        # all locales
+python scripts/gen_normalize_table.py MNG    # specific
 ```
 
 Commit the regenerated JSONs along with a changelog note referencing the source version.

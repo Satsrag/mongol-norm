@@ -30,13 +30,13 @@ Why this engine exists / 为什么需要这个引擎:
   5. Post-bowed（弓形后续）— vowel forms after bowed consonants (G, Gx, K, K2, B, P, F)
                              弓形辅音后的元音形态
 
-Data source / 数据来源: mongol-shape-data (flat pre-processed rules JSON).
-The rules are generated from mongfontbuilder + UTN #57 by the preprocess
-script in the mongol-shape-data package.
+Data source / 数据来源: the bundled JSON in `mongol_norm/data/` (flat
+pre-processed rules), generated from mongfontbuilder + UTN #57 by the
+dev-only scripts in `mongol-norm/scripts/`. See docs/data-format.md.
 """
 from typing import Dict
 
-from mongol_shape_data import load_rules
+from ._data import load_rules
 from . import rules as _rules
 
 # Positional forms: a Mongolian letter takes different shapes depending on
@@ -194,14 +194,14 @@ class MongolianShaper:
         Load the flat shape-rules JSON for the selected locale.
         加载当前 locale 的扁平 shape-rules JSON。
 
-        Data comes from the `mongol-shape-data` package, which ships pre-processed
-        rules generated from mongfontbuilder + UTN #57. No runtime reference
-        resolution, no cross-locale merging — the JSON is language-agnostic and
-        the same file is consumed by future JS/Dart/etc. ports.
+        Data comes from the bundled JSON in `mongol_norm/data/`, pre-processed
+        from mongfontbuilder + UTN #57. No runtime reference resolution, no
+        cross-locale merging — the JSON is language-agnostic and the same file
+        can be consumed by JS/Dart/etc. ports.
 
-        数据来自 `mongol-shape-data` 包，内含由 mongfontbuilder + UTN #57 预处理
-        生成的规则。运行时无需解析交叉引用或跨 locale 合并——该 JSON 语言无关，
-        未来 JS/Dart 等移植版本共享同一份数据。
+        数据来自 bundled JSON(`mongol_norm/data/`),由 mongfontbuilder + UTN #57
+        预处理生成。运行时无需解析交叉引用或跨 locale 合并——该 JSON 语言无关,
+        JS/Dart 等移植版本可共享同一份数据。
         """
         self._rules = load_rules(self.locale)
 
@@ -1102,8 +1102,8 @@ class MongolianShaper:
             return text
         # Particle variants come from the candidates map (rule data), not the
         # per-unit table — so build it lazily here. When the unit table is
-        # loaded from mongol-shape-data's precomputed spec the battery never
-        # runs, so this is the only thing that materializes the candidates.
+        # loaded from the precomputed spec the battery never runs, so this is
+        # the only thing that materializes the candidates.
         # particle 变体取自 candidates map(规则数据)而非逐单元表;表从预生成
         # spec 加载时电池不跑,故此处惰性构建 candidates。
         if not hasattr(self, '_candidates_map'):
@@ -1474,11 +1474,11 @@ class MongolianShaper:
     def _build_unit_enc(self):
         """
         Populate the per-unit encoding tables for the primary normalize path.
-        Prefer a precomputed spec shipped in mongol-shape-data (single source
-        of truth, fast startup); fall back to running the context-independence
-        battery in-process when that data package ships no spec yet.
-        填充逐单元编码表。优先加载 mongol-shape-data 内预生成 spec(唯一真源、
-        启动快);数据包暂无 spec 时回退到进程内运行 context 无关性电池。
+        Prefer the precomputed spec bundled in `mongol_norm/data/` (single
+        source of truth, fast startup); fall back to running the context-
+        independence battery in-process when no spec is bundled yet.
+        填充逐单元编码表。优先加载 bundled spec(`mongol_norm/data/`,唯一真源、
+        启动快);无 spec 时回退到进程内运行 context 无关性电池。
         """
         if hasattr(self, '_unit_enc'):
             return
@@ -1494,12 +1494,13 @@ class MongolianShaper:
 
     def _load_external_normalize_spec(self):
         """
-        Return the precomputed normalize spec for self.locale from
-        mongol-shape-data, or None to fall back to the in-process battery.
-        从 mongol-shape-data 取本 locale 的预生成 spec;无则返回 None 走电池。
+        Return the precomputed normalize spec for self.locale from the bundled
+        data, or None to fall back to the in-process battery (spec not yet
+        generated).
+        从 bundled 数据取本 locale 的预生成 spec;无则返回 None 走电池。
         """
         try:
-            from mongol_shape_data import load_normalize_table
+            from ._data import load_normalize_table
         except Exception:
             return None
         try:

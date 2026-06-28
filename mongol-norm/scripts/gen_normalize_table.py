@@ -14,19 +14,23 @@ script drives that selection and serializes it to JSON so:
   * ports in other languages can implement normalize with only a JSON parser
     plus the small partition algorithm documented in the mongol-norm README.
 
-It therefore needs mongol-norm installed (a build-time dependency only — the
-mongol-shape-data runtime never imports it):
+Run it from the mongol-norm package after a code change that affects shaping or
+the selection battery, and commit the regenerated JSON:
 
-    pip install mongol-norm          # or: pip install -e ../mongol-norm
+    pip install -e .                                 # or have mongol_norm importable
     python scripts/gen_normalize_table.py            # all supported locales
     python scripts/gen_normalize_table.py MNG        # specific locales
 
-Output: mongol_shape_data/rules/<LOCALE>.normalize.json  (commit it).
+Output: mongol_norm/data/<LOCALE>.normalize.json  (commit it).
 """
 import argparse
 import json
 import sys
 from pathlib import Path
+
+# Make `mongol_norm` importable when run as `python scripts/gen_normalize_table.py`
+# from the package root, without requiring an install.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # Locales with a normalization implementation in mongol-norm. Extend as more
 # scripts gain normalize support.
@@ -43,8 +47,8 @@ def main() -> int:
     parser.add_argument(
         "-o", "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "mongol_shape_data" / "rules",
-        help="Output directory (default: ../mongol_shape_data/rules/).",
+        default=Path(__file__).resolve().parent.parent / "mongol_norm" / "data",
+        help="Output directory (default: ../mongol_norm/data/).",
     )
     args = parser.parse_args()
 
@@ -52,8 +56,8 @@ def main() -> int:
         from mongol_norm.shaper import MongolianShaper
     except ImportError:
         parser.error(
-            "mongol-norm is not installed. Install it first:\n"
-            "    pip install mongol-norm   (or: pip install -e ../mongol-norm)"
+            "cannot import mongol_norm. Run from the mongol-norm package "
+            "(or `pip install -e .` first)."
         )
 
     target_locales = args.locales or list(LOCALES)

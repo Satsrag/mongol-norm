@@ -3,8 +3,8 @@
 Generate flat, language-agnostic shape-rules JSON from mongfontbuilder data.
 
 Run once per mongfontbuilder upgrade. Commit the output into
-`mongol_shape_data/rules/<LOCALE>.json` so downstream consumers (the Python
-runtime, future JS/Dart/Java ports) don't need mongfontbuilder installed.
+`mongol_norm/data/<LOCALE>.json` so downstream consumers (the Python runtime,
+JS/Dart/Java ports) don't need mongfontbuilder installed.
 
 Usage:
     python preprocess.py                 # generate all supported locales
@@ -167,8 +167,8 @@ def main() -> int:
     parser.add_argument(
         "-o", "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "mongol_shape_data" / "rules",
-        help="Output directory (default: ../mongol_shape_data/rules/).",
+        default=Path(__file__).resolve().parent.parent / "mongol_norm" / "data",
+        help="Output directory (default: ../mongol_norm/data/).",
     )
     args = parser.parse_args()
 
