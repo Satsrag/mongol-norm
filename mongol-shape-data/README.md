@@ -17,15 +17,16 @@ The rules are derived from:
 ```
 mongol_shape_data/
 └── rules/
-    ├── MNG.json   — Hudum (Traditional Mongolian)
-    ├── TOD.json   — Todo
-    ├── SIB.json   — Sibe
-    └── MCH.json   — Manchu
+    ├── MNG.json            — Hudum (Traditional Mongolian) shape rules
+    ├── MNG.normalize.json  — Hudum normalize table (see below)
+    ├── TOD.json            — Todo
+    ├── SIB.json            — Sibe
+    └── MCH.json            — Manchu
 ```
 
-Each file is self-contained: one JSON document with every piece of data needed to shape that locale.
+Each `<LOCALE>.json` is self-contained: one JSON document with every piece of data needed to shape that locale. A `<LOCALE>.normalize.json` (currently `MNG` only) additionally supports *normalization* — see [Normalize table](#normalize-table-mngnormalizejson).
 
-Size: 45–60 KB each.
+Size: shape rules 45–60 KB each; the normalize table ~16 KB.
 
 ## Getting the JSON
 
@@ -207,9 +208,65 @@ The reference Python implementation (`shaper.py`) shows exactly how these are bu
 
 ---
 
+## Normalize table (`MNG.normalize.json`)
+
+Alongside the shape rules, the package ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
+
+It exists so other languages can implement [`mongol-norm`](../mongol-norm/)'s `normalize` (same shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. The Python runtime loads this exact file too.
+
+```python
+from mongol_shape_data import load_normalize_table
+tbl = load_normalize_table("MNG")   # -> dict
+```
+
+### Schema
+
+```json
+{
+  "schema": "mongol-normalize-table/1",
+  "locale": "MNG",
+  "unit_enc_max_len": 3,
+  "constants": { "MVS": "180E", "NIRUGU": "180A", "FVS1": "180B", "...": "..." },
+  "velar_fem_units": ["G", "Gx"],
+  "masc_to_fem": { "a": "e", "o": "oe", "u": "ue" },
+  "unit_table": {
+    "isol": { "A": { "letter": "a", "cp": "1820", "fvs": "180B" } },
+    "init": { "...": {} }, "medi": { "...": {} }, "fina": { "...": {} }
+  },
+  "required_multi": { "init": ["A+O+I"] },
+  "velar_fem": { "fina": { "O": { "letter": "oe", "cp": "1825", "fvs": "180C" } } }
+}
+```
+
+| field | meaning |
+|---|---|
+| `unit_table[pos][unit]` | The pinned encoding for a written `unit` at `pos` (`isol`/`init`/`medi`/`fina`). `unit` is a `+`-joined written-unit tuple — single (`"A"`) or multi (`"A+O+I"`). Value: `letter` (alias), `cp` (hex codepoint), `fvs` (hex codepoint or `null`). |
+| `unit_enc_max_len` | Longest written-unit tuple in `unit_table`; bounds the multi-unit lookahead during partition. |
+| `required_multi[pos]` | Multi-unit keys that **cannot** be rebuilt by concatenating single units — the partition must prefer these. (Empty for MNG today.) |
+| `velar_fem[pos][unit]` | The feminine encoding of a single vowel unit, used by the velar-feminine refinement. |
+| `velar_fem_units` | Units that trigger that refinement (`G`, `Gx`). |
+| `masc_to_fem` | Masculine→feminine vowel alias map the refinement applies. |
+| `constants` | Hex codepoints for MVS / Nirugu / ZWJ / FVS1–4. |
+| `ci_probe_letters` | The neighbour letters the selection battery probed (provenance; not needed at runtime). |
+
+`cp`/`fvs` are **hex strings** (`"1820"`, or `null` for no FVS) — parse with base 16.
+
+### Consuming it (the normalize algorithm)
+
+Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
+
+1. `shape()` the word (needs the shape rules) and split the shape at MVS into chains.
+2. For each chain, left-to-right, pick at each position the longest `required_multi` unit, else the single unit, else the longest unit present; emit `cp` (+ `fvs` when non-null).
+3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
+4. Verify by reshaping. The rare chains the table can't express (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`, and bowed-consonant + final-vowel finals) need the nirugu-wrap fallback described in the [mongol-norm README](../mongol-norm/README.md#how-normalize-works).
+
+Full reference: [`mongol-norm/mongol_norm/shaper.py`](../mongol-norm/mongol_norm/shaper.py) — `_unit_encode_chain`, `_unit_partition`, `_apply_velar_fem`.
+
+---
+
 ## Regenerating
 
-For maintainers bumping `mongfontbuilder`:
+For maintainers bumping `mongfontbuilder` (shape rules):
 
 ```sh
 pip install -e "mongol-shape-data[preprocess]"
@@ -219,7 +276,15 @@ python mongol-shape-data/scripts/preprocess.py MNG TOD   # specific
 
 The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `mongol_shape_data/rules/`.
 
-Commit the regenerated JSONs along with a changelog note referencing the mongfontbuilder version.
+For the **normalize table** (needs `mongol-norm`, which runs the selection battery):
+
+```sh
+pip install -e ./mongol-norm
+python mongol-shape-data/scripts/gen_normalize_table.py        # all locales
+python mongol-shape-data/scripts/gen_normalize_table.py MNG    # specific
+```
+
+Commit the regenerated JSONs along with a changelog note referencing the source version.
 
 ## Schema versioning
 
