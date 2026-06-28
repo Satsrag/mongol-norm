@@ -94,7 +94,11 @@ Per word:
    4. **gap chains** — a handful of chains can't be expressed by any per-unit letter (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`; bowed-consonant + final-vowel finals). These fall back to an exhaustive structural search that may wrap a unit in nirugu (~0.5% of chains).
 3. **particle substitution** post-pass — pin isolate `I` to `i+FVS1`, rewrite `MVS + bare-particle` to `MVS + particle+FVS`, excluding chachlag.
 
-> Note: output is **FVS-pinned**, not bare — each unit is encoded with the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md). (The exported table also lets ports in other languages implement `normalize` with just a JSON parser.)
+**Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the shared region encodes identically except the single boundary unit whose position changes (final in *B* → medial in *A*). The per-unit table delivers this for free — each unit's encoding depends only on its own position, never on its neighbours.
+
+**How the table is built** (the *selection method*): offline, a **context-independence battery** fills each `(position, written-unit)` slot with the `(letter, FVS)` — tried masculine-first, bare-first — that renders *exactly* that unit in *every* probed neighbour context. The result is exported and shipped as JSON; see `MongolianShaper.compute_normalize_tables()`.
+
+> Note: output is **FVS-pinned**, not bare — each unit carries the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md), so ports in other languages can implement `normalize` with just a JSON parser.
 
 ### Installation
 
@@ -381,7 +385,11 @@ CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum �
    4. **缺口 chain**:少数 chain 任何逐单元字母都表达不了(孤立的 nirugu-only 单元 `O`/`J`/`Dd`/`Ue`;弓形辅音+尾元音),回退到穷举搜索(可能用 nirugu 包裹,约 0.5%)。
 3. **particle 替换**后处理:孤立 `I` 钉成 `i+FVS1`,`MVS + 裸 particle` 改成 `MVS + particle+FVS`,chachlag 除外。
 
-> 注意:输出是 **FVS 钉死**而非 bare —— 每个单元用选择符把字形固定下来、不受上下文影响,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
+**前缀稳定**的含义:若词 *A* = 词 *B* + 后缀,且二者 shape 共享前缀,则共享部分编码完全一致,只有那个位置发生变化的边界单元不同(在 *B* 里是词尾、在 *A* 里变词中)。逐单元表天然保证这点 —— 每个单元的编码只取决于它自己的位置,与邻居无关。
+
+**表是怎么来的**(*选择方法*):离线跑一个 **context 无关性电池** —— 对每个 `(位置, 书写单元)`,按"阳性优先、裸形优先"挑出那个在**所有**探测邻居上下文里都**恰好**渲染出该单元的 `(字母, FVS)`。结果导出成 JSON 随包发布;见 `MongolianShaper.compute_normalize_tables()`。
+
+> 注意:输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
 
 ### 安装
 
