@@ -91,12 +91,11 @@ After shaping, the normalizer selects the canonical letter for each position:
 
 ### Installation
 
-This repo contains two sibling Python packages: `mongol-shape-data` (flat rule data) and `mongol-norm` (the shaper, depends on `mongol-shape-data`). Neither is on PyPI yet — install from source:
+`mongol-norm` is a single self-contained package — the shaping/normalize data is bundled, no separate data package or runtime dependency. Not on PyPI yet — install from source:
 
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
-pip install ./mongol-shape-data
 pip install ./mongol-norm
 ```
 
@@ -209,30 +208,29 @@ If you can contribute, please **open an issue or pull request** at [github.com/S
 ```
 mongol-norm/                          # the repo (Satsrag/mongol-norm)
 ├── .github/workflows/test.yml        # CI: Python 3.9-3.13 on every push
-├── mongol-shape-data/                # sibling package: flat shaping rules
-│   ├── mongol_shape_data/rules/
-│   │   ├── MNG.json                  # Hudum
-│   │   ├── TOD.json  SIB.json  MCH.json
-│   │   └── particles.json
-│   └── pyproject.toml
-└── mongol-norm/                      # sibling package: the shaper
+└── mongol-norm/                      # the package (single, self-contained)
     ├── mongol_norm/
     │   ├── shaper.py                 # tokenize / assign_positions / shape / normalize
-    │   └── rules.py                  # the 5 shaping phases (iii1..iii5) mirroring iii.py
+    │   ├── rules.py                  # the 5 shaping phases (iii1..iii5) mirroring iii.py
+    │   ├── _data.py                  # loaders for the bundled JSON
+    │   └── data/                     # bundled shaping + normalize data
+    │       ├── MNG.json  TOD.json  SIB.json  MCH.json
+    │       └── MNG.normalize.json    # per-unit normalize table
+    ├── scripts/                      # dev-only generators (preprocess, gen_normalize_table)
+    ├── docs/data-format.md           # JSON schema, for other-language ports
     ├── tests/
-    │   ├── test_shaper.py            # 113 hand-written
-    │   ├── test_core_hud.py          # 177 mongfontbuilder cases
-    │   ├── test_eac_hud.py           # 3507 GB/T 25914 cases
+    │   ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
+    │   ├── test_core_hud.py  test_eac_hud.py
     │   └── data/{core,eac}-hud.tsv   # vendored from mongfontbuilder
     └── pyproject.toml
 ```
 
-`mongol-norm` declares `mongol-shape-data>=0.1.0` as a runtime dependency. Neither package is on PyPI yet — both install from the local sibling paths.
+`mongol-norm` has **no runtime dependencies** — the shaping/normalize JSON is bundled in `mongol_norm/data/`. Not on PyPI yet — install from source.
 
 ### Data Sources & Acknowledgments
 
 - **[UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html)** — Unicode Technical Note: Encoding and Shaping of the Mongolian Script. The authoritative specification for Mongolian shaping rules.
-- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)** by Kushim Jiang — Source for `mongol-shape-data`'s flat variant tables (preprocessed from `data.variants` / `data.particles`) and for the `core-hud.tsv` / `eac-hud.tsv` regression suites we vendor into `tests/data/`. Both UTN #57 and mongfontbuilder are authored by the same person.
+- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)** by Kushim Jiang — Source for the bundled flat variant tables in `mongol_norm/data/` (preprocessed from `data.variants` / `data.particles`) and for the `core-hud.tsv` / `eac-hud.tsv` regression suites we vendor into `tests/data/`. Both UTN #57 and mongfontbuilder are authored by the same person.
 - **[GB/T 25914—2023](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=BD6429DE5A7FC782FAAE13938A07166E)** — China national standard for Traditional Mongolian nominal characters; source of the EAC compliance test set.
 - **[Claude Code](https://claude.ai/code)** — This project was developed with AI assistance. The shaping rules are derived from the above sources; Claude Code was used to implement and structure the engine.
 
@@ -248,7 +246,7 @@ mongol-norm/                          # the repo (Satsrag/mongol-norm)
 ### Requirements
 
 - Python 3.9+ (CI matrix: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
-- `mongol-shape-data` (sibling package, installed automatically when you `pip install ./mongol-norm`)
+- No runtime dependencies (shaping/normalize data is bundled)
 
 ### License
 
@@ -343,12 +341,11 @@ shaping 后，规范化器为每个位置选择规范字母：
 
 ### 安装
 
-本仓库包含两个并列 Python 包: `mongol-shape-data`(扁平规则数据)和 `mongol-norm`(整形器,依赖前者)。两者都还没发布到 PyPI,从源码本地安装:
+`mongol-norm` 是单一自包含包 —— shaping/normalize 数据已内置,没有独立数据包,也没有运行时依赖。还没发布到 PyPI,从源码本地安装:
 
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
-pip install ./mongol-shape-data
 pip install ./mongol-norm
 ```
 
@@ -461,30 +458,29 @@ Shaping 已经对照 mongfontbuilder + GB/T 25914 跨实现套件验证完毕(36
 ```
 mongol-norm/                          # 仓库 (Satsrag/mongol-norm)
 ├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.13
-├── mongol-shape-data/                # 并列包: 扁平 shaping 规则
-│   ├── mongol_shape_data/rules/
-│   │   ├── MNG.json                  # Hudum
-│   │   ├── TOD.json  SIB.json  MCH.json
-│   │   └── particles.json
-│   └── pyproject.toml
-└── mongol-norm/                      # 并列包: 整形器
+└── mongol-norm/                      # 单一自包含包
     ├── mongol_norm/
     │   ├── shaper.py                 # tokenize / assign_positions / shape / normalize
-    │   └── rules.py                  # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
+    │   ├── rules.py                  # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
+    │   ├── _data.py                  # 内置 JSON 的加载器
+    │   └── data/                     # 内置 shaping + normalize 数据
+    │       ├── MNG.json  TOD.json  SIB.json  MCH.json
+    │       └── MNG.normalize.json    # 逐单元 normalize 表
+    ├── scripts/                      # 仅开发用的生成脚本 (preprocess, gen_normalize_table)
+    ├── docs/data-format.md           # JSON schema, 供其他语言移植
     ├── tests/
-    │   ├── test_shaper.py            # 113 手写
-    │   ├── test_core_hud.py          # 177 mongfontbuilder case
-    │   ├── test_eac_hud.py           # 3507 GB/T 25914 case
+    │   ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
+    │   ├── test_core_hud.py  test_eac_hud.py
     │   └── data/{core,eac}-hud.tsv   # 来自 mongfontbuilder
     └── pyproject.toml
 ```
 
-`mongol-norm` 在 `pyproject.toml` 里声明 `mongol-shape-data>=0.1.0` 为运行时依赖。两个包都还没上 PyPI, 都从本地兄弟路径安装。
+`mongol-norm` **没有运行时依赖** —— shaping/normalize JSON 内置在 `mongol_norm/data/`。还没上 PyPI, 从源码安装。
 
 ### 数据来源与致谢
 
 - **[UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html)** — Unicode 技术注释：蒙古文编码与字形化。蒙古文 shaping 规则的权威规范。
-- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)**(Kushim Jiang)— `mongol-shape-data` 的扁平变体表来源(从 `data.variants` / `data.particles` 预处理而来), 同时也是我们 vendor 进 `tests/data/` 的 `core-hud.tsv` / `eac-hud.tsv` 回归套件的来源。UTN #57 和 mongfontbuilder 的作者是同一人。
+- **[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)**(Kushim Jiang)— `mongol_norm/data/` 内置扁平变体表的来源(从 `data.variants` / `data.particles` 预处理而来), 同时也是我们 vendor 进 `tests/data/` 的 `core-hud.tsv` / `eac-hud.tsv` 回归套件的来源。UTN #57 和 mongfontbuilder 的作者是同一人。
 - **[GB/T 25914—2023](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=BD6429DE5A7FC782FAAE13938A07166E)** — 中国国家标准：传统蒙古文名义字符、表现字符和控制字符使用规则; EAC 一致性测试集的来源。
 - **[Claude Code](https://claude.ai/code)** — 本项目使用 AI 辅助开发。shaping 规则来源于上述数据；Claude Code 用于实现和组织引擎代码。
 
@@ -500,7 +496,7 @@ mongol-norm/                          # 仓库 (Satsrag/mongol-norm)
 ### 环境要求
 
 - Python 3.9+ (CI 矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
-- `mongol-shape-data`(并列包, `pip install ./mongol-norm` 时自动安装)
+- 无运行时依赖(shaping/normalize 数据已内置)
 
 ### 许可证
 

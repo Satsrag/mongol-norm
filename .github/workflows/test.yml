@@ -1,11 +1,11 @@
 name: Test
 
-# Repo layout: two sibling Python packages share this repo.
-#   mongol-shape-data/  → flat shaping rules (data only)
-#   mongol-norm/        → the shaper; depends on mongol-shape-data
-# CI installs both locally (no PyPI yet) and runs the mongol-norm test
-# suite, which covers all shaping logic plus the mongfontbuilder
-# core-hud / eac-hud TSV regression sets.
+# Repo layout: a single self-contained package, mongol-norm/. The shaping +
+# normalize JSON is bundled in mongol_norm/data/ (no separate data package,
+# no runtime dependency). CI installs it locally (no PyPI yet) and runs the
+# test suite, which covers all shaping logic, the normalize round-trip /
+# canonicity / prefix-stability properties, the normalize-table export, and
+# the mongfontbuilder core-hud / eac-hud TSV regression sets.
 
 on:
   push:
@@ -29,19 +29,20 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install both packages
+      - name: Install package
         run: |
           python -m pip install --upgrade pip
-          pip install ./mongol-shape-data
           pip install ./mongol-norm
 
       - name: Run unittest suite
         working-directory: mongol-norm
-        # All three modules together. test_eac_hud prints its own
-        # pass/fail/UTN-xfail summary; test_core_hud + test_shaper
-        # use the standard unittest output. The three together cover:
-        #   - 113 hand-written shaper tests
-        #   - 177 mongfontbuilder core-hud cases (100%)
-        #   - 3507 mongfontbuilder eac-hud cases (100%, 5 UTN-xfail)
+        # test_eac_hud / test_round_trip print their own pass/fail summaries;
+        # the others use standard unittest output. Together they cover:
+        #   - hand-written shaper tests (shape / same_shape / normalize)
+        #   - normalize round-trip + shape-canonicity + prefix-stability
+        #   - normalize-table export (compute == load)
+        #   - 225 mongfontbuilder core-hud cases (100%)
+        #   - 3513 mongfontbuilder eac-hud cases (100%, 5 UTN-xfail)
         run: |
-          python -m unittest tests.test_shaper tests.test_core_hud tests.test_eac_hud -v
+          python -m unittest tests.test_shaper tests.test_round_trip \
+            tests.test_normalize_table tests.test_core_hud tests.test_eac_hud -v
