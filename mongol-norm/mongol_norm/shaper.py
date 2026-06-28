@@ -1100,6 +1100,14 @@ class MongolianShaper:
         """
         if not text:
             return text
+        # Particle variants come from the candidates map (rule data), not the
+        # per-unit table — so build it lazily here. When the unit table is
+        # loaded from mongol-shape-data's precomputed spec the battery never
+        # runs, so this is the only thing that materializes the candidates.
+        # particle 变体取自 candidates map(规则数据)而非逐单元表;表从预生成
+        # spec 加载时电池不跑,故此处惰性构建 candidates。
+        if not hasattr(self, '_candidates_map'):
+            self._build_candidates_map()
 
         # Chunk text into (kind, body) where kind is 'mvs' or 'chain'.
         # 切分文本为 (kind, body),kind 是 'mvs' 或 'chain'。
@@ -1465,13 +1473,133 @@ class MongolianShaper:
 
     def _build_unit_enc(self):
         """
-        Build `_unit_enc`: {(position, written_tuple): (cp, fvs_cp)} where
-        each value is context-independent (produces exactly written_tuple at
-        position in every probed neighbor context). Cached on the instance.
-        构建 `_unit_enc`,值为 context 无关编码,实例级缓存。
+        Populate the per-unit encoding tables for the primary normalize path.
+        Prefer a precomputed spec shipped in mongol-shape-data (single source
+        of truth, fast startup); fall back to running the context-independence
+        battery in-process when that data package ships no spec yet.
+        填充逐单元编码表。优先加载 mongol-shape-data 内预生成 spec(唯一真源、
+        启动快);数据包暂无 spec 时回退到进程内运行 context 无关性电池。
         """
         if hasattr(self, '_unit_enc'):
             return
+        spec = self._load_external_normalize_spec()
+        if spec is not None:
+            self._load_normalize_tables(spec)
+            return
+        table, femtbl, required, max_len = self._compute_unit_tables()
+        self._unit_enc = table
+        self._unit_enc_max_len = max_len
+        self._unit_enc_fem = femtbl
+        self._required_multi = required
+
+    def _load_external_normalize_spec(self):
+        """
+        Return the precomputed normalize spec for self.locale from
+        mongol-shape-data, or None to fall back to the in-process battery.
+        从 mongol-shape-data 取本 locale 的预生成 spec;无则返回 None 走电池。
+        """
+        try:
+            from mongol_shape_data import load_normalize_table
+        except Exception:
+            return None
+        try:
+            return load_normalize_table(self.locale)
+        except Exception:
+            return None
+
+    def compute_normalize_tables(self):
+        """
+        Run the selection battery and return a JSON-serializable spec of the
+        normalize tables — the artifact other-language ports consume. Pure:
+        does NOT mutate the loaded runtime tables, so it always reflects the
+        battery (the source of truth), never a previously loaded spec.
+        运行选择电池,返回可 JSON 序列化的归一化表 spec(供其他语言移植消费)。
+        纯函数,不改运行时表,始终反映电池(真源)而非已加载 spec。
+        """
+        table, femtbl, required, max_len = self._compute_unit_tables()
+
+        def enc(cp, fvs_cp):
+            return {
+                "letter": self.cp_to_alias.get(cp, ""),
+                "cp": f"{cp:04X}",
+                "fvs": (f"{fvs_cp:04X}" if fvs_cp is not None else None),
+            }
+
+        def by_pos(d):
+            out = {}
+            for (pos, written), (cp, fvs_cp) in d.items():
+                out.setdefault(pos, {})["+".join(written)] = enc(cp, fvs_cp)
+            # stable ordering → readable, diff-friendly file
+            return {p: dict(sorted(out[p].items()))
+                    for p in ('isol', 'init', 'medi', 'fina') if p in out}
+
+        required_by_pos = {}
+        for pos, written in sorted(required):
+            required_by_pos.setdefault(pos, []).append("+".join(written))
+
+        return {
+            "schema": "mongol-normalize-table/1",
+            "locale": self.locale,
+            "description": (
+                "Per-(position, written-unit) FVS-pinned encoding table for "
+                "normalize. Each value is a (letter, fvs) that renders exactly "
+                "the written unit at that position regardless of neighbours. "
+                "See the mongol-norm README for the consuming algorithm."
+            ),
+            "unit_enc_max_len": max_len,
+            "constants": {
+                "MVS": f"{MVS_CP:04X}",
+                "NIRUGU": f"{NIRUGU_CP:04X}",
+                "ZWJ": f"{ZWJ_CP:04X}",
+                "FVS1": "180B", "FVS2": "180C",
+                "FVS3": "180D", "FVS4": "180F",
+            },
+            "ci_probe_letters": [self.cp_to_alias.get(c, f"{c:04X}")
+                                 for c in self._CI_PROBE_LETTERS],
+            "velar_fem_units": sorted(self._VELAR_FEM_UNITS),
+            "masc_to_fem": {self.cp_to_alias.get(k): self.cp_to_alias.get(v)
+                            for k, v in self._MASC_TO_FEM_CP.items()},
+            "unit_table": by_pos(table),
+            "required_multi": required_by_pos,
+            "velar_fem": by_pos(femtbl),
+        }
+
+    def _load_normalize_tables(self, spec):
+        """
+        Populate the runtime per-unit tables from a serialized spec — the
+        inverse of compute_normalize_tables / what the JSON stores.
+        从序列化 spec 还原运行时逐单元表(compute_normalize_tables 的逆)。
+        """
+        def dec(v):
+            return (int(v["cp"], 16),
+                    int(v["fvs"], 16) if v["fvs"] else None)
+        table = {}
+        for pos, entries in spec["unit_table"].items():
+            for wkey, v in entries.items():
+                table[(pos, tuple(wkey.split("+")))] = dec(v)
+        femtbl = {}
+        for pos, entries in spec.get("velar_fem", {}).items():
+            for wkey, v in entries.items():
+                femtbl[(pos, tuple(wkey.split("+")))] = dec(v)
+        required = set()
+        for pos, keys in spec.get("required_multi", {}).items():
+            for wkey in keys:
+                required.add((pos, tuple(wkey.split("+"))))
+        self._unit_enc = table
+        self._unit_enc_fem = femtbl
+        self._required_multi = required
+        self._unit_enc_max_len = (spec.get("unit_enc_max_len")
+                                  or max((len(w) for (_, w) in table),
+                                         default=1))
+
+    def _compute_unit_tables(self):
+        """
+        Run the context-independence battery and return
+        (unit_enc, unit_enc_fem, required_multi, max_len). This is the
+        SELECTION method — the single source of truth the exported JSON is
+        generated from. Pure: touches only caches (candidates map) and shape().
+        运行 context 无关性电池,返回四元组。这是“选择方法”——导出 JSON 的唯一真源。
+        """
         if not hasattr(self, '_candidates_map'):
             self._build_candidates_map()
         table = {}
@@ -1505,9 +1633,8 @@ class MongolianShaper:
         jf = (0x1835, 0x180C)
         if ('fina', ('J',)) not in table and self._is_context_independent('fina', ('J',), *jf):
             table[('fina', ('J',))] = jf
-        self._unit_enc = table
         # longest written-tuple length, to bound multi-unit lookahead
-        self._unit_enc_max_len = max((len(w) for (_, w) in table), default=1)
+        max_len = max((len(w) for (_, w) in table), default=1)
 
         # Feminine alternative table for the velar-fem refinement: for each
         # single-unit slot, a FEMININE (e/oe/ue) context-independent encoding
@@ -1535,7 +1662,6 @@ class MongolianShaper:
                 if self._is_context_independent(pos, written, cp, fvs_cp):
                     femtbl[(pos, written)] = (cp, fvs_cp)
                     break
-        self._unit_enc_fem = femtbl
 
         # Required-multi set: multi-unit table entries whose written tuple
         # CANNOT be reproduced by concatenating single-unit entries (e.g.
@@ -1551,18 +1677,17 @@ class MongolianShaper:
         for (pos, written) in table:
             if len(written) <= 1:
                 continue
-            if not self._decomposable_into_singles(written):
+            if not self._decomposable_into_singles(written, table):
                 required.add((pos, written))
-        self._required_multi = required
+        return table, femtbl, required, max_len
 
-    def _decomposable_into_singles(self, written):
+    def _decomposable_into_singles(self, written, tbl):
         """
         True iff `written` (a multi-unit tuple) can be produced by
-        concatenating single-unit table entries (treated as a standalone
+        concatenating single-unit entries from `tbl` (treated as a standalone
         chain) and round-trips. If so we DON'T need the multi-unit letter.
-        若 `written` 能用单单元表项拼出并还原,则可分解(不需要多单元字母)。
+        若 `written` 能用 `tbl` 单单元拼出并还原,则可分解(不需要多单元字母)。
         """
-        tbl = self._unit_enc
         m = len(written)
         parts = []
         for j, u in enumerate(written):

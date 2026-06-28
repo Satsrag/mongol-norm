@@ -1,0 +1,884 @@
+{
+  "schema": "mongol-normalize-table/1",
+  "locale": "MNG",
+  "description": "Per-(position, written-unit) FVS-pinned encoding table for normalize. Each value is a (letter, fvs) that renders exactly the written unit at that position regardless of neighbours. See the mongol-norm README for the consuming algorithm.",
+  "unit_enc_max_len": 3,
+  "constants": {
+    "MVS": "180E",
+    "NIRUGU": "180A",
+    "ZWJ": "200D",
+    "FVS1": "180B",
+    "FVS2": "180C",
+    "FVS3": "180D",
+    "FVS4": "180F"
+  },
+  "ci_probe_letters": [
+    "a",
+    "e",
+    "o",
+    "i",
+    "n",
+    "s",
+    "g"
+  ],
+  "velar_fem_units": [
+    "G",
+    "Gx"
+  ],
+  "masc_to_fem": {
+    "a": "e",
+    "o": "oe",
+    "u": "ue"
+  },
+  "unit_table": {
+    "isol": {
+      "A": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": "180B"
+      },
+      "A+A": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": null
+      },
+      "A+G": {
+        "letter": "ng",
+        "cp": "1829",
+        "fvs": null
+      },
+      "A+Hr": {
+        "letter": "hh",
+        "cp": "183E",
+        "fvs": null
+      },
+      "A+I": {
+        "letter": "i",
+        "cp": "1822",
+        "fvs": null
+      },
+      "A+O": {
+        "letter": "o",
+        "cp": "1823",
+        "fvs": null
+      },
+      "A+U": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180B"
+      },
+      "A+Ue": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": null
+      },
+      "A+W": {
+        "letter": "ee",
+        "cp": "1827",
+        "fvs": null
+      },
+      "Aa": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": "180C"
+      },
+      "B": {
+        "letter": "b",
+        "cp": "182A",
+        "fvs": null
+      },
+      "C": {
+        "letter": "c",
+        "cp": "183C",
+        "fvs": null
+      },
+      "Ch": {
+        "letter": "ch",
+        "cp": "1834",
+        "fvs": null
+      },
+      "Cr": {
+        "letter": "cr",
+        "cp": "1842",
+        "fvs": null
+      },
+      "D": {
+        "letter": "d",
+        "cp": "1833",
+        "fvs": null
+      },
+      "F": {
+        "letter": "f",
+        "cp": "1839",
+        "fvs": null
+      },
+      "G": {
+        "letter": "g",
+        "cp": "182D",
+        "fvs": "180C"
+      },
+      "Gx": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180F"
+      },
+      "H": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": null
+      },
+      "Hx": {
+        "letter": "g",
+        "cp": "182D",
+        "fvs": null
+      },
+      "I": {
+        "letter": "j",
+        "cp": "1835",
+        "fvs": null
+      },
+      "Ix": {
+        "letter": "i",
+        "cp": "1822",
+        "fvs": "180C"
+      },
+      "K": {
+        "letter": "k",
+        "cp": "183B",
+        "fvs": null
+      },
+      "K2": {
+        "letter": "k2",
+        "cp": "183A",
+        "fvs": null
+      },
+      "L": {
+        "letter": "l",
+        "cp": "182F",
+        "fvs": null
+      },
+      "L+Hr": {
+        "letter": "lh",
+        "cp": "1840",
+        "fvs": null
+      },
+      "M": {
+        "letter": "m",
+        "cp": "182E",
+        "fvs": null
+      },
+      "N": {
+        "letter": "n",
+        "cp": "1828",
+        "fvs": null
+      },
+      "P": {
+        "letter": "p",
+        "cp": "182B",
+        "fvs": null
+      },
+      "R": {
+        "letter": "r",
+        "cp": "1837",
+        "fvs": null
+      },
+      "Rh": {
+        "letter": "rh",
+        "cp": "183F",
+        "fvs": null
+      },
+      "S": {
+        "letter": "s",
+        "cp": "1830",
+        "fvs": null
+      },
+      "Sh": {
+        "letter": "sh",
+        "cp": "1831",
+        "fvs": null
+      },
+      "T": {
+        "letter": "t",
+        "cp": "1832",
+        "fvs": null
+      },
+      "U": {
+        "letter": "u",
+        "cp": "1824",
+        "fvs": "180B"
+      },
+      "Ux": {
+        "letter": "u",
+        "cp": "1824",
+        "fvs": "180C"
+      },
+      "W": {
+        "letter": "w",
+        "cp": "1838",
+        "fvs": null
+      },
+      "Y": {
+        "letter": "y",
+        "cp": "1836",
+        "fvs": null
+      },
+      "Z": {
+        "letter": "z",
+        "cp": "183D",
+        "fvs": null
+      },
+      "Zr": {
+        "letter": "zr",
+        "cp": "1841",
+        "fvs": null
+      }
+    },
+    "init": {
+      "A": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": "180B"
+      },
+      "A+A": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": null
+      },
+      "A+G": {
+        "letter": "ng",
+        "cp": "1829",
+        "fvs": null
+      },
+      "A+Hr": {
+        "letter": "hh",
+        "cp": "183E",
+        "fvs": null
+      },
+      "A+I": {
+        "letter": "i",
+        "cp": "1822",
+        "fvs": null
+      },
+      "A+O": {
+        "letter": "o",
+        "cp": "1823",
+        "fvs": null
+      },
+      "A+O+I": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": null
+      },
+      "A+W": {
+        "letter": "ee",
+        "cp": "1827",
+        "fvs": null
+      },
+      "B": {
+        "letter": "b",
+        "cp": "182A",
+        "fvs": null
+      },
+      "C": {
+        "letter": "c",
+        "cp": "183C",
+        "fvs": null
+      },
+      "Ch": {
+        "letter": "ch",
+        "cp": "1834",
+        "fvs": null
+      },
+      "Cr": {
+        "letter": "cr",
+        "cp": "1842",
+        "fvs": null
+      },
+      "D": {
+        "letter": "d",
+        "cp": "1833",
+        "fvs": "180B"
+      },
+      "F": {
+        "letter": "f",
+        "cp": "1839",
+        "fvs": null
+      },
+      "G": {
+        "letter": "g",
+        "cp": "182D",
+        "fvs": "180C"
+      },
+      "Gx": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180F"
+      },
+      "H": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180D"
+      },
+      "Hx": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180B"
+      },
+      "I": {
+        "letter": "j",
+        "cp": "1835",
+        "fvs": null
+      },
+      "K": {
+        "letter": "k",
+        "cp": "183B",
+        "fvs": null
+      },
+      "K2": {
+        "letter": "k2",
+        "cp": "183A",
+        "fvs": null
+      },
+      "L": {
+        "letter": "l",
+        "cp": "182F",
+        "fvs": null
+      },
+      "L+Hr": {
+        "letter": "lh",
+        "cp": "1840",
+        "fvs": null
+      },
+      "M": {
+        "letter": "m",
+        "cp": "182E",
+        "fvs": null
+      },
+      "N": {
+        "letter": "n",
+        "cp": "1828",
+        "fvs": null
+      },
+      "O": {
+        "letter": "u",
+        "cp": "1824",
+        "fvs": "180B"
+      },
+      "P": {
+        "letter": "p",
+        "cp": "182B",
+        "fvs": null
+      },
+      "R": {
+        "letter": "r",
+        "cp": "1837",
+        "fvs": null
+      },
+      "Rh": {
+        "letter": "rh",
+        "cp": "183F",
+        "fvs": null
+      },
+      "S": {
+        "letter": "s",
+        "cp": "1830",
+        "fvs": null
+      },
+      "Sh": {
+        "letter": "sh",
+        "cp": "1831",
+        "fvs": null
+      },
+      "T": {
+        "letter": "t",
+        "cp": "1832",
+        "fvs": null
+      },
+      "W": {
+        "letter": "w",
+        "cp": "1838",
+        "fvs": null
+      },
+      "Y": {
+        "letter": "y",
+        "cp": "1836",
+        "fvs": null
+      },
+      "Z": {
+        "letter": "z",
+        "cp": "183D",
+        "fvs": null
+      },
+      "Zr": {
+        "letter": "zr",
+        "cp": "1841",
+        "fvs": null
+      }
+    },
+    "medi": {
+      "A": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": null
+      },
+      "A+A": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": "180B"
+      },
+      "A+G": {
+        "letter": "ng",
+        "cp": "1829",
+        "fvs": null
+      },
+      "A+I": {
+        "letter": "i",
+        "cp": "1822",
+        "fvs": "180B"
+      },
+      "A+O": {
+        "letter": "o",
+        "cp": "1823",
+        "fvs": "180B"
+      },
+      "A+O+I": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180C"
+      },
+      "B": {
+        "letter": "b",
+        "cp": "182A",
+        "fvs": null
+      },
+      "C": {
+        "letter": "c",
+        "cp": "183C",
+        "fvs": null
+      },
+      "Ch": {
+        "letter": "ch",
+        "cp": "1834",
+        "fvs": null
+      },
+      "Cr": {
+        "letter": "cr",
+        "cp": "1842",
+        "fvs": null
+      },
+      "D": {
+        "letter": "t",
+        "cp": "1832",
+        "fvs": "180C"
+      },
+      "Dd": {
+        "letter": "d",
+        "cp": "1833",
+        "fvs": "180C"
+      },
+      "F": {
+        "letter": "f",
+        "cp": "1839",
+        "fvs": null
+      },
+      "G": {
+        "letter": "g",
+        "cp": "182D",
+        "fvs": "180C"
+      },
+      "Gx": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180F"
+      },
+      "H": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180D"
+      },
+      "Hr": {
+        "letter": "hh",
+        "cp": "183E",
+        "fvs": null
+      },
+      "Hx": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180B"
+      },
+      "I": {
+        "letter": "i",
+        "cp": "1822",
+        "fvs": "180D"
+      },
+      "I+I": {
+        "letter": "i",
+        "cp": "1822",
+        "fvs": "180C"
+      },
+      "J": {
+        "letter": "j",
+        "cp": "1835",
+        "fvs": null
+      },
+      "K": {
+        "letter": "k",
+        "cp": "183B",
+        "fvs": null
+      },
+      "K2": {
+        "letter": "k2",
+        "cp": "183A",
+        "fvs": null
+      },
+      "L": {
+        "letter": "l",
+        "cp": "182F",
+        "fvs": null
+      },
+      "L+Hr": {
+        "letter": "lh",
+        "cp": "1840",
+        "fvs": null
+      },
+      "M": {
+        "letter": "m",
+        "cp": "182E",
+        "fvs": null
+      },
+      "N": {
+        "letter": "n",
+        "cp": "1828",
+        "fvs": "180B"
+      },
+      "O": {
+        "letter": "o",
+        "cp": "1823",
+        "fvs": null
+      },
+      "O+I": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180B"
+      },
+      "P": {
+        "letter": "p",
+        "cp": "182B",
+        "fvs": null
+      },
+      "R": {
+        "letter": "r",
+        "cp": "1837",
+        "fvs": null
+      },
+      "Rh": {
+        "letter": "rh",
+        "cp": "183F",
+        "fvs": null
+      },
+      "S": {
+        "letter": "s",
+        "cp": "1830",
+        "fvs": null
+      },
+      "Sh": {
+        "letter": "sh",
+        "cp": "1831",
+        "fvs": "180C"
+      },
+      "T": {
+        "letter": "t",
+        "cp": "1832",
+        "fvs": "180B"
+      },
+      "W": {
+        "letter": "w",
+        "cp": "1838",
+        "fvs": null
+      },
+      "Y": {
+        "letter": "y",
+        "cp": "1836",
+        "fvs": null
+      },
+      "Z": {
+        "letter": "z",
+        "cp": "183D",
+        "fvs": null
+      },
+      "Zr": {
+        "letter": "zr",
+        "cp": "1841",
+        "fvs": null
+      }
+    },
+    "fina": {
+      "A": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": null
+      },
+      "A+G": {
+        "letter": "ng",
+        "cp": "1829",
+        "fvs": null
+      },
+      "Aa": {
+        "letter": "a",
+        "cp": "1820",
+        "fvs": "180B"
+      },
+      "B": {
+        "letter": "b",
+        "cp": "182A",
+        "fvs": null
+      },
+      "B2": {
+        "letter": "b",
+        "cp": "182A",
+        "fvs": "180B"
+      },
+      "C": {
+        "letter": "c",
+        "cp": "183C",
+        "fvs": null
+      },
+      "Ch": {
+        "letter": "ch",
+        "cp": "1834",
+        "fvs": null
+      },
+      "Cr": {
+        "letter": "cr",
+        "cp": "1842",
+        "fvs": null
+      },
+      "D": {
+        "letter": "d",
+        "cp": "1833",
+        "fvs": "180B"
+      },
+      "Dd": {
+        "letter": "d",
+        "cp": "1833",
+        "fvs": null
+      },
+      "F": {
+        "letter": "f",
+        "cp": "1839",
+        "fvs": null
+      },
+      "G": {
+        "letter": "g",
+        "cp": "182D",
+        "fvs": "180C"
+      },
+      "H": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": null
+      },
+      "Hr": {
+        "letter": "hh",
+        "cp": "183E",
+        "fvs": null
+      },
+      "Hx": {
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180B"
+      },
+      "I": {
+        "letter": "i",
+        "cp": "1822",
+        "fvs": null
+      },
+      "J": {
+        "letter": "j",
+        "cp": "1835",
+        "fvs": null
+      },
+      "K": {
+        "letter": "k",
+        "cp": "183B",
+        "fvs": null
+      },
+      "K2": {
+        "letter": "k2",
+        "cp": "183A",
+        "fvs": null
+      },
+      "L": {
+        "letter": "l",
+        "cp": "182F",
+        "fvs": null
+      },
+      "L+Hr": {
+        "letter": "lh",
+        "cp": "1840",
+        "fvs": null
+      },
+      "M": {
+        "letter": "m",
+        "cp": "182E",
+        "fvs": null
+      },
+      "N": {
+        "letter": "n",
+        "cp": "1828",
+        "fvs": "180B"
+      },
+      "O": {
+        "letter": "o",
+        "cp": "1823",
+        "fvs": "180B"
+      },
+      "P": {
+        "letter": "p",
+        "cp": "182B",
+        "fvs": null
+      },
+      "R": {
+        "letter": "r",
+        "cp": "1837",
+        "fvs": null
+      },
+      "Rh": {
+        "letter": "rh",
+        "cp": "183F",
+        "fvs": null
+      },
+      "S": {
+        "letter": "s",
+        "cp": "1830",
+        "fvs": null
+      },
+      "Sh": {
+        "letter": "sh",
+        "cp": "1831",
+        "fvs": null
+      },
+      "Sz": {
+        "letter": "s",
+        "cp": "1830",
+        "fvs": "180B"
+      },
+      "T": {
+        "letter": "t",
+        "cp": "1832",
+        "fvs": null
+      },
+      "U": {
+        "letter": "o",
+        "cp": "1823",
+        "fvs": "180C"
+      },
+      "Ue": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180B"
+      },
+      "W": {
+        "letter": "w",
+        "cp": "1838",
+        "fvs": null
+      },
+      "Z": {
+        "letter": "z",
+        "cp": "183D",
+        "fvs": null
+      },
+      "Zr": {
+        "letter": "zr",
+        "cp": "1841",
+        "fvs": null
+      }
+    }
+  },
+  "required_multi": {},
+  "velar_fem": {
+    "isol": {
+      "A": {
+        "letter": "e",
+        "cp": "1821",
+        "fvs": null
+      },
+      "Aa": {
+        "letter": "e",
+        "cp": "1821",
+        "fvs": "180B"
+      },
+      "U": {
+        "letter": "ue",
+        "cp": "1826",
+        "fvs": "180C"
+      },
+      "Ux": {
+        "letter": "ue",
+        "cp": "1826",
+        "fvs": "180D"
+      }
+    },
+    "init": {
+      "A": {
+        "letter": "e",
+        "cp": "1821",
+        "fvs": null
+      },
+      "O": {
+        "letter": "ue",
+        "cp": "1826",
+        "fvs": "180B"
+      }
+    },
+    "medi": {
+      "A": {
+        "letter": "e",
+        "cp": "1821",
+        "fvs": null
+      },
+      "O": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180D"
+      },
+      "W": {
+        "letter": "ee",
+        "cp": "1827",
+        "fvs": null
+      }
+    },
+    "fina": {
+      "A": {
+        "letter": "e",
+        "cp": "1821",
+        "fvs": "180C"
+      },
+      "Aa": {
+        "letter": "e",
+        "cp": "1821",
+        "fvs": "180B"
+      },
+      "O": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180C"
+      },
+      "U": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180D"
+      },
+      "Ue": {
+        "letter": "oe",
+        "cp": "1825",
+        "fvs": "180B"
+      },
+      "W": {
+        "letter": "ee",
+        "cp": "1827",
+        "fvs": null
+      }
+    }
+  }
+}
