@@ -82,12 +82,19 @@ The normalizer implements a **lightweight Mongolian shaping engine** — equival
 
 #### Normalization Strategy
 
-After shaping, the normalizer selects the canonical letter for each position:
+`normalize` is a **pure function of shape**: any two encodings that shape identically produce the same Unicode output, and the output always round-trips — `shape(normalize(x)) == shape(x)`. It is also **prefix-stable**. When these goals conflict the priority is **round-trip > prefix-stable > shortest**.
 
-- **Vowel harmony** (a/e, h/g pairs): Detected from unambiguous vowels (o/u = masculine, oe/ue/ee = feminine) or from the shaping condition of h/g letters.
-- **Boundary preservation**: Letters at word-initial and word-final positions preserve their original identity (e.g., NA at final = consonant N, not vowel A).
-- **Redundancy removal**: YA+FVS1 producing a tooth → merged with adjacent I tokens. NA+FVS2 producing vowel-A shape → replaced by A.
-- **Bare encoding**: Output uses bare Unicode without FVS, since the shaping engine automatically selects the correct variant from context.
+Per word:
+
+1. **shape** the input into its written-unit sequence, then **split** at every MVS into *chains*.
+2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
+   1. **partition + table lookup** — the primary path. At each position take the longest *required-multi* unit, else the single unit, else the longest multi-unit, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
+   2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
+   3. **verify** — reshape the candidate in full context; accept only if it equals the target chain shape.
+   4. **gap chains** — a handful of chains can't be expressed by any per-unit letter (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`; bowed-consonant + final-vowel finals). These fall back to an exhaustive structural search that may wrap a unit in nirugu (~0.5% of chains).
+3. **particle substitution** post-pass — pin isolate `I` to `i+FVS1`, rewrite `MVS + bare-particle` to `MVS + particle+FVS`, excluding chachlag.
+
+> Note: output is **FVS-pinned**, not bare — each unit is encoded with the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md). (The exported table also lets ports in other languages implement `normalize` with just a JSON parser.)
 
 ### Installation
 
@@ -96,7 +103,7 @@ After shaping, the normalizer selects the canonical letter for each position:
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
-pip install ./mongol-norm
+pip install .
 ```
 
 ### Usage
@@ -152,21 +159,52 @@ print(f"{len(words)} inputs → {len(unique)} unique form(s): {unique}")
 # 4 inputs → 1 unique form(s): {'ᠰᠠᠢᠨ'}
 ```
 
+#### Command line
+
+After `pip install .`, the `mongol-norm` command is on `PATH` (or run `python -m mongol_norm.shaper ...` without installing).
+
+```bash
+# Inline text
+mongol-norm shape 'ᠰᠠᠢᠨ'                   # → S+A+I+I+A
+mongol-norm normalize 'ᠰᠡᠢᠨ'               # canonical form
+mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # mixed-script
+
+# Pipe / stdin (use `-` as the text)
+echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
+cat doc.txt | mongol-norm normalize-text -
+
+# File in / out
+mongol-norm normalize-text -i in.txt -o out.txt
+
+# Batch: one word per line in, one canonical per line out
+mongol-norm normalize --batch -i words.txt -o canonical.txt
+
+# Visual-identity check (exit 0 if same, 1 if different)
+mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
+```
+
+`normalize` (single-word) skips non-Mongolian characters, so feeding it a multi-line file treats the whole thing as one word. Use `--batch` for one-word-per-line files, or `normalize-text` for free-form text.
+
 ### Running Tests
 
 ```bash
-# Hand-written shaper / same_shape / normalize tests (113 cases)
 cd mongol-norm
+
+# Shaping + same_shape + normalize unit tests
 python -m unittest tests.test_shaper -v
 
-# mongfontbuilder cross-implementation regression (177 cases)
-python -m unittest tests.test_core_hud
+# Normalize properties: round-trip + shape-canonicity + prefix-stability
+python -m unittest tests.test_round_trip
 
-# GB/T 25914-2023 EAC compliance suite (3507 cases, 5 UTN-xfail)
-python -m unittest tests.test_eac_hud
+# Normalize-table export (compute == load)
+python -m unittest tests.test_normalize_table
+
+# mongfontbuilder core-hud (225) + GB/T 25914-2023 eac-hud (3513, 5 UTN-xfail)
+python -m unittest tests.test_core_hud tests.test_eac_hud
 
 # Or all together
-python -m unittest tests.test_shaper tests.test_core_hud tests.test_eac_hud
+python -m unittest tests.test_shaper tests.test_round_trip \
+    tests.test_normalize_table tests.test_core_hud tests.test_eac_hud
 ```
 
 The hand-written suite covers:
@@ -206,23 +244,22 @@ If you can contribute, please **open an issue or pull request** at [github.com/S
 ### Project Structure
 
 ```
-mongol-norm/                          # the repo (Satsrag/mongol-norm)
+mongol-norm/                          # the repo = the package (single, self-contained)
 ├── .github/workflows/test.yml        # CI: Python 3.9-3.13 on every push
-└── mongol-norm/                      # the package (single, self-contained)
-    ├── mongol_norm/
-    │   ├── shaper.py                 # tokenize / assign_positions / shape / normalize
-    │   ├── rules.py                  # the 5 shaping phases (iii1..iii5) mirroring iii.py
-    │   ├── _data.py                  # loaders for the bundled JSON
-    │   └── data/                     # bundled shaping + normalize data
-    │       ├── MNG.json  TOD.json  SIB.json  MCH.json
-    │       └── MNG.normalize.json    # per-unit normalize table
-    ├── scripts/                      # dev-only generators (preprocess, gen_normalize_table)
-    ├── docs/data-format.md           # JSON schema, for other-language ports
-    ├── tests/
-    │   ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
-    │   ├── test_core_hud.py  test_eac_hud.py
-    │   └── data/{core,eac}-hud.tsv   # vendored from mongfontbuilder
-    └── pyproject.toml
+├── pyproject.toml
+├── mongol_norm/
+│   ├── shaper.py                     # tokenize / assign_positions / shape / normalize
+│   ├── rules.py                      # the 5 shaping phases (iii1..iii5) mirroring iii.py
+│   ├── _data.py                      # loaders for the bundled JSON
+│   └── data/                         # bundled shaping + normalize data
+│       ├── MNG.json  TOD.json  SIB.json  MCH.json
+│       └── MNG.normalize.json        # per-unit normalize table
+├── scripts/                          # dev-only generators (preprocess, gen_normalize_table)
+├── docs/data-format.md               # JSON schema, for other-language ports
+└── tests/
+    ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
+    ├── test_core_hud.py  test_eac_hud.py
+    └── data/{core,eac}-hud.tsv       # vendored from mongfontbuilder
 ```
 
 `mongol-norm` has **no runtime dependencies** — the shaping/normalize JSON is bundled in `mongol_norm/data/`. Not on PyPI yet — install from source.
@@ -332,12 +369,19 @@ CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum �
 
 #### 规范化策略
 
-shaping 后，规范化器为每个位置选择规范字母：
+`normalize` 是 **shape 的纯函数**:任意两个 shape 相同的编码,normalize 输出相同,且始终往返成立 —— `shape(normalize(x)) == shape(x)`,同时**前缀稳定**。三者冲突时优先级:**往返 > 前缀稳定 > 最短**。
 
-- **元音和谐**（a/e 对、h/g 对）：通过不模糊的元音（o/u=阳性，oe/ue/ee=阴性）或 h/g 字母的 shaping condition 判断。
-- **边界保留**：词首和词尾的字母保留原始身份（如 NA 在词尾 = 辅音 N，不是元音 A）。
-- **冗余清除**：YA+FVS1 产出齿形 → 与相邻 I 合并；NA+FVS2 产出元音 A 形态 → 替换为 A。
-- **Bare 编码**：输出使用 bare Unicode（不加 FVS），因为 shaping 引擎会自动根据上下文选择正确的变体。
+逐词:
+
+1. **shape** 成书写单元序列,再按每个 MVS **切成 chain**。
+2. **逐 chain 编码**(从右往左,这样加后缀不影响前面):
+   1. **划分 + 查表**(主路径):每个位置取最长 *required-multi* 单元,否则单单元,否则最长多单元,查 `(位置, 书写单元) → (字母, FVS)` 的 FVS 钉死表。每个值**不依赖邻居**就渲染出该单元 → 确定性、O(N)、前缀稳定。
+   2. **velar 阴性微调**:`G`/`Gx` 前向耦合的元音(`a`/`o`/`u`)换成阴性(`e`/`oe`/`ue`),输出更干净。
+   3. **校验**:在完整上下文里重新 shape,只接受与目标 chain shape 一致的结果。
+   4. **缺口 chain**:少数 chain 任何逐单元字母都表达不了(孤立的 nirugu-only 单元 `O`/`J`/`Dd`/`Ue`;弓形辅音+尾元音),回退到穷举搜索(可能用 nirugu 包裹,约 0.5%)。
+3. **particle 替换**后处理:孤立 `I` 钉成 `i+FVS1`,`MVS + 裸 particle` 改成 `MVS + particle+FVS`,chachlag 除外。
+
+> 注意:输出是 **FVS 钉死**而非 bare —— 每个单元用选择符把字形固定下来、不受上下文影响,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
 
 ### 安装
 
@@ -346,7 +390,7 @@ shaping 后，规范化器为每个位置选择规范字母：
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
-pip install ./mongol-norm
+pip install .
 ```
 
 ### 使用方法
@@ -405,18 +449,23 @@ print(f"{len(words)} 个输入 → {len(unique)} 个唯一形态：{unique}")
 ### 运行测试
 
 ```bash
-# 手写 shaper / same_shape / normalize 测试(113 个)
 cd mongol-norm
+
+# 手写 shaper / same_shape / normalize 测试
 python -m unittest tests.test_shaper -v
 
-# mongfontbuilder 跨实现回归(177 个)
-python -m unittest tests.test_core_hud
+# normalize 性质:往返 + 同 shape 同输出 + 前缀稳定
+python -m unittest tests.test_round_trip
 
-# GB/T 25914-2023 EAC 一致性套件(3507 个,5 个 UTN-xfail)
-python -m unittest tests.test_eac_hud
+# normalize 表导出(compute == load)
+python -m unittest tests.test_normalize_table
+
+# mongfontbuilder core-hud(225)+ GB/T 25914-2023 eac-hud(3513,5 个 UTN-xfail)
+python -m unittest tests.test_core_hud tests.test_eac_hud
 
 # 或一次跑全部
-python -m unittest tests.test_shaper tests.test_core_hud tests.test_eac_hud
+python -m unittest tests.test_shaper tests.test_round_trip \
+    tests.test_normalize_table tests.test_core_hud tests.test_eac_hud
 ```
 
 手写套件覆盖范围:
@@ -456,23 +505,22 @@ Shaping 已经对照 mongfontbuilder + GB/T 25914 跨实现套件验证完毕(36
 ### 项目结构
 
 ```
-mongol-norm/                          # 仓库 (Satsrag/mongol-norm)
+mongol-norm/                          # 仓库 = 包(单一自包含)
 ├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.13
-└── mongol-norm/                      # 单一自包含包
-    ├── mongol_norm/
-    │   ├── shaper.py                 # tokenize / assign_positions / shape / normalize
-    │   ├── rules.py                  # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
-    │   ├── _data.py                  # 内置 JSON 的加载器
-    │   └── data/                     # 内置 shaping + normalize 数据
-    │       ├── MNG.json  TOD.json  SIB.json  MCH.json
-    │       └── MNG.normalize.json    # 逐单元 normalize 表
-    ├── scripts/                      # 仅开发用的生成脚本 (preprocess, gen_normalize_table)
-    ├── docs/data-format.md           # JSON schema, 供其他语言移植
-    ├── tests/
-    │   ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
-    │   ├── test_core_hud.py  test_eac_hud.py
-    │   └── data/{core,eac}-hud.tsv   # 来自 mongfontbuilder
-    └── pyproject.toml
+├── pyproject.toml
+├── mongol_norm/
+│   ├── shaper.py                     # tokenize / assign_positions / shape / normalize
+│   ├── rules.py                      # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
+│   ├── _data.py                      # 内置 JSON 的加载器
+│   └── data/                         # 内置 shaping + normalize 数据
+│       ├── MNG.json  TOD.json  SIB.json  MCH.json
+│       └── MNG.normalize.json        # 逐单元 normalize 表
+├── scripts/                          # 仅开发用的生成脚本 (preprocess, gen_normalize_table)
+├── docs/data-format.md               # JSON schema, 供其他语言移植
+└── tests/
+    ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
+    ├── test_core_hud.py  test_eac_hud.py
+    └── data/{core,eac}-hud.tsv       # 来自 mongfontbuilder
 ```
 
 `mongol-norm` **没有运行时依赖** —— shaping/normalize JSON 内置在 `mongol_norm/data/`。还没上 PyPI, 从源码安装。

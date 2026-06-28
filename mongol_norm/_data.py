@@ -9,9 +9,9 @@ The JSON in `mongol_norm/data/` is the runtime data the shaper consumes:
                                  written-unit) FVS-pinned encodings),
                                  generated from this package's own shaper.
 
-Both are produced by the dev-only scripts in `mongol-norm/scripts/` and
-committed here, so the runtime needs no extra dependency and other-language
-ports can read the raw files directly (see docs/data-format.md).
+Both are produced by the dev-only scripts in `scripts/` and committed here, so
+the runtime needs no extra dependency and other-language ports can read the raw
+files directly (see docs/data-format.md).
 
 These loaders are internal — import `MongolianShaper`, not this module.
 """

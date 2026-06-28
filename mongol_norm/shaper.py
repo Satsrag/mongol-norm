@@ -32,7 +32,7 @@ Why this engine exists / 为什么需要这个引擎:
 
 Data source / 数据来源: the bundled JSON in `mongol_norm/data/` (flat
 pre-processed rules), generated from mongfontbuilder + UTN #57 by the
-dev-only scripts in `mongol-norm/scripts/`. See docs/data-format.md.
+dev-only scripts in `scripts/`. See docs/data-format.md.
 """
 from typing import Dict
 
