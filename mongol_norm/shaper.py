@@ -1260,32 +1260,26 @@ class MongolianShaper:
                        0x1823: 0x1825,   # o → oe
                        0x1824: 0x1826}   # u → ue
 
-    # Context battery: neighbor letters used to probe context-independence.
-    # Cover masc vowel (a), fem vowel (e), masc round vowel (o), neutral (i),
-    # plain consonant (n), sibilant (s), velar (g).
-    # 上下文电池:探测 context 无关性的邻居字母。
-    _CI_PROBE_LETTERS = (0x1820, 0x1821, 0x1823, 0x1822, 0x1828, 0x1830, 0x182D)
 
     def _build_unit_enc(self):
         """
-        Populate the per-unit encoding tables for the primary normalize path.
-        Prefer the precomputed spec bundled in `mongol_norm/data/` (single
-        source of truth, fast startup); fall back to running the context-
-        independence battery in-process when no spec is bundled yet.
-        填充逐单元编码表。优先加载 bundled spec(`mongol_norm/data/`,唯一真源、
-        启动快);无 spec 时回退到进程内运行 context 无关性电池。
+        Load the per-unit encoding tables from the precomputed spec bundled in
+        `mongol_norm/data/`. The spec is generated OFFLINE by
+        scripts/gen_normalize_table.py (the selection battery lives there, not
+        in the runtime); here we only load it.
+        从 `mongol_norm/data/` 的预生成 spec 加载逐单元编码表。spec 由
+        scripts/gen_normalize_table.py 离线生成(选择电池在那里,不在 runtime),
+        这里只负责加载。
         """
         if hasattr(self, '_unit_enc'):
             return
         spec = self._load_external_normalize_spec()
-        if spec is not None:
-            self._load_normalize_tables(spec)
-            return
-        table, feminine_table, required, max_length = self._compute_unit_tables()
-        self._unit_enc = table
-        self._unit_enc_max_len = max_length
-        self._unit_enc_fem = feminine_table
-        self._required_multi = required
+        if spec is None:
+            raise RuntimeError(
+                f"no bundled normalize table for locale {self.locale!r}; "
+                f"generate it with scripts/gen_normalize_table.py"
+            )
+        self._load_normalize_tables(spec)
 
     def _load_external_normalize_spec(self):
         """
@@ -1302,63 +1296,6 @@ class MongolianShaper:
             return load_normalize_table(self.locale)
         except Exception:
             return None
-
-    def compute_normalize_tables(self):
-        """
-        Run the selection battery and return a JSON-serializable spec of the
-        normalize tables — the artifact other-language ports consume. Pure:
-        does NOT mutate the loaded runtime tables, so it always reflects the
-        battery (the source of truth), never a previously loaded spec.
-        运行选择电池,返回可 JSON 序列化的归一化表 spec(供其他语言移植消费)。
-        纯函数,不改运行时表,始终反映电池(真源)而非已加载 spec。
-        """
-        table, feminine_table, required, max_length = self._compute_unit_tables()
-
-        def encode_entry(cp, fvs_cp):
-            return {
-                "letter": self.cp_to_alias.get(cp, ""),
-                "cp": f"{cp:04X}",
-                "fvs": (f"{fvs_cp:04X}" if fvs_cp is not None else None),
-            }
-
-        def group_by_position(mapping):
-            grouped = {}
-            for (position, written), (cp, fvs_cp) in mapping.items():
-                grouped.setdefault(position, {})["+".join(written)] = encode_entry(cp, fvs_cp)
-            # stable ordering → readable, diff-friendly file
-            return {position: dict(sorted(grouped[position].items()))
-                    for position in ('isol', 'init', 'medi', 'fina') if position in grouped}
-
-        required_by_position = {}
-        for position, written in sorted(required):
-            required_by_position.setdefault(position, []).append("+".join(written))
-
-        return {
-            "schema": "mongol-normalize-table/1",
-            "locale": self.locale,
-            "description": (
-                "Per-(position, written-unit) FVS-pinned encoding table for "
-                "normalize. Each value is a (letter, fvs) that renders exactly "
-                "the written unit at that position regardless of neighbours. "
-                "See the mongol-norm README for the consuming algorithm."
-            ),
-            "unit_enc_max_len": max_length,
-            "constants": {
-                "MVS": f"{MVS_CP:04X}",
-                "NIRUGU": f"{NIRUGU_CP:04X}",
-                "ZWJ": f"{ZWJ_CP:04X}",
-                "FVS1": "180B", "FVS2": "180C",
-                "FVS3": "180D", "FVS4": "180F",
-            },
-            "ci_probe_letters": [self.cp_to_alias.get(c, f"{c:04X}")
-                                 for c in self._CI_PROBE_LETTERS],
-            "velar_fem_units": sorted(self._VELAR_FEM_UNITS),
-            "masc_to_fem": {self.cp_to_alias.get(k): self.cp_to_alias.get(v)
-                            for k, v in self._MASC_TO_FEM_CP.items()},
-            "unit_table": group_by_position(table),
-            "required_multi": required_by_position,
-            "velar_fem": group_by_position(feminine_table),
-        }
 
     def _load_normalize_tables(self, spec):
         """
@@ -1387,149 +1324,6 @@ class MongolianShaper:
         self._unit_enc_max_len = (spec.get("unit_enc_max_len")
                                   or max((len(written) for (_, written) in table),
                                          default=1))
-
-    def _compute_unit_tables(self):
-        """
-        Run the context-independence battery and return
-        (unit_enc, unit_enc_fem, required_multi, max_len). This is the
-        SELECTION method — the single source of truth the exported JSON is
-        generated from. Pure: touches only caches (candidates map) and shape().
-        运行 context 无关性电池,返回四元组。这是“选择方法”——导出 JSON 的唯一真源。
-        """
-        if not hasattr(self, '_candidates_map'):
-            self._build_candidates_map()
-        table = {}
-        for (position, written), candidates in self._candidates_map.items():
-            # rule-A-ish but MASCULINE-first for vowels: bare<fvs is NOT the
-            # primary key here — context-independence is. We sort candidates
-            # masc-first, bare-first, cp asc, fvs asc, then keep the FIRST
-            # that passes the battery.
-            ordered_candidates = sorted(
-                ((candidate['cp'], FVS_INT_TO_CP.get(candidate['fvs']))
-                 for candidate in candidates),
-                key=lambda pair: (
-                    self.cp_to_alias.get(pair[0]) in self.feminine_vowels,
-                    pair[1] is not None, pair[0], pair[1] or 0,
-                )
-            )
-            seen = set()
-            for cp, fvs_cp in ordered_candidates:
-                if (cp, fvs_cp) in seen:
-                    continue
-                seen.add((cp, fvs_cp))
-                if self._is_context_independent(position, written, cp, fvs_cp):
-                    table[(position, written)] = (cp, fvs_cp)
-                    break
-        # Hand-pins (battery should already pick these; insurance):
-        #   'G' → g+fvs2 (the only all-position context-independent G);
-        #   fina 'J' → j+fvs2 (absent from candidates_map but battery-proven).
-        g_fvs2 = (0x182D, 0x180C)
-        for position in ('isol', 'init', 'medi', 'fina'):
-            if self._is_context_independent(position, ('G',), *g_fvs2):
-                table[(position, ('G',))] = g_fvs2
-        j_fvs2 = (0x1835, 0x180C)
-        if ('fina', ('J',)) not in table and self._is_context_independent('fina', ('J',), *j_fvs2):
-            table[('fina', ('J',))] = j_fvs2
-        # longest written-tuple length, to bound multi-unit lookahead
-        max_length = max((len(written) for (_, written) in table), default=1)
-
-        # Feminine alternative table for the velar-fem refinement: for each
-        # single-unit slot, a FEMININE (e/oe/ue) context-independent encoding
-        # producing the same unit, if one exists. The refinement swaps a
-        # velar-coupled vowel to this so 'G' velars get their fem partner
-        # WITHOUT breaking round-trip (a naive cp-swap can change the unit,
-        # e.g. o+fvs1='O'@fina but oe+fvs1='Ue'@fina).
-        # 阴性候选表:每个单单元槽,产出同单元的阴性 context 无关编码(若有)。
-        feminine_vowel_cps = {self.alias_to_cp[alias] for alias in self.feminine_vowels
-                              if alias in self.alias_to_cp}
-        feminine_table = {}
-        for (position, written), candidates in self._candidates_map.items():
-            if len(written) != 1:
-                continue
-            ordered_candidates = sorted(
-                ((candidate['cp'], FVS_INT_TO_CP.get(candidate['fvs']))
-                 for candidate in candidates if candidate['cp'] in feminine_vowel_cps),
-                key=lambda pair: (pair[1] is not None, pair[0], pair[1] or 0)
-            )
-            seen = set()
-            for cp, fvs_cp in ordered_candidates:
-                if (cp, fvs_cp) in seen:
-                    continue
-                seen.add((cp, fvs_cp))
-                if self._is_context_independent(position, written, cp, fvs_cp):
-                    feminine_table[(position, written)] = (cp, fvs_cp)
-                    break
-
-        # Required-multi set: multi-unit table entries whose written tuple
-        # CANNOT be reproduced by concatenating single-unit entries (e.g.
-        # oe → [A,O,I]; a+o+i adds a spurious tooth). Only these force a
-        # multi-unit letter; everything else uses single units. Making this
-        # a FIXED set lets the partition be a single deterministic local
-        # pass (prefer required-multi, else single), which is prefix-stable
-        # — a two-pass "shortest-then-longest with whole-chain verify" was
-        # not (whether shortest succeeds depends on the whole chain).
-        # 必需多单元集:无法用单单元拼出的多单元 written。仅这些强制多单元,
-        # 其余用单单元。固定此集 → partition 单趟确定性局部决策 → 前缀稳定。
-        required = set()
-        for (position, written) in table:
-            if len(written) <= 1:
-                continue
-            if not self._decomposable_into_singles(written, table):
-                required.add((position, written))
-        return table, feminine_table, required, max_length
-
-    def _decomposable_into_singles(self, written, table):
-        """
-        True iff `written` (a multi-unit tuple) can be produced by
-        concatenating single-unit entries from `table` (treated as a standalone
-        chain) and round-trips. If so we DON'T need the multi-unit letter.
-        若 `written` 能用 `table` 单单元拼出并还原,则可分解(不需要多单元字母)。
-        """
-        unit_count = len(written)
-        parts = []
-        for index, unit in enumerate(written):
-            position = ('isol' if unit_count == 1 else 'init' if index == 0
-                        else 'fina' if index == unit_count - 1 else 'medi')
-            entry = table.get((position, (unit,)))
-            if entry is None:
-                return False
-            parts.append(chr(entry[0]) + (chr(entry[1]) if entry[1] is not None else ''))
-        text = ''.join(parts)
-        return tuple(self.shape(text)) == tuple(written)
-
-    def _is_context_independent(self, position, written, cp, fvs_cp):
-        """
-        True iff letter (cp, fvs_cp) placed at `position` produces exactly
-        `written` in EVERY probed neighbor context (and at least one probe
-        actually lands it at `position`).
-        当 (cp,fvs_cp) 放在 position、在所有探测上下文下都恰好产出 written 时为真。
-        """
-        letter = chr(cp) + (chr(fvs_cp) if fvs_cp is not None else '')
-        target_written = list(written)
-        landed = False
-        probe_letters = self._CI_PROBE_LETTERS
-        # Build neighbor option lists by position.
-        left_options = [''] if position in ('isol', 'init') else [chr(probe) for probe in probe_letters]
-        right_options = [''] if position in ('isol', 'fina') else [chr(probe) for probe in probe_letters]
-        for left in left_options:
-            for right in right_options:
-                text = left + letter + right
-                try:
-                    details = self.shape_detailed(text)
-                except Exception:
-                    return False
-                # target letter is the token right after the left context's
-                # letters (left context is 0 or 1 letter here).
-                target_index = (1 if left else 0)
-                if target_index >= len(details):
-                    continue
-                detail = details[target_index]
-                if detail.get('position') != position:
-                    continue
-                landed = True
-                if list(detail.get('written') or []) != target_written:
-                    return False
-        return landed
 
     def _unit_encode_chain(self, chain_shape, prev_mvs, suffix_text, suffix_target):
         """

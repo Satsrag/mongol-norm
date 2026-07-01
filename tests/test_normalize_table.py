@@ -2,15 +2,22 @@
 Tests for the exportable normalize table (the per-unit FVS-pinned spec that
 other-language ports consume as JSON).
 
-The selection logic (the context-independence battery) is the source of truth.
-`compute_normalize_tables()` must serialize it losslessly, and the shaper must
-be able to LOAD that serialized form and behave identically to computing it.
-导出归一化表的测试:compute 序列化无损,且 shaper 从序列化形式加载后行为一致。
+The selection battery lives in scripts/gen_normalize_table.py (build-time). It
+must serialize losslessly, the shaper must LOAD that serialized form, and the
+freshly-computed spec must match the bundled JSON the runtime loads.
+导出归一化表的测试:生成器在 scripts;序列化无损、shaper 能加载、且现算的
+spec 与随包 JSON 一致。
 """
 import json
+import sys
 import unittest
+from pathlib import Path
 
 from mongol_norm.shaper import MongolianShaper
+
+# The selection battery / spec generator lives in scripts/ (build-time only).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+import gen_normalize_table as gen  # noqa: E402
 
 
 def _rebuild_unit_enc(spec):
@@ -31,7 +38,7 @@ class TestNormalizeTableExport(unittest.TestCase):
         cls.s = MongolianShaper(locale="MNG")
 
     def test_compute_returns_json_serializable_spec(self):
-        spec = self.s.compute_normalize_tables()
+        spec = gen.compute_normalize_tables(self.s)
         self.assertEqual(spec["locale"], "MNG")
         self.assertIn("schema", spec)
         for key in ("unit_table", "velar_fem", "velar_fem_units",
@@ -42,15 +49,17 @@ class TestNormalizeTableExport(unittest.TestCase):
         # must be JSON-serializable as-is
         json.dumps(spec)
 
-    def test_spec_reconstructs_battery_unit_enc(self):
-        """The exported spec rebuilds EXACTLY the battery-computed table."""
-        self.s._build_unit_enc()
-        spec = self.s.compute_normalize_tables()
+    def test_spec_matches_bundled_table(self):
+        """A freshly-computed spec matches the bundled table the shaper loads
+        (guards against a stale committed JSON)."""
+        self.s._build_unit_enc()  # loads mongol_norm/data/MNG.normalize.json
+        spec = gen.compute_normalize_tables(self.s)
         self.assertEqual(_rebuild_unit_enc(spec), dict(self.s._unit_enc))
 
     def test_shaper_loads_spec_identically(self):
-        """A shaper populated from the spec equals one built by the battery."""
-        spec = self.s.compute_normalize_tables()
+        """A shaper populated from a fresh spec equals one loaded from the
+        bundled JSON."""
+        spec = gen.compute_normalize_tables(self.s)
         loaded = MongolianShaper(locale="MNG")
         loaded._load_normalize_tables(spec)
 
@@ -67,7 +76,7 @@ class TestNormalizeTableExport(unittest.TestCase):
 
     def test_normalize_identical_when_loaded_from_spec(self):
         """normalize() output is identical whether table is loaded or computed."""
-        spec = self.s.compute_normalize_tables()
+        spec = gen.compute_normalize_tables(self.s)
         loaded = MongolianShaper(locale="MNG")
         loaded._load_normalize_tables(spec)
         baseline = MongolianShaper(locale="MNG")
@@ -86,7 +95,7 @@ class TestNormalizeTableExport(unittest.TestCase):
         从 spec 加载的 shaper(电池没跑,candidates 未作为副作用构建)仍须能做
         particle 替换。回归:加载路径曾遗漏 _candidates_map,particle 词崩溃。
         """
-        spec = self.s.compute_normalize_tables()
+        spec = gen.compute_normalize_tables(self.s)
         loaded = MongolianShaper(locale="MNG")
         loaded._load_normalize_tables(spec)
         self.assertFalse(hasattr(loaded, "_candidates_map"))
