@@ -515,65 +515,65 @@ class MongolianShaper:
     def _is_neut_vowel(self, tok):
         return tok and tok.alias in self.neuter_vowels
     
-    def _prev_letter(self, tokens, idx):
-        for i in range(idx - 1, -1, -1):
-            if tokens[i].is_letter:
-                return tokens[i]
+    def _prev_letter(self, tokens, index):
+        for scan_index in range(index - 1, -1, -1):
+            if tokens[scan_index].is_letter:
+                return tokens[scan_index]
         return None
-    
-    def _next_letter(self, tokens, idx):
-        for i in range(idx + 1, len(tokens)):
-            if tokens[i].is_letter:
-                return tokens[i]
-        return None
-    
-    def _prev_tok(self, tokens, idx):
-        return tokens[idx - 1] if idx > 0 else None
-    
-    def _next_tok(self, tokens, idx):
-        return tokens[idx + 1] if idx + 1 < len(tokens) else None
 
-    def _prev_adjacent_letter(self, tokens, idx):
-        """Return the nearest preceding letter REACHING idx without an
+    def _next_letter(self, tokens, index):
+        for scan_index in range(index + 1, len(tokens)):
+            if tokens[scan_index].is_letter:
+                return tokens[scan_index]
+        return None
+
+    def _prev_tok(self, tokens, index):
+        return tokens[index - 1] if index > 0 else None
+
+    def _next_tok(self, tokens, index):
+        return tokens[index + 1] if index + 1 < len(tokens) else None
+
+    def _prev_adjacent_letter(self, tokens, index):
+        """Return the nearest preceding letter REACHING index without an
         intervening MVS. Nirugu (a joining marker) is transparent — we
         skip past it — but MVS (a word boundary) blocks.
 
         Use this when a rule requires GLYPH adjacency for joining
         purposes (e.g. iii2f.h_g.harmony's "adjacent vowel" checks).
         """
-        j = idx - 1
-        while j >= 0:
-            tok = tokens[j]
-            if tok.is_mvs:
+        scan_index = index - 1
+        while scan_index >= 0:
+            token = tokens[scan_index]
+            if token.is_mvs:
                 return None
-            if tok.is_letter:
-                return tok
-            if tok.is_nirugu:
-                j -= 1
+            if token.is_letter:
+                return token
+            if token.is_nirugu:
+                scan_index -= 1
                 continue
             return None
         return None
 
-    def _next_adjacent_letter(self, tokens, idx):
+    def _next_adjacent_letter(self, tokens, index):
         """Mirror image of `_prev_adjacent_letter`."""
-        j = idx + 1
-        while j < len(tokens):
-            tok = tokens[j]
-            if tok.is_mvs:
+        scan_index = index + 1
+        while scan_index < len(tokens):
+            token = tokens[scan_index]
+            if token.is_mvs:
                 return None
-            if tok.is_letter:
-                return tok
-            if tok.is_nirugu:
-                j += 1
+            if token.is_letter:
+                return token
+            if token.is_nirugu:
+                scan_index += 1
                 continue
             return None
         return None
 
-    def _has_fvs(self, tok):
-        return tok.fvs_cp is not None
-    
-    def _written_ends_with(self, tok, unit):
-        return tok.written and tok.written[-1] == unit
+    def _has_fvs(self, token):
+        return token.fvs_cp is not None
+
+    def _written_ends_with(self, token, unit):
+        return token.written and token.written[-1] == unit
     
     def _resolve_token_written(self, tok):
         """
@@ -824,96 +824,6 @@ class MongolianShaper:
                 "written": list(tok.written) if tok.written else [],
             })
         return details
-    
-    # ── Reverse shaping (unshape) / 反向字形处理 ──────────────────
-    # Reverse shaping answers: "given these visual glyphs, what Unicode letters
-    # produced them?" This is the inverse of the forward pipeline and is
-    # essential for normalization: shape → reverse shape → canonical Unicode.
-    # 反向字形处理回答："给定这些视觉字形，是哪些 Unicode 字母产生了它们？"
-    # 这是正向管线的逆过程，对规范化至关重要：字形 → 反向字形 → 规范 Unicode。
-
-    def build_reverse_map(self):
-        """
-        Build reverse lookup: (position, written_tuple) → canonical (cp, fvs_int)
-        构建反向查找：（位置, 书写单元元组）→ 规范（码位, FVS编号）
-
-        For normalization: given a shape sequence, find the canonical Unicode encoding.
-        用于规范化：给定字形序列，找到规范的 Unicode 编码。
-        Prefers: default=True, non-archaic, non-unrecommended, lowest codepoint.
-        优先选择：default=True、非古体、非不推荐、最低码位。
-        """
-        self._reverse_map = {}  # (pos, written) → (cp, fvs_int)
-        
-        candidates = {}  # (pos, written) → list of (cp, fvs_int, is_default, ...)
-        
-        for char_name, pos_data in self.variants.items():
-            cp = self.name_to_cp.get(char_name)
-            if cp is None:
-                continue
-            for pos in POSITIONS:
-                if pos not in pos_data:
-                    continue
-                for fvs_str, vdata in pos_data[pos].items():
-                    fvs_int = int(fvs_str)
-                    locales = vdata.get("locales", {})
-                    if self.locale not in locales:
-                        continue
-                    locale_data = locales[self.locale]
-                    w_raw = locale_data.get("written") or vdata.get("written")
-                    written = self._resolve_written(w_raw, char_name)
-                    if not written:
-                        continue
-                    
-                    key = (pos, written)
-                    if key not in candidates:
-                        candidates[key] = []
-                    candidates[key].append({
-                        "cp": cp, "fvs": fvs_int,
-                        "default": vdata.get("default", False),
-                        "archaic": locale_data.get("archaic", False),
-                        "unrecommended": locale_data.get("unrecommended", False),
-                    })
-        
-        for key, cands in candidates.items():
-            best = None
-            for c in cands:
-                if c["archaic"] or c["unrecommended"]:
-                    continue
-                if best is None:
-                    best = c
-                elif c["default"] and not best["default"]:
-                    best = c
-                elif c["default"] == best["default"] and c["cp"] < best["cp"]:
-                    best = c
-            if best:
-                self._reverse_map[key] = (best["cp"], best["fvs"])
-    
-    def unshape(self, written_units, positions):
-        """
-        Reverse shape: written units + positions → canonical Unicode sequence.
-        
-        Args:
-            written_units: list of (written_tuple, position) per letter
-        Returns:
-            canonical Unicode string
-        """
-        if not hasattr(self, '_reverse_map'):
-            self.build_reverse_map()
-        
-        result = []
-        for written, pos in zip(written_units, positions):
-            written_t = tuple(written) if isinstance(written, list) else written
-            key = (pos, written_t)
-            canon = self._reverse_map.get(key)
-            if canon:
-                cp, fvs_int = canon
-                result.append(chr(cp))
-                fvs_cp = FVS_INT_TO_CP.get(fvs_int)
-                if fvs_cp:
-                    result.append(chr(fvs_cp))
-            else:
-                result.append("?")
-        return "".join(result)
     
     def _build_candidates_map(self):
         """
@@ -1255,34 +1165,34 @@ class MongolianShaper:
         """
         # Parse into structural (mvs) + chain segments.
         parts = []  # list of ('mvs', None) | ('chain', tuple)
-        cur = []
-        for u in shape_list:
-            if u == 'mvs':
-                if cur:
-                    parts.append(('chain', tuple(cur)))
-                    cur = []
+        current_chain = []
+        for unit in shape_list:
+            if unit == 'mvs':
+                if current_chain:
+                    parts.append(('chain', tuple(current_chain)))
+                    current_chain = []
                 parts.append(('mvs', None))
             else:
-                cur.append(u)
-        if cur:
-            parts.append(('chain', tuple(cur)))
+                current_chain.append(unit)
+        if current_chain:
+            parts.append(('chain', tuple(current_chain)))
 
         encoded = [None] * len(parts)
         suffix_text = ""
         suffix_target = ()
-        for i in range(len(parts) - 1, -1, -1):
-            kind, body = parts[i]
+        for index in range(len(parts) - 1, -1, -1):
+            kind, body = parts[index]
             if kind == 'mvs':
-                encoded[i] = chr(MVS_CP)
+                encoded[index] = chr(MVS_CP)
                 suffix_text = chr(MVS_CP) + suffix_text
                 suffix_target = ('mvs',) + suffix_target
             else:
-                prev_mvs = i > 0 and parts[i - 1][0] == 'mvs'
-                chain_canon = self._encode_chain_canonical(
+                prev_mvs = index > 0 and parts[index - 1][0] == 'mvs'
+                chain_canonical = self._encode_chain_canonical(
                     body, prev_mvs, suffix_text, suffix_target,
                 )
-                encoded[i] = chain_canon
-                suffix_text = chain_canon + suffix_text
+                encoded[index] = chain_canonical
+                suffix_text = chain_canonical + suffix_text
                 suffix_target = body + suffix_target
         return "".join(encoded)
 
@@ -1305,121 +1215,6 @@ class MongolianShaper:
     # 每个 chain 尝试的 nirugu 包裹组合。如 (1,1) 把单字母放到 medi,
     # 这样像 ['O'] 这类只出现在 medi 的 shape 才有编码。
     _NIRUGU_WRAPS = ((0, 0), (0, 1), (1, 0), (1, 1))
-
-    def _build_pos_tables(self):
-        """
-        Per-position lookup: {pos: {written_tuple: [(cp, fvs_cp_or_None), ...]}}.
-        每位置查表:{位置: {written 元组: 候选列表}}.
-
-        Candidates sorted by rule A preference: bare (no FVS) first, then
-        by cp ascending, then by fvs_cp ascending. The greedy encoder
-        iterates candidates in this order so the first valid match found
-        is the canonical (rule A) choice for the slot.
-        候选按规则 A 偏好排序:裸字母优先,然后 cp、fvs_cp 升序。贪婪
-        编码器按此顺序枚举,首个有效匹配即为该槽的 canonical 选择。
-
-        After building raw tables, runs a pre-filter pass that probes each
-        (cp, fvs_cp) candidate in plausible neighbor contexts (vowel-prev,
-        consonant-prev, etc.) and keeps only those whose shaped output
-        for the letter actually equals the slot's `written`. This removes
-        speculative bare candidates added by `_build_candidates_map`
-        (e.g. bare `j` for slot (medi, ('A',))) that never produce the
-        right written in any real context, drastically pruning DFS dead
-        branches.
-        构建后做预过滤:用合理的邻居上下文测试每个候选,只保留实际能产
-        出 slot 的 written 的那些。剔除 `_build_candidates_map` 的投机
-        裸候选(如 (medi, ('A',)) slot 里的裸 j),大幅剪枝 DFS 死分支。
-        """
-        if not hasattr(self, '_candidates_map'):
-            self._build_candidates_map()
-        self._pos_tables = {}
-        for (pos, written), raw in self._candidates_map.items():
-            seen = set()
-            pairs = []
-            for c in raw:
-                fvs_cp = FVS_INT_TO_CP.get(c['fvs'])
-                key = (c['cp'], fvs_cp)
-                if key not in seen:
-                    seen.add(key)
-                    pairs.append(key)
-            # bare-first, then cp asc, then fvs_cp asc (None < any int)
-            pairs.sort(key=lambda p: (p[1] is not None, p[0], p[1] or 0))
-            self._pos_tables[(pos, written)] = pairs
-
-        self._filter_pos_tables()
-
-    # Neighbor letters used to probe whether a candidate actually produces
-    # the slot's written in plausible contexts. 'a' covers vowel neighbors
-    # (triggers vowel_devsger, onset/devsger on n/t/d, etc.); 'n' covers
-    # consonant neighbors (default rules).
-    # 测试邻居:'a' 覆盖元音(触发 vowel_devsger / n.onset 等),'n' 覆盖辅音。
-    _PROBE_VOWEL_CP = 0x1820  # MONGOLIAN LETTER A
-    _PROBE_CONS_CP = 0x1828   # MONGOLIAN LETTER NA
-
-    def _probe_contexts(self, pos, letter_text):
-        """Yield test strings that place `letter_text` at `pos`."""
-        v = chr(self._PROBE_VOWEL_CP)
-        c = chr(self._PROBE_CONS_CP)
-        if pos == 'isol':
-            yield letter_text
-        elif pos == 'init':
-            yield letter_text + v
-            yield letter_text + c
-        elif pos == 'fina':
-            yield v + letter_text
-            yield c + letter_text
-        else:  # medi
-            yield v + letter_text + v
-            yield c + letter_text + c
-            yield v + letter_text + c
-            yield c + letter_text + v
-
-    def _filter_pos_tables(self):
-        """
-        Remove candidates that don't produce the slot's `written` in any
-        plausible test context. See `_build_pos_tables` for rationale.
-        剔除任何测试上下文都产不出 slot written 的候选。
-        """
-        # Cache per-letter probe results to avoid re-shaping the same
-        # (cp, fvs_cp, pos) combo across many slots.
-        # 缓存 (cp, fvs_cp, pos) 的探测结果,避免跨 slot 重复 shape。
-        probe_cache = {}
-
-        def probe(cp, fvs_cp, pos):
-            key = (cp, fvs_cp, pos)
-            if key in probe_cache:
-                return probe_cache[key]
-            letter_text = chr(cp) + (chr(fvs_cp) if fvs_cp is not None else '')
-            results = set()
-            for test_text in self._probe_contexts(pos, letter_text):
-                try:
-                    details = self.shape_detailed(test_text)
-                except Exception:
-                    continue
-                # Find the test letter (cp matches) and record its written.
-                # The probe letter sits at index wrap_pre in the chain;
-                # match by cp ordinal.
-                for d in details:
-                    if d['cp'] == f'U+{cp:04X}':
-                        if d.get('written'):
-                            results.add(tuple(d['written']))
-                        break
-            probe_cache[key] = results
-            return results
-
-        for key in list(self._pos_tables.keys()):
-            pos, written = key
-            filtered = []
-            for cp, fvs_cp in self._pos_tables[key]:
-                produced = probe(cp, fvs_cp, pos)
-                if written in produced:
-                    filtered.append((cp, fvs_cp))
-            # Only replace if filtering left at least one candidate; otherwise
-            # keep the unfiltered list as a safety net (shouldn't happen with
-            # data-derived slots, but guards against over-aggressive probes).
-            # 仅在过滤后还有候选时替换;否则保留原表作为安全网。
-            if filtered:
-                self._pos_tables[key] = filtered
 
     def _compute_chain_canonical(self, chain_shape, prev_mvs=False,
                                   suffix_text="", suffix_target=()):
@@ -1486,10 +1281,10 @@ class MongolianShaper:
         if spec is not None:
             self._load_normalize_tables(spec)
             return
-        table, femtbl, required, max_len = self._compute_unit_tables()
+        table, feminine_table, required, max_length = self._compute_unit_tables()
         self._unit_enc = table
-        self._unit_enc_max_len = max_len
-        self._unit_enc_fem = femtbl
+        self._unit_enc_max_len = max_length
+        self._unit_enc_fem = feminine_table
         self._required_multi = required
 
     def _load_external_normalize_spec(self):
@@ -1517,26 +1312,26 @@ class MongolianShaper:
         运行选择电池,返回可 JSON 序列化的归一化表 spec(供其他语言移植消费)。
         纯函数,不改运行时表,始终反映电池(真源)而非已加载 spec。
         """
-        table, femtbl, required, max_len = self._compute_unit_tables()
+        table, feminine_table, required, max_length = self._compute_unit_tables()
 
-        def enc(cp, fvs_cp):
+        def encode_entry(cp, fvs_cp):
             return {
                 "letter": self.cp_to_alias.get(cp, ""),
                 "cp": f"{cp:04X}",
                 "fvs": (f"{fvs_cp:04X}" if fvs_cp is not None else None),
             }
 
-        def by_pos(d):
-            out = {}
-            for (pos, written), (cp, fvs_cp) in d.items():
-                out.setdefault(pos, {})["+".join(written)] = enc(cp, fvs_cp)
+        def group_by_position(mapping):
+            grouped = {}
+            for (position, written), (cp, fvs_cp) in mapping.items():
+                grouped.setdefault(position, {})["+".join(written)] = encode_entry(cp, fvs_cp)
             # stable ordering → readable, diff-friendly file
-            return {p: dict(sorted(out[p].items()))
-                    for p in ('isol', 'init', 'medi', 'fina') if p in out}
+            return {position: dict(sorted(grouped[position].items()))
+                    for position in ('isol', 'init', 'medi', 'fina') if position in grouped}
 
-        required_by_pos = {}
-        for pos, written in sorted(required):
-            required_by_pos.setdefault(pos, []).append("+".join(written))
+        required_by_position = {}
+        for position, written in sorted(required):
+            required_by_position.setdefault(position, []).append("+".join(written))
 
         return {
             "schema": "mongol-normalize-table/1",
@@ -1547,7 +1342,7 @@ class MongolianShaper:
                 "the written unit at that position regardless of neighbours. "
                 "See the mongol-norm README for the consuming algorithm."
             ),
-            "unit_enc_max_len": max_len,
+            "unit_enc_max_len": max_length,
             "constants": {
                 "MVS": f"{MVS_CP:04X}",
                 "NIRUGU": f"{NIRUGU_CP:04X}",
@@ -1560,9 +1355,9 @@ class MongolianShaper:
             "velar_fem_units": sorted(self._VELAR_FEM_UNITS),
             "masc_to_fem": {self.cp_to_alias.get(k): self.cp_to_alias.get(v)
                             for k, v in self._MASC_TO_FEM_CP.items()},
-            "unit_table": by_pos(table),
-            "required_multi": required_by_pos,
-            "velar_fem": by_pos(femtbl),
+            "unit_table": group_by_position(table),
+            "required_multi": required_by_position,
+            "velar_fem": group_by_position(feminine_table),
         }
 
     def _load_normalize_tables(self, spec):
@@ -1571,26 +1366,26 @@ class MongolianShaper:
         inverse of compute_normalize_tables / what the JSON stores.
         从序列化 spec 还原运行时逐单元表(compute_normalize_tables 的逆)。
         """
-        def dec(v):
-            return (int(v["cp"], 16),
-                    int(v["fvs"], 16) if v["fvs"] else None)
+        def decode_entry(entry):
+            return (int(entry["cp"], 16),
+                    int(entry["fvs"], 16) if entry["fvs"] else None)
         table = {}
-        for pos, entries in spec["unit_table"].items():
-            for wkey, v in entries.items():
-                table[(pos, tuple(wkey.split("+")))] = dec(v)
-        femtbl = {}
-        for pos, entries in spec.get("velar_fem", {}).items():
-            for wkey, v in entries.items():
-                femtbl[(pos, tuple(wkey.split("+")))] = dec(v)
+        for position, entries in spec["unit_table"].items():
+            for written_key, entry in entries.items():
+                table[(position, tuple(written_key.split("+")))] = decode_entry(entry)
+        feminine_table = {}
+        for position, entries in spec.get("velar_fem", {}).items():
+            for written_key, entry in entries.items():
+                feminine_table[(position, tuple(written_key.split("+")))] = decode_entry(entry)
         required = set()
-        for pos, keys in spec.get("required_multi", {}).items():
-            for wkey in keys:
-                required.add((pos, tuple(wkey.split("+"))))
+        for position, keys in spec.get("required_multi", {}).items():
+            for written_key in keys:
+                required.add((position, tuple(written_key.split("+"))))
         self._unit_enc = table
-        self._unit_enc_fem = femtbl
+        self._unit_enc_fem = feminine_table
         self._required_multi = required
         self._unit_enc_max_len = (spec.get("unit_enc_max_len")
-                                  or max((len(w) for (_, w) in table),
+                                  or max((len(written) for (_, written) in table),
                                          default=1))
 
     def _compute_unit_tables(self):
@@ -1604,38 +1399,39 @@ class MongolianShaper:
         if not hasattr(self, '_candidates_map'):
             self._build_candidates_map()
         table = {}
-        for (pos, written), cands in self._candidates_map.items():
+        for (position, written), candidates in self._candidates_map.items():
             # rule-A-ish but MASCULINE-first for vowels: bare<fvs is NOT the
             # primary key here — context-independence is. We sort candidates
             # masc-first, bare-first, cp asc, fvs asc, then keep the FIRST
             # that passes the battery.
-            ordered = sorted(
-                ((c['cp'], FVS_INT_TO_CP.get(c['fvs'])) for c in cands),
-                key=lambda cf: (
-                    self.cp_to_alias.get(cf[0]) in self.feminine_vowels,
-                    cf[1] is not None, cf[0], cf[1] or 0,
+            ordered_candidates = sorted(
+                ((candidate['cp'], FVS_INT_TO_CP.get(candidate['fvs']))
+                 for candidate in candidates),
+                key=lambda pair: (
+                    self.cp_to_alias.get(pair[0]) in self.feminine_vowels,
+                    pair[1] is not None, pair[0], pair[1] or 0,
                 )
             )
             seen = set()
-            for cp, fvs_cp in ordered:
+            for cp, fvs_cp in ordered_candidates:
                 if (cp, fvs_cp) in seen:
                     continue
                 seen.add((cp, fvs_cp))
-                if self._is_context_independent(pos, written, cp, fvs_cp):
-                    table[(pos, written)] = (cp, fvs_cp)
+                if self._is_context_independent(position, written, cp, fvs_cp):
+                    table[(position, written)] = (cp, fvs_cp)
                     break
         # Hand-pins (battery should already pick these; insurance):
         #   'G' → g+fvs2 (the only all-position context-independent G);
         #   fina 'J' → j+fvs2 (absent from candidates_map but battery-proven).
-        g2 = (0x182D, 0x180C)
-        for p in ('isol', 'init', 'medi', 'fina'):
-            if self._is_context_independent(p, ('G',), *g2):
-                table[(p, ('G',))] = g2
-        jf = (0x1835, 0x180C)
-        if ('fina', ('J',)) not in table and self._is_context_independent('fina', ('J',), *jf):
-            table[('fina', ('J',))] = jf
+        g_fvs2 = (0x182D, 0x180C)
+        for position in ('isol', 'init', 'medi', 'fina'):
+            if self._is_context_independent(position, ('G',), *g_fvs2):
+                table[(position, ('G',))] = g_fvs2
+        j_fvs2 = (0x1835, 0x180C)
+        if ('fina', ('J',)) not in table and self._is_context_independent('fina', ('J',), *j_fvs2):
+            table[('fina', ('J',))] = j_fvs2
         # longest written-tuple length, to bound multi-unit lookahead
-        max_len = max((len(w) for (_, w) in table), default=1)
+        max_length = max((len(written) for (_, written) in table), default=1)
 
         # Feminine alternative table for the velar-fem refinement: for each
         # single-unit slot, a FEMININE (e/oe/ue) context-independent encoding
@@ -1644,24 +1440,24 @@ class MongolianShaper:
         # WITHOUT breaking round-trip (a naive cp-swap can change the unit,
         # e.g. o+fvs1='O'@fina but oe+fvs1='Ue'@fina).
         # 阴性候选表:每个单单元槽,产出同单元的阴性 context 无关编码(若有)。
-        fem_vowels_cp = {self.alias_to_cp[a] for a in self.feminine_vowels
-                         if a in self.alias_to_cp}
-        femtbl = {}
-        for (pos, written), cands in self._candidates_map.items():
+        feminine_vowel_cps = {self.alias_to_cp[alias] for alias in self.feminine_vowels
+                              if alias in self.alias_to_cp}
+        feminine_table = {}
+        for (position, written), candidates in self._candidates_map.items():
             if len(written) != 1:
                 continue
-            ordered = sorted(
-                ((c['cp'], FVS_INT_TO_CP.get(c['fvs'])) for c in cands
-                 if c['cp'] in fem_vowels_cp),
-                key=lambda cf: (cf[1] is not None, cf[0], cf[1] or 0)
+            ordered_candidates = sorted(
+                ((candidate['cp'], FVS_INT_TO_CP.get(candidate['fvs']))
+                 for candidate in candidates if candidate['cp'] in feminine_vowel_cps),
+                key=lambda pair: (pair[1] is not None, pair[0], pair[1] or 0)
             )
             seen = set()
-            for cp, fvs_cp in ordered:
+            for cp, fvs_cp in ordered_candidates:
                 if (cp, fvs_cp) in seen:
                     continue
                 seen.add((cp, fvs_cp))
-                if self._is_context_independent(pos, written, cp, fvs_cp):
-                    femtbl[(pos, written)] = (cp, fvs_cp)
+                if self._is_context_independent(position, written, cp, fvs_cp):
+                    feminine_table[(position, written)] = (cp, fvs_cp)
                     break
 
         # Required-multi set: multi-unit table entries whose written tuple
@@ -1675,62 +1471,63 @@ class MongolianShaper:
         # 必需多单元集:无法用单单元拼出的多单元 written。仅这些强制多单元,
         # 其余用单单元。固定此集 → partition 单趟确定性局部决策 → 前缀稳定。
         required = set()
-        for (pos, written) in table:
+        for (position, written) in table:
             if len(written) <= 1:
                 continue
             if not self._decomposable_into_singles(written, table):
-                required.add((pos, written))
-        return table, femtbl, required, max_len
+                required.add((position, written))
+        return table, feminine_table, required, max_length
 
-    def _decomposable_into_singles(self, written, tbl):
+    def _decomposable_into_singles(self, written, table):
         """
         True iff `written` (a multi-unit tuple) can be produced by
-        concatenating single-unit entries from `tbl` (treated as a standalone
+        concatenating single-unit entries from `table` (treated as a standalone
         chain) and round-trips. If so we DON'T need the multi-unit letter.
-        若 `written` 能用 `tbl` 单单元拼出并还原,则可分解(不需要多单元字母)。
+        若 `written` 能用 `table` 单单元拼出并还原,则可分解(不需要多单元字母)。
         """
-        m = len(written)
+        unit_count = len(written)
         parts = []
-        for j, u in enumerate(written):
-            p = 'isol' if m == 1 else 'init' if j == 0 else 'fina' if j == m - 1 else 'medi'
-            hit = tbl.get((p, (u,)))
-            if hit is None:
+        for index, unit in enumerate(written):
+            position = ('isol' if unit_count == 1 else 'init' if index == 0
+                        else 'fina' if index == unit_count - 1 else 'medi')
+            entry = table.get((position, (unit,)))
+            if entry is None:
                 return False
-            parts.append(chr(hit[0]) + (chr(hit[1]) if hit[1] is not None else ''))
+            parts.append(chr(entry[0]) + (chr(entry[1]) if entry[1] is not None else ''))
         text = ''.join(parts)
         return tuple(self.shape(text)) == tuple(written)
 
-    def _is_context_independent(self, pos, written, cp, fvs_cp):
+    def _is_context_independent(self, position, written, cp, fvs_cp):
         """
-        True iff letter (cp, fvs_cp) placed at `pos` produces exactly
+        True iff letter (cp, fvs_cp) placed at `position` produces exactly
         `written` in EVERY probed neighbor context (and at least one probe
-        actually lands it at `pos`).
-        当 (cp,fvs_cp) 放在 pos、在所有探测上下文下都恰好产出 written 时为真。
+        actually lands it at `position`).
+        当 (cp,fvs_cp) 放在 position、在所有探测上下文下都恰好产出 written 时为真。
         """
         letter = chr(cp) + (chr(fvs_cp) if fvs_cp is not None else '')
         target_written = list(written)
         landed = False
-        probes = self._CI_PROBE_LETTERS
+        probe_letters = self._CI_PROBE_LETTERS
         # Build neighbor option lists by position.
-        lefts = [''] if pos in ('isol', 'init') else [chr(p) for p in probes]
-        rights = [''] if pos in ('isol', 'fina') else [chr(p) for p in probes]
-        for lft in lefts:
-            for rgt in rights:
-                text = lft + letter + rgt
+        left_options = [''] if position in ('isol', 'init') else [chr(probe) for probe in probe_letters]
+        right_options = [''] if position in ('isol', 'fina') else [chr(probe) for probe in probe_letters]
+        for left in left_options:
+            for right in right_options:
+                text = left + letter + right
                 try:
                     details = self.shape_detailed(text)
                 except Exception:
                     return False
                 # target letter is the token right after the left context's
                 # letters (left context is 0 or 1 letter here).
-                tgt_idx = (1 if lft else 0)
-                if tgt_idx >= len(details):
+                target_index = (1 if left else 0)
+                if target_index >= len(details):
                     continue
-                d = details[tgt_idx]
-                if d.get('position') != pos:
+                detail = details[target_index]
+                if detail.get('position') != position:
                     continue
                 landed = True
-                if list(d.get('written') or []) != target_written:
+                if list(detail.get('written') or []) != target_written:
                     return False
         return landed
 
@@ -1758,12 +1555,12 @@ class MongolianShaper:
         # checked. `want` MUST include suffix_target — otherwise multi-chain
         # (MVS) words' non-last chains never verify and fall back to the
         # search encoder (which can emit junk like 'ng' for [A,G]).
-        # 在完整上下文中校验:前导 MVS + 后续已编码 chain。want 必须含
+        # 在完整上下文中校验:前导 MVS + 后续已编码 chain。verify_target 必须含
         # suffix_target,否则多-MVS 词的非末尾 chain 永远校验失败、回退旧搜索
         # (会对 [A,G] 吐出 ng 这种 junk)。
-        prefix = chr(MVS_CP) if prev_mvs else ''
-        want = (('mvs',) if prev_mvs else ()) + tuple(chain_shape) + tuple(suffix_target)
-        if tuple(self.shape(prefix + text + suffix_text)) == want:
+        prefix_text = chr(MVS_CP) if prev_mvs else ''
+        verify_target = (('mvs',) if prev_mvs else ()) + tuple(chain_shape) + tuple(suffix_target)
+        if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
             return text
         return None
 
@@ -1777,40 +1574,40 @@ class MongolianShaper:
         单趟确定性局部划分:优先必需多单元 → 单单元 → 其余多单元。局部确定 →
         前缀稳定。
         """
-        tbl = self._unit_enc
-        req = self._required_multi
-        n = len(chain_shape)
+        table = self._unit_enc
+        required = self._required_multi
+        unit_count = len(chain_shape)
         letters = []          # [cp, fvs_cp] per emitted letter
         unit_at = []          # single unit this letter covers, or None (multi)
-        i = 0
-        while i < n:
-            span = min(self._unit_enc_max_len, n - i)
+        index = 0
+        while index < unit_count:
+            span = min(self._unit_enc_max_len, unit_count - index)
             hit = None
-            hit_len = 0
+            hit_length = 0
             # 1) longest required-multi
-            for L in range(span, 1, -1):
-                p = self._slot_position(i, L, n)
-                key = (p, tuple(chain_shape[i:i + L]))
-                if key in req and key in tbl:
-                    hit = tbl[key]; hit_len = L; break
+            for length in range(span, 1, -1):
+                position = self._slot_position(index, length, unit_count)
+                key = (position, tuple(chain_shape[index:index + length]))
+                if key in required and key in table:
+                    hit = table[key]; hit_length = length; break
             # 2) single unit
             if hit is None:
-                p = self._slot_position(i, 1, n)
-                key = (p, (chain_shape[i],))
-                if key in tbl:
-                    hit = tbl[key]; hit_len = 1
+                position = self._slot_position(index, 1, unit_count)
+                key = (position, (chain_shape[index],))
+                if key in table:
+                    hit = table[key]; hit_length = 1
             # 3) any longest multi (last resort)
             if hit is None:
-                for L in range(span, 1, -1):
-                    p = self._slot_position(i, L, n)
-                    key = (p, tuple(chain_shape[i:i + L]))
-                    if key in tbl:
-                        hit = tbl[key]; hit_len = L; break
+                for length in range(span, 1, -1):
+                    position = self._slot_position(index, length, unit_count)
+                    key = (position, tuple(chain_shape[index:index + length]))
+                    if key in table:
+                        hit = table[key]; hit_length = length; break
             if hit is None:
                 return None
             letters.append([hit[0], hit[1]])
-            unit_at.append(chain_shape[i] if hit_len == 1 else None)
-            i += hit_len
+            unit_at.append(chain_shape[index] if hit_length == 1 else None)
+            index += hit_length
         # velar-feminine refinement (clean output for G/Gx-coupled vowels)
         self._apply_velar_fem(chain_shape, letters, unit_at)
         return ''.join(
@@ -1826,8 +1623,8 @@ class MongolianShaper:
         把每个 G/Gx velar 耦合的歧义元音改阴性。耦合:init/medi 取后、fina 取前。
         """
         total = len(letters)
-        for li, u in enumerate(unit_at):
-            if u not in self._VELAR_FEM_UNITS:
+        for letter_index, unit in enumerate(unit_at):
+            if unit not in self._VELAR_FEM_UNITS:
                 continue
             # FORWARD coupling only (init/medi velar → following vowel).
             # We deliberately SKIP backward coupling (fina velar → preceding
@@ -1841,38 +1638,39 @@ class MongolianShaper:
             # 只做前向耦合(init/medi velar → 后元音)。跳过后向(fina velar →
             # 前元音):fina 加后缀变 medi 会翻转耦合方向,破坏前缀稳定。FVS 钉死
             # 的 velar 无论前元音阴阳都渲染 G,故前元音保持阳性仍能还原。
-            pos = self._letter_position(li, total)
-            tgt = li + 1 if pos in ('init', 'medi') else None
-            if tgt is None or not (0 <= tgt < total):
+            position = self._letter_position(letter_index, total)
+            target_index = letter_index + 1 if position in ('init', 'medi') else None
+            if target_index is None or not (0 <= target_index < total):
                 continue
-            tgt_unit = unit_at[tgt]
-            if tgt_unit is None:
+            target_unit = unit_at[target_index]
+            if target_unit is None:
                 continue  # multi-unit coupled letter — leave it
-            cp, _ = letters[tgt]
+            cp, _ = letters[target_index]
             # only flip if the coupled vowel is currently a masculine vowel
             if cp not in self._MASC_TO_FEM_CP:
                 continue
-            tgt_pos = self._letter_position(tgt, total)
-            fem = self._unit_enc_fem.get((tgt_pos, (tgt_unit,)))
-            if fem is None:
+            target_position = self._letter_position(target_index, total)
+            feminine = self._unit_enc_fem.get((target_position, (target_unit,)))
+            if feminine is None:
                 continue  # no round-trip-safe feminine form → leave masculine
-            letters[tgt] = [fem[0], fem[1]]
+            letters[target_index] = [feminine[0], feminine[1]]
 
-    def _slot_position(self, i, L, n):
-        """Position of a letter spanning units [i, i+L) in a chain of n units."""
-        if i == 0 and i + L == n:
+    def _slot_position(self, start_index, length, unit_count):
+        """Position of a letter spanning units [start_index, start_index+length)
+        in a chain of unit_count units."""
+        if start_index == 0 and start_index + length == unit_count:
             return 'isol'
-        if i == 0:
+        if start_index == 0:
             return 'init'
-        return 'fina' if i + L == n else 'medi'
+        return 'fina' if start_index + length == unit_count else 'medi'
 
-    def _letter_position(self, k, total):
-        """Position of the k-th letter out of `total` letters."""
+    def _letter_position(self, letter_index, total):
+        """Position of the letter_index-th letter out of `total` letters."""
         if total == 1:
             return 'isol'
-        if k == 0:
+        if letter_index == 0:
             return 'init'
-        return 'fina' if k == total - 1 else 'medi'
+        return 'fina' if letter_index == total - 1 else 'medi'
 
     def _exhaustive_chain_canonical(self, chain_shape, prev_mvs=False,
                                      suffix_text="", suffix_target=()):
@@ -1886,15 +1684,14 @@ class MongolianShaper:
         (total char length, lex).
 
         Search strategy / 搜索策略:
-          Outer:  iterate n_letters from 1 upward.
+          Outer:  iterate letter_count from 1 upward.
                   从 1 开始递增枚举字母数。
           Middle: iterate nirugu wraps {(0,0),(0,1),(1,0),(1,1)}.
                   枚举 nirugu 包裹组合。
-          Inner:  for each partition, iterate n_fvs_target (FVS count)
-                  from 0 upward and stop as soon as length exceeds
-                  best_len. With FVS count fixed, every combo has known
-                  encoded length so we can length-prune without per-combo
-                  sum().
+          Inner:  for each partition, iterate fvs_count from 0 upward and
+                  stop as soon as length exceeds best_length. With FVS count
+                  fixed, every combo has known encoded length so we can
+                  length-prune without per-combo sum().
                   按 FVS 数量递增枚举,长度即可一次性算出,无需逐组合 sum()。
 
         Why wraps / 为什么有 wraps:
@@ -1911,99 +1708,101 @@ class MongolianShaper:
             self._slot_candidates_cache = {}
 
         from itertools import combinations as iter_combos, product as iter_product
-        n_units = len(chain_shape)
-        chain_list = list(chain_shape)
-        nirugu_ch = chr(NIRUGU_CP)
-        mvs_ch = chr(MVS_CP)
+        unit_count = len(chain_shape)
+        chain_units = list(chain_shape)
+        nirugu_char = chr(NIRUGU_CP)
+        mvs_char = chr(MVS_CP)
         # Verification context: prepend MVS if previous part is MVS; append
         # the caller-supplied suffix (which contains MVS + following chain
         # canonicals for cross-chain rule interactions like backward masc
         # propagation through MVS).
         # 校验上下文:前置 MVS(若前一段是 MVS);后置 suffix_text(由调用方
         # 提供 —— 含 MVS 及后续链的 canonical,以捕获跨 MVS 规则交互)。
-        prefix_text = mvs_ch if prev_mvs else ''
+        prefix_text = mvs_char if prev_mvs else ''
         verify_target = (
             (('mvs',) if prev_mvs else ()) + chain_shape + suffix_target
         )
 
-        best_len = None
+        best_length = None
         best_text = None
 
-        for n_letters in range(1, n_units + 1):
-            if best_len is not None and n_letters > best_len:
+        for letter_count in range(1, unit_count + 1):
+            if best_length is not None and letter_count > best_length:
                 break
 
-            for wrap_pre, wrap_post in self._NIRUGU_WRAPS:
-                min_total_no_fvs = n_letters + wrap_pre + wrap_post
-                if best_len is not None and min_total_no_fvs > best_len:
+            for wrap_before, wrap_after in self._NIRUGU_WRAPS:
+                min_length_without_fvs = letter_count + wrap_before + wrap_after
+                if best_length is not None and min_length_without_fvs > best_length:
                     continue
-                eff_chain = n_letters + wrap_pre + wrap_post
+                effective_length = letter_count + wrap_before + wrap_after
                 positions = []
-                for i in range(n_letters):
-                    chain_idx = wrap_pre + i
-                    if eff_chain == 1:
+                for letter_index in range(letter_count):
+                    chain_position = wrap_before + letter_index
+                    if effective_length == 1:
                         positions.append('isol')
-                    elif chain_idx == 0:
+                    elif chain_position == 0:
                         positions.append('init')
-                    elif chain_idx == eff_chain - 1:
+                    elif chain_position == effective_length - 1:
                         positions.append('fina')
                     else:
                         positions.append('medi')
                 positions = tuple(positions)
 
-                for partition in self._iter_chain_partitions(n_units, n_letters):
+                for partition in self._iter_chain_partitions(unit_count, letter_count):
                     # Build slot candidates split into (bare, fvs) per slot.
                     # Each cached as a 2-tuple of cp-sorted tuples.
                     # 每个 slot 候选拆为 (bare, fvs) 两份,按 cp 排序后缓存。
                     slot_bare = []
                     slot_fvs = []
-                    idx = 0
-                    ok = True
-                    for size, pos in zip(partition, positions):
-                        sl = tuple(chain_list[idx:idx + size])
-                        idx += size
-                        key = (pos, sl)
-                        cached = self._slot_candidates_cache.get(key)
-                        if cached is None:
-                            raw = self._candidates_map.get(key, [])
+                    unit_index = 0
+                    slots_ok = True
+                    for size, position in zip(partition, positions):
+                        slot_units = tuple(chain_units[unit_index:unit_index + size])
+                        unit_index += size
+                        key = (position, slot_units)
+                        cached_candidates = self._slot_candidates_cache.get(key)
+                        if cached_candidates is None:
+                            raw_candidates = self._candidates_map.get(key, [])
                             bare_set = set()
                             fvs_set = set()
-                            for c in raw:
-                                fvs_cp = FVS_INT_TO_CP.get(c['fvs'])
+                            for candidate in raw_candidates:
+                                fvs_cp = FVS_INT_TO_CP.get(candidate['fvs'])
                                 if fvs_cp is None:
-                                    bare_set.add(c['cp'])
+                                    bare_set.add(candidate['cp'])
                                 else:
-                                    fvs_set.add((c['cp'], fvs_cp))
+                                    fvs_set.add((candidate['cp'], fvs_cp))
                             bare_tuple = tuple(
                                 (cp, None) for cp in sorted(bare_set)
                             )
                             fvs_tuple = tuple(sorted(fvs_set))
-                            cached = (bare_tuple, fvs_tuple)
-                            self._slot_candidates_cache[key] = cached
-                        if not cached[0] and not cached[1]:
-                            ok = False
+                            cached_candidates = (bare_tuple, fvs_tuple)
+                            self._slot_candidates_cache[key] = cached_candidates
+                        if not cached_candidates[0] and not cached_candidates[1]:
+                            slots_ok = False
                             break
-                        slot_bare.append(cached[0])
-                        slot_fvs.append(cached[1])
-                    if not ok:
+                        slot_bare.append(cached_candidates[0])
+                        slot_fvs.append(cached_candidates[1])
+                    if not slots_ok:
                         continue
 
-                    # Iterate by FVS count so each pass has fixed length L.
+                    # Iterate by FVS count so each pass has fixed encoded_length.
                     # 按 FVS 数量分层,每层长度固定,length-prune 无需 per-combo sum。
-                    for n_fvs_target in range(0, n_letters + 1):
-                        L = n_letters + n_fvs_target + wrap_pre + wrap_post
-                        if best_len is not None and L > best_len:
+                    for fvs_count in range(0, letter_count + 1):
+                        encoded_length = letter_count + fvs_count + wrap_before + wrap_after
+                        if best_length is not None and encoded_length > best_length:
                             break
-                        for fvs_indices in iter_combos(range(n_letters), n_fvs_target):
-                            fvs_idx_set = set(fvs_indices)
+                        for fvs_indices in iter_combos(range(letter_count), fvs_count):
+                            fvs_index_set = set(fvs_indices)
                             per_slot = []
                             slot_skip = False
-                            for i in range(n_letters):
-                                cands = slot_fvs[i] if i in fvs_idx_set else slot_bare[i]
-                                if not cands:
+                            for letter_index in range(letter_count):
+                                candidates = (slot_fvs[letter_index]
+                                              if letter_index in fvs_index_set
+                                              else slot_bare[letter_index])
+                                if not candidates:
                                     slot_skip = True
                                     break
-                                per_slot.append(cands)
+                                per_slot.append(candidates)
                             if slot_skip:
                                 continue
                             for combo in iter_product(*per_slot):
@@ -2011,30 +1810,33 @@ class MongolianShaper:
                                     chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
                                     for cp, fvs_cp in combo
                                 )
-                                text = nirugu_ch * wrap_pre + letters_text + nirugu_ch * wrap_post
-                                if best_len is not None and L == best_len and text >= best_text:
+                                text = nirugu_char * wrap_before + letters_text + nirugu_char * wrap_after
+                                if best_length is not None and encoded_length == best_length and text >= best_text:
                                     continue
                                 # Verify in MVS context — shape of
                                 # (prefix MVS) + text + (suffix MVS)
                                 # must equal the parent shape's
                                 # corresponding window.
                                 if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
-                                    if best_len is None or L < best_len or text < best_text:
-                                        best_len = L
+                                    if best_length is None or encoded_length < best_length or text < best_text:
+                                        best_length = encoded_length
                                         best_text = text
 
         return best_text or ""
 
-    def _iter_chain_partitions(self, n, k):
-        """Yield all ordered compositions of n into exactly k positive parts."""
-        if k == 1:
-            yield (n,)
+    def _iter_chain_partitions(self, unit_count, part_count):
+        """Yield all ordered compositions of unit_count into exactly part_count
+        positive parts."""
+        if part_count == 1:
+            yield (unit_count,)
             return
-        # Each first-part size leaves n-first for the remaining k-1 parts;
-        # the smallest remaining sum is k-1, so first ranges 1..n-k+1.
-        # 第一部分大小留 n-first 给后 k-1 部分;后部最小和为 k-1,故 first 取 1..n-k+1。
-        for first in range(1, n - k + 2):
-            for rest in self._iter_chain_partitions(n - first, k - 1):
+        # Each first-part size leaves unit_count-first for the remaining
+        # part_count-1 parts; the smallest remaining sum is part_count-1, so
+        # first ranges 1..unit_count-part_count+1.
+        # 第一部分留 unit_count-first 给后 part_count-1 部分;后部最小和为
+        # part_count-1,故 first 取 1..unit_count-part_count+1。
+        for first in range(1, unit_count - part_count + 2):
+            for rest in self._iter_chain_partitions(unit_count - first, part_count - 1):
                 yield (first,) + rest
 
     def normalize_text(self, text):
