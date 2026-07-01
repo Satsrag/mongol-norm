@@ -1314,13 +1314,8 @@ class MongolianShaper:
         for position, entries in spec.get("velar_fem", {}).items():
             for written_key, entry in entries.items():
                 feminine_table[(position, tuple(written_key.split("+")))] = decode_entry(entry)
-        required = set()
-        for position, keys in spec.get("required_multi", {}).items():
-            for written_key in keys:
-                required.add((position, tuple(written_key.split("+"))))
         self._unit_enc = table
         self._unit_enc_fem = feminine_table
-        self._required_multi = required
         self._unit_enc_max_len = (spec.get("unit_enc_max_len")
                                   or max((len(written) for (_, written) in table),
                                          default=1))
@@ -1361,15 +1356,14 @@ class MongolianShaper:
     def _unit_partition(self, chain_shape):
         """
         Single deterministic local partition+encode pass. At each position:
-          1. take the longest REQUIRED-multi tuple that matches (oe forms),
-          2. else the single unit,
-          3. else the longest available multi.
+          1. take the single unit if the table has it (preferred — clean
+             output: a+g not ng, a+i not the i digraph),
+          2. else the longest available multi-unit entry (last resort).
         Local + deterministic ⇒ prefix-stable. Returns text or None.
-        单趟确定性局部划分:优先必需多单元 → 单单元 → 其余多单元。局部确定 →
-        前缀稳定。
+        单趟确定性局部划分:优先单单元(输出干净) → 其余多单元(兜底)。
+        局部确定 → 前缀稳定。
         """
         table = self._unit_enc
-        required = self._required_multi
         unit_count = len(chain_shape)
         letters = []          # [cp, fvs_cp] per emitted letter
         unit_at = []          # single unit this letter covers, or None (multi)
@@ -1378,19 +1372,12 @@ class MongolianShaper:
             span = min(self._unit_enc_max_len, unit_count - index)
             hit = None
             hit_length = 0
-            # 1) longest required-multi
-            for length in range(span, 1, -1):
-                position = self._slot_position(index, length, unit_count)
-                key = (position, tuple(chain_shape[index:index + length]))
-                if key in required and key in table:
-                    hit = table[key]; hit_length = length; break
-            # 2) single unit
-            if hit is None:
-                position = self._slot_position(index, 1, unit_count)
-                key = (position, (chain_shape[index],))
-                if key in table:
-                    hit = table[key]; hit_length = 1
-            # 3) any longest multi (last resort)
+            # 1) single unit (preferred)
+            position = self._slot_position(index, 1, unit_count)
+            key = (position, (chain_shape[index],))
+            if key in table:
+                hit = table[key]; hit_length = 1
+            # 2) else the longest available multi-unit entry (last resort)
             if hit is None:
                 for length in range(span, 1, -1):
                     position = self._slot_position(index, length, unit_count)

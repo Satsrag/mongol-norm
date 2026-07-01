@@ -88,7 +88,7 @@ Per word:
 
 1. **shape** the input into its written-unit sequence, then **split** at every MVS into *chains*.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
-   1. **partition + table lookup** — the primary path. At each position take the longest *required-multi* unit, else the single unit, else the longest multi-unit, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
+   1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
    3. **verify** — reshape the candidate in full context; accept only if it equals the target chain shape.
    4. **gap chains** — a handful of chains can't be expressed by any per-unit letter (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`; bowed-consonant + final-vowel finals). These fall back to an exhaustive structural search that may wrap a unit in nirugu (~0.5% of chains).
@@ -379,7 +379,7 @@ CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum �
 
 1. **shape** 成书写单元序列,再按每个 MVS **切成 chain**。
 2. **逐 chain 编码**(从右往左,这样加后缀不影响前面):
-   1. **划分 + 查表**(主路径):每个位置取最长 *required-multi* 单元,否则单单元,否则最长多单元,查 `(位置, 书写单元) → (字母, FVS)` 的 FVS 钉死表。每个值**不依赖邻居**就渲染出该单元 → 确定性、O(N)、前缀稳定。
+   1. **划分 + 查表**(主路径):每个位置优先取单单元(输出干净),否则取最长多单元,查 `(位置, 书写单元) → (字母, FVS)` 的 FVS 钉死表。每个值**不依赖邻居**就渲染出该单元 → 确定性、O(N)、前缀稳定。
    2. **velar 阴性微调**:`G`/`Gx` 前向耦合的元音(`a`/`o`/`u`)换成阴性(`e`/`oe`/`ue`),输出更干净。
    3. **校验**:在完整上下文里重新 shape,只接受与目标 chain shape 一致的结果。
    4. **缺口 chain**:少数 chain 任何逐单元字母都表达不了(孤立的 nirugu-only 单元 `O`/`J`/`Dd`/`Ue`;弓形辅音+尾元音),回退到穷举搜索(可能用 nirugu 包裹,约 0.5%)。

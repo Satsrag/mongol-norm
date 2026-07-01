@@ -232,7 +232,6 @@ tbl = load_normalize_table("MNG")   # -> dict
     "isol": { "A": { "letter": "a", "cp": "1820", "fvs": "180B" } },
     "init": { "...": {} }, "medi": { "...": {} }, "fina": { "...": {} }
   },
-  "required_multi": { "init": ["A+O+I"] },
   "velar_fem": { "fina": { "O": { "letter": "oe", "cp": "1825", "fvs": "180C" } } }
 }
 ```
@@ -241,7 +240,6 @@ tbl = load_normalize_table("MNG")   # -> dict
 |---|---|
 | `unit_table[pos][unit]` | The pinned encoding for a written `unit` at `pos` (`isol`/`init`/`medi`/`fina`). `unit` is a `+`-joined written-unit tuple — single (`"A"`) or multi (`"A+O+I"`). Value: `letter` (alias), `cp` (hex codepoint), `fvs` (hex codepoint or `null`). |
 | `unit_enc_max_len` | Longest written-unit tuple in `unit_table`; bounds the multi-unit lookahead during partition. |
-| `required_multi[pos]` | Multi-unit keys that **cannot** be rebuilt by concatenating single units — the partition must prefer these. (Empty for MNG today.) |
 | `velar_fem[pos][unit]` | The feminine encoding of a single vowel unit, used by the velar-feminine refinement. |
 | `velar_fem_units` | Units that trigger that refinement (`G`, `Gx`). |
 | `masc_to_fem` | Masculine→feminine vowel alias map the refinement applies. |
@@ -255,7 +253,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
 1. `shape()` the word (needs the shape rules) and split the shape at MVS into chains.
-2. For each chain, left-to-right, pick at each position the longest `required_multi` unit, else the single unit, else the longest unit present; emit `cp` (+ `fvs` when non-null).
+2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
 4. Verify by reshaping. The rare chains the table can't express (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`, and bowed-consonant + final-vowel finals) need the nirugu-wrap fallback described in the [README](../README.md#how-normalize-works).
 

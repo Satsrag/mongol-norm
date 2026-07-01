@@ -69,8 +69,6 @@ class TestNormalizeTableExport(unittest.TestCase):
         self.assertEqual(dict(loaded._unit_enc), dict(baseline._unit_enc))
         self.assertEqual(dict(loaded._unit_enc_fem),
                          dict(baseline._unit_enc_fem))
-        self.assertEqual(set(loaded._required_multi),
-                         set(baseline._required_multi))
         self.assertEqual(loaded._unit_enc_max_len,
                          baseline._unit_enc_max_len)
 

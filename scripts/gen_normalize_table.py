@@ -78,29 +78,11 @@ def _is_context_independent(shaper, position, written, cp, fvs_cp):
     return landed
 
 
-def _decomposable_into_singles(shaper, written, table):
-    """
-    True iff `written` (a multi-unit tuple) can be produced by concatenating
-    single-unit entries from `table` (as a standalone chain) and round-trips.
-    If so we DON'T need the multi-unit letter.
-    """
-    unit_count = len(written)
-    parts = []
-    for index, unit in enumerate(written):
-        position = ('isol' if unit_count == 1 else 'init' if index == 0
-                    else 'fina' if index == unit_count - 1 else 'medi')
-        entry = table.get((position, (unit,)))
-        if entry is None:
-            return False
-        parts.append(chr(entry[0]) + (chr(entry[1]) if entry[1] is not None else ''))
-    return tuple(shaper.shape(''.join(parts))) == tuple(written)
-
-
 def compute_unit_tables(shaper):
     """
     Run the context-independence battery against `shaper` and return
-    (unit_table, feminine_table, required_multi, max_length). This is the
-    SELECTION method — the single source of truth the exported JSON encodes.
+    (unit_table, feminine_table, max_length). This is the SELECTION method —
+    the single source of truth the exported JSON encodes.
     """
     if not hasattr(shaper, '_candidates_map'):
         shaper._build_candidates_map()
@@ -159,15 +141,7 @@ def compute_unit_tables(shaper):
                 feminine_table[(position, written)] = (cp, fvs_cp)
                 break
 
-    # Required-multi: multi-unit entries whose written tuple CANNOT be rebuilt by
-    # concatenating single-unit entries (e.g. oe → [A,O,I]; a+o+i adds a tooth).
-    required = set()
-    for (position, written) in table:
-        if len(written) <= 1:
-            continue
-        if not _decomposable_into_singles(shaper, written, table):
-            required.add((position, written))
-    return table, feminine_table, required, max_length
+    return table, feminine_table, max_length
 
 
 def compute_normalize_tables(shaper):
@@ -175,7 +149,7 @@ def compute_normalize_tables(shaper):
     Run the battery and return a JSON-serializable spec of the normalize tables
     — the artifact the runtime and other-language ports consume.
     """
-    table, feminine_table, required, max_length = compute_unit_tables(shaper)
+    table, feminine_table, max_length = compute_unit_tables(shaper)
 
     def encode_entry(cp, fvs_cp):
         return {
@@ -191,10 +165,6 @@ def compute_normalize_tables(shaper):
         # stable ordering → readable, diff-friendly file
         return {position: dict(sorted(grouped[position].items()))
                 for position in ('isol', 'init', 'medi', 'fina') if position in grouped}
-
-    required_by_position = {}
-    for position, written in sorted(required):
-        required_by_position.setdefault(position, []).append("+".join(written))
 
     return {
         "schema": "mongol-normalize-table/1",
@@ -218,7 +188,6 @@ def compute_normalize_tables(shaper):
         "masc_to_fem": {shaper.cp_to_alias.get(k): shaper.cp_to_alias.get(v)
                         for k, v in shaper._MASC_TO_FEM_CP.items()},
         "unit_table": group_by_position(table),
-        "required_multi": required_by_position,
         "velar_fem": group_by_position(feminine_table),
     }
 
