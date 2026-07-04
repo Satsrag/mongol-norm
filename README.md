@@ -43,11 +43,11 @@ This project was generated with [Claude Code](https://claude.ai/code) (AI-assist
 
 Traditional Mongolian script in Unicode has a fundamental problem: **the same visible word can be encoded in multiple different Unicode sequences**. This happens because:
 
-1. **Letters share glyphs** — A and E look identical in medial and final positions; O and U share forms; QA and GA share forms depending on vowel harmony.
+1. **Letters share glyphs** — A and E look identical in medial and final positions; O/U and OE/UE share forms; QA and GA share forms depending on vowel harmony.
 2. **Multiple encoding paths** — The same tooth glyph (I) can be encoded as I, YA+FVS1, or even two separate I characters.
-
-![Mongolian letters A E O U QA GA I rendered in Noto Sans Mongolian](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/letters.png)
 3. **Redundant FVS usage** — Free Variation Selectors (FVS1–FVS4) can create equivalent sequences that render identically.
+4. **Joining controls** — nirugu (U+180A, the visible stem extender) and ZWJ (U+200D) force letters into their joined forms, and inside those joined contexts even more letters collapse to the same glyph (`nirugu+o` and `nirugu+u` render identically).
+5. **Suffix particles after MVS/NNBSP** — the same rendered suffix can be spelled with different letters (`MVS+a` and `MVS+e` both render the chachlag form; `MVS+u` and `MVS+ue` render the same connector).
 
 This means:
 - **Search fails**: Searching for "sain" (one encoding) won't find the same word in another encoding, even though they look identical.
@@ -60,7 +60,7 @@ This is a **shaping-aware normalizer** for Traditional Mongolian. It:
 
 1. **Shapes** the input using the full UTN #57 v4 shaping process (5-step conditional mapping)
 2. **Compares** glyph sequences to detect identical visual forms
-3. **Normalizes** to a canonical, human-readable, bare Unicode encoding
+3. **Normalizes** to one canonical, FVS-pinned Unicode encoding — same shape ⟹ same Unicode, and it always round-trips
 
 **Example**: All five of these encode the word "sain" (good) and look identical:
 
@@ -94,7 +94,7 @@ Per word:
 
 **Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the shared region encodes identically except the single boundary unit whose position changes (final in *B* → medial in *A*). The per-unit table delivers this for free — each unit's encoding depends only on its own position, never on its neighbours.
 
-**How the table is built** (the *selection method*): offline, a **context-independence battery** fills each `(position, written-unit)` slot with the `(letter, FVS)` — tried masculine-first, bare-first — that renders *exactly* that unit in *every* probed neighbour context. The result is exported and shipped as JSON; see `MongolianShaper.compute_normalize_tables()`.
+**How the table is built** (the *selection method*): offline, a **context-independence battery** fills each `(position, written-unit)` slot with the `(letter, FVS)` — tried masculine-first, bare-first — that renders *exactly* that unit in *every* probed neighbour context. The result is exported and shipped as JSON; the battery lives in `scripts/gen_normalize_table.py`.
 
 > Note: output is **FVS-pinned**, not bare — each unit carries the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md), so ports in other languages can implement `normalize` with just a JSON parser.
 
@@ -132,15 +132,15 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 # → False
 
-# Normalize: canonical bare Unicode
+# Normalize: one canonical, FVS-pinned Unicode (same shape ⟹ same Unicode)
 shaper.normalize("ᠰᠡᠢᠨ")
-# → 'ᠰᠠᠢᠨ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
-# → 'ᠰᠠᠢᠨ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
-# → 'ᠰᠠᠢᠨ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
 ```
 
 #### Full-text normalization
@@ -150,11 +150,11 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 ```python
 # Normalize a sentence (each Mongolian word normalized independently)
 shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ")
-# → 'ᠰᠠᠢᠨ ᠨᠠᠢ᠍ᠮᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ ᠨᠠᠢ᠍ᠮᠠ'
 
 # Mixed script: non-Mongolian text preserved as-is
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
-# → 'Hello ᠰᠠᠢᠨ world'
+# → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ world'
 ```
 
 #### Batch normalization example
@@ -164,7 +164,7 @@ words = ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠨ᠌ᠢᠢᠨ", "ᠰᠠᠶ᠋ᠢ�
 normalized = [shaper.normalize(w) for w in words]
 unique = set(normalized)
 print(f"{len(words)} inputs → {len(unique)} unique form(s): {unique}")
-# 4 inputs → 1 unique form(s): {'ᠰᠠᠢᠨ'}
+# 4 inputs → 1 unique form(s): {'ᠰᠠᠢ᠍ᠢ᠍ᠠ'}
 ```
 
 #### Command line
@@ -322,11 +322,11 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 
 传统蒙古文在 Unicode 中存在一个根本性问题：**同一个可见词形可以用多种不同的 Unicode 序列编码**。原因是：
 
-1. **字母共享字形** — A 和 E 在中间和尾部位置外形完全相同；O 和 U 共享形态；QA 和 GA 根据元音和谐共享形态。
+1. **字母共享字形** — A 和 E 在中间和尾部位置外形完全相同；O/U、OE/UE 共享形态；QA 和 GA 根据元音和谐共享形态。
 2. **多种编码路径** — 同一个齿形字形可以编码为 I、YA+FVS1，甚至两个独立的 I 字符。
-
-![蒙古文字母 A E O U QA GA I 在 Noto Sans Mongolian 字体下的渲染](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/letters.png)
 3. **冗余的 FVS 使用** — 自由变体选择符（FVS1–FVS4）可以创建渲染结果完全相同的等价序列。
+4. **连接控制符** — nirugu(U+180A,可见的连笔延长符)和 ZWJ(U+200D)会强制字母取连接形,而连接语境下更多字母塌缩成同一字形(`nirugu+o` 和 `nirugu+u` 渲染完全相同)。
+5. **MVS/NNBSP 后的后缀词** — 同一个渲染出的后缀可以用不同字母拼写(`MVS+a` 和 `MVS+e` 都渲染 chachlag 形;`MVS+u` 和 `MVS+ue` 同形)。
 
 这意味着：
 - **搜索失效**：搜索同一个词的某种编码，找不到另一种编码，尽管它们外形完全一样。
@@ -339,7 +339,7 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 
 1. 使用完整的 UTN #57 v4 shaping 过程（5 步条件映射）对输入进行**字形化**
 2. 通过比较字形序列来**检测**视觉上相同的词形
-3. **规范化**为唯一的、人类可读的、bare Unicode 编码
+3. **规范化**为唯一的、FVS 钉死的 canonical Unicode 编码 —— 同 shape ⟹ 同 Unicode,且必定往返还原
 
 **示例**：以下五种编码都表示 "sain"（好的），外形完全相同：
 
@@ -375,7 +375,7 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 
 **前缀稳定**的含义:若词 *A* = 词 *B* + 后缀,且二者 shape 共享前缀,则共享部分编码完全一致,只有那个位置发生变化的边界单元不同(在 *B* 里是词尾、在 *A* 里变词中)。逐单元表天然保证这点 —— 每个单元的编码只取决于它自己的位置,与邻居无关。
 
-**表是怎么来的**(*选择方法*):离线跑一个 **context 无关性电池** —— 对每个 `(位置, 书写单元)`,按"阳性优先、裸形优先"挑出那个在**所有**探测邻居上下文里都**恰好**渲染出该单元的 `(字母, FVS)`。结果导出成 JSON 随包发布;见 `MongolianShaper.compute_normalize_tables()`。
+**表是怎么来的**(*选择方法*):离线跑一个 **context 无关性电池** —— 对每个 `(位置, 书写单元)`,按"阳性优先、裸形优先"挑出那个在**所有**探测邻居上下文里都**恰好**渲染出该单元的 `(字母, FVS)`。结果导出成 JSON 随包发布;电池在 `scripts/gen_normalize_table.py`。
 
 > 注意:输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
 
@@ -413,15 +413,15 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 # → False
 
-# 规范化：输出唯一的 bare Unicode
+# 规范化:唯一的 FVS 钉死 canonical(同 shape ⟹ 同 Unicode)
 shaper.normalize("ᠰᠡᠢᠨ")
-# → 'ᠰᠠᠢᠨ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
-# → 'ᠰᠠᠢᠨ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
-# → 'ᠰᠠᠢᠨ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
 ```
 
 #### 全文规范化
@@ -431,11 +431,11 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 ```python
 # 规范化句子（每个蒙古文词独立规范化）
 shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ")
-# → 'ᠰᠠᠢᠨ ᠨᠠᠢ᠍ᠮᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ ᠨᠠᠢ᠍ᠮᠠ'
 
 # 混合文字：非蒙古文文本原样保留
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
-# → 'Hello ᠰᠠᠢᠨ world'
+# → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ world'
 ```
 
 #### 批量规范化示例
@@ -445,7 +445,7 @@ words = ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠨ᠌ᠢᠢᠨ", "ᠰᠠᠶ᠋ᠢ�
 normalized = [shaper.normalize(w) for w in words]
 unique = set(normalized)
 print(f"{len(words)} 个输入 → {len(unique)} 个唯一形态：{unique}")
-# 4 个输入 → 1 个唯一形态：{'ᠰᠠᠢᠨ'}
+# 4 个输入 → 1 个唯一形态：{'ᠰᠠᠢ᠍ᠢ᠍ᠠ'}
 ```
 
 ### 运行测试
