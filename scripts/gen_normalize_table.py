@@ -116,6 +116,12 @@ def compute_unit_tables(shaper):
     j_fvs2 = (0x1835, 0x180C)
     if ('fina', ('J',)) not in table and _is_context_independent(shaper, 'fina', ('J',), *j_fvs2):
         table[('fina', ('J',))] = j_fvs2
+    # User spelling rule: an isolated 'I' chain is written i+FVS1, never the
+    # battery's bare-first pick j (both render the lone double-tooth I).
+    # 用户拼写规则:孤立 'I' 写 i+FVS1,不用电池按裸形优先选出的 j。
+    i_fvs1 = (0x1822, 0x180B)
+    if _is_context_independent(shaper, 'isol', ('I',), *i_fvs1):
+        table[('isol', ('I',))] = i_fvs1
     max_length = max((len(written) for (_, written) in table), default=1)
 
     # Feminine alternative table for the velar-fem refinement: for each single-

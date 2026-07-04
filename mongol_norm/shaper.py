@@ -978,85 +978,7 @@ class MongolianShaper:
         # 安全网:若枚举失败,回退到原文。对正常蒙古文应不会触发。
         if not canonical or self.shape(canonical) != target:
             return text
-
-        # Post-process: the one fixed spelling rule (isolate-I → i+fvs1).
-        # 后处理:唯一固定拼写规则(孤立 I → i+fvs1)。
-        canonical = self._apply_isolate_i_spelling(canonical, target)
         return canonical
-
-    # Isolate-I spelling: a chain rendering exactly ['I'] is always written
-    # i+FVS1 (user rule; never bare j, which renders the same there).
-    # 孤立 I 的拼写:shape 恰为 ['I'] 的 chain 一律写 i+FVS1(不用裸 j)。
-    _ISOLATE_I_TEXT = chr(0x1822) + chr(0x180B)  # i + FVS1
-
-    def _apply_isolate_i_spelling(self, text, target_shape):
-        """
-        Post-process canonical text with ONE fixed spelling rule (everything
-        else is handled structurally in _canonical_for_shape): a chain
-        rendering exactly ['I'] is written i+fvs1, not bare j.
-        Verifies shape-preservation per substitution; reverts on mismatch.
-        唯一的固定拼写规则(其余已由 _canonical_for_shape 结构性处理):
-        shape 恰为 ['I'] 的 chain 写成 i+fvs1(不用裸 j)。
-        每次替换校验保形,不通过则回滚。
-        """
-        if not text:
-            return text
-
-        # Chunk text into (kind, body) where kind is 'mvs' or 'chain'.
-        # 切分文本为 (kind, body),kind 是 'mvs' 或 'chain'。
-        chunks = []
-        cur = []
-        for ch in text:
-            if ord(ch) == MVS_CP:
-                if cur:
-                    chunks.append(['chain', ''.join(cur)])
-                    cur = []
-                chunks.append(['mvs', chr(MVS_CP)])
-            else:
-                cur.append(ch)
-        if cur:
-            chunks.append(['chain', ''.join(cur)])
-
-        changed = False
-
-        def is_letter_with_optional_fvs(body):
-            cps = [ord(c) for c in body]
-            if len(cps) == 1:
-                return is_mongolian_letter(cps[0])
-            if len(cps) == 2:
-                return is_mongolian_letter(cps[0]) and cps[1] in FVS_CPS
-            return False
-
-        for i, (kind, body) in enumerate(chunks):
-            if (kind != 'chain' or not body
-                    or body == self._ISOLATE_I_TEXT
-                    or not is_letter_with_optional_fvs(body)):
-                continue
-            prev_mvs = i > 0 and chunks[i - 1][0] == 'mvs'
-            next_mvs = i + 1 < len(chunks) and chunks[i + 1][0] == 'mvs'
-            prefix = chr(MVS_CP) if prev_mvs else ''
-            suffix = chr(MVS_CP) if next_mvs else ''
-            with_ctx_shape = tuple(self.shape(prefix + body + suffix))
-            chain_shape = with_ctx_shape[(1 if prev_mvs else 0):
-                                         (-1 if next_mvs else None)]
-            if chain_shape != ('I',):
-                continue
-            if tuple(self.shape(prefix + self._ISOLATE_I_TEXT + suffix)) == with_ctx_shape:
-                chunks[i] = ['chain', self._ISOLATE_I_TEXT]
-                changed = True
-
-        if not changed:
-            return text
-
-        new_text = ''.join(body for _, body in chunks)
-        # Whole-text safety verification — the per-chunk verify catches
-        # local issues but a final shape() check guards against any
-        # cross-chain interaction we might have missed. Compare as lists
-        # so the equality works regardless of how the caller passed it.
-        # 整体校验,防御跨链交互。比较 list 形式以匹配 shape() 返回值。
-        if self.shape(new_text) != list(target_shape):
-            return text  # post-process broke something; revert
-        return new_text
 
     # ── Shape → canonical Unicode (pure function) ──────────────────
     # The chain shape acts as the key: any two inputs whose shape() output
@@ -1122,23 +1044,25 @@ class MongolianShaper:
                 # A chain directly after MVS is a suffix particle: encode it
                 # as its STANDALONE canonical — drop the MVS, normalize,
                 # re-attach — so the spelling is identical with and without
-                # MVS and never depends on it (chachlag included: 'Aa' takes
-                # its isolate pin a+fvs2/e+fvs1). Verified in full context;
-                # falls through if the standalone spelling happens to render
+                # MVS and never depends on it. One exception: chachlag
+                # ('Aa',), whose canonical after MVS is the bare letter a
+                # (`mvs + a` IS the chachlag spelling). Verified in full
+                # context; falls through if the spelling happens to render
                 # differently after MVS.
                 # MVS 后的 chain = 后缀词:去掉 MVS 按 standalone 求 canonical、
-                # 再拼回 MVS —— 有无 MVS 拼写一致,不依赖 MVS(chachlag 一并
-                # 处理:'Aa' 用 isolate 钉死形 a+fvs2/e+fvs1)。全上下文校验;
-                # 个别 MVS 下变形的再走回退。
+                # 再拼回 MVS —— 有无 MVS 拼写一致,不依赖 MVS。唯一例外:
+                # chachlag('Aa'),MVS 后 canonical 是裸字母 a(`mvs + a`
+                # 就是 chachlag 的标准拼写)。全上下文校验;变形则回退。
                 if prefix_tokens and prefix_tokens[-1] == 'mvs':
-                    standalone = self._encode_chain_canonical(body)
-                    if standalone:
-                        prefix_text = ''.join(self._STRUCTURAL_CHARS[t]
-                                              for t in prefix_tokens)
+                    if body == ('Aa',):
+                        candidate = chr(0x1820)   # bare a
+                    else:
+                        candidate = self._encode_chain_canonical(body)
+                    if candidate:
+                        prefix_text = ''.join(self._STRUCTURAL_CHARS[t] for t in prefix_tokens)
                         want = prefix_tokens + body + suffix_target
-                        if tuple(self.shape(prefix_text + standalone
-                                            + suffix_text)) == want:
-                            chain_canonical = standalone
+                        if tuple(self.shape(prefix_text + candidate + suffix_text)) == want:
+                            chain_canonical = candidate
                 if chain_canonical is None:
                     chain_canonical = self._encode_chain_canonical(
                         body, prefix_tokens, suffix_text, suffix_target,
