@@ -206,9 +206,8 @@ python -m unittest tests.test_normalize_table
 # mongfontbuilder core-hud (225) + GB/T 25914-2023 eac-hud (3513, 5 UTN-xfail)
 python -m unittest tests.test_core_hud tests.test_eac_hud
 
-# Or all together
-python -m unittest tests.test_shaper tests.test_round_trip \
-    tests.test_normalize_table tests.test_core_hud tests.test_eac_hud
+# Or all together (auto-discovers every tests/test_*.py)
+python -m unittest discover -s tests -p 'test_*.py'
 ```
 
 The hand-written suite covers:
@@ -471,9 +470,8 @@ python -m unittest tests.test_normalize_table
 # mongfontbuilder core-hud(225)+ GB/T 25914-2023 eac-hud(3513,5 个 UTN-xfail)
 python -m unittest tests.test_core_hud tests.test_eac_hud
 
-# 或一次跑全部
-python -m unittest tests.test_shaper tests.test_round_trip \
-    tests.test_normalize_table tests.test_core_hud tests.test_eac_hud
+# 或一次跑全部(自动发现所有 tests/test_*.py)
+python -m unittest discover -s tests -p 'test_*.py'
 ```
 
 手写套件覆盖范围:

@@ -35,13 +35,13 @@ jobs:
           pip install .
 
       - name: Run unittest suite
-        # test_eac_hud / test_round_trip print their own pass/fail summaries;
-        # the others use standard unittest output. Together they cover:
+        # Auto-discovers every tests/test_*.py so new test modules can't be
+        # silently skipped. Covers:
         #   - hand-written shaper tests (shape / same_shape / normalize)
+        #   - joiner-token semantics (nirugu / ZWJ in shape + normalize)
         #   - normalize round-trip + shape-canonicity + prefix-stability
         #   - normalize-table export (compute == load)
         #   - 225 mongfontbuilder core-hud cases (100%)
         #   - 3513 mongfontbuilder eac-hud cases (100%, 5 UTN-xfail)
         run: |
-          python -m unittest tests.test_shaper tests.test_round_trip \
-            tests.test_normalize_table tests.test_core_hud tests.test_eac_hud -v
+          python -m unittest discover -s tests -p 'test_*.py' -v
