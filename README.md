@@ -35,8 +35,6 @@ Both halves of the library — shaping and normalization (MNG / Hudum) — are v
 
 Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping rules but have no normalizer yet.
 
-**Contributions of expert-verified normalization test data are still very welcome** — see [Help Wanted](#help-wanted-test-data) below.
-
 This project was generated with [Claude Code](https://claude.ai/code) (AI-assisted coding). The tests and key parts of the core code have been **manually reviewed**, and test coverage is extensive (corpus round-trip / shape-canonicity / prefix-stability plus the upstream cross-implementation suites). Treat this as a **preview release** — it should be fine for normal use; if you hit a problem, please open an [issue or PR](https://github.com/Satsrag/mongol-norm/issues). Shaping logic is derived from UTN #57 v4 and mongfontbuilder.
 
 ---
@@ -220,20 +218,7 @@ The hand-written suite covers:
 | `TestNormalizeText` | `normalize_text()` handles multi-word, mixed-script, punctuation, empty input; idempotency; word independence |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **113 hand-written + 177 core-hud + 3507 eac-hud = 3797 test cases**, all green on Python 3.9 – 3.13.
-
-### Help Wanted: Test Data
-
-Shaping is now verified against the mongfontbuilder + GB/T 25914 cross-implementation suites (3684/3684 = 100%, with 5 UTN-xfail mirroring mongfontbuilder's own). **What's still missing is a real-world normalization corpus** — a set of (input encoding, expected normalized form) pairs verified by a human expert.
-
-Useful contributions:
-
-- **Word pairs**: Two Unicode sequences that render identically, with the expected canonical form
-- **Counterexamples**: A word where the current normalizer produces wrong output (open an issue with the input, actual output, and expected output)
-- **Word lists**: Any existing Mongolian wordlist or dictionary with consistent Unicode encoding
-- **Rendered images**: A screenshot of a Mongolian word in a correct UTN57-compliant font alongside its Unicode byte sequence — useful for verifying visual identity
-
-If you can contribute, please **open an issue or pull request** at [github.com/Satsrag/mongol-norm](https://github.com/Satsrag/mongol-norm).
+Current totals: **142 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
 
 ### Use Cases
 
@@ -322,8 +307,6 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 | 前缀稳定 —— 词与词+后缀共享前缀编码 | **99.87%** 真实语料词对 |
 
 范围说明:规范化目前只实现了 MNG(Hudum)—— Todo / 锡伯文 / 满文已加载 shaping 规则,尚无规范化。
-
-**仍然欢迎贡献专家校验过的规范化测试数据** — 详见下方[求助:测试数据](#求助测试数据)。
 
 本项目由 [Claude Code](https://claude.ai/code)(AI 辅助编码)生成;测试与部分核心代码经**人工审核**,测试覆盖比较充分(语料往返 / 同形同码 / 前缀稳定 + 上游跨实现套件)。当前为**预览版**,正常使用应无问题;遇到问题欢迎提 [issue 和 PR](https://github.com/Satsrag/mongol-norm/issues)。Shaping 逻辑源自 UTN #57 v4 和 mongfontbuilder。
 
@@ -484,20 +467,7 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入; 幂等性; 词独立性 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **113 手写 + 177 core-hud + 3507 eac-hud = 3797 个测试用例**, 在 Python 3.9 – 3.13 上全绿。
-
-### 求助：测试数据
-
-Shaping 已经对照 mongfontbuilder + GB/T 25914 跨实现套件验证完毕(3684/3684 = 100%, 5 个 UTN-xfail 跟 mongfontbuilder 自己一致)。**目前还缺一个真实世界的规范化语料库**——由人工专家验证的(输入编码, 期望规范形式)对。
-
-欢迎以下形式的贡献：
-
-- **词对**：两个渲染结果相同的 Unicode 序列，及其期望的规范形式
-- **反例**：当前规范化器输出错误的词（请提 issue，附上输入、实际输出、期望输出）
-- **词表**：任何具有一致 Unicode 编码的蒙古文词表或词典
-- **渲染截图**：在正确的 UTN57 兼容字体中渲染的蒙古文词图片，附上对应的 Unicode 字节序列——有助于验证视觉等价性
-
-欢迎在 [github.com/Satsrag/mongol-norm](https://github.com/Satsrag/mongol-norm) **提 issue 或 PR**。
+当前总数: **142 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
 
 ### 应用场景
 
