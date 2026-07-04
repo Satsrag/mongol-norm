@@ -36,7 +36,6 @@ Only rules actually implemented so far are included. Items still awaiting
 port (gender propagation III.0b, Sibe-specific iii2b/iii2d, etc.) are
 tracked as `TODO` entries in the RULES lists.
 """
-from dataclasses import dataclass
 from typing import Callable, FrozenSet, List
 
 BOWED_UNITS = {"G", "Gx", "K", "K2", "B", "P", "F"}
@@ -45,12 +44,16 @@ FVS2_CP = 0x180C
 FVS4_CP = 0x180F
 
 
-@dataclass(frozen=True)
 class Rule:
-    """A single shaping rule = a single mongfontbuilder Lookup."""
-    name: str
-    locales: FrozenSet[str]
-    apply: Callable  # (tokens, shaper) -> None, mutates tokens in place
+    """A single shaping rule = a single mongfontbuilder Lookup.
+    (Plain class, not a dataclass, to keep the package Python 3.6+.)"""
+    __slots__ = ("name", "locales", "apply")
+
+    def __init__(self, name: str, locales: FrozenSet[str],
+                 apply: Callable) -> None:
+        self.name = name
+        self.locales = locales
+        self.apply = apply  # (tokens, shaper) -> None, mutates tokens in place
 
 
 def run_rules(rules: List[Rule], tokens, shaper) -> None:
@@ -851,7 +854,7 @@ RULES_MCH: List[Rule] = []  # TODO: port Manchu-specific rules
 
 
 def get_rules_for_locale(locale: str) -> List[Rule]:
-    base = locale.removesuffix("x") if locale.endswith("x") else locale
+    base = locale[:-1] if locale.endswith("x") else locale
     return {
         "MNG": RULES_MNG,
         "TOD": RULES_TOD,

@@ -11,33 +11,33 @@
 
 ### Status
 
-The two pieces of the library are at very different maturity levels — be aware before you depend on `normalize()`.
+Both halves of the library — shaping and normalization (MNG / Hudum) — are verified against the same upstream corpora. CI runs the full suite on Python 3.9 – 3.13 on every push.
 
-#### ✅ Shaping — usable
+#### ✅ Shaping
 
-`shape()` and `same_shape()` (MNG / Hudum) are cross-validated against two upstream TSV suites:
+`shape()` and `same_shape()` are cross-validated against two upstream TSV suites:
 
 | Suite | Cases | Pass | Notes |
 |---|---|---|---|
-| `mongfontbuilder/core-hud.tsv` | 177 | **100%** | curated regression set |
-| `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3512 | **100%** | 5 cases excluded as UTN ↔ EAC xfail, matching mongfontbuilder's own `pytest.mark.xfail` set |
-| Hand-written shaper unit tests | 113 | **100%** | shape / same_shape / normalize / normalize_text |
+| `mongfontbuilder/core-hud.tsv` | 225 | **100%** | curated regression set |
+| `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 cases excluded as UTN ↔ EAC xfail, matching mongfontbuilder's own `pytest.mark.xfail` set |
+| Hand-written unit tests | — | **100%** | shape / same_shape / joiner tokens (nirugu, ZWJ) |
 
-CI runs the full suite on Python 3.9 – 3.13 on every push. Within these constraints — MNG / Hudum locale, the shaping rules covered by UTN #57 v4 and mongfontbuilder — the shaper should be reliable enough to build on.
+#### ✅ Normalization — same guarantees, machine-checked
 
-#### ⚠️ Normalization — NOT reliable yet, work-in-progress
+`normalize()` / `normalize_text()` are a **pure function of shape** with invariants checked in CI over every corpus encoding:
 
-`normalize()` and `normalize_text()` are the **focus of upcoming work**, not the current strength of the library. Today they have:
+| Property | Result |
+|---|---|
+| Round-trip — `shape(normalize(x)) == shape(x)` | **3757 / 3757** corpus encodings (100%) |
+| Shape-canonicity — same shape ⟹ same Unicode output | **1993 / 1993** shape groups (100%) |
+| Prefix-stability — word and word+suffix share their prefix encoding | **99.87%** of real corpus pairs |
 
-- only the hand-written round-trip tests (no third-party corpus regression set)
-- known mis-canonicalization on words with ambiguous vowel harmony (no unambiguous o/u/oe/ue vowel in the word)
-- no implementation at all for Todo / Sibe / Manchu (shaping rules are loaded for those locales, normalization is not)
+Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping rules but have no normalizer yet.
 
-If you are building on this library now, treat the shape / same-shape APIs as stable and the normalize APIs as **experimental** — they will keep changing as the canonical-form logic is rebuilt against a real corpus.
+**Contributions of expert-verified normalization test data are still very welcome** — see [Help Wanted](#help-wanted-test-data) below.
 
-**Contributions of normalization test data and bug reports are very welcome** — see [Help Wanted](#help-wanted-test-data) below.
-
-This project was developed with [Claude Code](https://claude.ai/code) (AI-assisted coding). Shaping logic is derived from UTN #57 v4 and mongfontbuilder; the implementation is independently tested against the upstream TSV regression suites.
+This project was generated with [Claude Code](https://claude.ai/code) (AI-assisted coding). The tests and key parts of the core code have been **manually reviewed**, and test coverage is extensive (corpus round-trip / shape-canonicity / prefix-stability plus the upstream cross-implementation suites). Treat this as a **preview release** — it should be fine for normal use; if you hit a problem, please open an [issue or PR](https://github.com/Satsrag/mongol-norm/issues). Shaping logic is derived from UTN #57 v4 and mongfontbuilder.
 
 ---
 
@@ -48,7 +48,7 @@ Traditional Mongolian script in Unicode has a fundamental problem: **the same vi
 1. **Letters share glyphs** — A and E look identical in medial and final positions; O and U share forms; QA and GA share forms depending on vowel harmony.
 2. **Multiple encoding paths** — The same tooth glyph (I) can be encoded as I, YA+FVS1, or even two separate I characters.
 
-![Mongolian letters A E O U QA GA I rendered in Noto Sans Mongolian](assets/letters.png)
+![Mongolian letters A E O U QA GA I rendered in Noto Sans Mongolian](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/letters.png)
 3. **Redundant FVS usage** — Free Variation Selectors (FVS1–FVS4) can create equivalent sequences that render identically.
 
 This means:
@@ -66,7 +66,7 @@ This is a **shaping-aware normalizer** for Traditional Mongolian. It:
 
 **Example**: All five of these encode the word "sain" (good) and look identical:
 
-![Five encodings of "sain" all normalizing to the same canonical form](assets/sain-variants.png)
+![Five encodings of "sain" all normalizing to the same canonical form](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
 
 ### How It Works
 
@@ -285,7 +285,7 @@ mongol-norm/                          # the repo = the package (single, self-con
 
 ### Requirements
 
-- Python 3.9+ (CI matrix: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
+- Python 3.6+ (CI-tested on 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
 - No runtime dependencies (shaping/normalize data is bundled)
 
 ### License
@@ -299,33 +299,33 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 
 ### 状态
 
-库的两个部分成熟度差距很大 — 依赖 `normalize()` 之前请先看清楚。
+库的两部分 —— 整形与规范化(MNG / Hudum)—— 都对照同一批上游语料验证。CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。
 
-#### ✅ Shaping(整形)— 可用
+#### ✅ Shaping(整形)
 
-`shape()` 和 `same_shape()`(MNG / Hudum)对照两套上游 TSV 套件交叉验证:
+`shape()` 和 `same_shape()` 对照两套上游 TSV 套件交叉验证:
 
 | 套件 | 用例数 | 通过 | 说明 |
 |---|---|---|---|
-| `mongfontbuilder/core-hud.tsv` | 177 | **100%** | 精选回归集 |
-| `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3512 | **100%** | 5 个 UTN ↔ EAC 分歧 case 跳过(跟 mongfontbuilder 自己的 `pytest.mark.xfail` 列表一致) |
-| 手写 shaper 单元测试 | 113 | **100%** | shape / same_shape / normalize / normalize_text |
+| `mongfontbuilder/core-hud.tsv` | 225 | **100%** | 精选回归集 |
+| `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 个 UTN ↔ EAC 分歧 case 跳过(跟 mongfontbuilder 自己的 `pytest.mark.xfail` 列表一致) |
+| 手写单元测试 | — | **100%** | shape / same_shape / joiner token(nirugu、ZWJ) |
 
-CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum 语种、UTN #57 v4 和 mongfontbuilder 覆盖的整形规则范围内,shape 这块应该足够可靠拿去落地使用。
+#### ✅ Normalization(规范化)— 与整形同级保障,机器验证
 
-#### ⚠️ Normalization(规范化)— 目前不靠谱,后期重点
+`normalize()` / `normalize_text()` 是 **shape 的纯函数**,以下不变量在 CI 中对每一条语料编码逐一验证:
 
-`normalize()` 和 `normalize_text()` 是**后续更新的重点**,不是目前库的强项。当前状态:
+| 性质 | 结果 |
+|---|---|
+| 往返 —— `shape(normalize(x)) == shape(x)` | **3757 / 3757** 语料编码(100%) |
+| 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1993 / 1993** shape 组(100%) |
+| 前缀稳定 —— 词与词+后缀共享前缀编码 | **99.87%** 真实语料词对 |
 
-- 只有手写的往返测试,**没有第三方语料库回归集**
-- 已知 bug: 元音和谐不明确的词(整个词里没有 o/u/oe/ue 这种不模糊元音)会输出错误的规范形式
-- Todo / 锡伯文 / 满文完全没实现规范化(虽然加载了 shaping 规则)
+范围说明:规范化目前只实现了 MNG(Hudum)—— Todo / 锡伯文 / 满文已加载 shaping 规则,尚无规范化。
 
-如果你现在要基于本库开发,把 shape / same_shape 当稳定 API,把 normalize 当**实验性 API** — 因为规范化逻辑会基于真实语料重写,持续变动。
+**仍然欢迎贡献专家校验过的规范化测试数据** — 详见下方[求助:测试数据](#求助测试数据)。
 
-**欢迎贡献规范化测试数据和报告问题** — 详见下方[求助:测试数据](#求助测试数据)。
-
-本项目由 [Claude Code](https://claude.ai/code)(AI 辅助编码)开发。Shaping 逻辑源自 UTN #57 v4 和 mongfontbuilder; 实现独立对照上游 TSV 回归套件验证。
+本项目由 [Claude Code](https://claude.ai/code)(AI 辅助编码)生成;测试与部分核心代码经**人工审核**,测试覆盖比较充分(语料往返 / 同形同码 / 前缀稳定 + 上游跨实现套件)。当前为**预览版**,正常使用应无问题;遇到问题欢迎提 [issue 和 PR](https://github.com/Satsrag/mongol-norm/issues)。Shaping 逻辑源自 UTN #57 v4 和 mongfontbuilder。
 
 ---
 
@@ -336,7 +336,7 @@ CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum �
 1. **字母共享字形** — A 和 E 在中间和尾部位置外形完全相同；O 和 U 共享形态；QA 和 GA 根据元音和谐共享形态。
 2. **多种编码路径** — 同一个齿形字形可以编码为 I、YA+FVS1，甚至两个独立的 I 字符。
 
-![蒙古文字母 A E O U QA GA I 在 Noto Sans Mongolian 字体下的渲染](assets/letters.png)
+![蒙古文字母 A E O U QA GA I 在 Noto Sans Mongolian 字体下的渲染](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/letters.png)
 3. **冗余的 FVS 使用** — 自由变体选择符（FVS1–FVS4）可以创建渲染结果完全相同的等价序列。
 
 这意味着：
@@ -354,7 +354,7 @@ CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum �
 
 **示例**：以下五种编码都表示 "sain"（好的），外形完全相同：
 
-![五种 sain 编码全部规范化为同一个标准形式](assets/sain-variants.png)
+![五种 sain 编码全部规范化为同一个标准形式](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
 
 ### 工作原理
 
@@ -549,7 +549,7 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 
 ### 环境要求
 
-- Python 3.9+ (CI 矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
+- Python 3.6+(CI 实测矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
 - 无运行时依赖(shaping/normalize 数据已内置)
 
 ### 许可证

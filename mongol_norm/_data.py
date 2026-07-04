@@ -16,18 +16,21 @@ files directly (see docs/data-format.md).
 These loaders are internal — import `MongolianShaper`, not this module.
 """
 import json
-from importlib.resources import files
+from pathlib import Path
 from typing import Any, Dict
 
 # Bump on incompatible changes to the shaping-rules JSON schema.
 SCHEMA_VERSION = 1
 SUPPORTED_LOCALES = ("MNG", "MNGx", "TOD", "TODx", "SIB", "MCH", "MCHx")
 
-_DATA = files(__package__) / "data"
+# Plain filesystem path (not importlib.resources) so the package runs on
+# Python 3.6+; wheel/sdist installs unpack to a real directory anyway.
+# 用普通文件路径而非 importlib.resources,兼容 Python 3.6+。
+_DATA = Path(__file__).parent / "data"
 
 
 def _base(locale: str) -> str:
-    return locale.removesuffix("x") if locale.endswith("x") else locale
+    return locale[:-1] if locale.endswith("x") else locale
 
 
 def load_rules(locale: str) -> Dict[str, Any]:
