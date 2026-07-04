@@ -1060,12 +1060,13 @@ class MongolianShaper:
                 cs = cs[:-1]
             return cs, with_ctx, p, su, pm
 
-        # ── Pass 1: chains AFTER MVS use the standalone canonical so the
-        #    encoding doesn't rely on MVS to fire particle / init-form
-        #    rules. Skip chachlag (chain ('Aa',)) — user wants
-        #    `mvs + bare a/e` preserved.
-        #    MVS 后的 chain 改用 standalone canonical,不依赖 MVS 触发规则。
-        #    Chachlag(chain ('Aa',))跳过,保留 `mvs + bare a/e`。
+        # ── Pass 1: chachlag FVS-strip. Post-MVS chains already get their
+        #    standalone canonical structurally (in _canonical_for_shape);
+        #    the one exception is chachlag (chain ('Aa',)), where the user
+        #    wants `mvs + bare a/e` rather than the isolate pin a+fvs2/e+fvs1.
+        #    Pass 1:chachlag 去 FVS。MVS 后的 chain 已在 _canonical_for_shape
+        #    结构性地用 standalone canonical;唯一例外是 chachlag('Aa'),
+        #    要 `mvs + 裸 a/e` 而非 isolate 钉死形 a+fvs2/e+fvs1。
         for i, (kind, body) in enumerate(chunks):
             if kind != 'chain' or not body:
                 continue
@@ -1092,18 +1093,11 @@ class MongolianShaper:
                         chunks[i] = ['chain', bare_body]
                         changed = True
                 continue
-
-            # Compute the standalone canonical of this chain shape (the
-            # one that works without MVS context). If it verifies with
-            # MVS prefix, swap it in. This makes `mvs + du` → `mvs +
-            # d+u+fvs2` (and similar multi-letter particle chains).
-            # 算 chain shape 的 standalone canonical,用 MVS 上下文校验。
-            standalone = self._encode_chain_canonical(chain_shape)
-            if not standalone or standalone == body:
-                continue
-            if tuple(self.shape(prefix + standalone + suffix)) == with_ctx_shape:
-                chunks[i] = ['chain', standalone]
-                changed = True
+            # (Non-chachlag post-MVS chains already get their standalone
+            # canonical structurally, in _canonical_for_shape — nothing to
+            # do here.)
+            # (非 chachlag 的 MVS 后 chain 已在 _canonical_for_shape 结构性
+            # 地用 standalone canonical,此处无事可做。)
 
         # ── Pass 2: single-letter chains get isol-particle preference.
         #    Handles Rule 1 (`I` iso → `i+fvs1`, replacing bare `j`).
@@ -1215,9 +1209,30 @@ class MongolianShaper:
                 while scan >= 0 and parts[scan][0] != 'chain':
                     prefix_tokens = (parts[scan][0],) + prefix_tokens
                     scan -= 1
-                chain_canonical = self._encode_chain_canonical(
-                    body, prefix_tokens, suffix_text, suffix_target,
-                )
+                chain_canonical = None
+                # A chain directly after MVS (except chachlag ('Aa',)) is a
+                # suffix particle: encode it as its STANDALONE canonical —
+                # drop the MVS, normalize, re-attach — so the spelling is
+                # identical with and without MVS and never depends on it.
+                # Verified in full context; falls through if the standalone
+                # spelling happens to render differently after MVS.
+                # MVS 后的 chain(chachlag 'Aa' 除外)= 后缀词:去掉 MVS 按
+                # standalone 求 canonical、再拼回 MVS —— 有无 MVS 拼写一致,
+                # 不依赖 MVS。全上下文校验;个别 MVS 下变形的再走回退。
+                if (prefix_tokens and prefix_tokens[-1] == 'mvs'
+                        and body not in self._CHACHLAG_CHAIN_SHAPES):
+                    standalone = self._encode_chain_canonical(body)
+                    if standalone:
+                        prefix_text = ''.join(self._STRUCTURAL_CHARS[t]
+                                              for t in prefix_tokens)
+                        want = prefix_tokens + body + suffix_target
+                        if tuple(self.shape(prefix_text + standalone
+                                            + suffix_text)) == want:
+                            chain_canonical = standalone
+                if chain_canonical is None:
+                    chain_canonical = self._encode_chain_canonical(
+                        body, prefix_tokens, suffix_text, suffix_target,
+                    )
                 encoded[index] = chain_canonical
                 suffix_text = chain_canonical + suffix_text
                 suffix_target = body + suffix_target
