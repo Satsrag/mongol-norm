@@ -982,7 +982,7 @@ class TestNormalize(unittest.TestCase):
     # FVS clutter is the deliberate price of prefix-stability).
     # 每个单元钉死为 context 无关编码,故前缀稳定;中位 I 需 fvs3 才 context
     # 无关,FVS 杂讯是前缀稳定的代价。
-    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ"
+    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
 
     def test_sain_base(self):
         self.assertEqual(self.s.normalize("ᠰᠠᠢᠨ"), self.CANONICAL_SAIN)
@@ -1028,7 +1028,7 @@ class TestNormalizeText(unittest.TestCase):
 
     # Canonical "sain" under the FVS-pinned per-unit encoder (see
     # TestNormalize for the rationale). All variants converge to one output.
-    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ"
+    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
 
     def test_single_word_matches_normalize(self):
         # normalize_text on a single word should match normalize

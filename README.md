@@ -89,12 +89,12 @@ Per word:
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
    3. **verify** — reshape the candidate in full context; accept only if it equals the target chain shape.
-   4. **gap chains** — a handful of chains can't be expressed by table entries alone (bowed-consonant + following-vowel forms like `B+A`; `Sh+I` clusters). These fall back to an exhaustive search over letter partitions and FVS combinations (~13 corpus chains). A letter next to a joiner simply looks its unit up at the shifted (joined) position — no wrapping tricks needed.
+   4. **no search fallback** — the table is total over the corpus (with FVS-first selection there are no gap chains left). If an out-of-corpus shape ever misses the table, the safety net returns the input unchanged (round-trip preserved, never a silent mis-encoding). A letter next to a joiner simply looks its unit up at the shifted (joined) position.
 3. **post-MVS suffix rule** — a chain directly after MVS takes its **standalone** canonical (drop the MVS, normalize, re-attach), so the spelling never depends on MVS. One exception: chachlag `Aa` after MVS is written the bare letter `a`. (The isolate-`I` → `i+FVS1` spelling is pinned in the table itself — no post-processing pass exists.)
 
 **Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the shared region encodes identically except the single boundary unit whose position changes (final in *B* → medial in *A*). The per-unit table delivers this for free — each unit's encoding depends only on its own position, never on its neighbours.
 
-**How the table is built** (the *selection method*): offline, a **context-independence battery** fills each `(position, written-unit)` slot with the `(letter, FVS)` — tried masculine-first, bare-first — that renders *exactly* that unit in *every* probed neighbour context. The result is exported and shipped as JSON; the battery lives in `scripts/gen_normalize_table.py`.
+**How the table is built** (the *selection method*): offline, a **context-independence battery** fills each `(position, written-unit)` slot with the `(letter, FVS)` that renders *exactly* that unit in *every* probed neighbour context (the probes include a bowed consonant, so post-bowed effects can't hide). Candidate order is **letter-major, FVS-first within the letter** — an FVS exists precisely to pin a form against context, so the pinned variant of the right letter always beats its context-sensitive bare form. The result is exported and shipped as JSON; the battery lives in `scripts/gen_normalize_table.py`.
 
 > Note: output is **FVS-pinned**, not bare — each unit carries the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md), so ports in other languages can implement `normalize` with just a JSON parser.
 
@@ -370,12 +370,12 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
    1. **划分 + 查表**(主路径):每个位置优先取单单元(输出干净),否则取最长多单元,查 `(位置, 书写单元) → (字母, FVS)` 的 FVS 钉死表。每个值**不依赖邻居**就渲染出该单元 → 确定性、O(N)、前缀稳定。
    2. **velar 阴性微调**:`G`/`Gx` 前向耦合的元音(`a`/`o`/`u`)换成阴性(`e`/`oe`/`ue`),输出更干净。
    3. **校验**:在完整上下文里重新 shape,只接受与目标 chain shape 一致的结果。
-   4. **缺口 chain**:少数 chain 仅靠表条目表达不了(弓形辅音+后随元音形如 `B+A`;`Sh+I` 簇),回退到对字母划分×FVS 组合的穷举搜索(语料中约 13 个)。紧邻 joiner 的字母只是按移动后的连接位置查表 —— 不再需要任何包裹技巧。
+   4. **没有搜索兜底**:FVS 优先的选择下,表对全部语料 chain 是完备的(缺口为零)。语料外的 shape 万一查不到表,安全网原样返回输入(保住往返,绝不静默错编)。紧邻 joiner 的字母只是按移动后的连接位置查表。
 3. **MVS 后缀规则**:紧跟 MVS 的 chain 用其 **standalone** canonical(去掉 MVS、归一、再拼回),拼写不依赖 MVS。唯一例外:MVS 后的 chachlag `Aa` 写裸字母 `a`。(孤立 `I` → `i+FVS1` 的拼写已钉进表本身 —— 不存在后处理。)
 
 **前缀稳定**的含义:若词 *A* = 词 *B* + 后缀,且二者 shape 共享前缀,则共享部分编码完全一致,只有那个位置发生变化的边界单元不同(在 *B* 里是词尾、在 *A* 里变词中)。逐单元表天然保证这点 —— 每个单元的编码只取决于它自己的位置,与邻居无关。
 
-**表是怎么来的**(*选择方法*):离线跑一个 **context 无关性电池** —— 对每个 `(位置, 书写单元)`,按"阳性优先、裸形优先"挑出那个在**所有**探测邻居上下文里都**恰好**渲染出该单元的 `(字母, FVS)`。结果导出成 JSON 随包发布;电池在 `scripts/gen_normalize_table.py`。
+**表是怎么来的**(*选择方法*):离线跑一个 **context 无关性电池** —— 对每个 `(位置, 书写单元)`,挑出在**所有**探测邻居上下文里都**恰好**渲染出该单元的 `(字母, FVS)`(探针含弓形辅音,post-bowed 效应藏不住)。候选顺序是**字母优先、字母内 FVS 优先** —— FVS 的意义就是把字形从 context 里隔离出来,所以正确字母的钉死形永远优于其受感染的裸形。结果导出成 JSON 随包发布;电池在 `scripts/gen_normalize_table.py`。
 
 > 注意:输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
 

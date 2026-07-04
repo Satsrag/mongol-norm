@@ -44,8 +44,11 @@ LOCALES = ["MNG"]
 
 # Context battery: neighbour letters used to probe context-independence.
 # Cover masc vowel (a), fem vowel (e), masc round vowel (o), neutral (i),
-# plain consonant (n), sibilant (s), velar (g).
-CI_PROBE_LETTERS = (0x1820, 0x1821, 0x1823, 0x1822, 0x1828, 0x1830, 0x182D)
+# plain consonant (n), sibilant (s), velar (g), and a BOWED consonant (b) —
+# without a true bowed neighbour the battery is blind to post_bowed effects
+# (e.g. bare final a renders the swung Aa after b) and false-passes bare picks.
+# 探针需含真弓形邻居(b),否则电池看不到 post_bowed 毒化,裸形会被误判安全。
+CI_PROBE_LETTERS = (0x1820, 0x1821, 0x1823, 0x1822, 0x1828, 0x1830, 0x182D, 0x182A)
 
 
 def _is_context_independent(shaper, position, written, cp, fvs_cp):
@@ -89,13 +92,18 @@ def compute_unit_tables(shaper):
     table = {}
     for (position, written), candidates in shaper._candidates_map.items():
         # MASCULINE-first for vowels; context-independence is the gate. Sort
-        # masc-first, bare-first, cp asc, fvs asc, keep the FIRST that passes.
+        # masc-first, FVS-FIRST, cp asc, fvs asc, keep the FIRST that passes.
+        # FVS-first because an FVS exists precisely to pin a form against
+        # context; bare letters are context-sensitive by design and only
+        # acceptable when no FVS'd candidate renders the unit.
+        # FVS 优先:FVS 的意义就是隔离 context;裸字母天生受上下文感染,
+        # 只有没有可用 FVS 候选时才退而用裸形。
         ordered_candidates = sorted(
             ((candidate['cp'], FVS_INT_TO_CP.get(candidate['fvs']))
              for candidate in candidates),
             key=lambda pair: (
                 shaper.cp_to_alias.get(pair[0]) in shaper.feminine_vowels,
-                pair[1] is not None, pair[0], pair[1] or 0,
+                pair[0], pair[1] is None, pair[1] or 0,
             )
         )
         seen = set()
@@ -136,7 +144,7 @@ def compute_unit_tables(shaper):
         ordered_candidates = sorted(
             ((candidate['cp'], FVS_INT_TO_CP.get(candidate['fvs']))
              for candidate in candidates if candidate['cp'] in feminine_vowel_cps),
-            key=lambda pair: (pair[1] is not None, pair[0], pair[1] or 0)
+            key=lambda pair: (pair[0], pair[1] is None, pair[1] or 0)
         )
         seen = set()
         for cp, fvs_cp in ordered_candidates:

@@ -255,7 +255,7 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as `mvs`/`nirugu`/`zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (nirugu/zwj) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
 2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
-4. Verify by reshaping. The rare chains the table can't express (bowed-consonant + following-vowel forms like `B+A`, and `Sh+I` clusters) need the exhaustive-search fallback described in the [README](../README.md#how-normalize-works).
+4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, return the input unchanged rather than mis-encode.
 
 Full reference: [`mongol_norm/shaper.py`](../mongol_norm/shaper.py) — `_unit_encode_chain`, `_unit_partition`, `_apply_velar_fem`.
 

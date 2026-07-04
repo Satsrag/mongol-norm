@@ -19,7 +19,8 @@
     "i",
     "n",
     "s",
-    "g"
+    "g",
+    "b"
   ],
   "velar_fem_units": [
     "G",
@@ -40,7 +41,7 @@
       "A+A": {
         "letter": "a",
         "cp": "1820",
-        "fvs": null
+        "fvs": "180D"
       },
       "A+G": {
         "letter": "ng",
@@ -55,7 +56,7 @@
       "A+I": {
         "letter": "i",
         "cp": "1822",
-        "fvs": null
+        "fvs": "180D"
       },
       "A+O": {
         "letter": "o",
@@ -128,9 +129,9 @@
         "fvs": null
       },
       "Hx": {
-        "letter": "g",
-        "cp": "182D",
-        "fvs": null
+        "letter": "h",
+        "cp": "182C",
+        "fvs": "180B"
       },
       "I": {
         "letter": "i",
@@ -242,7 +243,7 @@
       "A+A": {
         "letter": "a",
         "cp": "1820",
-        "fvs": null
+        "fvs": "180C"
       },
       "A+G": {
         "letter": "ng",
@@ -257,7 +258,7 @@
       "A+I": {
         "letter": "i",
         "cp": "1822",
-        "fvs": null
+        "fvs": "180C"
       },
       "A+O": {
         "letter": "o",
@@ -325,9 +326,9 @@
         "fvs": "180B"
       },
       "I": {
-        "letter": "j",
-        "cp": "1835",
-        "fvs": null
+        "letter": "i",
+        "cp": "1822",
+        "fvs": "180B"
       },
       "K": {
         "letter": "k",
@@ -387,7 +388,7 @@
       "Sh": {
         "letter": "sh",
         "cp": "1831",
-        "fvs": null
+        "fvs": "180C"
       },
       "T": {
         "letter": "t",
@@ -402,7 +403,7 @@
       "Y": {
         "letter": "y",
         "cp": "1836",
-        "fvs": null
+        "fvs": "180C"
       },
       "Z": {
         "letter": "z",
@@ -599,7 +600,7 @@
       "Y": {
         "letter": "y",
         "cp": "1836",
-        "fvs": null
+        "fvs": "180D"
       },
       "Z": {
         "letter": "z",
@@ -616,7 +617,7 @@
       "A": {
         "letter": "a",
         "cp": "1820",
-        "fvs": null
+        "fvs": "180C"
       },
       "A+G": {
         "letter": "ng",
@@ -800,7 +801,7 @@
       "A": {
         "letter": "e",
         "cp": "1821",
-        "fvs": null
+        "fvs": "180C"
       },
       "Aa": {
         "letter": "e",

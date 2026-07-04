@@ -1105,23 +1105,24 @@ class MongolianShaper:
         (prefix_tokens = the mvs/nirugu/zwj run right before the chain).
         canonical 编码(prefix_tokens = 紧邻前方的 mvs/nirugu/zwj 结构串)。
 
-        Strategy / 策略:
-          0. _unit_encode_chain — PRIMARY. A per-(position, written-unit)
-             FVS-pinned table lookup: deterministic, O(N), prefix-stable.
-             Handles ~99.5% of chains; returns None only on a rare gap.
-             主路径:逐(位置, written 单元)的 FVS 钉死查表,确定性、O(N)、
-             前缀稳定。覆盖 ~99.5% 的 chain,缺口才返回 None。
-          1. _exhaustive_chain_canonical — the lone fallback net for the
-             few gap chains the table can't reach (bowed-consonant +
-             following-vowel forms, Sh+I clusters). Slow but rare.
-             唯一回退网:表够不到的少数缺口 chain(弓形辅音+后随元音形、
-             Sh+I 簇)。慢但罕见。
-        Every returned encoding is shape()-verified by the caller.
+        The per-(position, written-unit) FVS-pinned table lookup IS the
+        algorithm — deterministic, O(N), prefix-stable, shape()-verified.
+        There is no search fallback: with the letter-major / FVS-first
+        battery ordering and the bowed probe, the table covers every corpus
+        chain. On a genuine gap we return "" and normalize()'s safety net
+        hands the input back unchanged (round-trip preserved, never a
+        silent mis-encoding); extend the table via
+        scripts/gen_normalize_table.py.
+        逐(位置, 单元)的 FVS 钉死查表就是算法本身 —— 确定性、O(N)、前缀
+        稳定、shape 校验。没有搜索兜底:字母优先/FVS 优先的电池排序 + 弓形
+        探针后,表已覆盖全部语料 chain。真缺口返回 "",由 normalize 的安全
+        网原样返回输入(保住往返,绝不静默错编);扩表用
+        scripts/gen_normalize_table.py。
         """
         result = self._unit_encode_chain(chain_shape, prefix_tokens, suffix_text, suffix_target)
         if result is not None:
             return result
-        return self._exhaustive_chain_canonical(chain_shape, prefix_tokens, suffix_text, suffix_target)
+        return ""
 
     # ── Unit-encoder (FVS-pinned per-(position, unit) table) ─────────
     # Each shape unit is encoded by a context-INDEPENDENT (letter, fvs):
@@ -1344,154 +1345,6 @@ class MongolianShaper:
         if letter_index == 0:
             return 'init'
         return 'fina' if letter_index == total - 1 else 'medi'
-
-    def _exhaustive_chain_canonical(self, chain_shape, prefix_tokens=(),
-                                     suffix_text="", suffix_target=()):
-        """
-        Exhaustive search fallback (slow). Used only for the rare gap chains
-        the per-unit table cannot express (bowed-consonant + following-vowel
-        forms, Sh+I clusters, …): enumerate letter counts, partitions of the
-        units over the letters, and FVS combinations; verify each candidate by
-        reshaping in full context. Canonical = min by (char length, lex).
-        穷举回退(慢)。仅用于逐单元表表达不了的罕见缺口 chain(弓形辅音+
-        后随元音形、Sh+I 簇等):枚举字母数×划分×FVS 组合,完整上下文 reshape
-        校验,取 (长度, 字典序) 最小。
-
-        Search strategy / 搜索策略:
-          Outer:  iterate letter_count from 1 upward.
-                  从 1 开始递增枚举字母数。
-          Inner:  for each partition, iterate fvs_count from 0 upward and
-                  stop as soon as length exceeds best_length. With FVS count
-                  fixed, every combo has known encoded length so we can
-                  length-prune without per-combo sum().
-                  按 FVS 数量递增枚举,长度即可一次性算出,无需逐组合 sum()。
-
-        Joiners (nirugu/zwj) adjacent to the chain shift letter positions —
-        handled by padding the position computation, same as the unit encoder.
-        (Historically this method also *invented* nirugu wraps; now that
-        joiners are explicit shape tokens, inventing one could never verify,
-        so the wrap machinery is gone.)
-        紧邻的 joiner 通过位置 padding 处理,与查表编码器一致。(旧版会"发明"
-        nirugu 包裹;joiner 显式进入 shape 后发明必然校验失败,机制已移除。)
-        """
-        if not hasattr(self, '_candidates_map'):
-            self._build_candidates_map()
-        if not hasattr(self, '_slot_candidates_cache'):
-            self._slot_candidates_cache = {}
-
-        from itertools import combinations as iter_combos, product as iter_product
-        unit_count = len(chain_shape)
-        chain_units = list(chain_shape)
-        # Verification context: the structural prefix run (mvs/nirugu/zwj) and
-        # the caller-supplied suffix (following chain canonicals), so
-        # cross-boundary rule interactions are captured.
-        # 校验上下文:前导结构串(mvs/nirugu/zwj)+ 调用方提供的后缀(后续链
-        # canonical),以捕获跨界规则交互。
-        prefix_text = ''.join(self._STRUCTURAL_CHARS[t] for t in prefix_tokens)
-        verify_target = tuple(prefix_tokens) + tuple(chain_shape) + tuple(suffix_target)
-        pad_left = 1 if (prefix_tokens and prefix_tokens[-1] in self._JOINER_TOKENS) else 0
-        pad_right = 1 if (suffix_target and suffix_target[0] in self._JOINER_TOKENS) else 0
-
-        best_length = None
-        best_text = None
-
-        for letter_count in range(1, unit_count + 1):
-            if best_length is not None and letter_count > best_length:
-                break
-            padded_count = letter_count + pad_left + pad_right
-            positions = tuple(
-                self._letter_position(letter_index + pad_left, padded_count)
-                for letter_index in range(letter_count)
-            )
-
-            for partition in self._iter_chain_partitions(unit_count, letter_count):
-                # Build slot candidates split into (bare, fvs) per slot.
-                # Each cached as a 2-tuple of cp-sorted tuples.
-                # 每个 slot 候选拆为 (bare, fvs) 两份,按 cp 排序后缓存。
-                slot_bare = []
-                slot_fvs = []
-                unit_index = 0
-                slots_ok = True
-                for size, position in zip(partition, positions):
-                    slot_units = tuple(chain_units[unit_index:unit_index + size])
-                    unit_index += size
-                    key = (position, slot_units)
-                    cached_candidates = self._slot_candidates_cache.get(key)
-                    if cached_candidates is None:
-                        raw_candidates = self._candidates_map.get(key, [])
-                        bare_set = set()
-                        fvs_set = set()
-                        for candidate in raw_candidates:
-                            fvs_cp = FVS_INT_TO_CP.get(candidate['fvs'])
-                            if fvs_cp is None:
-                                bare_set.add(candidate['cp'])
-                            else:
-                                fvs_set.add((candidate['cp'], fvs_cp))
-                        bare_tuple = tuple(
-                            (cp, None) for cp in sorted(bare_set)
-                        )
-                        fvs_tuple = tuple(sorted(fvs_set))
-                        cached_candidates = (bare_tuple, fvs_tuple)
-                        self._slot_candidates_cache[key] = cached_candidates
-                    if not cached_candidates[0] and not cached_candidates[1]:
-                        slots_ok = False
-                        break
-                    slot_bare.append(cached_candidates[0])
-                    slot_fvs.append(cached_candidates[1])
-                if not slots_ok:
-                    continue
-
-                # Iterate by FVS count so each pass has fixed encoded_length.
-                # 按 FVS 数量分层,每层长度固定,length-prune 无需 per-combo sum。
-                for fvs_count in range(0, letter_count + 1):
-                    encoded_length = letter_count + fvs_count
-                    if best_length is not None and encoded_length > best_length:
-                        break
-                    for fvs_indices in iter_combos(range(letter_count), fvs_count):
-                        fvs_index_set = set(fvs_indices)
-                        per_slot = []
-                        slot_skip = False
-                        for letter_index in range(letter_count):
-                            candidates = (slot_fvs[letter_index]
-                                          if letter_index in fvs_index_set
-                                          else slot_bare[letter_index])
-                            if not candidates:
-                                slot_skip = True
-                                break
-                            per_slot.append(candidates)
-                        if slot_skip:
-                            continue
-                        for combo in iter_product(*per_slot):
-                            text = "".join(
-                                chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
-                                for cp, fvs_cp in combo
-                            )
-                            if best_length is not None and encoded_length == best_length and text >= best_text:
-                                continue
-                            # Verify: shape of (structural prefix) + text +
-                            # (suffix) must equal the corresponding window of
-                            # the parent shape.
-                            if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
-                                if best_length is None or encoded_length < best_length or text < best_text:
-                                    best_length = encoded_length
-                                    best_text = text
-
-        return best_text or ""
-
-    def _iter_chain_partitions(self, unit_count, part_count):
-        """Yield all ordered compositions of unit_count into exactly part_count
-        positive parts."""
-        if part_count == 1:
-            yield (unit_count,)
-            return
-        # Each first-part size leaves unit_count-first for the remaining
-        # part_count-1 parts; the smallest remaining sum is part_count-1, so
-        # first ranges 1..unit_count-part_count+1.
-        # 第一部分留 unit_count-first 给后 part_count-1 部分;后部最小和为
-        # part_count-1,故 first 取 1..unit_count-part_count+1。
-        for first in range(1, unit_count - part_count + 2):
-            for rest in self._iter_chain_partitions(unit_count - first, part_count - 1):
-                yield (first,) + rest
 
     def normalize_text(self, text):
         """
