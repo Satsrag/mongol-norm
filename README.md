@@ -134,13 +134,13 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 
 # Normalize: one canonical, FVS-pinned Unicode (same shape ⟹ same Unicode)
 shaper.normalize("ᠰᠡᠢᠨ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 ```
 
 #### Full-text normalization
@@ -150,11 +150,11 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 ```python
 # Normalize a sentence (each Mongolian word normalized independently)
 shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ ᠨᠠᠢ᠍ᠮᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ ᠨᠠᠢ᠍ᠮᠠ᠌'
 
 # Mixed script: non-Mongolian text preserved as-is
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
-# → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ world'
+# → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
 ```
 
 #### Batch normalization example
@@ -164,7 +164,7 @@ words = ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠨ᠌ᠢᠢᠨ", "ᠰᠠᠶ᠋ᠢ�
 normalized = [shaper.normalize(w) for w in words]
 unique = set(normalized)
 print(f"{len(words)} inputs → {len(unique)} unique form(s): {unique}")
-# 4 inputs → 1 unique form(s): {'ᠰᠠᠢ᠍ᠢ᠍ᠠ'}
+# 4 inputs → 1 unique form(s): {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
 ```
 
 #### Command line
@@ -415,13 +415,13 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 
 # 规范化:唯一的 FVS 钉死 canonical(同 shape ⟹ 同 Unicode)
 shaper.normalize("ᠰᠡᠢᠨ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 ```
 
 #### 全文规范化
@@ -431,11 +431,11 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 ```python
 # 规范化句子（每个蒙古文词独立规范化）
 shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ")
-# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ ᠨᠠᠢ᠍ᠮᠠ'
+# → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ ᠨᠠᠢ᠍ᠮᠠ᠌'
 
 # 混合文字：非蒙古文文本原样保留
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
-# → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ world'
+# → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
 ```
 
 #### 批量规范化示例
@@ -445,8 +445,34 @@ words = ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠨ᠌ᠢᠢᠨ", "ᠰᠠᠶ᠋ᠢ�
 normalized = [shaper.normalize(w) for w in words]
 unique = set(normalized)
 print(f"{len(words)} 个输入 → {len(unique)} 个唯一形态：{unique}")
-# 4 个输入 → 1 个唯一形态：{'ᠰᠠᠢ᠍ᠢ᠍ᠠ'}
+# 4 个输入 → 1 个唯一形态：{'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
 ```
+
+#### 命令行
+
+`pip install mongol-norm` 之后,`mongol-norm` 命令即在 `PATH` 上(不安装也可用 `python -m mongol_norm.shaper ...`)。
+
+```bash
+# 直接传文本
+mongol-norm shape 'ᠰᠠᠢᠨ'                   # → S+A+I+I+A
+mongol-norm normalize 'ᠰᠡᠢᠨ'               # 输出 canonical
+mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # 混合文字
+
+# 管道 / 标准输入(文本位置写 `-`)
+echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
+cat doc.txt | mongol-norm normalize-text -
+
+# 文件输入 / 输出
+mongol-norm normalize-text -i in.txt -o out.txt
+
+# 批量:一行一词输入,一行一个 canonical 输出
+mongol-norm normalize --batch -i words.txt -o canonical.txt
+
+# 视觉等价检查(相同退出码 0,不同退出码 1)
+mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
+```
+
+`normalize`(单词模式)会跳过非蒙古文字符,多行文件直接喂给它会被当成一整个词;一行一词的文件请用 `--batch`,自由文本请用 `normalize-text`。
 
 ### 运行测试
 
