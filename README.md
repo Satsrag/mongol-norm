@@ -1,6 +1,6 @@
 # mongol-norm
 
-[![Test](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml/badge.svg)](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml)
+[![Test](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml/badge.svg)](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml) [![PyPI](https://img.shields.io/pypi/v/mongol-norm.svg)](https://pypi.org/project/mongol-norm/) [![Python](https://img.shields.io/pypi/pyversions/mongol-norm.svg)](https://pypi.org/project/mongol-norm/)
 
 [English](#english) | [中文](#中文)
 
@@ -100,7 +100,13 @@ Per word:
 
 ### Installation
 
-`mongol-norm` is a single self-contained package — the shaping/normalize data is bundled, no separate data package or runtime dependency. Not on PyPI yet — install from source:
+`mongol-norm` is a single self-contained package on [PyPI](https://pypi.org/project/mongol-norm/) — the shaping/normalize data is bundled, no runtime dependencies:
+
+```bash
+pip install mongol-norm
+```
+
+Or from source:
 
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
@@ -163,7 +169,7 @@ print(f"{len(words)} inputs → {len(unique)} unique form(s): {unique}")
 
 #### Command line
 
-After `pip install .`, the `mongol-norm` command is on `PATH` (or run `python -m mongol_norm.shaper ...` without installing).
+After `pip install mongol-norm`, the `mongol-norm` command is on `PATH` (or run `python -m mongol_norm.shaper ...` without installing).
 
 ```bash
 # Inline text
@@ -250,7 +256,7 @@ mongol-norm/                          # the repo = the package (single, self-con
     └── data/{core,eac}-hud.tsv       # vendored from mongfontbuilder
 ```
 
-`mongol-norm` has **no runtime dependencies** — the shaping/normalize JSON is bundled in `mongol_norm/data/`. Not on PyPI yet — install from source.
+`mongol-norm` has **no runtime dependencies** — the shaping/normalize JSON is bundled in `mongol_norm/data/`. Install with `pip install mongol-norm`.
 
 ### Data Sources & Acknowledgments
 
@@ -375,7 +381,13 @@ SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuil
 
 ### 安装
 
-`mongol-norm` 是单一自包含包 —— shaping/normalize 数据已内置,没有独立数据包,也没有运行时依赖。还没发布到 PyPI,从源码本地安装:
+`mongol-norm` 是单一自包含包,已发布到 [PyPI](https://pypi.org/project/mongol-norm/) —— shaping/normalize 数据内置,零运行时依赖:
+
+```bash
+pip install mongol-norm
+```
+
+或从源码安装:
 
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
@@ -499,7 +511,7 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
     └── data/{core,eac}-hud.tsv       # 来自 mongfontbuilder
 ```
 
-`mongol-norm` **没有运行时依赖** —— shaping/normalize JSON 内置在 `mongol_norm/data/`。还没上 PyPI, 从源码安装。
+`mongol-norm` **没有运行时依赖** —— shaping/normalize JSON 内置在 `mongol_norm/data/`。安装:`pip install mongol-norm`。
 
 ### 数据来源与致谢
 
