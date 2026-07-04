@@ -995,37 +995,26 @@ class MongolianShaper:
     # 跳过 particle 替换的 shape:chachlag 'Aa' 保留 bare a/e + MVS 编码。
     _CHACHLAG_CHAIN_SHAPES = frozenset({('Aa',)})
 
+    # Isolate-I spelling: a chain rendering exactly ['I'] is always written
+    # i+FVS1 (user rule; never bare j, which renders the same there).
+    # 孤立 I 的拼写:shape 恰为 ['I'] 的 chain 一律写 i+FVS1(不用裸 j)。
+    _ISOLATE_I_TEXT = chr(0x1822) + chr(0x180B)  # i + FVS1
+
     def _apply_particle_substitution(self, text, target_shape):
         """
-        Post-process canonical text: for each single-letter chain whose
-        context-aware shape matches a particle-tagged variant at isol,
-        replace the chain encoding with that explicit particle form.
-        对每个单字母 chain,若其上下文 shape 匹配 isol 的 particle 变体,
-        将该 chain 改为显式 particle 编码。
-
-        Handles two user-requested rules:
-        处理用户提出的两条规则:
-          1. shape ['I'] at iso always → i+fvs1 (not bare j)
-             单字母 'I' 总归到 i+fvs1(而非 bare j)
-          2. mvs + bare-particle → mvs + particle+fvs (mvs-independent rendering)
-             mvs 后的裸 particle → mvs + particle+fvs(渲染不依赖 mvs)
-
-        Chachlag (chain ['Aa']) is excluded; bare a/e + MVS stays.
-        Chachlag(chain ['Aa'])排除;bare a/e + MVS 保留。
-
+        Post-process canonical text with two fixed spelling rules (everything
+        else is handled structurally in _canonical_for_shape):
+          1. a chain rendering exactly ['I'] is written i+fvs1 (not bare j)
+          2. chachlag after MVS is written bare (`mvs + a/e`, stripping the
+             isolate pin a+fvs2 / e+fvs1)
         Verifies shape-preservation per substitution; reverts on mismatch.
-        每次替换都校验保形,不通过则回滚。
+        两条固定拼写规则(其余已由 _canonical_for_shape 结构性处理):
+          1. shape 恰为 ['I'] 的 chain 写成 i+fvs1(不用裸 j)
+          2. MVS 后的 chachlag 写裸形(`mvs + a/e`,去掉 a+fvs2/e+fvs1)
+        每次替换校验保形,不通过则回滚。
         """
         if not text:
             return text
-        # Particle variants come from the candidates map (rule data), not the
-        # per-unit table — so build it lazily here. When the unit table is
-        # loaded from the precomputed spec the battery never runs, so this is
-        # the only thing that materializes the candidates.
-        # particle 变体取自 candidates map(规则数据)而非逐单元表;表从预生成
-        # spec 加载时电池不跑,故此处惰性构建 candidates。
-        if not hasattr(self, '_candidates_map'):
-            self._build_candidates_map()
 
         # Chunk text into (kind, body) where kind is 'mvs' or 'chain'.
         # 切分文本为 (kind, body),kind 是 'mvs' 或 'chain'。
@@ -1058,83 +1047,38 @@ class MongolianShaper:
                 cs = cs[1:]
             if nm:
                 cs = cs[:-1]
-            return cs, with_ctx, p, su, pm
+            return cs, with_ctx, p, su
 
-        # ── Pass 1: chachlag FVS-strip. Post-MVS chains already get their
-        #    standalone canonical structurally (in _canonical_for_shape);
-        #    the one exception is chachlag (chain ('Aa',)), where the user
-        #    wants `mvs + bare a/e` rather than the isolate pin a+fvs2/e+fvs1.
-        #    Pass 1:chachlag 去 FVS。MVS 后的 chain 已在 _canonical_for_shape
-        #    结构性地用 standalone canonical;唯一例外是 chachlag('Aa'),
-        #    要 `mvs + 裸 a/e` 而非 isolate 钉死形 a+fvs2/e+fvs1。
+        def is_letter_with_optional_fvs(body):
+            cps = [ord(c) for c in body]
+            if len(cps) == 1:
+                return is_mongolian_letter(cps[0])
+            if len(cps) == 2:
+                return is_mongolian_letter(cps[0]) and cps[1] in FVS_CPS
+            return False
+
         for i, (kind, body) in enumerate(chunks):
-            if kind != 'chain' or not body:
+            if kind != 'chain' or not body or not is_letter_with_optional_fvs(body):
                 continue
-            pm, nm, prefix, suffix = chunk_ctx(i)
-            if not pm:
-                continue
-            chain_shape, with_ctx_shape, _, _, _ = chunk_chain_shape(i, body)
-            # Particles are pure letter sequences — a chunk whose shape
-            # contains structural tokens (nirugu/zwj) can never be one;
-            # skip instead of feeding a doomed chain to the encoder.
-            # particle 只会是纯字母;含结构 token 的 chunk 直接跳过。
-            if any(t in self._STRUCTURAL_CHARS for t in chain_shape):
-                continue
+            prev_mvs, _, prefix, suffix = chunk_ctx(i)
+            chain_shape, with_ctx_shape, _, _ = chunk_chain_shape(i, body)
 
             if chain_shape in self._CHACHLAG_CHAIN_SHAPES:
-                # Strip FVS for chachlag: prefer `mvs + bare a/e` over
-                # `mvs + a+fvs2`/`mvs + e+fvs1`. Try removing the FVS
-                # from the body and verify shape preserved.
-                # chachlag 去 FVS:把 a+fvs2/e+fvs1 还原为 bare。
-                cps = [ord(c) for c in body]
-                if len(cps) == 2 and is_mongolian_letter(cps[0]) and cps[1] in FVS_CPS:
-                    bare_body = chr(cps[0])
+                # Rule 2 — chachlag FVS-strip (only meaningful after MVS).
+                # 规则 2 —— chachlag 去 FVS(仅 MVS 后有意义)。
+                if prev_mvs and len(body) == 2:
+                    bare_body = body[0]
                     if tuple(self.shape(prefix + bare_body + suffix)) == with_ctx_shape:
                         chunks[i] = ['chain', bare_body]
                         changed = True
                 continue
-            # (Non-chachlag post-MVS chains already get their standalone
-            # canonical structurally, in _canonical_for_shape — nothing to
-            # do here.)
-            # (非 chachlag 的 MVS 后 chain 已在 _canonical_for_shape 结构性
-            # 地用 standalone canonical,此处无事可做。)
 
-        # ── Pass 2: single-letter chains get isol-particle preference.
-        #    Handles Rule 1 (`I` iso → `i+fvs1`, replacing bare `j`).
-        #    单字母 chain 用 isol particle(规则 1:I iso → i+fvs1)。
-        for i, (kind, body) in enumerate(chunks):
-            if kind != 'chain' or not body:
-                continue
-            cps = [ord(c) for c in body]
-            if len(cps) == 1:
-                if not is_mongolian_letter(cps[0]):
-                    continue
-            elif len(cps) == 2:
-                if not (is_mongolian_letter(cps[0]) and cps[1] in FVS_CPS):
-                    continue
-            else:
-                continue
-
-            chain_shape, with_ctx_shape, prefix, suffix, _ = chunk_chain_shape(i, body)
-            if chain_shape in self._CHACHLAG_CHAIN_SHAPES:
-                continue
-
-            cands = self._candidates_map.get(('isol', chain_shape), [])
-            particle_cands = sorted(
-                ((c['cp'], FVS_INT_TO_CP.get(c['fvs'])) for c in cands if c.get('particle')),
-                key=lambda p: (p[0], (p[1] or 0))
-            )
-            for cp, fvs_cp in particle_cands:
-                if fvs_cp is None:
-                    new_body = chr(cp)
-                else:
-                    new_body = chr(cp) + chr(fvs_cp)
-                if new_body == body:
-                    break  # already in particle form
-                if tuple(self.shape(prefix + new_body + suffix)) == with_ctx_shape:
-                    chunks[i] = ['chain', new_body]
+            # Rule 1 — isolate-I spelling.
+            # 规则 1 —— 孤立 I 拼写。
+            if chain_shape == ('I',) and body != self._ISOLATE_I_TEXT:
+                if tuple(self.shape(prefix + self._ISOLATE_I_TEXT + suffix)) == with_ctx_shape:
+                    chunks[i] = ['chain', self._ISOLATE_I_TEXT]
                     changed = True
-                    break
 
         if not changed:
             return text
