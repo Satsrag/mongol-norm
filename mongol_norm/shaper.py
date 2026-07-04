@@ -979,38 +979,24 @@ class MongolianShaper:
         if not canonical or self.shape(canonical) != target:
             return text
 
-        # Post-process: rewrite single-letter chains so non-chachlag
-        # particles get their explicit particle-FVS encoding instead of
-        # relying on positional context (MVS / init-form rendering).
-        # See `_apply_particle_substitution` for the rule.
-        # 后处理:把单字母 chain 改为显式 particle 编码(非 chachlag),
-        # 不依赖 MVS / init-形态渲染。
-        canonical = self._apply_particle_substitution(canonical, target)
+        # Post-process: the one fixed spelling rule (isolate-I → i+fvs1).
+        # 后处理:唯一固定拼写规则(孤立 I → i+fvs1)。
+        canonical = self._apply_isolate_i_spelling(canonical, target)
         return canonical
-
-    # Shapes that should KEEP the chachlag (bare a/e + MVS) encoding —
-    # per user request, particle post-processing skips these. The chachlag
-    # rule fires on a/e after MVS to give 'Aa'; explicit particle form
-    # would replace bare a with a+fvs2, which the user wants to avoid.
-    # 跳过 particle 替换的 shape:chachlag 'Aa' 保留 bare a/e + MVS 编码。
-    _CHACHLAG_CHAIN_SHAPES = frozenset({('Aa',)})
 
     # Isolate-I spelling: a chain rendering exactly ['I'] is always written
     # i+FVS1 (user rule; never bare j, which renders the same there).
     # 孤立 I 的拼写:shape 恰为 ['I'] 的 chain 一律写 i+FVS1(不用裸 j)。
     _ISOLATE_I_TEXT = chr(0x1822) + chr(0x180B)  # i + FVS1
 
-    def _apply_particle_substitution(self, text, target_shape):
+    def _apply_isolate_i_spelling(self, text, target_shape):
         """
-        Post-process canonical text with two fixed spelling rules (everything
-        else is handled structurally in _canonical_for_shape):
-          1. a chain rendering exactly ['I'] is written i+fvs1 (not bare j)
-          2. chachlag after MVS is written bare (`mvs + a/e`, stripping the
-             isolate pin a+fvs2 / e+fvs1)
+        Post-process canonical text with ONE fixed spelling rule (everything
+        else is handled structurally in _canonical_for_shape): a chain
+        rendering exactly ['I'] is written i+fvs1, not bare j.
         Verifies shape-preservation per substitution; reverts on mismatch.
-        两条固定拼写规则(其余已由 _canonical_for_shape 结构性处理):
-          1. shape 恰为 ['I'] 的 chain 写成 i+fvs1(不用裸 j)
-          2. MVS 后的 chachlag 写裸形(`mvs + a/e`,去掉 a+fvs2/e+fvs1)
+        唯一的固定拼写规则(其余已由 _canonical_for_shape 结构性处理):
+        shape 恰为 ['I'] 的 chain 写成 i+fvs1(不用裸 j)。
         每次替换校验保形,不通过则回滚。
         """
         if not text:
@@ -1033,22 +1019,6 @@ class MongolianShaper:
 
         changed = False
 
-        def chunk_ctx(i):
-            """Return (prev_mvs, next_mvs, prefix, suffix) for chunk i."""
-            pm = i > 0 and chunks[i - 1][0] == 'mvs'
-            nm = i + 1 < len(chunks) and chunks[i + 1][0] == 'mvs'
-            return pm, nm, (chr(MVS_CP) if pm else ''), (chr(MVS_CP) if nm else '')
-
-        def chunk_chain_shape(i, body):
-            pm, nm, p, su = chunk_ctx(i)
-            with_ctx = tuple(self.shape(p + body + su))
-            cs = with_ctx
-            if pm:
-                cs = cs[1:]
-            if nm:
-                cs = cs[:-1]
-            return cs, with_ctx, p, su
-
         def is_letter_with_optional_fvs(body):
             cps = [ord(c) for c in body]
             if len(cps) == 1:
@@ -1058,27 +1028,22 @@ class MongolianShaper:
             return False
 
         for i, (kind, body) in enumerate(chunks):
-            if kind != 'chain' or not body or not is_letter_with_optional_fvs(body):
+            if (kind != 'chain' or not body
+                    or body == self._ISOLATE_I_TEXT
+                    or not is_letter_with_optional_fvs(body)):
                 continue
-            prev_mvs, _, prefix, suffix = chunk_ctx(i)
-            chain_shape, with_ctx_shape, _, _ = chunk_chain_shape(i, body)
-
-            if chain_shape in self._CHACHLAG_CHAIN_SHAPES:
-                # Rule 2 — chachlag FVS-strip (only meaningful after MVS).
-                # 规则 2 —— chachlag 去 FVS(仅 MVS 后有意义)。
-                if prev_mvs and len(body) == 2:
-                    bare_body = body[0]
-                    if tuple(self.shape(prefix + bare_body + suffix)) == with_ctx_shape:
-                        chunks[i] = ['chain', bare_body]
-                        changed = True
+            prev_mvs = i > 0 and chunks[i - 1][0] == 'mvs'
+            next_mvs = i + 1 < len(chunks) and chunks[i + 1][0] == 'mvs'
+            prefix = chr(MVS_CP) if prev_mvs else ''
+            suffix = chr(MVS_CP) if next_mvs else ''
+            with_ctx_shape = tuple(self.shape(prefix + body + suffix))
+            chain_shape = with_ctx_shape[(1 if prev_mvs else 0):
+                                         (-1 if next_mvs else None)]
+            if chain_shape != ('I',):
                 continue
-
-            # Rule 1 — isolate-I spelling.
-            # 规则 1 —— 孤立 I 拼写。
-            if chain_shape == ('I',) and body != self._ISOLATE_I_TEXT:
-                if tuple(self.shape(prefix + self._ISOLATE_I_TEXT + suffix)) == with_ctx_shape:
-                    chunks[i] = ['chain', self._ISOLATE_I_TEXT]
-                    changed = True
+            if tuple(self.shape(prefix + self._ISOLATE_I_TEXT + suffix)) == with_ctx_shape:
+                chunks[i] = ['chain', self._ISOLATE_I_TEXT]
+                changed = True
 
         if not changed:
             return text
@@ -1154,17 +1119,18 @@ class MongolianShaper:
                     prefix_tokens = (parts[scan][0],) + prefix_tokens
                     scan -= 1
                 chain_canonical = None
-                # A chain directly after MVS (except chachlag ('Aa',)) is a
-                # suffix particle: encode it as its STANDALONE canonical —
-                # drop the MVS, normalize, re-attach — so the spelling is
-                # identical with and without MVS and never depends on it.
-                # Verified in full context; falls through if the standalone
-                # spelling happens to render differently after MVS.
-                # MVS 后的 chain(chachlag 'Aa' 除外)= 后缀词:去掉 MVS 按
-                # standalone 求 canonical、再拼回 MVS —— 有无 MVS 拼写一致,
-                # 不依赖 MVS。全上下文校验;个别 MVS 下变形的再走回退。
-                if (prefix_tokens and prefix_tokens[-1] == 'mvs'
-                        and body not in self._CHACHLAG_CHAIN_SHAPES):
+                # A chain directly after MVS is a suffix particle: encode it
+                # as its STANDALONE canonical — drop the MVS, normalize,
+                # re-attach — so the spelling is identical with and without
+                # MVS and never depends on it (chachlag included: 'Aa' takes
+                # its isolate pin a+fvs2/e+fvs1). Verified in full context;
+                # falls through if the standalone spelling happens to render
+                # differently after MVS.
+                # MVS 后的 chain = 后缀词:去掉 MVS 按 standalone 求 canonical、
+                # 再拼回 MVS —— 有无 MVS 拼写一致,不依赖 MVS(chachlag 一并
+                # 处理:'Aa' 用 isolate 钉死形 a+fvs2/e+fvs1)。全上下文校验;
+                # 个别 MVS 下变形的再走回退。
+                if prefix_tokens and prefix_tokens[-1] == 'mvs':
                     standalone = self._encode_chain_canonical(body)
                     if standalone:
                         prefix_text = ''.join(self._STRUCTURAL_CHARS[t]
