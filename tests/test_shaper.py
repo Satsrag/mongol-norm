@@ -952,7 +952,7 @@ class TestSameShape(unittest.TestCase):
             self.assertTrue(self.s.same_shape(variants[0], v), f"Expected same shape: {variants[0]} vs {v}")
 
     def test_different_words_not_equal(self):
-        self.assertFalse(self.s.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢᠮᠠ"))
+        self.assertFalse(self.s.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ"))
 
     def test_same_string_reflexive(self):
         self.assertTrue(self.s.same_shape("ᠰᠠᠢᠨ", "ᠰᠠᠢᠨ"))
@@ -998,7 +998,7 @@ class TestNormalize(unittest.TestCase):
 
     def test_idempotent(self):
         # normalize(normalize(x)) == normalize(x)
-        for word in ["ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ", "ᠨᠠᠢᠮᠠ", "ᠣᠷᠣᠨ"]:
+        for word in ["ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ", "ᠣᠷᠣᠨ"]:
             n1 = self.s.normalize(word)
             n2 = self.s.normalize(n1)
             self.assertEqual(n1, n2, f"Not idempotent: {word!r} → {n1!r} → {n2!r}")
@@ -1033,21 +1033,21 @@ class TestNormalizeText(unittest.TestCase):
     def test_single_word_matches_normalize(self):
         # normalize_text on a single word should match normalize
         # 单词的 normalize_text 应与 normalize 一致
-        for word in ["ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ", "ᠨᠠᠢᠮᠠ", "ᠣᠷᠣᠨ"]:
+        for word in ["ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ", "ᠣᠷᠣᠨ"]:
             self.assertEqual(self.s.normalize_text(word), self.s.normalize(word))
 
     def test_two_words_space_separated(self):
         # Two Mongolian words separated by a space
         # 空格分隔的两个蒙古文词
-        text = "ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ"
+        text = "ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ"
         result = self.s.normalize_text(text)
-        expected = self.s.normalize("ᠰᠡᠢᠨ") + " " + self.s.normalize("ᠨᠠᠢᠮᠠ")
+        expected = self.s.normalize("ᠰᠡᠢᠨ") + " " + self.s.normalize("ᠨᠠᠢ᠍ᠮᠠ")
         self.assertEqual(result, expected)
 
     def test_space_preserved(self):
         # Spaces must be preserved exactly
         # 空格必须精确保留
-        text = "ᠰᠠᠢᠨ  ᠨᠠᠢᠮᠠ"  # double space
+        text = "ᠰᠠᠢᠨ  ᠨᠠᠢ᠍ᠮᠠ"  # double space
         result = self.s.normalize_text(text)
         self.assertIn("  ", result)
 
@@ -1061,7 +1061,7 @@ class TestNormalizeText(unittest.TestCase):
     def test_punctuation_preserved(self):
         # Mongolian punctuation and regular punctuation preserved
         # 蒙古文标点和普通标点保留
-        text = "ᠰᠡᠢᠨ, ᠨᠠᠢᠮᠠ!"
+        text = "ᠰᠡᠢᠨ, ᠨᠠᠢ᠍ᠮᠠ!"
         result = self.s.normalize_text(text)
         self.assertIn(",", result)
         self.assertIn("!", result)
@@ -1078,7 +1078,7 @@ class TestNormalizeText(unittest.TestCase):
 
     def test_idempotent(self):
         # normalize_text(normalize_text(x)) == normalize_text(x)
-        text = "ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ"
+        text = "ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ"
         n1 = self.s.normalize_text(text)
         n2 = self.s.normalize_text(n1)
         self.assertEqual(n1, n2)
@@ -1086,12 +1086,12 @@ class TestNormalizeText(unittest.TestCase):
     def test_numbers_preserved(self):
         # Numbers mixed with Mongolian text stay unchanged
         # 数字与蒙古文混合时保持不变
-        text = "ᠰᠡᠢᠨ 123 ᠨᠠᠢᠮᠠ"
+        text = "ᠰᠡᠢᠨ 123 ᠨᠠᠢ᠍ᠮᠠ"
         result = self.s.normalize_text(text)
         self.assertIn("123", result)
         self.assertEqual(
             result,
-            self.s.normalize("ᠰᠡᠢᠨ") + " 123 " + self.s.normalize("ᠨᠠᠢᠮᠠ"),
+            self.s.normalize("ᠰᠡᠢᠨ") + " 123 " + self.s.normalize("ᠨᠠᠢ᠍ᠮᠠ"),
         )
 
     def test_symbols_preserved(self):
@@ -1106,7 +1106,7 @@ class TestNormalizeText(unittest.TestCase):
         # Each word should be normalized independently — verify by checking
         # that multi-word normalize_text matches word-by-word normalize
         # 每个词应独立规范化——通过检查多词结果与逐词结果一致来验证
-        words = ["ᠰᠡᠢᠨ", "ᠣᠷᠣᠨ", "ᠨᠠᠢᠮᠠ"]
+        words = ["ᠰᠡᠢᠨ", "ᠣᠷᠣᠨ", "ᠨᠠᠢ᠍ᠮᠠ"]
         text = " ".join(words)
         result = self.s.normalize_text(text)
         expected = " ".join(self.s.normalize(w) for w in words)
@@ -1232,7 +1232,7 @@ class TestNNBSP(unittest.TestCase):
         # NNBSP inside Mongolian word (normalized to MVS), regular space between words
         # NNBSP 在蒙古文词内（规范化为 MVS），普通空格在词间
         word1 = "ᠰᠠᠢᠨ" + self.NNBSP + "ᠠ"
-        word2 = "ᠨᠠᠢᠮᠠ"
+        word2 = "ᠨᠠᠢ᠍ᠮᠠ"
         text = word1 + " " + word2
         result = self.s.normalize_text(text)
         self.assertIn(self.MVS, result, "NNBSP must become MVS in output")
@@ -1250,7 +1250,7 @@ class TestNNBSP(unittest.TestCase):
         self.assertEqual(n1, n2, "normalize() with NNBSP must be idempotent")
 
     def test_nnbsp_normalize_text_idempotent(self):
-        text = "ᠰᠠᠢᠨ" + self.NNBSP + "ᠠ" + " " + "ᠨᠠᠢᠮᠠ"
+        text = "ᠰᠠᠢᠨ" + self.NNBSP + "ᠠ" + " " + "ᠨᠠᠢ᠍ᠮᠠ"
         n1 = self.s.normalize_text(text)
         n2 = self.s.normalize_text(n1)
         self.assertEqual(n1, n2, "normalize_text() with NNBSP must be idempotent")

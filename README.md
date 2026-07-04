@@ -1,6 +1,6 @@
 # mongol-norm
 
-[![Test](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml/badge.svg)](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml) [![PyPI](https://img.shields.io/pypi/v/mongol-norm.svg)](https://pypi.org/project/mongol-norm/) [![Python](https://img.shields.io/pypi/pyversions/mongol-norm.svg)](https://pypi.org/project/mongol-norm/)
+[![Test](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml/badge.svg)](https://github.com/Satsrag/mongol-norm/actions/workflows/test.yml)
 
 [English](#english) | [中文](#中文)
 
@@ -129,7 +129,7 @@ shaper.shape("ᠰᠠᠢᠨ")
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")
 # → True
 
-shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢᠮᠠ")
+shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 # → False
 
 # Normalize: canonical bare Unicode
@@ -149,8 +149,8 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 
 ```python
 # Normalize a sentence (each Mongolian word normalized independently)
-shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ")
-# → 'ᠰᠠᠢᠨ ᠨᠠᠢᠮᠠ'
+shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ")
+# → 'ᠰᠠᠢᠨ ᠨᠠᠢ᠍ᠮᠠ'
 
 # Mixed script: non-Mongolian text preserved as-is
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
@@ -410,7 +410,7 @@ shaper.shape("ᠰᠠᠢᠨ")
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")
 # → True
 
-shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢᠮᠠ")
+shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 # → False
 
 # 规范化：输出唯一的 bare Unicode
@@ -430,8 +430,8 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 
 ```python
 # 规范化句子（每个蒙古文词独立规范化）
-shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢᠮᠠ")
-# → 'ᠰᠠᠢᠨ ᠨᠠᠢᠮᠠ'
+shaper.normalize_text("ᠰᠡᠢᠨ ᠨᠠᠢ᠍ᠮᠠ")
+# → 'ᠰᠠᠢᠨ ᠨᠠᠢ᠍ᠮᠠ'
 
 # 混合文字：非蒙古文文本原样保留
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")
