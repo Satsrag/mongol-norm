@@ -783,6 +783,14 @@ class MongolianShaper:
         for tok in tokens:
             if tok.is_mvs:
                 result.append("mvs")
+            elif tok.is_nirugu:
+                # Joiners are shape tokens like 'mvs': nirugu renders a
+                # visible stem glyph, ZWJ invisibly forces joining — both
+                # are the evidence for neighbours' init/medi/fina forms and
+                # must survive into the shape (and thus into normalize).
+                # joiner 与 mvs 同级:nirugu 是可见的连笔字形,zwj 隐形强制
+                # 连接;都是邻居 init/medi/fina 形的依据,必须保留进 shape。
+                result.append(tok.alias)  # 'nirugu' or 'zwj'
             elif tok.written:
                 result.extend(tok.written)
         return result
@@ -1065,6 +1073,12 @@ class MongolianShaper:
             if not pm:
                 continue
             chain_shape, with_ctx_shape, _, _, _ = chunk_chain_shape(i, body)
+            # Particles are pure letter sequences — a chunk whose shape
+            # contains structural tokens (nirugu/zwj) can never be one;
+            # skip instead of feeding a doomed chain to the encoder.
+            # particle 只会是纯字母;含结构 token 的 chunk 直接跳过。
+            if any(t in self._STRUCTURAL_CHARS for t in chain_shape):
+                continue
 
             if chain_shape in self._CHACHLAG_CHAIN_SHAPES:
                 # Strip FVS for chachlag: prefer `mvs + bare a/e` over
@@ -1084,7 +1098,7 @@ class MongolianShaper:
             # MVS prefix, swap it in. This makes `mvs + du` → `mvs +
             # d+u+fvs2` (and similar multi-letter particle chains).
             # 算 chain shape 的 standalone canonical,用 MVS 上下文校验。
-            standalone = self._encode_chain_canonical(chain_shape, False, '', ())
+            standalone = self._encode_chain_canonical(chain_shape)
             if not standalone or standalone == body:
                 continue
             if tuple(self.shape(prefix + standalone + suffix)) == with_ctx_shape:
@@ -1163,15 +1177,19 @@ class MongolianShaper:
         交互:MVS 后的阳性元音可能反向传播,影响 MVS 前的 g/h 渲染。
         仅包含相邻 MVS 的校验不足以捕获这类交互。
         """
-        # Parse into structural (mvs) + chain segments.
-        parts = []  # list of ('mvs', None) | ('chain', tuple)
+        # Parse into structural (mvs/nirugu/zwj) + chain segments. Structural
+        # tokens are copied VERBATIM into the canonical (they are part of the
+        # shape, like 'mvs'); only the letter chains between them are encoded.
+        # 切分为结构 token(mvs/nirugu/zwj)与 chain。结构 token 原样进
+        # canonical;只对其间的字母 chain 编码。
+        parts = []  # list of (structural_token, None) | ('chain', tuple)
         current_chain = []
         for unit in shape_list:
-            if unit == 'mvs':
+            if unit in self._STRUCTURAL_CHARS:
                 if current_chain:
                     parts.append(('chain', tuple(current_chain)))
                     current_chain = []
-                parts.append(('mvs', None))
+                parts.append((unit, None))
             else:
                 current_chain.append(unit)
         if current_chain:
@@ -1182,45 +1200,61 @@ class MongolianShaper:
         suffix_target = ()
         for index in range(len(parts) - 1, -1, -1):
             kind, body = parts[index]
-            if kind == 'mvs':
-                encoded[index] = chr(MVS_CP)
-                suffix_text = chr(MVS_CP) + suffix_text
-                suffix_target = ('mvs',) + suffix_target
+            if kind != 'chain':
+                encoded[index] = self._STRUCTURAL_CHARS[kind]
+                suffix_text = encoded[index] + suffix_text
+                suffix_target = (kind,) + suffix_target
             else:
-                prev_mvs = index > 0 and parts[index - 1][0] == 'mvs'
+                # Context = the full run of structural tokens immediately
+                # before this chain (an MVS behind a nirugu still matters:
+                # chachlag looks through nirugu).
+                # 上下文 = 紧邻前方的整段结构 token(nirugu 背后的 MVS 仍有
+                # 影响:chachlag 会穿透 nirugu)。
+                scan = index - 1
+                prefix_tokens = ()
+                while scan >= 0 and parts[scan][0] != 'chain':
+                    prefix_tokens = (parts[scan][0],) + prefix_tokens
+                    scan -= 1
                 chain_canonical = self._encode_chain_canonical(
-                    body, prev_mvs, suffix_text, suffix_target,
+                    body, prefix_tokens, suffix_text, suffix_target,
                 )
                 encoded[index] = chain_canonical
                 suffix_text = chain_canonical + suffix_text
                 suffix_target = body + suffix_target
         return "".join(encoded)
 
-    def _encode_chain_canonical(self, chain_shape, prev_mvs, suffix_text, suffix_target):
-        """Memoised canonical encoding for a chain shape under MVS / suffix context."""
+    # Structural shape tokens and the characters they encode to, verbatim.
+    # 结构 shape token 及其原样对应的字符。
+    _STRUCTURAL_CHARS = {
+        'mvs': chr(MVS_CP),
+        'nirugu': chr(NIRUGU_CP),
+        'zwj': chr(ZWJ_CP),
+    }
+    # Joiners force cursive connection on the adjacent letter (shift its
+    # position to a joined form); MVS does not (post-MVS letters restart).
+    # joiner 强制相邻字母连接(位置变连接形);MVS 不会(MVS 后重新起词)。
+    _JOINER_TOKENS = frozenset({'nirugu', 'zwj'})
+
+    def _encode_chain_canonical(self, chain_shape, prefix_tokens=(),
+                                suffix_text="", suffix_target=()):
+        """Memoised canonical encoding for a chain shape under its structural
+        prefix (mvs/nirugu/zwj run) + suffix context."""
         if not hasattr(self, '_chain_canon_cache'):
             self._chain_canon_cache = {}
-        cache_key = (chain_shape, prev_mvs, suffix_text, suffix_target)
+        cache_key = (chain_shape, prefix_tokens, suffix_text, suffix_target)
         cached = self._chain_canon_cache.get(cache_key)
         if cached is not None:
             return cached
-        result = self._compute_chain_canonical(chain_shape, prev_mvs, suffix_text, suffix_target)
+        result = self._compute_chain_canonical(chain_shape, prefix_tokens, suffix_text, suffix_target)
         self._chain_canon_cache[cache_key] = result
         return result
 
-    # Nirugu-wrap permutations tried per chain. Each (pre, post) shifts
-    # letter positions: e.g. (1,1) puts a single letter at 'medi' instead
-    # of 'isol', enabling shapes like ['O'] that only appear in medi.
-    # Multiple nirugus don't change shape further, so {0,1}² covers it.
-    # 每个 chain 尝试的 nirugu 包裹组合。如 (1,1) 把单字母放到 medi,
-    # 这样像 ['O'] 这类只出现在 medi 的 shape 才有编码。
-    _NIRUGU_WRAPS = ((0, 0), (0, 1), (1, 0), (1, 1))
-
-    def _compute_chain_canonical(self, chain_shape, prev_mvs=False,
+    def _compute_chain_canonical(self, chain_shape, prefix_tokens=(),
                                   suffix_text="", suffix_target=()):
         """
-        Canonical encoding for chain_shape.
-        canonical 编码。
+        Canonical encoding for chain_shape under its structural context
+        (prefix_tokens = the mvs/nirugu/zwj run right before the chain).
+        canonical 编码(prefix_tokens = 紧邻前方的 mvs/nirugu/zwj 结构串)。
 
         Strategy / 策略:
           0. _unit_encode_chain — PRIMARY. A per-(position, written-unit)
@@ -1229,17 +1263,16 @@ class MongolianShaper:
              主路径:逐(位置, written 单元)的 FVS 钉死查表,确定性、O(N)、
              前缀稳定。覆盖 ~99.5% 的 chain,缺口才返回 None。
           1. _exhaustive_chain_canonical — the lone fallback net for the
-             few gap chains the table can't reach (isolated gap-letters
-             like O/J/Dd/Ue, and a few bowed-consonant + final-A shapes).
-             Slow but fires only on those ~19 chains.
-             唯一回退网:表够不到的少数缺口 chain(孤立 O/J/Dd/Ue 等,
-             及个别 bowed辅音+尾A 形)。慢但仅这 ~19 个触发。
+             few gap chains the table can't reach (bowed-consonant +
+             following-vowel forms, Sh+I clusters). Slow but rare.
+             唯一回退网:表够不到的少数缺口 chain(弓形辅音+后随元音形、
+             Sh+I 簇)。慢但罕见。
         Every returned encoding is shape()-verified by the caller.
         """
-        result = self._unit_encode_chain(chain_shape, prev_mvs, suffix_text, suffix_target)
+        result = self._unit_encode_chain(chain_shape, prefix_tokens, suffix_text, suffix_target)
         if result is not None:
             return result
-        return self._exhaustive_chain_canonical(chain_shape, prev_mvs, suffix_text, suffix_target)
+        return self._exhaustive_chain_canonical(chain_shape, prefix_tokens, suffix_text, suffix_target)
 
     # ── Unit-encoder (FVS-pinned per-(position, unit) table) ─────────
     # Each shape unit is encoded by a context-INDEPENDENT (letter, fvs):
@@ -1320,40 +1353,40 @@ class MongolianShaper:
                                   or max((len(written) for (_, written) in table),
                                          default=1))
 
-    def _unit_encode_chain(self, chain_shape, prev_mvs, suffix_text, suffix_target):
+    def _unit_encode_chain(self, chain_shape, prefix_tokens=(),
+                           suffix_text="", suffix_target=()):
         """
         Encode a chain by per-unit table lookup (PRIMARY path). Returns the
         encoding str, or None if no table partition round-trips (→ fallback).
         逐单元查表编码(主路径)。无可还原的查表划分时返回 None(→ 回退)。
 
-        Tries SHORTEST-first partition first (prefer single-unit letters →
-        clean output: a+g not ng, a+i not i+fvs1); only falls to
-        LONGEST-first when shortest fails verify (genuinely multi-unit-only
-        vowel forms like oe → [A,O,I]). Both are deterministic functions of
-        the shape, so prefix-stability / same-shape-same-output hold.
-        先试最短优先划分(优先单单元 → 干净:a+g 而非 ng);失败再退到最长优先
-        (真正只能多单元的元音形,如 oe→[A,O,I])。两者都是 shape 的确定性函数。
+        A joiner (nirugu/zwj) directly before/after the chain shifts letter
+        positions (e.g. a lone unit between two nirugus sits at medi, not
+        isol) — the partition looks units up at those shifted positions.
+        紧邻的 joiner(nirugu/zwj)会移动字母位置(如夹在两个 nirugu 之间的
+        单一单元处于 medi 而非 isol),划分按移动后的位置查表。
         """
         self._build_unit_enc()
-        text = self._unit_partition(chain_shape)
+        joined_left = bool(prefix_tokens) and prefix_tokens[-1] in self._JOINER_TOKENS
+        joined_right = bool(suffix_target) and suffix_target[0] in self._JOINER_TOKENS
+        text = self._unit_partition(chain_shape, joined_left, joined_right)
         if text is None:
             return None
-        # Verify the encoding in its FULL context: a leading MVS if this
-        # chain follows one, and the already-encoded following chains
-        # (suffix_text / suffix_target) so cross-MVS interactions are
-        # checked. `want` MUST include suffix_target — otherwise multi-chain
-        # (MVS) words' non-last chains never verify and fall back to the
-        # search encoder (which can emit junk like 'ng' for [A,G]).
-        # 在完整上下文中校验:前导 MVS + 后续已编码 chain。verify_target 必须含
-        # suffix_target,否则多-MVS 词的非末尾 chain 永远校验失败、回退旧搜索
-        # (会对 [A,G] 吐出 ng 这种 junk)。
-        prefix_text = chr(MVS_CP) if prev_mvs else ''
-        verify_target = (('mvs',) if prev_mvs else ()) + tuple(chain_shape) + tuple(suffix_target)
+        # Verify the encoding in its FULL context: the structural prefix run
+        # (mvs/nirugu/zwj) and the already-encoded following chains
+        # (suffix_text / suffix_target), so cross-boundary interactions are
+        # checked. `verify_target` MUST include suffix_target — otherwise
+        # multi-chain words' non-last chains never verify and fall back to
+        # the search encoder (which can emit junk like 'ng' for [A,G]).
+        # 在完整上下文中校验:前导结构串 + 后续已编码 chain。verify_target 必须
+        # 含 suffix_target,否则多 chain 词的非末尾 chain 永远校验失败。
+        prefix_text = ''.join(self._STRUCTURAL_CHARS[t] for t in prefix_tokens)
+        verify_target = tuple(prefix_tokens) + tuple(chain_shape) + tuple(suffix_target)
         if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
             return text
         return None
 
-    def _unit_partition(self, chain_shape):
+    def _unit_partition(self, chain_shape, joined_left=False, joined_right=False):
         """
         Single deterministic local partition+encode pass. At each position:
           1. take the single unit if the table has it (preferred — clean
@@ -1362,9 +1395,17 @@ class MongolianShaper:
         Local + deterministic ⇒ prefix-stable. Returns text or None.
         单趟确定性局部划分:优先单单元(输出干净) → 其余多单元(兜底)。
         局部确定 → 前缀稳定。
+
+        joined_left / joined_right: a joiner glyph sits right before / after
+        this chain, so positions are computed as if one extra unit padded
+        that side (nirugu+o+nirugu → o at medi).
+        joined_left/right:chain 紧邻 joiner,位置按该侧多一个单元计算。
         """
         table = self._unit_enc
         unit_count = len(chain_shape)
+        pad_left = 1 if joined_left else 0
+        pad_right = 1 if joined_right else 0
+        padded_count = unit_count + pad_left + pad_right
         letters = []          # [cp, fvs_cp] per emitted letter
         unit_at = []          # single unit this letter covers, or None (multi)
         index = 0
@@ -1373,14 +1414,14 @@ class MongolianShaper:
             hit = None
             hit_length = 0
             # 1) single unit (preferred)
-            position = self._slot_position(index, 1, unit_count)
+            position = self._slot_position(index + pad_left, 1, padded_count)
             key = (position, (chain_shape[index],))
             if key in table:
                 hit = table[key]; hit_length = 1
             # 2) else the longest available multi-unit entry (last resort)
             if hit is None:
                 for length in range(span, 1, -1):
-                    position = self._slot_position(index, length, unit_count)
+                    position = self._slot_position(index + pad_left, length, padded_count)
                     key = (position, tuple(chain_shape[index:index + length]))
                     if key in table:
                         hit = table[key]; hit_length = length; break
@@ -1390,13 +1431,14 @@ class MongolianShaper:
             unit_at.append(chain_shape[index] if hit_length == 1 else None)
             index += hit_length
         # velar-feminine refinement (clean output for G/Gx-coupled vowels)
-        self._apply_velar_fem(chain_shape, letters, unit_at)
+        self._apply_velar_fem(chain_shape, letters, unit_at, pad_left, pad_right)
         return ''.join(
             chr(cp) + (chr(fvs) if fvs is not None else '')
             for cp, fvs in letters
         )
 
-    def _apply_velar_fem(self, chain_shape, letters, unit_at):
+    def _apply_velar_fem(self, chain_shape, letters, unit_at,
+                         pad_left=0, pad_right=0):
         """
         In-place: switch the ambiguous vowel coupled to each G/Gx velar to
         its feminine letter. Coupling: init/medi velar ↔ following vowel;
@@ -1419,7 +1461,8 @@ class MongolianShaper:
             # 只做前向耦合(init/medi velar → 后元音)。跳过后向(fina velar →
             # 前元音):fina 加后缀变 medi 会翻转耦合方向,破坏前缀稳定。FVS 钉死
             # 的 velar 无论前元音阴阳都渲染 G,故前元音保持阳性仍能还原。
-            position = self._letter_position(letter_index, total)
+            padded_total = total + pad_left + pad_right
+            position = self._letter_position(letter_index + pad_left, padded_total)
             target_index = letter_index + 1 if position in ('init', 'medi') else None
             if target_index is None or not (0 <= target_index < total):
                 continue
@@ -1430,7 +1473,7 @@ class MongolianShaper:
             # only flip if the coupled vowel is currently a masculine vowel
             if cp not in self._MASC_TO_FEM_CP:
                 continue
-            target_position = self._letter_position(target_index, total)
+            target_position = self._letter_position(target_index + pad_left, padded_total)
             feminine = self._unit_enc_fem.get((target_position, (target_unit,)))
             if feminine is None:
                 continue  # no round-trip-safe feminine form → leave masculine
@@ -1453,35 +1496,34 @@ class MongolianShaper:
             return 'init'
         return 'fina' if letter_index == total - 1 else 'medi'
 
-    def _exhaustive_chain_canonical(self, chain_shape, prev_mvs=False,
+    def _exhaustive_chain_canonical(self, chain_shape, prefix_tokens=(),
                                      suffix_text="", suffix_target=()):
         """
-        Exhaustive search fallback (slow). Used when greedy can't find an
-        encoding. Same algorithm as before greedy was added.
-        穷举回退(慢)。贪婪找不到时使用,算法同加入贪婪之前。
-
-        Each "encoding" is a sequence of letters (with optional FVS each),
-        optionally wrapped by nirugu before / after. Canonical = min by
-        (total char length, lex).
+        Exhaustive search fallback (slow). Used only for the rare gap chains
+        the per-unit table cannot express (bowed-consonant + following-vowel
+        forms, Sh+I clusters, …): enumerate letter counts, partitions of the
+        units over the letters, and FVS combinations; verify each candidate by
+        reshaping in full context. Canonical = min by (char length, lex).
+        穷举回退(慢)。仅用于逐单元表表达不了的罕见缺口 chain(弓形辅音+
+        后随元音形、Sh+I 簇等):枚举字母数×划分×FVS 组合,完整上下文 reshape
+        校验,取 (长度, 字典序) 最小。
 
         Search strategy / 搜索策略:
           Outer:  iterate letter_count from 1 upward.
                   从 1 开始递增枚举字母数。
-          Middle: iterate nirugu wraps {(0,0),(0,1),(1,0),(1,1)}.
-                  枚举 nirugu 包裹组合。
           Inner:  for each partition, iterate fvs_count from 0 upward and
                   stop as soon as length exceeds best_length. With FVS count
                   fixed, every combo has known encoded length so we can
                   length-prune without per-combo sum().
                   按 FVS 数量递增枚举,长度即可一次性算出,无需逐组合 sum()。
 
-        Why wraps / 为什么有 wraps:
-          Some shape-units only appear at non-default positions. For
-          example ['O'] can only be produced when a vowel is at medi —
-          which a 1-letter chain doesn't have. Wrapping with nirugu
-          extends the chain and shifts position: nirugu+o+nirugu → o at medi.
-          某些 shape 单元只在非默认位置出现 (如 ['O'] 仅在元音处于 medi
-          时才有)。nirugu 包裹延长 chain、移动位置。
+        Joiners (nirugu/zwj) adjacent to the chain shift letter positions —
+        handled by padding the position computation, same as the unit encoder.
+        (Historically this method also *invented* nirugu wraps; now that
+        joiners are explicit shape tokens, inventing one could never verify,
+        so the wrap machinery is gone.)
+        紧邻的 joiner 通过位置 padding 处理,与查表编码器一致。(旧版会"发明"
+        nirugu 包裹;joiner 显式进入 shape 后发明必然校验失败,机制已移除。)
         """
         if not hasattr(self, '_candidates_map'):
             self._build_candidates_map()
@@ -1491,18 +1533,15 @@ class MongolianShaper:
         from itertools import combinations as iter_combos, product as iter_product
         unit_count = len(chain_shape)
         chain_units = list(chain_shape)
-        nirugu_char = chr(NIRUGU_CP)
-        mvs_char = chr(MVS_CP)
-        # Verification context: prepend MVS if previous part is MVS; append
-        # the caller-supplied suffix (which contains MVS + following chain
-        # canonicals for cross-chain rule interactions like backward masc
-        # propagation through MVS).
-        # 校验上下文:前置 MVS(若前一段是 MVS);后置 suffix_text(由调用方
-        # 提供 —— 含 MVS 及后续链的 canonical,以捕获跨 MVS 规则交互)。
-        prefix_text = mvs_char if prev_mvs else ''
-        verify_target = (
-            (('mvs',) if prev_mvs else ()) + chain_shape + suffix_target
-        )
+        # Verification context: the structural prefix run (mvs/nirugu/zwj) and
+        # the caller-supplied suffix (following chain canonicals), so
+        # cross-boundary rule interactions are captured.
+        # 校验上下文:前导结构串(mvs/nirugu/zwj)+ 调用方提供的后缀(后续链
+        # canonical),以捕获跨界规则交互。
+        prefix_text = ''.join(self._STRUCTURAL_CHARS[t] for t in prefix_tokens)
+        verify_target = tuple(prefix_tokens) + tuple(chain_shape) + tuple(suffix_target)
+        pad_left = 1 if (prefix_tokens and prefix_tokens[-1] in self._JOINER_TOKENS) else 0
+        pad_right = 1 if (suffix_target and suffix_target[0] in self._JOINER_TOKENS) else 0
 
         best_length = None
         best_text = None
@@ -1510,98 +1549,83 @@ class MongolianShaper:
         for letter_count in range(1, unit_count + 1):
             if best_length is not None and letter_count > best_length:
                 break
+            padded_count = letter_count + pad_left + pad_right
+            positions = tuple(
+                self._letter_position(letter_index + pad_left, padded_count)
+                for letter_index in range(letter_count)
+            )
 
-            for wrap_before, wrap_after in self._NIRUGU_WRAPS:
-                min_length_without_fvs = letter_count + wrap_before + wrap_after
-                if best_length is not None and min_length_without_fvs > best_length:
+            for partition in self._iter_chain_partitions(unit_count, letter_count):
+                # Build slot candidates split into (bare, fvs) per slot.
+                # Each cached as a 2-tuple of cp-sorted tuples.
+                # 每个 slot 候选拆为 (bare, fvs) 两份,按 cp 排序后缓存。
+                slot_bare = []
+                slot_fvs = []
+                unit_index = 0
+                slots_ok = True
+                for size, position in zip(partition, positions):
+                    slot_units = tuple(chain_units[unit_index:unit_index + size])
+                    unit_index += size
+                    key = (position, slot_units)
+                    cached_candidates = self._slot_candidates_cache.get(key)
+                    if cached_candidates is None:
+                        raw_candidates = self._candidates_map.get(key, [])
+                        bare_set = set()
+                        fvs_set = set()
+                        for candidate in raw_candidates:
+                            fvs_cp = FVS_INT_TO_CP.get(candidate['fvs'])
+                            if fvs_cp is None:
+                                bare_set.add(candidate['cp'])
+                            else:
+                                fvs_set.add((candidate['cp'], fvs_cp))
+                        bare_tuple = tuple(
+                            (cp, None) for cp in sorted(bare_set)
+                        )
+                        fvs_tuple = tuple(sorted(fvs_set))
+                        cached_candidates = (bare_tuple, fvs_tuple)
+                        self._slot_candidates_cache[key] = cached_candidates
+                    if not cached_candidates[0] and not cached_candidates[1]:
+                        slots_ok = False
+                        break
+                    slot_bare.append(cached_candidates[0])
+                    slot_fvs.append(cached_candidates[1])
+                if not slots_ok:
                     continue
-                effective_length = letter_count + wrap_before + wrap_after
-                positions = []
-                for letter_index in range(letter_count):
-                    chain_position = wrap_before + letter_index
-                    if effective_length == 1:
-                        positions.append('isol')
-                    elif chain_position == 0:
-                        positions.append('init')
-                    elif chain_position == effective_length - 1:
-                        positions.append('fina')
-                    else:
-                        positions.append('medi')
-                positions = tuple(positions)
 
-                for partition in self._iter_chain_partitions(unit_count, letter_count):
-                    # Build slot candidates split into (bare, fvs) per slot.
-                    # Each cached as a 2-tuple of cp-sorted tuples.
-                    # 每个 slot 候选拆为 (bare, fvs) 两份,按 cp 排序后缓存。
-                    slot_bare = []
-                    slot_fvs = []
-                    unit_index = 0
-                    slots_ok = True
-                    for size, position in zip(partition, positions):
-                        slot_units = tuple(chain_units[unit_index:unit_index + size])
-                        unit_index += size
-                        key = (position, slot_units)
-                        cached_candidates = self._slot_candidates_cache.get(key)
-                        if cached_candidates is None:
-                            raw_candidates = self._candidates_map.get(key, [])
-                            bare_set = set()
-                            fvs_set = set()
-                            for candidate in raw_candidates:
-                                fvs_cp = FVS_INT_TO_CP.get(candidate['fvs'])
-                                if fvs_cp is None:
-                                    bare_set.add(candidate['cp'])
-                                else:
-                                    fvs_set.add((candidate['cp'], fvs_cp))
-                            bare_tuple = tuple(
-                                (cp, None) for cp in sorted(bare_set)
+                # Iterate by FVS count so each pass has fixed encoded_length.
+                # 按 FVS 数量分层,每层长度固定,length-prune 无需 per-combo sum。
+                for fvs_count in range(0, letter_count + 1):
+                    encoded_length = letter_count + fvs_count
+                    if best_length is not None and encoded_length > best_length:
+                        break
+                    for fvs_indices in iter_combos(range(letter_count), fvs_count):
+                        fvs_index_set = set(fvs_indices)
+                        per_slot = []
+                        slot_skip = False
+                        for letter_index in range(letter_count):
+                            candidates = (slot_fvs[letter_index]
+                                          if letter_index in fvs_index_set
+                                          else slot_bare[letter_index])
+                            if not candidates:
+                                slot_skip = True
+                                break
+                            per_slot.append(candidates)
+                        if slot_skip:
+                            continue
+                        for combo in iter_product(*per_slot):
+                            text = "".join(
+                                chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
+                                for cp, fvs_cp in combo
                             )
-                            fvs_tuple = tuple(sorted(fvs_set))
-                            cached_candidates = (bare_tuple, fvs_tuple)
-                            self._slot_candidates_cache[key] = cached_candidates
-                        if not cached_candidates[0] and not cached_candidates[1]:
-                            slots_ok = False
-                            break
-                        slot_bare.append(cached_candidates[0])
-                        slot_fvs.append(cached_candidates[1])
-                    if not slots_ok:
-                        continue
-
-                    # Iterate by FVS count so each pass has fixed encoded_length.
-                    # 按 FVS 数量分层,每层长度固定,length-prune 无需 per-combo sum。
-                    for fvs_count in range(0, letter_count + 1):
-                        encoded_length = letter_count + fvs_count + wrap_before + wrap_after
-                        if best_length is not None and encoded_length > best_length:
-                            break
-                        for fvs_indices in iter_combos(range(letter_count), fvs_count):
-                            fvs_index_set = set(fvs_indices)
-                            per_slot = []
-                            slot_skip = False
-                            for letter_index in range(letter_count):
-                                candidates = (slot_fvs[letter_index]
-                                              if letter_index in fvs_index_set
-                                              else slot_bare[letter_index])
-                                if not candidates:
-                                    slot_skip = True
-                                    break
-                                per_slot.append(candidates)
-                            if slot_skip:
+                            if best_length is not None and encoded_length == best_length and text >= best_text:
                                 continue
-                            for combo in iter_product(*per_slot):
-                                letters_text = "".join(
-                                    chr(cp) if fvs_cp is None else (chr(cp) + chr(fvs_cp))
-                                    for cp, fvs_cp in combo
-                                )
-                                text = nirugu_char * wrap_before + letters_text + nirugu_char * wrap_after
-                                if best_length is not None and encoded_length == best_length and text >= best_text:
-                                    continue
-                                # Verify in MVS context — shape of
-                                # (prefix MVS) + text + (suffix MVS)
-                                # must equal the parent shape's
-                                # corresponding window.
-                                if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
-                                    if best_length is None or encoded_length < best_length or text < best_text:
-                                        best_length = encoded_length
-                                        best_text = text
+                            # Verify: shape of (structural prefix) + text +
+                            # (suffix) must equal the corresponding window of
+                            # the parent shape.
+                            if tuple(self.shape(prefix_text + text + suffix_text)) == verify_target:
+                                if best_length is None or encoded_length < best_length or text < best_text:
+                                    best_length = encoded_length
+                                    best_text = text
 
         return best_text or ""
 

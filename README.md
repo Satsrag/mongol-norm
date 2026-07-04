@@ -86,12 +86,12 @@ The normalizer implements a **lightweight Mongolian shaping engine** — equival
 
 Per word:
 
-1. **shape** the input into its written-unit sequence, then **split** at every MVS into *chains*.
+1. **shape** the input into its written-unit sequence. Structural characters — MVS, nirugu, ZWJ — appear verbatim as `mvs` / `nirugu` / `zwj` tokens (nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
    3. **verify** — reshape the candidate in full context; accept only if it equals the target chain shape.
-   4. **gap chains** — a handful of chains can't be expressed by any per-unit letter (isolated nirugu-only units like `O`/`J`/`Dd`/`Ue`; bowed-consonant + final-vowel finals). These fall back to an exhaustive structural search that may wrap a unit in nirugu (~0.5% of chains).
+   4. **gap chains** — a handful of chains can't be expressed by table entries alone (bowed-consonant + following-vowel forms like `B+A`; `Sh+I` clusters). These fall back to an exhaustive search over letter partitions and FVS combinations (~13 corpus chains). A letter next to a joiner simply looks its unit up at the shifted (joined) position — no wrapping tricks needed.
 3. **particle substitution** post-pass — pin isolate `I` to `i+FVS1`, rewrite `MVS + bare-particle` to `MVS + particle+FVS`, excluding chachlag.
 
 **Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the shared region encodes identically except the single boundary unit whose position changes (final in *B* → medial in *A*). The per-unit table delivers this for free — each unit's encoding depends only on its own position, never on its neighbours.
@@ -377,12 +377,12 @@ CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。在 MNG / Hudum �
 
 逐词:
 
-1. **shape** 成书写单元序列,再按每个 MVS **切成 chain**。
+1. **shape** 成书写单元序列。结构字符 —— MVS、nirugu、ZWJ —— 原样输出为 `mvs` / `nirugu` / `zwj` token(nirugu 是可见的连笔字形;三者都是邻居字母 init/medi/fina 形的依据)。按这些 token **切成 chain**,token 本身原样拷贝。
 2. **逐 chain 编码**(从右往左,这样加后缀不影响前面):
    1. **划分 + 查表**(主路径):每个位置优先取单单元(输出干净),否则取最长多单元,查 `(位置, 书写单元) → (字母, FVS)` 的 FVS 钉死表。每个值**不依赖邻居**就渲染出该单元 → 确定性、O(N)、前缀稳定。
    2. **velar 阴性微调**:`G`/`Gx` 前向耦合的元音(`a`/`o`/`u`)换成阴性(`e`/`oe`/`ue`),输出更干净。
    3. **校验**:在完整上下文里重新 shape,只接受与目标 chain shape 一致的结果。
-   4. **缺口 chain**:少数 chain 任何逐单元字母都表达不了(孤立的 nirugu-only 单元 `O`/`J`/`Dd`/`Ue`;弓形辅音+尾元音),回退到穷举搜索(可能用 nirugu 包裹,约 0.5%)。
+   4. **缺口 chain**:少数 chain 仅靠表条目表达不了(弓形辅音+后随元音形如 `B+A`;`Sh+I` 簇),回退到对字母划分×FVS 组合的穷举搜索(语料中约 13 个)。紧邻 joiner 的字母只是按移动后的连接位置查表 —— 不再需要任何包裹技巧。
 3. **particle 替换**后处理:孤立 `I` 钉成 `i+FVS1`,`MVS + 裸 particle` 改成 `MVS + particle+FVS`,chachlag 除外。
 
 **前缀稳定**的含义:若词 *A* = 词 *B* + 后缀,且二者 shape 共享前缀,则共享部分编码完全一致,只有那个位置发生变化的边界单元不同(在 *B* 里是词尾、在 *A* 里变词中)。逐单元表天然保证这点 —— 每个单元的编码只取决于它自己的位置,与邻居无关。

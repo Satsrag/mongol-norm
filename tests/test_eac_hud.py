@@ -80,11 +80,12 @@ def _shape_aliases(shaper, aliases: str) -> list:
 # Tokens mongfontbuilder emits from font glyph-name parsing that our
 # pure-Python shaper doesn't produce — strip them from expected output
 # so the comparison focuses on actual shape differences.
-#   Ni              — Nirugu glyph (joining marker render)
 #   < / >           — Left / Right join markers
 #   Fvs1..4         — explicit FVS rendering
 #   Nnbsp           — explicit NNBSP rendering
-_FONT_NAMING_ARTIFACTS = {'Ni', '<', '>', 'Fvs1', 'Fvs2', 'Fvs3', 'Fvs4', 'Nnbsp'}
+# (`Ni` is NOT stripped: nirugu is a real glyph and our shape() emits a
+# 'nirugu' token for it — the comparison covers it.)
+_FONT_NAMING_ARTIFACTS = {'<', '>', 'Fvs1', 'Fvs2', 'Fvs3', 'Fvs4', 'Nnbsp'}
 
 
 # Cases where the EAC spec and the UTN model intentionally disagree.
@@ -123,12 +124,15 @@ def _normalize_expected(expected: str) -> list:
     Normalize mongfontbuilder's expected-output tokens for comparison
     against our shaper's output:
       - Collapse narrow `_` / wide `-` / capitalized `Mvs` → `mvs`
-      - Drop font-naming artifacts (`Ni`, `<`, `>`, `Fvs1..4`, `Nnbsp`)
+      - Map the nirugu glyph `Ni` → our 'nirugu' token
+      - Drop font-naming artifacts (`<`, `>`, `Fvs1..4`, `Nnbsp`)
     """
     out = []
     for tok in expected.split():
         if tok in ('_', '-', 'Mvs'):
             out.append('mvs')
+        elif tok == 'Ni':
+            out.append('nirugu')
         elif tok in _FONT_NAMING_ARTIFACTS:
             continue  # drop
         else:
@@ -184,6 +188,10 @@ class TestEacHud(unittest.TestCase):
             except KeyError as e:
                 failures.append(f"{index:12}  input={aliases!r}  PARSE ERROR: {e}")
                 continue
+            # ZWJ is zero-width (renders no glyph) so EAC's expected glyph
+            # stream never names it; drop our 'zwj' tokens for comparison.
+            # ZWJ 零宽不渲染字形,EAC 期望列没有它;比对时剥掉我们的 zwj token。
+            actual = [t for t in actual if t != 'zwj']
             expected_norm = _normalize_expected(expected)
             if actual != expected_norm:
                 failures.append(

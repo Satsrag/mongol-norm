@@ -613,7 +613,7 @@ class TestNormalizeFast(unittest.TestCase, _RoundTripBase):
                  'A', 'J', 'I', 'G', 'O', 'L', 'G', 'O')
         self.s._chain_canon_cache = {}  # cold
         t = time.time()
-        enc = self.s._compute_chain_canonical(chain, False, '', ())
+        enc = self.s._compute_chain_canonical(chain)
         elapsed = time.time() - t
         self.assertEqual(tuple(self.s.shape(enc)), chain,
                          "long-chain encoding must round-trip")
@@ -676,8 +676,8 @@ class TestPrefixStability(unittest.TestCase, _RoundTripBase):
         A = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L', 'G',
              'A', 'J', 'I', 'G', 'O', 'L', 'G', 'O')
         B = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L')
-        encA = self.s._encode_chain_canonical(A, False, '', ())
-        encB = self.s._encode_chain_canonical(B, False, '', ())
+        encA = self.s._encode_chain_canonical(A)
+        encB = self.s._encode_chain_canonical(B)
         lettersA = _split_letters(encA)
         lettersB = _split_letters(encB)
         # shared region = all of B's letters except its last (the boundary)
@@ -700,13 +700,17 @@ class TestPrefixStability(unittest.TestCase, _RoundTripBase):
         encoding flips fina->medi as the word grows).
         真实语料词对(shape(B) 是 shape(A) 前缀)的共享区编码必须一致,>=99%。
         """
+        # Only pure-letter chains: structural tokens (mvs/nirugu/zwj) split
+        # words into chains, so feeding them as one chain is meaningless.
+        # 只取纯字母 chain:结构 token 会切分 chain,整词直接喂无意义。
+        structural = ('mvs', 'nirugu', 'zwj')
         shapes = {}
         for _, aliases in INLINE_CASES:
             for w in _aliases_to_words(aliases):
                 if w:
                     sh = tuple(self.s.shape(w))
-                    if 'mvs' not in sh:
-                        shapes[sh] = self.s._encode_chain_canonical(sh, False, '', ())
+                    if not any(t in structural for t in sh):
+                        shapes[sh] = self.s._encode_chain_canonical(sh)
         for fn in ('core-hud.tsv', 'eac-hud.tsv'):
             for _, aliases, _exp in _load_tsv(fn):
                 toks = aliases.split()
@@ -715,8 +719,8 @@ class TestPrefixStability(unittest.TestCase, _RoundTripBase):
                 for w in _aliases_to_words(aliases):
                     if w:
                         sh = tuple(self.s.shape(w))
-                        if 'mvs' not in sh:
-                            shapes[sh] = self.s._encode_chain_canonical(sh, False, '', ())
+                        if not any(t in structural for t in sh):
+                            shapes[sh] = self.s._encode_chain_canonical(sh)
         shapeset = set(shapes)
         pairs = viol = 0
         examples = []
