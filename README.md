@@ -281,7 +281,7 @@ mongol-norm/                          # the repo = the package (single, self-con
 
 ### License
 
-SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuilder` and UTN #57 sources.
+SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuilder` and UTN #57 sources. See [LICENSE](LICENSE).
 
 ---
 
@@ -562,4 +562,4 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 
 ### 许可证
 
-SIL Open Font License 1.1 (`OFL-1.1`) — 跟上游 `mongfontbuilder` 和 UTN #57 一致。
+SIL Open Font License 1.1 (`OFL-1.1`) — 跟上游 `mongfontbuilder` 和 UTN #57 一致。见 [LICENSE](LICENSE)。
