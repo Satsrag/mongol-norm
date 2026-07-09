@@ -281,7 +281,9 @@ mongol-norm/                          # the repo = the package (single, self-con
 
 ### License
 
-SIL Open Font License 1.1 (`OFL-1.1`) — consistent with upstream `mongfontbuilder` and UTN #57 sources.
+MIT License — see [LICENSE](LICENSE).
+
+The shaping rules and bundled data are derived from [`mongfontbuilder`](https://github.com/Kushim-Jiang/mongfontbuilder) (MIT) and UTN #57. Their required notices are retained in [NOTICE](NOTICE).
 
 ---
 
@@ -562,4 +564,6 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 
 ### 许可证
 
-SIL Open Font License 1.1 (`OFL-1.1`) — 跟上游 `mongfontbuilder` 和 UTN #57 一致。
+MIT License —— 见 [LICENSE](LICENSE)。
+
+整形规则与内置数据派生自 [`mongfontbuilder`](https://github.com/Kushim-Jiang/mongfontbuilder)(MIT)和 UTN #57,其许可证要求的署名保留在 [NOTICE](NOTICE) 中。
