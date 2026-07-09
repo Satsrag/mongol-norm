@@ -8,7 +8,7 @@ version = "0.0.2"
 description = "Shape-aware normalizer for Traditional Mongolian script. Implements the UTN #57 v4 shaping pipeline in pure Python."
 readme = "README.md"
 requires-python = ">=3.6"
-license = { text = "OFL-1.1" }
+license = { text = "MIT" }
 keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
 classifiers = [
     "Programming Language :: Python :: 3",
