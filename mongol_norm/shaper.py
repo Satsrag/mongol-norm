@@ -84,6 +84,18 @@ def is_mongolian_letter(cp):
     return cp in MONGOLIAN_BLOCK
 
 
+def is_mongolian_word_char(cp):
+    """Return whether *cp* participates in a Mongolian word run.
+
+    Strict word validation and mixed-text segmentation must share this
+    classification. Splitting at Nirugu or ZWJ changes neighbouring letters'
+    isol/init/medi/fina positions and therefore changes normalization.
+    """
+    return (is_mongolian_letter(cp)
+            or cp in FVS_CPS
+            or cp in (MVS_CP, NNBSP_CP, NIRUGU_CP, ZWJ_CP))
+
+
 def _check_word_chars(text):
     """
     Raise ValueError if `text` contains any char that is not a Mongolian
@@ -97,12 +109,7 @@ def _check_word_chars(text):
     """
     for i, ch in enumerate(text):
         cp = ord(ch)
-        if (is_mongolian_letter(cp)
-                or cp in FVS_CPS
-                or cp == MVS_CP
-                or cp == NNBSP_CP
-                or cp == NIRUGU_CP
-                or cp == ZWJ_CP):
+        if is_mongolian_word_char(cp):
             continue
         # Build a helpful error with the offending char's position and id.
         # 报错信息含越位字符的位置和码位。
@@ -1376,7 +1383,7 @@ class MongolianShaper:
 
         for i, ch in enumerate(text):
             cp = ord(ch)
-            is_mong = is_mongolian_letter(cp) or cp in FVS_CPS or cp == MVS_CP or cp == NNBSP_CP
+            is_mong = is_mongolian_word_char(cp)
             if current_is_mong is None:
                 current_is_mong = is_mong
             elif is_mong != current_is_mong:
