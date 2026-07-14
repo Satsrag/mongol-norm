@@ -258,7 +258,7 @@ The hand-written suite covers:
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI input, canonical control spelling, and parser errors |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **174 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
+Current totals: **186 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
 
 ### Use Cases
 
@@ -572,7 +572,7 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI输入、control标准拼写与解析错误 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **174 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
+当前总数: **186 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
 
 ### 应用场景
 
