@@ -263,6 +263,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 ```json
 {
   "schema": "mongol-normalize-table/1",
+  "canonical_version": "mng-canonical/1",
   "locale": "MNG",
   "unit_enc_max_len": 3,
   "constants": { "MVS": "180E", "NIRUGU": "180A", "FVS1": "180B", "...": "..." },
@@ -278,6 +279,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 
 | field | meaning |
 |---|---|
+| `canonical_version` | Version of the exact shape → canonical Unicode selection policy. Persist this alongside normalized index keys; a changed value means stored keys may need rebuilding. |
 | `unit_table[pos][unit]` | The pinned encoding for a written `unit` at `pos` (`isol`/`init`/`medi`/`fina`). `unit` is a `+`-joined written-unit tuple — single (`"A"`) or multi (`"A+O+I"`). Value: `letter` (alias), `cp` (hex codepoint), `fvs` (hex codepoint or `null`). |
 | `unit_enc_max_len` | Longest written-unit tuple in `unit_table`; bounds the multi-unit lookahead during partition. |
 | `velar_fem[pos][unit]` | The feminine encoding of a single vowel unit, used by the velar-feminine refinement. |

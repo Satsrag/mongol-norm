@@ -65,6 +65,10 @@ NNBSP_CP = 0x202F
 
 MONGOLIAN_BLOCK = range(0x1800, 0x18B0)
 
+# Canonical Unicode output policy. Bump this whenever normalize() may choose a
+# different encoding for an existing supported shape.
+CANONICAL_VERSION = "mng-canonical/1"
+
 # Bowed written units: consonants whose final stroke curves ("bows") rightward.
 # Vowels following bowed consonants take special "post-bowed" forms (step 5).
 # 弓形书写单元：末笔向右弯曲的辅音。弓形辅音后的元音需要取特殊的"弓形后续"形态（第5步）。
@@ -921,6 +925,12 @@ class MongolianShaper:
                     "particle": False,  # speculative bare is never a real particle variant
                 })
 
+    @property
+    def canonical_version(self):
+        """Version of the canonical Unicode selection policy for this locale."""
+        self._build_unit_enc()
+        return self._canonical_version
+
     def normalize(self, text):
         """
         Canonical normalize: a pure function of shape.
@@ -1247,6 +1257,14 @@ class MongolianShaper:
         inverse of compute_normalize_tables / what the JSON stores.
         从序列化 spec 还原运行时逐单元表(compute_normalize_tables 的逆)。
         """
+        canonical_version = spec.get("canonical_version")
+        if canonical_version != CANONICAL_VERSION:
+            raise ValueError(
+                f"unsupported canonical version {canonical_version!r}; "
+                f"expected {CANONICAL_VERSION!r}"
+            )
+        self._canonical_version = canonical_version
+
         def decode_entry(entry):
             return (int(entry["cp"], 16),
                     int(entry["fvs"], 16) if entry["fvs"] else None)

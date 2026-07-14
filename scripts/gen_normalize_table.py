@@ -35,7 +35,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mongol_norm.shaper import (  # noqa: E402
-    MongolianShaper, FVS_INT_TO_CP, MVS_CP, NIRUGU_CP, ZWJ_CP,
+    MongolianShaper, CANONICAL_VERSION, FVS_INT_TO_CP,
+    MVS_CP, NIRUGU_CP, ZWJ_CP,
 )
 
 # Locales with a normalization implementation in mongol-norm. Extend as more
@@ -182,6 +183,7 @@ def compute_normalize_tables(shaper):
 
     return {
         "schema": "mongol-normalize-table/1",
+        "canonical_version": CANONICAL_VERSION,
         "locale": shaper.locale,
         "description": (
             "Per-(position, written-unit) FVS-pinned encoding table for "
