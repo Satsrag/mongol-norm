@@ -84,5 +84,20 @@ class TestJoinerNormalize(_Base):
             self._round_trips(text)
 
 
+class TestJoinerNormalizeText(_Base):
+    def test_nirugu_word_uses_the_same_joining_context_as_normalize(self):
+        word = NIRUGU + U + NIRUGU
+        self.assertEqual(self.s.normalize_text(word), self.s.normalize(word))
+
+    def test_nirugu_word_inside_mixed_text_uses_the_same_joining_context(self):
+        word = NIRUGU + U + NIRUGU
+        self.assertEqual(self.s.normalize_text('A ' + word + ' B'),
+                         'A ' + self.s.normalize(word) + ' B')
+
+    def test_zwj_word_uses_the_same_joining_context_as_normalize(self):
+        word = ZWJ + D
+        self.assertEqual(self.s.normalize_text(word), self.s.normalize(word))
+
+
 if __name__ == '__main__':
     unittest.main()
