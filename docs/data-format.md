@@ -286,6 +286,13 @@ python scripts/gen_normalize_table.py        # all locales
 python scripts/gen_normalize_table.py MNG    # specific
 ```
 
+Compatibility fixtures (after an intentional shaping or canonical change):
+
+```sh
+python scripts/gen_compat_goldens.py          # regenerate both fixtures
+python scripts/gen_compat_goldens.py --check  # CI freshness check
+```
+
 Commit the regenerated JSONs along with a changelog note referencing the source version.
 
 ## Schema versioning
