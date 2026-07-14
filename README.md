@@ -98,6 +98,8 @@ Per word:
 
 > Note: output is **FVS-pinned**, not bare — each unit carries the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md), so ports in other languages can implement `normalize` with just a JSON parser.
 
+The exact canonical selection policy is frozen as **`mng-canonical/1`**. It is available as `shaper.canonical_version` and embedded in `MNG.normalize.json`. Applications that persist normalized search/index keys should store this version alongside them and rebuild those keys if a future release changes it.
+
 ### Installation
 
 `mongol-norm` is a single self-contained package on [PyPI](https://pypi.org/project/mongol-norm/) — the shaping/normalize data is bundled, no runtime dependencies:
@@ -380,6 +382,8 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 **表是怎么来的**(*选择方法*):离线跑一个 **context 无关性电池** —— 对每个 `(位置, 书写单元)`,挑出在**所有**探测邻居上下文里都**恰好**渲染出该单元的 `(字母, FVS)`(探针含弓形辅音,post-bowed 效应藏不住)。候选顺序是**字母优先、字母内 FVS 优先** —— FVS 的意义就是把字形从 context 里隔离出来,所以正确字母的钉死形永远优于其受感染的裸形。结果导出成 JSON 随包发布;电池在 `scripts/gen_normalize_table.py`。
 
 > 注意:输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
+
+当前精确 canonical 选择策略冻结为 **`mng-canonical/1`**。可通过 `shaper.canonical_version` 读取，并写入 `MNG.normalize.json`。持久化规范化搜索键/索引键的应用应同时保存该版本；未来版本若发生变化，应重建这些键。
 
 ### 安装
 

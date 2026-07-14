@@ -1,5 +1,6 @@
 {
   "schema": "mongol-normalize-table/1",
+  "canonical_version": "mng-canonical/1",
   "locale": "MNG",
   "description": "Per-(position, written-unit) FVS-pinned encoding table for normalize. Each value is a (letter, fvs) that renders exactly the written unit at that position regardless of neighbours. See the mongol-norm README for the consuming algorithm.",
   "unit_enc_max_len": 3,
