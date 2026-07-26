@@ -790,15 +790,15 @@ class MongolianShaper:
         result = []
         for tok in tokens:
             if tok.is_mvs:
-                result.append("mvs")
+                result.append("Mvs")
             elif tok.is_nirugu:
-                # Joiners are shape tokens like 'mvs': nirugu renders a
-                # visible stem glyph, ZWJ invisibly forces joining — both
+                # Joiners are PascalCase shape tokens like Mvs: Nirugu renders
+                # a visible stem glyph, Zwj invisibly forces joining — both
                 # are the evidence for neighbours' init/medi/fina forms and
                 # must survive into the shape (and thus into normalize).
-                # joiner 与 mvs 同级:nirugu 是可见的连笔字形,zwj 隐形强制
+                # joiner 与 Mvs 同级:Nirugu 是可见的连笔字形,Zwj 隐形强制
                 # 连接;都是邻居 init/medi/fina 形的依据,必须保留进 shape。
-                result.append(tok.alias)  # 'nirugu' or 'zwj'
+                result.append("Nirugu" if tok.cp == NIRUGU_CP else "Zwj")
             elif tok.written:
                 result.extend(tok.written)
         return result
@@ -943,9 +943,9 @@ class MongolianShaper:
             同长度下,Unicode 字典序最小胜出 (故同 shape 时 `o` 胜 `u`)。
 
         Algorithm / 算法:
-          1. shape(text) → target  (a list of written units + 'mvs' tokens)
-          2. Split target at 'mvs' into chains.
-             按 'mvs' 切分 target 为多个 chain。
+          1. shape(text) → target  (written units including 'Mvs' controls)
+          2. Split target at 'Mvs' into chains.
+             按 'Mvs' 切分 target 为多个 chain。
           3. For each chain, enumerate encodings via DP over partitions:
              for each n_letters from 1 to chain_len, for each partition of
              chain shape into n_letters slots, pick deterministic candidate
@@ -993,17 +993,16 @@ class MongolianShaper:
         Encode an ordered written-unit sequence as canonical MNG Unicode.
         将有序书写单元序列编码为 canonical MNG Unicode。
 
-        ``written_units`` may be the direct output of :meth:`shape`. External
-        callers may spell structural tokens as ``MVS``, ``Nirugu``, and ``ZWJ``;
-        the lowercase forms returned by :meth:`shape` are accepted too. Letter
+        ``written_units`` may be the direct output of :meth:`shape`. Structural
+        written-unit names are PascalCase: ``Mvs``, ``Nirugu``, and ``Zwj``. Letter
         positions are inferred from sequence order and structural controls; this
         API does not accept explicit position records or infer/insert controls.
-        ZWJ is emitted only when ``ZWJ``/``zwj`` is present in the request. An
+        ZWJ is emitted only when ``Zwj`` is present in the request. An
         empty sequence returns an empty string.
         ``written_units`` 可直接使用 :meth:`shape` 的输出。外部调用方也可将结构
-        token 写作 ``MVS``、``Nirugu``、``ZWJ``；同时接受 :meth:`shape` 返回的
-        小写形式。字母位置由序列顺序与结构 control 推导；本 API 不接受显式位置
-        record，也不推断或插入 control。只有请求含 ``ZWJ``/``zwj`` 时才输出
+        token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``。字母位置由序列顺序
+        与结构 control 推导；本 API 不接受显式位置 record，也不推断或插入
+        control。只有请求含 ``Zwj`` 时才输出
         ZWJ；空序列返回空字符串。
 
         The result is accepted only when it reshapes to the exact requested
@@ -1024,7 +1023,7 @@ class MongolianShaper:
         for index, unit in enumerate(written_units):
             if not isinstance(unit, str):
                 raise TypeError(f"written_units[{index}] must be a string")
-            target.append(self._PUBLIC_STRUCTURAL_TOKENS.get(unit, unit))
+            target.append(unit)
         if not target:
             return ""
         self._build_unit_enc()
@@ -1049,8 +1048,8 @@ class MongolianShaper:
 
     def _canonical_for_shape(self, shape_list):
         """
-        Build canonical Unicode from a full shape list (incl. 'mvs').
-        从完整 shape 列表(含 'mvs')构建 canonical Unicode。
+        Build canonical Unicode from a full shape list (incl. 'Mvs').
+        从完整 shape 列表(含 'Mvs')构建 canonical Unicode。
 
         Processes chains RIGHT-TO-LEFT so that each chain's encoding
         verification can include the already-encoded canonical of all
@@ -1064,10 +1063,10 @@ class MongolianShaper:
         交互:MVS 后的阳性元音可能反向传播,影响 MVS 前的 g/h 渲染。
         仅包含相邻 MVS 的校验不足以捕获这类交互。
         """
-        # Parse into structural (mvs/nirugu/zwj) + chain segments. Structural
+        # Parse into structural (Mvs/Nirugu/Zwj) + chain segments. Structural
         # tokens are copied VERBATIM into the canonical (they are part of the
-        # shape, like 'mvs'); only the letter chains between them are encoded.
-        # 切分为结构 token(mvs/nirugu/zwj)与 chain。结构 token 原样进
+        # shape, like 'Mvs'); only the letter chains between them are encoded.
+        # 切分为结构 token(Mvs/Nirugu/Zwj)与 chain。结构 token 原样进
         # canonical;只对其间的字母 chain 编码。
         parts = []  # list of (structural_token, None) | ('chain', tuple)
         current_chain = []
@@ -1115,7 +1114,7 @@ class MongolianShaper:
                 # 再拼回 MVS —— 有无 MVS 拼写一致,不依赖 MVS。唯一例外:
                 # chachlag('Aa'),MVS 后 canonical 是裸字母 a(`mvs + a`
                 # 就是 chachlag 的标准拼写)。全上下文校验;变形则回退。
-                if prefix_tokens and prefix_tokens[-1] == 'mvs':
+                if prefix_tokens and prefix_tokens[-1] == 'Mvs':
                     if body == ('Aa',):
                         candidate = chr(0x1820)   # bare a
                     else:
@@ -1137,24 +1136,19 @@ class MongolianShaper:
     # Structural shape tokens and the characters they encode to, verbatim.
     # 结构 shape token 及其原样对应的字符。
     _STRUCTURAL_CHARS = {
-        'mvs': chr(MVS_CP),
-        'nirugu': chr(NIRUGU_CP),
-        'zwj': chr(ZWJ_CP),
-    }
-    _PUBLIC_STRUCTURAL_TOKENS = {
-        'MVS': 'mvs',
-        'Nirugu': 'nirugu',
-        'ZWJ': 'zwj',
+        'Mvs': chr(MVS_CP),
+        'Nirugu': chr(NIRUGU_CP),
+        'Zwj': chr(ZWJ_CP),
     }
     # Joiners force cursive connection on the adjacent letter (shift its
     # position to a joined form); MVS does not (post-MVS letters restart).
     # joiner 强制相邻字母连接(位置变连接形);MVS 不会(MVS 后重新起词)。
-    _JOINER_TOKENS = frozenset({'nirugu', 'zwj'})
+    _JOINER_TOKENS = frozenset({'Nirugu', 'Zwj'})
 
     def _encode_chain_canonical(self, chain_shape, prefix_tokens=(),
                                 suffix_text="", suffix_target=()):
         """Memoised canonical encoding for a chain shape under its structural
-        prefix (mvs/nirugu/zwj run) + suffix context."""
+        prefix (Mvs/Nirugu/Zwj run) + suffix context."""
         if not hasattr(self, '_chain_canon_cache'):
             self._chain_canon_cache = {}
         cache_key = (chain_shape, prefix_tokens, suffix_text, suffix_target)
@@ -1169,8 +1163,8 @@ class MongolianShaper:
                                   suffix_text="", suffix_target=()):
         """
         Canonical encoding for chain_shape under its structural context
-        (prefix_tokens = the mvs/nirugu/zwj run right before the chain).
-        canonical 编码(prefix_tokens = 紧邻前方的 mvs/nirugu/zwj 结构串)。
+        (prefix_tokens = the Mvs/Nirugu/Zwj run right before the chain).
+        canonical 编码(prefix_tokens = 紧邻前方的 Mvs/Nirugu/Zwj 结构串)。
 
         The per-(position, written-unit) FVS-pinned table lookup IS the
         algorithm — deterministic, O(N), prefix-stable, shape()-verified.
@@ -1277,10 +1271,10 @@ class MongolianShaper:
         encoding str, or None if no table partition round-trips (→ fallback).
         逐单元查表编码(主路径)。无可还原的查表划分时返回 None(→ 回退)。
 
-        A joiner (nirugu/zwj) directly before/after the chain shifts letter
-        positions (e.g. a lone unit between two nirugus sits at medi, not
+        A joiner (`Nirugu`/`Zwj`) directly before/after the chain shifts letter
+        positions (e.g. a lone unit between two `Nirugu` tokens sits at medi, not
         isol) — the partition looks units up at those shifted positions.
-        紧邻的 joiner(nirugu/zwj)会移动字母位置(如夹在两个 nirugu 之间的
+        紧邻的 joiner(`Nirugu`/`Zwj`)会移动字母位置(如夹在两个 `Nirugu` 之间的
         单一单元处于 medi 而非 isol),划分按移动后的位置查表。
         """
         self._build_unit_enc()
@@ -1290,7 +1284,7 @@ class MongolianShaper:
         if text is None:
             return None
         # Verify the encoding in its FULL context: the structural prefix run
-        # (mvs/nirugu/zwj) and the already-encoded following chains
+        # (`Mvs`/`Nirugu`/`Zwj`) and the already-encoded following chains
         # (suffix_text / suffix_target), so cross-boundary interactions are
         # checked. `verify_target` MUST include suffix_target — otherwise
         # multi-chain words' non-last chains never verify and fall back to
@@ -1315,7 +1309,7 @@ class MongolianShaper:
 
         joined_left / joined_right: a joiner glyph sits right before / after
         this chain, so positions are computed as if one extra unit padded
-        that side (nirugu+o+nirugu → o at medi).
+        that side (`Nirugu`+O+`Nirugu` → O at medi).
         joined_left/right:chain 紧邻 joiner,位置按该侧多一个单元计算。
         """
         table = self._unit_enc
@@ -1467,10 +1461,11 @@ class MongolianShaper:
 
 
 # ── CLI / 命令行接口 ─────────────────────────────────────────────
-# Four commands: shape, same, normalize (word), normalize-text (full text).
+# Five commands: shape, same, normalize (word), normalize-text (full text),
+# normalize-written-units (pre-shaped sequence).
 # All accept --locale for non-MNG scripts.
-# 四个命令：shape、same、normalize（单词）、normalize-text（全文）。
-# 都接受 --locale 参数用于非 MNG 文字。
+# 五个命令：shape、same、normalize（单词）、normalize-text（全文）、
+# normalize-written-units（已shape序列）。都接受 --locale。
 
 def _read_input(text_arg, input_file):
     """
@@ -1503,6 +1498,61 @@ def _write_output(text, output_file):
         sys.stdout.write(text)
         if not text.endswith("\n"):
             sys.stdout.write("\n")
+
+
+def _parse_written_units(text, known_units):
+    """Parse explicit ``+`` or uniquely segmented compact PascalCase units."""
+    if text.endswith("\r\n"):
+        text = text[:-2]
+    elif text.endswith(("\n", "\r")):
+        text = text[:-1]
+    if not text:
+        return []
+    if any(character.isspace() for character in text):
+        raise ValueError("written units cannot be empty or contain whitespace")
+    if "+" in text:
+        units = text.split("+")
+        if any(not unit or unit != unit.strip() for unit in units):
+            raise ValueError(
+                "written units cannot be empty or contain whitespace; "
+                "separate explicit units with '+' (for example A+Aa+B+Zwj)"
+            )
+        return units
+    vocabulary = sorted(known_units, key=lambda unit: (-len(unit), unit))
+    parse_counts = [0] * (len(text) + 1)
+    choices = {}
+    parse_counts[len(text)] = 1
+    for offset in range(len(text) - 1, -1, -1):
+        count = 0
+        choice = None
+        for unit in vocabulary:
+            end = offset + len(unit)
+            if (end > len(text) or not text.startswith(unit, offset)
+                    or parse_counts[end] == 0):
+                continue
+            if count == 0 and parse_counts[end] == 1:
+                choice = (unit, end)
+            else:
+                choice = None
+            count = min(2, count + parse_counts[end])
+            if count == 2:
+                break
+        parse_counts[offset] = count
+        if count == 1 and choice is not None:
+            choices[offset] = choice
+
+    if parse_counts[0] == 0:
+        return [text]
+    if parse_counts[0] > 1:
+        raise ValueError(
+            "compact written-unit sequence is ambiguous; separate units with '+'"
+        )
+    units = []
+    offset = 0
+    while offset < len(text):
+        unit, offset = choices[offset]
+        units.append(unit)
+    return units
 
 
 def _process_batch(lines, fn):
@@ -1561,8 +1611,8 @@ def main():
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "I/O modes (apply to shape / normalize / normalize-text):\n"
-            "I/O 模式(适用于 shape / normalize / normalize-text):\n"
+            "I/O modes (apply to shape / normalize / normalize-text / normalize-written-units):\n"
+            "I/O 模式(适用于 shape / normalize / normalize-text / normalize-written-units):\n"
             "  inline      :  mongol-norm <cmd> 'TEXT'\n"
             "  stdin       :  echo 'TEXT' | mongol-norm <cmd> -\n"
             "                 cat file.txt  | mongol-norm <cmd> -\n"
@@ -1574,6 +1624,8 @@ def main():
             "Examples / 示例:\n"
             "  mongol-norm normalize 'ᠰᠡᠢᠨ'                      # → ᠰᠠᠢᠠ\n"
             "  mongol-norm shape 'ᠰᠠᠢᠨ'                          # → S+A+I+I+A\n"
+            "  mongol-norm normalize-written-units 'B+Aa'           # → ᠪᠠ᠋\n"
+            "  mongol-norm normalize-written-units 'BZwj'           # compact units\n"
             "  mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ world'      # mixed script\n"
             "  echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -\n"
             "  mongol-norm normalize --batch -i words.txt -o canonical.txt\n"
@@ -1585,7 +1637,7 @@ def main():
     )
     parser.add_argument("--locale", default="MNG",
                         help="Locale: MNG (default), TOD, SIB, MCH, etc.")
-    sub = parser.add_subparsers(dest="cmd", required=True, metavar="CMD")
+    sub = parser.add_subparsers(dest="cmd", metavar="CMD")
 
     p_shape = sub.add_parser(
         "shape",
@@ -1609,6 +1661,20 @@ def main():
     )
     _add_io_args(p_norm)
 
+    p_norm_units = sub.add_parser(
+        "normalize-written-units",
+        help="Encode compact or '+'-joined PascalCase units as canonical Unicode",
+        description=(
+            "Encode pre-shaped PascalCase units such as B+Aa or BZwj. "
+            "Control names are Mvs, Nirugu, and Zwj. Ambiguous compact input "
+            "must use '+' separators. Parsed units must have an exact canonical "
+            "MNG shape round trip."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_io_epilog("normalize-written-units", "B+Aa"),
+    )
+    _add_io_args(p_norm_units)
+
     p_normt = sub.add_parser(
         "normalize-text",
         help="Normalize full text (multi-word, mixed script)",
@@ -1630,6 +1696,8 @@ def main():
     p_same.add_argument("text2")
 
     args = parser.parse_args()
+    if args.cmd is None:
+        parser.error("the following arguments are required: CMD")
     shaper = MongolianShaper(locale=args.locale)
 
     if args.cmd == "same":
@@ -1644,6 +1712,17 @@ def main():
         op = lambda s: "+".join(shaper.shape(s))
     elif args.cmd == "normalize":
         op = shaper.normalize
+    elif args.cmd == "normalize-written-units":
+        shaper._build_unit_enc()
+        known_units = {
+            unit
+            for (_position, written) in shaper._unit_enc
+            for unit in written
+        }
+        known_units.update(shaper._STRUCTURAL_CHARS)
+        op = lambda s: shaper.normalize_written_units(
+            _parse_written_units(s, known_units)
+        )
     elif args.cmd == "normalize-text":
         op = shaper.normalize_text
     else:

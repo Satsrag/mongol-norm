@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Joiner tokens (nirugu / ZWJ) in shape and normalize.
+Joiner tokens (`Nirugu` / `Zwj`) in shape and normalize.
 
 Nirugu (U+180A) renders a visible stem-extender glyph and ZWJ (U+200D)
 invisibly forces joining. Both must appear VERBATIM in shape() output —
-like 'mvs' — because they are the evidence for why a neighbouring letter
+like `Mvs` — because they are the evidence for why a neighbouring letter
 takes its init/medi/fina form, and (for nirugu) a visible glyph in their
 own right. normalize() must preserve them exactly (count and kind) while
 canonicalizing the letters between them.
-nirugu/zwj 与 mvs 同等对待:shape 原样输出、normalize 原样保留,
+`Nirugu`/`Zwj` 与 `Mvs` 同等对待:shape 原样输出、normalize 原样保留,
 字母的 init/medi/fina 位置以它们为依据。
 """
 import unittest
@@ -34,14 +34,14 @@ class _Base(unittest.TestCase):
 class TestJoinerTokensInShape(_Base):
     def test_nirugu_is_a_shape_token(self):
         self.assertEqual(self.s.shape(NIRUGU + O + NIRUGU),
-                         ['nirugu', 'O', 'nirugu'])
+                         ['Nirugu', 'O', 'Nirugu'])
 
     def test_nirugu_run_count_preserved(self):
         self.assertEqual(self.s.shape(NIRUGU * 2 + O + NIRUGU),
-                         ['nirugu', 'nirugu', 'O', 'nirugu'])
+                         ['Nirugu', 'Nirugu', 'O', 'Nirugu'])
 
     def test_zwj_is_a_shape_token(self):
-        self.assertEqual(self.s.shape(ZWJ + D), ['zwj', 'Dd'])
+        self.assertEqual(self.s.shape(ZWJ + D), ['Zwj', 'Dd'])
 
     def test_nirugu_vs_zwj_shapes_differ(self):
         # visible stem vs invisible joiner — must NOT be conflated

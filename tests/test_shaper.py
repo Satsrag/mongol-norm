@@ -82,14 +82,14 @@ class TestShape(unittest.TestCase):
         # ᠲᠠᠯ᠎ᠠ  tal + MVS + a → chachlag "Aa"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs a")),
-            ["T", "A", "L", "mvs", "Aa"],
+            ["T", "A", "L", "Mvs", "Aa"],
         )
 
     def test_step1_chachlag_talayin(self):
         # ᠲᠠᠯ᠎ᠠ᠎ᠶᠢᠨ  two MVS: chachlag on a, particle on y
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs a mvs y i n")),
-            ["T", "A", "L", "mvs", "Aa", "mvs", "I", "I", "A"],
+            ["T", "A", "L", "Mvs", "Aa", "Mvs", "I", "I", "A"],
         )
 
     # 1-2  a/e after MVS + FVS → default (no chachlag)
@@ -97,7 +97,7 @@ class TestShape(unittest.TestCase):
         # tal + MVS + a+FVS1 → a gets default (not chachlag)
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs a fvs1")),
-            ["T", "A", "L", "mvs", "A"],
+            ["T", "A", "L", "Mvs", "A"],
         )
 
     # ══════════════════════════════════════════════════════════
@@ -182,22 +182,22 @@ class TestShape(unittest.TestCase):
         # ᠰᠠᠢᠨ᠎ᠠ — n before MVS+a → chachlag_onset "N"
         self.assertEqual(
             self.s.shape(_mgl("s a i n mvs a")),
-            ["S", "A", "I", "I", "N", "mvs", "Aa"],
+            ["S", "A", "I", "I", "N", "Mvs", "Aa"],
         )
         # ᠬᠤᠷᠸ᠎ᠠ - w before MVS+a → chachlag_onset "U"
         self.assertEqual(
             self.s.shape(_mgl("h o r w mvs a")),
-            ["H", "O", "R", "U", "mvs", "Aa"],
+            ["H", "O", "R", "U", "Mvs", "Aa"],
         )
         # ᠵ᠎ᠠ - j before MVS+a → chachlag_onset "I"
         self.assertEqual(
             self.s.shape(_mgl("j mvs a")),
-            ["I", "mvs", "Aa"],
+            ["I", "Mvs", "Aa"],
         )
         # ᠡᠵ᠎ᠡ - j.fina before MVS+e.iso → chachlag_onset "I"
         self.assertEqual(
             self.s.shape(_mgl("e j mvs e")),
-            ["A", "I", "mvs", "Aa"],
+            ["A", "I", "Mvs", "Aa"],
         )
 
     # 2-5  h/g before MVS + isolated a → chachlag_onset
@@ -205,12 +205,12 @@ class TestShape(unittest.TestCase):
         # ᠶᠠᠪᠤᠭ᠎ᠠ — g before MVS+a → chachlag_onset
         self.assertEqual(
             self.s.shape(_mgl("y a b u g mvs a")),
-            ["Y", "A", "B","O", "Hx", "mvs", "Aa"],
+            ["Y", "A", "B","O", "Hx", "Mvs", "Aa"],
         )
         # ᠬᠠᠪᠬ᠎ᠠ — h before MVS+a → chachlag_onset
         self.assertEqual(
             self.s.shape(_mgl("h a b h mvs a")),
-            ["H", "A", "B", "H", "mvs", "Aa"],
+            ["H", "A", "B", "H", "Mvs", "Aa"],
         )
 
     # 2-6  g before MVS + isolated e → chachlag_onset
@@ -218,7 +218,7 @@ class TestShape(unittest.TestCase):
         # ᠡᠭ᠎ᠡ — g before MVS+e → chachlag_onset
         self.assertEqual(
             self.s.shape(_mgl("e g mvs e")),
-            ["A", "H", "mvs", "Aa"],
+            ["A", "H", "Mvs", "Aa"],
         )
 
     # 2-7  n/d before vowel → onset; n/t/d after vowel or before consonant → devsger
@@ -476,8 +476,8 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("d g a")), ["T", "H", "A"])
         self.assertEqual(self.s.shape(_mgl("a s g a")), ["A", "A", "S", "H", "A"])
         # Rule 2 — g.fina + MVS + chachlag a:
-        self.assertEqual(self.s.shape(_mgl("s g mvs a")), ["S", "H", "mvs", "Aa"])
-        self.assertEqual(self.s.shape(_mgl("d g mvs a")), ["T", "H", "mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("s g mvs a")), ["S", "H", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("d g mvs a")), ["T", "H", "Mvs", "Aa"])
 
         # Negative: rule 1 needs masc vowel — fem/neut/consonant don't fire
         self.assertEqual(self.s.shape(_mgl("s g i")), ["S", "G", "I"])   # neut i
@@ -487,7 +487,7 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("s g")), ["S", "G"])
         # Negative: prev letter must be s or d
         self.assertEqual(self.s.shape(_mgl("a g a")), ["A", "A", "Hx", "A"])         # iii2f masc_onset
-        self.assertEqual(self.s.shape(_mgl("n g mvs a")), ["N", "Hx", "mvs", "Aa"])  # iii2c chachlag_onset
+        self.assertEqual(self.s.shape(_mgl("n g mvs a")), ["N", "Hx", "Mvs", "Aa"])  # iii2c chachlag_onset
 
     # ══════════════════════════════════════════════════════════
     # Step 3 · Particle — MVS particle dictionary lookup
@@ -505,7 +505,7 @@ class TestShape(unittest.TestCase):
         # tal + MVS + acha — a.init at idx 1 → particle (e, d, y not targeted here)
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs a ch a")),
-            ["T", "A", "L", "mvs", "A", "Ch", "A"],
+            ["T", "A", "L", "Mvs", "A", "Ch", "A"],
         )
 
     # 3-1b  TARGET = e
@@ -520,14 +520,14 @@ class TestShape(unittest.TestCase):
         # tal + MVS + i — i.isol at idx 1 → particle
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs i")),
-            ["T", "A", "L", "mvs", "I"],
+            ["T", "A", "L", "Mvs", "I"],
         )
 
     def test_step3_particle_iyar(self):
         # tal + MVS + iyar — i + y at idx 1, 2 → both particle (masc vowel)
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs i y a r")),
-            ["T", "A", "L", "mvs", "I", "I", "A", "R"],
+            ["T", "A", "L", "Mvs", "I", "I", "A", "R"],
         )
 
     def test_step3_particle_iyer(self):
@@ -535,14 +535,14 @@ class TestShape(unittest.TestCase):
         # e.medi default = "A" same as a.medi default
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs i y e r")),
-            ["T", "A", "L", "mvs", "I", "I", "A", "R"],
+            ["T", "A", "L", "Mvs", "I", "I", "A", "R"],
         )
 
     def test_step3_particle_iyen(self):
         # tal + MVS + iyen — i,y particles; e at idx 3 stays default (not in [1,2])
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs i y e n")),
-            ["T", "A", "L", "mvs", "I", "I", "A", "A"],
+            ["T", "A", "L", "Mvs", "I", "I", "A", "A"],
         )
 
     # 3-1d  TARGET = u
@@ -550,14 +550,14 @@ class TestShape(unittest.TestCase):
         # tal + MVS + u — u.isol at idx 1 → particle
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs u")),
-            ["T", "A", "L", "mvs", "U"],
+            ["T", "A", "L", "Mvs", "U"],
         )
 
     def test_step3_particle_du(self):
         # tal + MVS + du — d at idx 1 AND u at idx 2 both particles
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs d u")),
-            ["T", "A", "L", "mvs", "D", "U"],
+            ["T", "A", "L", "Mvs", "D", "U"],
         )
 
     # 3-1e  TARGET = ue
@@ -565,28 +565,28 @@ class TestShape(unittest.TestCase):
         # tal + MVS + ue — ue.isol at idx 1 → particle "U"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs ue")),
-            ["T", "A", "L", "mvs", "U"],
+            ["T", "A", "L", "Mvs", "U"],
         )
 
     def test_step3_particle_uen(self):
         # tal + MVS + ue+n — ue.init particle "O", n.fina devsger "A"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs ue n")),
-            ["T", "A", "L", "mvs", "O", "A"],
+            ["T", "A", "L", "Mvs", "O", "A"],
         )
 
     def test_step3_particle_ued(self):
         # tal + MVS + ue+d — ue.init particle "O", d.fina devsger "Dd"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs ue d")),
-            ["T", "A", "L", "mvs", "O", "Dd"],
+            ["T", "A", "L", "Mvs", "O", "Dd"],
         )
 
     def test_step3_particle_duer(self):
         # tal + MVS + duer — d at idx 1 AND ue at idx 2 both particles
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs d ue r")),
-            ["T", "A", "L", "mvs", "D", "O", "R"],
+            ["T", "A", "L", "Mvs", "D", "O", "R"],
         )
 
     # 3-1f  TARGET = d
@@ -594,7 +594,7 @@ class TestShape(unittest.TestCase):
         # tal + MVS + dagan — d at idx 1 → particle (masc vowel harmony)
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs d a g a n")),
-            ["T", "A", "L", "mvs", "D", "A", "Hx", "A", "A"],
+            ["T", "A", "L", "Mvs", "D", "A", "Hx", "A", "A"],
         )
 
     def test_step3_particle_degen(self):
@@ -603,7 +603,7 @@ class TestShape(unittest.TestCase):
         # because of the surrounding fem vowel e.
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs d e g e n")),
-            ["T", "A", "L", "mvs", "D", "A", "G", "A", "A"],
+            ["T", "A", "L", "Mvs", "D", "A", "G", "A", "A"],
         )
 
     # 3-1g  TARGET = y
@@ -611,14 +611,14 @@ class TestShape(unittest.TestCase):
         # tal + MVS + yi — y.init at idx 1 → particle "I"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs y i")),
-            ["T", "A", "L", "mvs", "I", "I"],
+            ["T", "A", "L", "Mvs", "I", "I"],
         )
 
     def test_step3_particle_yin(self):
         # tal + MVS + yin — y.init at idx 1 → particle "I"
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs y i n")),
-            ["T", "A", "L", "mvs", "I", "I", "A"],
+            ["T", "A", "L", "Mvs", "I", "I", "A"],
         )
 
     # 3-2  u/ue particles WITHOUT MVS (word-internal: "u u", "ue ue")
@@ -635,12 +635,12 @@ class TestShape(unittest.TestCase):
         # "mvs l e" — not a dict entry → l and e stay default
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs l e")),
-            ["T", "A", "L", "mvs", "L", "A"],
+            ["T", "A", "L", "Mvs", "L", "A"],
         )
         # "mvs r" — not a dict entry → r stays default
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs r")),
-            ["T", "A", "L", "mvs", "R"],
+            ["T", "A", "L", "Mvs", "R"],
         )
 
     # ══════════════════════════════════════════════════════════
@@ -846,7 +846,7 @@ class TestShape(unittest.TestCase):
         # EAC counter-example: expects Hx (chachlag_onset).
         self.assertEqual(
             self.s.shape(_mgl("b a g fvs2 mvs a")),
-            ["B", "A", "G", "mvs", "Aa"],
+            ["B", "A", "G", "Mvs", "Aa"],
         )
 
     def test_utn_g_fvs3_picks_chachlag_onset(self):
@@ -857,7 +857,7 @@ class TestShape(unittest.TestCase):
         # 用户和规则一致 → Hx 按 UTN 正确路径触发。
         self.assertEqual(
             self.s.shape(_mgl("b a g fvs3 mvs a")),
-            ["B", "A", "Hx", "mvs", "Aa"],
+            ["B", "A", "Hx", "Mvs", "Aa"],
         )
 
     # ── B. NNBSP is equivalent to MVS (UTN: "old NNBSP function") ──
@@ -875,7 +875,7 @@ class TestShape(unittest.TestCase):
     def test_utn_nnbsp_alone_renders_as_mvs(self):
         # Standalone NNBSP — UTN renders the MVS slot; EAC wants empty.
         # 单独的 NNBSP — UTN 渲染 MVS 槽位; EAC 期望空。
-        self.assertEqual(self.s.shape(_mgl("nnbsp")), ["mvs"])
+        self.assertEqual(self.s.shape(_mgl("nnbsp")), ["Mvs"])
 
     def test_utn_nnbsp_triggers_chachlag(self):
         # `b a g nnbsp a` — UTN treats NNBSP as MVS, so the trailing
@@ -886,7 +886,7 @@ class TestShape(unittest.TestCase):
         # 期望 `B A H A A` (不触发 chachlag)。
         self.assertEqual(
             self.s.shape(_mgl("b a g nnbsp a")),
-            ["B", "A", "Hx", "mvs", "Aa"],
+            ["B", "A", "Hx", "Mvs", "Aa"],
         )
 
     def test_utn_nnbsp_triggers_particle(self):
@@ -898,7 +898,7 @@ class TestShape(unittest.TestCase):
         # EAC XIM11-40 期望 `A A B O Y I A` (不触发 particle)。
         self.assertEqual(
             self.s.shape(_mgl("a b u nnbsp y i n")),
-            ["A", "A", "B", "O", "mvs", "I", "I", "A"],
+            ["A", "A", "B", "O", "Mvs", "I", "I", "A"],
         )
 
     def test_utn_nnbsp_renders_mvs_token(self):
@@ -908,7 +908,7 @@ class TestShape(unittest.TestCase):
         # EAC XIM11-41 期望无分隔符。
         self.assertEqual(
             self.s.shape(_mgl("a b u nnbsp e j i")),
-            ["A", "A", "B", "O", "mvs", "A", "J", "I"],
+            ["A", "A", "B", "O", "Mvs", "A", "J", "I"],
         )
 
     # ══════════════════════════════════════════════════════════

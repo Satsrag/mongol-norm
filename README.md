@@ -84,7 +84,7 @@ The normalizer implements a **lightweight Mongolian shaping engine** — equival
 
 Per word:
 
-1. **shape** the input into its written-unit sequence. Structural characters — MVS, nirugu, ZWJ — appear verbatim as `mvs` / `nirugu` / `zwj` tokens (nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
+1. **shape** the input into its written-unit sequence. Structural characters — MVS, nirugu, ZWJ — appear verbatim as PascalCase `Mvs` / `Nirugu` / `Zwj` tokens (nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
@@ -146,19 +146,21 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 shaper.normalize_written_units(["B", "Aa"])
 # → 'ᠪᠠ᠋'
 
-# Structural controls use stable public names; shape() lowercase tokens also work
-shaper.normalize_written_units(["S", "A", "I", "I", "N", "MVS", "Aa"])
+# Every written unit is PascalCase, including shape() control output
+shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 ```
 
 `normalize_written_units()` accepts an ordered `Sequence[str]` of shape units,
 not nominal Unicode. Letter positions are inferred from unit order and structural
-controls; explicit position records are not accepted by this API. Public control
-names are `MVS`, `Nirugu`, and `ZWJ` (the lowercase tokens returned by `shape()`
-are also accepted). The API never infers or inserts a structural control: ZWJ is
-present in the output only when `ZWJ`/`zwj` is present in the requested sequence.
-An empty sequence returns an empty string. A malformed outer input or a non-string
-item raises `TypeError`; unknown units and sequences that cannot reshape exactly
-raise `ValueError` rather than being guessed or partially encoded.
+controls; explicit position records are not accepted by this API. All written-unit
+names use PascalCase; structural controls are `Mvs`, `Nirugu`, and `Zwj`, exactly
+as returned by `shape()`. Old lowercase or all-uppercase control aliases are not
+accepted. The API never infers or inserts a structural control: ZWJ is present in
+the output only when `Zwj` is present
+in the requested sequence. An empty sequence returns an empty string. A malformed
+outer input or a non-string item raises `TypeError`; unknown units and sequences
+that cannot reshape exactly raise `ValueError` rather than being guessed or
+partially encoded.
 
 #### Full-text normalization
 
@@ -192,10 +194,13 @@ After `pip install mongol-norm`, the `mongol-norm` command is on `PATH` (or run 
 # Inline text
 mongol-norm shape 'ᠰᠠᠢᠨ'                   # → S+A+I+I+A
 mongol-norm normalize 'ᠰᠡᠢᠨ'               # canonical form
-mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # mixed-script
+mongol-norm normalize-written-units 'B+Aa'  # → ᠪᠠ᠋
+mongol-norm normalize-written-units 'BZwj'  # compact PascalCase units
+mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # mixed script
 
 # Pipe / stdin (use `-` as the text)
 echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
+echo 'B+Aa' | mongol-norm normalize-written-units -
 cat doc.txt | mongol-norm normalize-text -
 
 # File in / out
@@ -203,10 +208,18 @@ mongol-norm normalize-text -i in.txt -o out.txt
 
 # Batch: one word per line in, one canonical per line out
 mongol-norm normalize --batch -i words.txt -o canonical.txt
+# Written-unit batch: one compact or '+'-joined sequence per line
+mongol-norm normalize-written-units --batch -i units.txt -o canonical.txt
 
 # Visual-identity check (exit 0 if same, 1 if different)
 mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 ```
+
+`normalize-written-units` accepts compact PascalCase or explicit `+` boundaries.
+Compact input must have one unique segmentation; ambiguous input fails closed and
+must be rewritten with `+`. After parsing, the same exact-shape validation as
+`normalize_written_units()` applies, so a syntactically valid unit stream can
+still be rejected when it has no canonical MNG encoding.
 
 `normalize` (single-word) skips non-Mongolian characters, so feeding it a multi-line file treats the whole thing as one word. Use `--batch` for one-word-per-line files, or `normalize-text` for free-form text.
 
@@ -240,9 +253,10 @@ The hand-written suite covers:
 | `TestNormalize` | `normalize()` produces canonical output; idempotency; normalized result matches original visually |
 | `TestNormalizeText` | `normalize_text()` handles multi-word, mixed-script, punctuation, empty input; idempotency; word independence |
 | `TestNormalizeWrittenUnits` | public shape-unit input, structural controls, validation, and exact reshape |
+| `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI input, canonical control spelling, and parser errors |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **156 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
+Current totals: **174 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
 
 ### Use Cases
 
@@ -386,7 +400,7 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 
 逐词:
 
-1. **shape** 成书写单元序列。结构字符 —— MVS、nirugu、ZWJ —— 原样输出为 `mvs` / `nirugu` / `zwj` token(nirugu 是可见的连笔字形;三者都是邻居字母 init/medi/fina 形的依据)。按这些 token **切成 chain**,token 本身原样拷贝。
+1. **shape** 成书写单元序列。结构字符 —— MVS、nirugu、ZWJ —— 原样输出为PascalCase `Mvs` / `Nirugu` / `Zwj` token(nirugu 是可见的连笔字形;三者都是邻居字母 init/medi/fina 形的依据)。按这些 token **切成 chain**,token 本身原样拷贝。
 2. **逐 chain 编码**(从右往左,这样加后缀不影响前面):
    1. **划分 + 查表**(主路径):每个位置优先取单单元(输出干净),否则取最长多单元,查 `(位置, 书写单元) → (字母, FVS)` 的 FVS 钉死表。每个值**不依赖邻居**就渲染出该单元 → 确定性、O(N)、前缀稳定。
    2. **velar 阴性微调**:`G`/`Gx` 前向耦合的元音(`a`/`o`/`u`)换成阴性(`e`/`oe`/`ue`),输出更干净。
@@ -448,15 +462,16 @@ shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 shaper.normalize_written_units(["B", "Aa"])
 # → 'ᠪᠠ᠋'
 
-# 结构control使用稳定公开名；也接受shape()返回的小写token
-shaper.normalize_written_units(["S", "A", "I", "I", "N", "MVS", "Aa"])
+# 所有书写单元均为PascalCase，包括shape()输出的结构control
+shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 ```
 
 `normalize_written_units()`接受由shape unit组成的有序`Sequence[str]`，而不是
 nominal Unicode。字母位置由单元顺序与结构control推导；此API不接受显式
-position record。公开control名是`MVS`、`Nirugu`、`ZWJ`，同时也接受
-`shape()`返回的小写token。API绝不自行推断或插入结构control：只有请求序列
-显式包含`ZWJ`/`zwj`时，输出才会包含ZWJ。空序列返回空字符串。非法外层输入
+position record。所有written-unit名称统一使用PascalCase；结构control为
+`Mvs`、`Nirugu`、`Zwj`，与`shape()`输出完全一致。旧小写或全大写control别名
+不再接受。API绝不自行推断或插入结构control：只有显式包含`Zwj`时，输出才会
+包含ZWJ。空序列返回空字符串。非法外层输入
 或非字符串单元抛出`TypeError`；未知unit或无法精确重新shape的序列抛出
 `ValueError`，不会猜测或返回部分编码结果。
 
@@ -492,10 +507,13 @@ print(f"{len(words)} 个输入 → {len(unique)} 个唯一形态：{unique}")
 # 直接传文本
 mongol-norm shape 'ᠰᠠᠢᠨ'                   # → S+A+I+I+A
 mongol-norm normalize 'ᠰᠡᠢᠨ'               # 输出 canonical
+mongol-norm normalize-written-units 'B+Aa'  # → ᠪᠠ᠋
+mongol-norm normalize-written-units 'BZwj'  # 紧凑PascalCase单元串
 mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # 混合文字
 
 # 管道 / 标准输入(文本位置写 `-`)
 echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
+echo 'B+Aa' | mongol-norm normalize-written-units -
 cat doc.txt | mongol-norm normalize-text -
 
 # 文件输入 / 输出
@@ -503,10 +521,17 @@ mongol-norm normalize-text -i in.txt -o out.txt
 
 # 批量:一行一词输入,一行一个 canonical 输出
 mongol-norm normalize --batch -i words.txt -o canonical.txt
+# 书写单元批量:每行一个紧凑或`+`分隔序列
+mongol-norm normalize-written-units --batch -i units.txt -o canonical.txt
 
 # 视觉等价检查(相同退出码 0,不同退出码 1)
 mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 ```
+
+`normalize-written-units`接受紧凑PascalCase或显式`+`边界。紧凑输入必须只有
+一种合法切分；存在歧义时fail closed，调用方须改用`+`。解析后继续执行与
+`normalize_written_units()`相同的exact-shape校验，因此语法合法的unit stream
+若没有canonical MNG编码仍会被拒绝。
 
 `normalize`(单词模式)会跳过非蒙古文字符,多行文件直接喂给它会被当成一整个词;一行一词的文件请用 `--batch`,自由文本请用 `normalize-text`。
 
@@ -540,9 +565,10 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalize` | `normalize()` 输出规范结果; 幂等性; 规范化后与原始词形视觉相同 |
 | `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入; 幂等性; 词独立性 |
 | `TestNormalizeWrittenUnits` | 公开shape-unit输入、结构control、校验与精确回形 |
+| `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI输入、control标准拼写与解析错误 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **156 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
+当前总数: **174 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
 
 ### 应用场景
 
