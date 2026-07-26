@@ -13,16 +13,16 @@ Characters) compliance suite for Hudum (MNG).
 
 Format/normalization is the same as `test_core_hud.py`:
   - input  : space-separated aliases, `space` is a word boundary
-  - output : space-separated written units; `_` / `-` collapsed to `mvs`
+  - output : space-separated written units; `_` / `-` collapsed to public `Mvs`
 
-EAC adds a few tokens beyond core-hud:
+EAC adds a few third-party input aliases beyond core-hud:
   - `nirugu` (U+180A) — joining marker
   - `zwj`    (U+200D) — zero-width joiner
   - `fvs4`   (U+180F) — already in our existing alias map
 
 Caveats:
   - Some EAC expected outputs use mongfontbuilder glyph-name artifacts
-    we don't emit (`<`/`>` join markers, capitalized `Mvs`/`Nnbsp`,
+    we don't emit (`<`/`>` join markers, `Nnbsp`,
     explicit `Fvs1..4`). Such cases are expected to fail; classify
     them after running.
   - Some EAC rules diverge from the UTN model on purpose
@@ -69,7 +69,7 @@ def _shape_aliases(shaper, aliases: str) -> list:
     out = []
     for i, word_tokens in enumerate(words):
         if i > 0:
-            out.append('mvs')
+            out.append('Mvs')
         if not word_tokens:
             continue
         text = ''.join(_ALIAS_TO_CP[a] for a in word_tokens)
@@ -84,7 +84,7 @@ def _shape_aliases(shaper, aliases: str) -> list:
 #   Fvs1..4         — explicit FVS rendering
 #   Nnbsp           — explicit NNBSP rendering
 # (`Ni` is NOT stripped: nirugu is a real glyph and our shape() emits a
-# 'nirugu' token for it — the comparison covers it.)
+# `Nirugu` token for it — the comparison covers it.)
 _FONT_NAMING_ARTIFACTS = {'<', '>', 'Fvs1', 'Fvs2', 'Fvs3', 'Fvs4', 'Nnbsp'}
 
 
@@ -123,16 +123,16 @@ def _normalize_expected(expected: str) -> list:
     """
     Normalize mongfontbuilder's expected-output tokens for comparison
     against our shaper's output:
-      - Collapse narrow `_` / wide `-` / capitalized `Mvs` → `mvs`
-      - Map the nirugu glyph `Ni` → our 'nirugu' token
+      - Collapse narrow `_` / wide `-` / `Mvs` → public `Mvs`
+      - Map the nirugu glyph `Ni` → public `Nirugu`
       - Drop font-naming artifacts (`<`, `>`, `Fvs1..4`, `Nnbsp`)
     """
     out = []
     for tok in expected.split():
         if tok in ('_', '-', 'Mvs'):
-            out.append('mvs')
+            out.append('Mvs')
         elif tok == 'Ni':
-            out.append('nirugu')
+            out.append('Nirugu')
         elif tok in _FONT_NAMING_ARTIFACTS:
             continue  # drop
         else:
@@ -189,9 +189,9 @@ class TestEacHud(unittest.TestCase):
                 failures.append(f"{index:12}  input={aliases!r}  PARSE ERROR: {e}")
                 continue
             # ZWJ is zero-width (renders no glyph) so EAC's expected glyph
-            # stream never names it; drop our 'zwj' tokens for comparison.
-            # ZWJ 零宽不渲染字形,EAC 期望列没有它;比对时剥掉我们的 zwj token。
-            actual = [t for t in actual if t != 'zwj']
+            # stream never names it; drop our 'Zwj' tokens for comparison.
+            # ZWJ 零宽不渲染字形,EAC 期望列没有它;比对时剥掉我们的 Zwj token。
+            actual = [t for t in actual if t != 'Zwj']
             expected_norm = _normalize_expected(expected)
             if actual != expected_norm:
                 failures.append(

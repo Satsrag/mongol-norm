@@ -28,6 +28,7 @@ import unittest
 from pathlib import Path
 
 from mongol_norm import MongolianShaper
+from mongol_norm.shaper import _parse_written_units
 
 _ALIAS_TO_CP = {
     'a': 'ᠠ', 'e': 'ᠡ', 'i': 'ᠢ', 'o': 'ᠣ',
@@ -259,6 +260,66 @@ class TestShapeCanonicity(unittest.TestCase, _RoundTripBase):
                 if w:
                     yield w
 
+    def test_public_written_unit_api_covers_all_shape_groups(self):
+        representatives = {}
+        for word in self._all_words():
+            shape = tuple(self.s.shape(word))
+            representatives.setdefault(shape, word)
+
+        self.assertEqual(
+            len(representatives),
+            1993,
+            "corpus shape-group coverage drifted",
+        )
+
+        self.s._build_unit_enc()
+        known_units = {
+            unit
+            for (_position, written) in self.s._unit_enc
+            for unit in written
+        }
+        known_units.update(self.s._STRUCTURAL_CHARS)
+        compact_failures = []
+        for shape in representatives:
+            compact = "".join(shape)
+            try:
+                parsed = tuple(_parse_written_units(compact, known_units))
+            except ValueError as exc:
+                compact_failures.append((shape, compact, str(exc)))
+                continue
+            if parsed != shape:
+                compact_failures.append((shape, compact, parsed))
+        self.assertFalse(
+            compact_failures,
+            f"compact PascalCase parsing failed: {compact_failures[:5]}",
+        )
+
+        failures = []
+        for shape, word in representatives.items():
+            try:
+                encoded = self.s.normalize_written_units(shape)
+            except Exception as exc:
+                failures.append(
+                    f"shape={list(shape)!r}: {type(exc).__name__}: {exc}"
+                )
+                continue
+            if encoded != self.s.normalize(word):
+                failures.append(
+                    f"shape={list(shape)!r}: written-unit API {encoded!r} != "
+                    f"normalize {self.s.normalize(word)!r}"
+                )
+            elif tuple(self.s.shape(encoded)) != shape:
+                failures.append(
+                    f"shape={list(shape)!r}: output reshaped as "
+                    f"{self.s.shape(encoded)!r}"
+                )
+
+        if failures:
+            self.fail(
+                f"{len(failures)} of {len(representatives)} shape groups failed "
+                f"the public written-unit API:\n" + "\n".join(failures[:20])
+            )
+
     def test_same_shape_same_normalize(self):
         # shape_tuple → {normalize_output: [example_inputs...]}
         # If any group's inner dict has >1 key, the property failed.
@@ -419,7 +480,7 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                     failures.append(f"{label}: normalize lost MVS prefix: {norm!r}")
                     continue
                 in_ctx_shape = self.s.shape(word_text)
-                chain_shape = tuple(u for u in in_ctx_shape if u != 'mvs')
+                chain_shape = tuple(u for u in in_ctx_shape if u != 'Mvs')
                 if chain_shape == chachlag_chain:
                     continue
                 chain_text = norm[len(mvs_ch):]
@@ -522,7 +583,7 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
         """
         mvs_char = chr(0x180E)
         with_mvs_shape = self.s.shape(word_text)
-        if not with_mvs_shape or with_mvs_shape[0] != 'mvs':
+        if not with_mvs_shape or with_mvs_shape[0] != 'Mvs':
             return None
         except_shape = with_mvs_shape[1:]  # remove first 'mvs' token
 
@@ -703,7 +764,7 @@ class TestPrefixStability(unittest.TestCase, _RoundTripBase):
         # Only pure-letter chains: structural tokens (mvs/nirugu/zwj) split
         # words into chains, so feeding them as one chain is meaningless.
         # 只取纯字母 chain:结构 token 会切分 chain,整词直接喂无意义。
-        structural = ('mvs', 'nirugu', 'zwj')
+        structural = ('Mvs', 'Nirugu', 'Zwj')
         shapes = {}
         for _, aliases in INLINE_CASES:
             for w in _aliases_to_words(aliases):

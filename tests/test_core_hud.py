@@ -18,8 +18,8 @@ input through HarfBuzz on a built OTF and compares to `expected`. Here
 we shape through our pure-Python `MongolianShaper` and do the same
 comparison, after one normalization step: mongfontbuilder distinguishes
 narrow (`_`) vs wide (`-`) MVS in its expected output, while our
-`shape()` produces the generic `mvs` token — we collapse both back to
-`mvs` before comparing.
+`shape()` produces the generic `Mvs` token — we collapse both to
+`Mvs` before comparing.
 """
 import csv
 import unittest
@@ -47,7 +47,7 @@ _ALIAS_TO_CP = {
     'fvs3': '᠍', 'fvs4': '᠏', 'nnbsp': ' ',
     # NB: `space` is a *word boundary* in mongfontbuilder's test format.
     # We handle it by SPLITTING the input on `space`, shaping each word
-    # independently, and concatenating outputs with 'mvs' between them.
+    # independently, and concatenating outputs with `Mvs` between them.
     # See `_shape_aliases` below. (Hence no mapping for `space` here —
     # it should never reach `_aliases_to_text`.)
 }
@@ -66,7 +66,7 @@ def _shape_aliases(shaper, aliases: str) -> list:
     a wide-MVS-shaped glyph but does NOT participate in particle-dict
     matching or marker propagation across the boundary. We model this by
     splitting the input on `space`, shaping each word independently, and
-    joining the results with `mvs` between them.
+    joining the results with `Mvs` between them.
     """
     tokens = aliases.split()
     # Split into words on `space`
@@ -79,7 +79,7 @@ def _shape_aliases(shaper, aliases: str) -> list:
     out = []
     for i, word_tokens in enumerate(words):
         if i > 0:
-            out.append('mvs')
+            out.append('Mvs')
         if not word_tokens:
             continue
         text = ''.join(_ALIAS_TO_CP[a] for a in word_tokens)
@@ -94,12 +94,12 @@ def _normalize_expected(expected: str) -> list:
 
     mongfontbuilder uses `_` for narrow MVS (chachlag context) and `-`
     for wide MVS (particle context). Our shaper produces the generic
-    `mvs` token regardless. Collapse both to `mvs` for comparison.
+    `Mvs` token regardless. Collapse both to `Mvs` for comparison.
     """
     out = []
     for tok in expected.split():
         if tok in ('_', '-'):
-            out.append('mvs')
+            out.append('Mvs')
         else:
             out.append(tok)
     return out

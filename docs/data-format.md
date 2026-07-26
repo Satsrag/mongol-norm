@@ -40,6 +40,46 @@ rules = load_rules("MNG")             # -> dict
 table = load_normalize_table("MNG")   # -> dict
 ```
 
+To canonicalize a written-unit sequence without first supplying nominal Unicode,
+use the public API instead of the internal data loaders:
+
+```python
+from mongol_norm import MongolianShaper
+
+shaper = MongolianShaper(locale="MNG")
+shaper.normalize_written_units(["B", "Aa"])
+# -> "ᠪᠠ᠋"
+
+shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
+```
+
+The input must be an ordered `Sequence[str]` using the same unit vocabulary
+returned by `shape()`. Every written-unit name is PascalCase; structural controls
+are `Mvs`, `Nirugu`, and `Zwj`. Old lowercase and all-uppercase control aliases
+are rejected. Positions are inferred from order
+and structural context—the API does not accept explicit position records and
+never infers or inserts a structural control. In particular, output contains ZWJ
+only when the request contains `Zwj`. An empty sequence returns an empty string.
+Malformed outer input or a non-string item raises `TypeError`; unknown units and
+sequences that cannot reshape to the exact requested units raise `ValueError`.
+There is no partial-output or first-candidate fallback.
+
+The equivalent CLI subcommand accepts either uniquely segmented compact
+PascalCase units or explicit `+` separators:
+
+```sh
+mongol-norm normalize-written-units 'B+Aa'
+mongol-norm normalize-written-units 'BZwj'
+echo 'B+Aa' | mongol-norm normalize-written-units -
+mongol-norm normalize-written-units --batch -i units.txt -o canonical.txt
+```
+
+Batch input contains one compact or `+`-joined sequence per line. Compact input
+fails closed if it has more than one valid segmentation; use `+` to resolve the
+boundary. For example, `AAaBZwj` segments as `A+Aa+B+Zwj`, then undergoes the
+same exact-shape encodability validation as sequence input. Unit names cannot be
+empty or contain surrounding whitespace.
+
 ### Any other language
 
 Grab the raw files directly:
@@ -252,7 +292,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
-1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as `mvs`/`nirugu`/`zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (nirugu/zwj) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
+1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
 2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
 4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, return the input unchanged rather than mis-encode.
