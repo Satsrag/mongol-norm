@@ -34,6 +34,7 @@ Data source / 数据来源: the bundled JSON in `mongol_norm/data/` (flat
 pre-processed rules), generated from mongfontbuilder + UTN #57 by the
 dev-only scripts in `scripts/`. See docs/data-format.md.
 """
+from collections.abc import Sequence
 from typing import Dict
 
 from ._data import load_rules
@@ -987,6 +988,60 @@ class MongolianShaper:
             return text
         return canonical
 
+    def normalize_written_units(self, written_units):
+        """
+        Encode an ordered written-unit sequence as canonical MNG Unicode.
+        将有序书写单元序列编码为 canonical MNG Unicode。
+
+        ``written_units`` may be the direct output of :meth:`shape`. External
+        callers may spell structural tokens as ``MVS``, ``Nirugu``, and ``ZWJ``;
+        the lowercase forms returned by :meth:`shape` are accepted too. Letter
+        positions are inferred from sequence order and structural controls; this
+        API does not accept explicit position records or infer/insert controls.
+        ZWJ is emitted only when ``ZWJ``/``zwj`` is present in the request. An
+        empty sequence returns an empty string.
+        ``written_units`` 可直接使用 :meth:`shape` 的输出。外部调用方也可将结构
+        token 写作 ``MVS``、``Nirugu``、``ZWJ``；同时接受 :meth:`shape` 返回的
+        小写形式。字母位置由序列顺序与结构 control 推导；本 API 不接受显式位置
+        record，也不推断或插入 control。只有请求含 ``ZWJ``/``zwj`` 时才输出
+        ZWJ；空序列返回空字符串。
+
+        The result is accepted only when it reshapes to the exact requested
+        sequence. An unknown/malformed unit or an unencodable sequence raises
+        instead of guessing or returning a partial result.
+        仅当输出重新 shape 后与请求序列完全一致时才接受。未知/非法 unit 或无法
+        编码的序列会抛出异常，不猜测，也不返回部分结果。
+
+        Raises:
+            TypeError: ``written_units`` is not an ordered string sequence.
+            ValueError: a unit is unknown or the sequence cannot be encoded
+                with an exact shape round trip.
+        """
+        if (isinstance(written_units, (str, bytes))
+                or not isinstance(written_units, Sequence)):
+            raise TypeError("written_units must be an ordered sequence of strings")
+        target = []
+        for index, unit in enumerate(written_units):
+            if not isinstance(unit, str):
+                raise TypeError(f"written_units[{index}] must be a string")
+            target.append(self._PUBLIC_STRUCTURAL_TOKENS.get(unit, unit))
+        if not target:
+            return ""
+        self._build_unit_enc()
+        known_units = {
+            unit
+            for (_position, written) in self._unit_enc
+            for unit in written
+        }
+        known_units.update(self._STRUCTURAL_CHARS)
+        for index, unit in enumerate(target):
+            if unit not in known_units:
+                raise ValueError(f"written_units[{index}] is unknown: {unit!r}")
+        canonical = self._canonical_for_shape(target)
+        if not canonical or self.shape(canonical) != target:
+            raise ValueError("written-unit sequence has no canonical MNG encoding")
+        return canonical
+
     # ── Shape → canonical Unicode (pure function) ──────────────────
     # The chain shape acts as the key: any two inputs whose shape() output
     # is identical land in the same cache slot and get the same Unicode.
@@ -1085,6 +1140,11 @@ class MongolianShaper:
         'mvs': chr(MVS_CP),
         'nirugu': chr(NIRUGU_CP),
         'zwj': chr(ZWJ_CP),
+    }
+    _PUBLIC_STRUCTURAL_TOKENS = {
+        'MVS': 'mvs',
+        'Nirugu': 'nirugu',
+        'ZWJ': 'zwj',
     }
     # Joiners force cursive connection on the adjacent letter (shift its
     # position to a joined form); MVS does not (post-MVS letters restart).

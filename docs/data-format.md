@@ -40,6 +40,30 @@ rules = load_rules("MNG")             # -> dict
 table = load_normalize_table("MNG")   # -> dict
 ```
 
+To canonicalize a written-unit sequence without first supplying nominal Unicode,
+use the public API instead of the internal data loaders:
+
+```python
+from mongol_norm import MongolianShaper
+
+shaper = MongolianShaper(locale="MNG")
+shaper.normalize_written_units(["B", "Aa"])
+# -> "ᠪᠠ᠋"
+
+shaper.normalize_written_units(["S", "A", "I", "I", "N", "MVS", "Aa"])
+```
+
+The input must be an ordered `Sequence[str]` using the same unit vocabulary
+returned by `shape()`. External structural-control names are `MVS`, `Nirugu`,
+and `ZWJ`; the lowercase `mvs`/`nirugu`/`zwj` tokens returned by `shape()` are
+accepted directly too. Positions are inferred from order and structural
+context—the API does not accept explicit position records and never infers or
+inserts a structural control. In particular, output contains ZWJ only when the
+request contains `ZWJ` or `zwj`. An empty sequence returns an empty string.
+Malformed outer input or a non-string item raises `TypeError`; unknown units and
+sequences that cannot reshape to the exact requested units raise `ValueError`.
+There is no partial-output or first-candidate fallback.
+
 ### Any other language
 
 Grab the raw files directly:

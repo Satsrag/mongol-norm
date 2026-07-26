@@ -259,6 +259,44 @@ class TestShapeCanonicity(unittest.TestCase, _RoundTripBase):
                 if w:
                     yield w
 
+    def test_public_written_unit_api_covers_all_shape_groups(self):
+        representatives = {}
+        for word in self._all_words():
+            shape = tuple(self.s.shape(word))
+            representatives.setdefault(shape, word)
+
+        self.assertEqual(
+            len(representatives),
+            1993,
+            "corpus shape-group coverage drifted",
+        )
+
+        failures = []
+        for shape, word in representatives.items():
+            try:
+                encoded = self.s.normalize_written_units(shape)
+            except Exception as exc:
+                failures.append(
+                    f"shape={list(shape)!r}: {type(exc).__name__}: {exc}"
+                )
+                continue
+            if encoded != self.s.normalize(word):
+                failures.append(
+                    f"shape={list(shape)!r}: written-unit API {encoded!r} != "
+                    f"normalize {self.s.normalize(word)!r}"
+                )
+            elif tuple(self.s.shape(encoded)) != shape:
+                failures.append(
+                    f"shape={list(shape)!r}: output reshaped as "
+                    f"{self.s.shape(encoded)!r}"
+                )
+
+        if failures:
+            self.fail(
+                f"{len(failures)} of {len(representatives)} shape groups failed "
+                f"the public written-unit API:\n" + "\n".join(failures[:20])
+            )
+
     def test_same_shape_same_normalize(self):
         # shape_tuple → {normalize_output: [example_inputs...]}
         # If any group's inner dict has >1 key, the property failed.

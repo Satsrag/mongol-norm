@@ -25,7 +25,7 @@ Both halves of the library — shaping and normalization (MNG / Hudum) — are v
 
 #### ✅ Normalization — same guarantees, machine-checked
 
-`normalize()` / `normalize_text()` are a **pure function of shape** with invariants checked in CI over every corpus encoding:
+`normalize()` / `normalize_text()` / `normalize_written_units()` are **pure functions of shape** with invariants checked in CI over every corpus encoding:
 
 | Property | Result |
 |---|---|
@@ -141,7 +141,24 @@ shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
+
+# Normalize an already-shaped written-unit sequence
+shaper.normalize_written_units(["B", "Aa"])
+# → 'ᠪᠠ᠋'
+
+# Structural controls use stable public names; shape() lowercase tokens also work
+shaper.normalize_written_units(["S", "A", "I", "I", "N", "MVS", "Aa"])
 ```
+
+`normalize_written_units()` accepts an ordered `Sequence[str]` of shape units,
+not nominal Unicode. Letter positions are inferred from unit order and structural
+controls; explicit position records are not accepted by this API. Public control
+names are `MVS`, `Nirugu`, and `ZWJ` (the lowercase tokens returned by `shape()`
+are also accepted). The API never infers or inserts a structural control: ZWJ is
+present in the output only when `ZWJ`/`zwj` is present in the requested sequence.
+An empty sequence returns an empty string. A malformed outer input or a non-string
+item raises `TypeError`; unknown units and sequences that cannot reshape exactly
+raise `ValueError` rather than being guessed or partially encoded.
 
 #### Full-text normalization
 
@@ -222,9 +239,10 @@ The hand-written suite covers:
 | `TestSameShape` | `same_shape()` correctly identifies visually identical vs. distinct encodings |
 | `TestNormalize` | `normalize()` produces canonical output; idempotency; normalized result matches original visually |
 | `TestNormalizeText` | `normalize_text()` handles multi-word, mixed-script, punctuation, empty input; idempotency; word independence |
+| `TestNormalizeWrittenUnits` | public shape-unit input, structural controls, validation, and exact reshape |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **142 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
+Current totals: **156 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
 
 ### Use Cases
 
@@ -252,6 +270,7 @@ mongol-norm/                          # the repo = the package (single, self-con
 ├── docs/data-format.md               # JSON schema, for other-language ports
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
+    ├── test_written_units_api.py
     ├── test_core_hud.py  test_eac_hud.py
     └── data/{core,eac}-hud.tsv       # vendored from mongfontbuilder
 ```
@@ -306,7 +325,7 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 
 #### ✅ Normalization(规范化)— 与整形同级保障,机器验证
 
-`normalize()` / `normalize_text()` 是 **shape 的纯函数**,以下不变量在 CI 中对每一条语料编码逐一验证:
+`normalize()` / `normalize_text()` / `normalize_written_units()` 是 **shape 的纯函数**,以下不变量在 CI 中对每一条语料编码逐一验证:
 
 | 性质 | 结果 |
 |---|---|
@@ -424,7 +443,22 @@ shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
+
+# 从已经shape好的书写单元序列直接生成canonical Unicode
+shaper.normalize_written_units(["B", "Aa"])
+# → 'ᠪᠠ᠋'
+
+# 结构control使用稳定公开名；也接受shape()返回的小写token
+shaper.normalize_written_units(["S", "A", "I", "I", "N", "MVS", "Aa"])
 ```
+
+`normalize_written_units()`接受由shape unit组成的有序`Sequence[str]`，而不是
+nominal Unicode。字母位置由单元顺序与结构control推导；此API不接受显式
+position record。公开control名是`MVS`、`Nirugu`、`ZWJ`，同时也接受
+`shape()`返回的小写token。API绝不自行推断或插入结构control：只有请求序列
+显式包含`ZWJ`/`zwj`时，输出才会包含ZWJ。空序列返回空字符串。非法外层输入
+或非字符串单元抛出`TypeError`；未知unit或无法精确重新shape的序列抛出
+`ValueError`，不会猜测或返回部分编码结果。
 
 #### 全文规范化
 
@@ -505,9 +539,10 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestSameShape` | `same_shape()` 正确识别外形相同 vs 不同的编码 |
 | `TestNormalize` | `normalize()` 输出规范结果; 幂等性; 规范化后与原始词形视觉相同 |
 | `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入; 幂等性; 词独立性 |
+| `TestNormalizeWrittenUnits` | 公开shape-unit输入、结构control、校验与精确回形 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **142 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
+当前总数: **156 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
 
 ### 应用场景
 
@@ -535,6 +570,7 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 ├── docs/data-format.md               # JSON schema, 供其他语言移植
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
+    ├── test_written_units_api.py
     ├── test_core_hud.py  test_eac_hud.py
     └── data/{core,eac}-hud.tsv       # 来自 mongfontbuilder
 ```
