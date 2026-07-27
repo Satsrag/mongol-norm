@@ -1,0 +1,962 @@
+{
+  "locale": "MNG",
+  "rules": [
+    "III.1.chachlag",
+    "III.2a.o_u_oe_ue.marked",
+    "III.2a.o_u_oe_ue.marked.GB.A",
+    "III.2a.o_u_oe_ue.marked.GB.B",
+    "III.2a.oe_ue.cluster.marked",
+    "III.2a.d.marked",
+    "III.2c.chachlag_onset",
+    "III.2e.n_t_d.onset_devsger",
+    "III.2f.h_g.harmony",
+    "III.2g.t.devsger",
+    "III.2g.sh.dotless",
+    "III.2g.g.dotless",
+    "III.3.particle",
+    "III.4.vowel_devsger",
+    "III.5.post_bowed"
+  ],
+  "schema": "mongol-norm-phase-trace/1",
+  "vectors": [
+    {
+      "expected": {
+        "final_conditions": [
+          "onset",
+          null,
+          null,
+          null,
+          "chachlag"
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "fina",
+          "isol",
+          "isol"
+        ],
+        "shape": [
+          "T",
+          "A",
+          "L",
+          "Mvs",
+          "Aa"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "chachlag",
+                "before": null,
+                "token": 4
+              }
+            ],
+            "rule": "III.1.chachlag"
+          },
+          {
+            "changes": [
+              {
+                "after": "onset",
+                "before": null,
+                "token": 0
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          }
+        ],
+        "written_by_token": [
+          [
+            "T"
+          ],
+          [
+            "A"
+          ],
+          [
+            "L"
+          ],
+          [],
+          [
+            "Aa"
+          ]
+        ]
+      },
+      "id": "iii1-chachlag",
+      "input_aliases": "t a l mvs a",
+      "input_cps": [
+        6194,
+        6176,
+        6191,
+        6158,
+        6176
+      ],
+      "witness_rule": "III.1.chachlag"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "marked"
+        ],
+        "positions": [
+          "init",
+          "fina"
+        ],
+        "shape": [
+          "Ch",
+          "O"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "marked",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.2a.o_u_oe_ue.marked"
+          }
+        ],
+        "written_by_token": [
+          [
+            "Ch"
+          ],
+          [
+            "O"
+          ]
+        ]
+      },
+      "id": "iii2a-marked",
+      "input_aliases": "ch u",
+      "input_cps": [
+        6196,
+        6180
+      ],
+      "witness_rule": "III.2a.o_u_oe_ue.marked"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          "onset",
+          null
+        ],
+        "positions": [
+          "init",
+          "fina"
+        ],
+        "shape": [
+          "D",
+          "U"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "marked",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.2a.o_u_oe_ue.marked"
+          },
+          {
+            "changes": [
+              {
+                "after": null,
+                "before": "marked",
+                "token": 1
+              }
+            ],
+            "rule": "III.2a.o_u_oe_ue.marked.GB.A"
+          },
+          {
+            "changes": [
+              {
+                "after": "onset",
+                "before": null,
+                "token": 0
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          }
+        ],
+        "written_by_token": [
+          [
+            "D"
+          ],
+          [
+            "U"
+          ]
+        ]
+      },
+      "id": "iii2a-marked-gb-a",
+      "input_aliases": "d fvs1 ue",
+      "input_cps": [
+        6195,
+        6155,
+        6182
+      ],
+      "witness_rule": "III.2a.o_u_oe_ue.marked.GB.A"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "marked"
+        ],
+        "positions": [
+          "init",
+          "fina"
+        ],
+        "shape": [
+          "G",
+          "Ue"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "marked",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.2a.o_u_oe_ue.marked"
+          },
+          {
+            "changes": [
+              {
+                "after": null,
+                "before": "marked",
+                "token": 1
+              }
+            ],
+            "rule": "III.2a.o_u_oe_ue.marked.GB.A"
+          },
+          {
+            "changes": [
+              {
+                "after": "marked",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.2a.o_u_oe_ue.marked.GB.B"
+          }
+        ],
+        "written_by_token": [
+          [
+            "G"
+          ],
+          [
+            "Ue"
+          ]
+        ]
+      },
+      "id": "iii2a-marked-gb-b",
+      "input_aliases": "h fvs2 ue",
+      "input_cps": [
+        6188,
+        6156,
+        6182
+      ],
+      "witness_rule": "III.2a.o_u_oe_ue.marked.GB.B"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "onset",
+          "marked",
+          "feminine",
+          "post_bowed"
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "medi",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "M",
+          "N",
+          "O",
+          "I",
+          "G",
+          "Aa"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "marked",
+                "before": null,
+                "token": 2
+              }
+            ],
+            "rule": "III.2a.oe_ue.cluster.marked"
+          },
+          {
+            "changes": [
+              {
+                "after": "onset",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          },
+          {
+            "changes": [
+              {
+                "after": "feminine",
+                "before": null,
+                "token": 3
+              }
+            ],
+            "rule": "III.2f.h_g.harmony"
+          },
+          {
+            "changes": [
+              {
+                "after": "post_bowed",
+                "before": null,
+                "token": 4
+              }
+            ],
+            "rule": "III.5.post_bowed"
+          }
+        ],
+        "written_by_token": [
+          [
+            "M"
+          ],
+          [
+            "N"
+          ],
+          [
+            "O",
+            "I"
+          ],
+          [
+            "G"
+          ],
+          [
+            "Aa"
+          ]
+        ]
+      },
+      "id": "iii2a-cluster-marked",
+      "input_aliases": "m n oe g e",
+      "input_cps": [
+        6190,
+        6184,
+        6181,
+        6189,
+        6177
+      ],
+      "witness_rule": "III.2a.oe_ue.cluster.marked"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          "marked",
+          null
+        ],
+        "positions": [
+          "init",
+          "fina"
+        ],
+        "shape": [
+          "D",
+          "A"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "marked",
+                "before": null,
+                "token": 0
+              }
+            ],
+            "rule": "III.2a.d.marked"
+          }
+        ],
+        "written_by_token": [
+          [
+            "D"
+          ],
+          [
+            "A"
+          ]
+        ]
+      },
+      "id": "iii2a-d-marked",
+      "input_aliases": "d a",
+      "input_cps": [
+        6195,
+        6176
+      ],
+      "witness_rule": "III.2a.d.marked"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          null,
+          "vowel_devsger",
+          "chachlag_onset",
+          null,
+          "chachlag"
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "medi",
+          "fina",
+          "isol",
+          "isol"
+        ],
+        "shape": [
+          "S",
+          "A",
+          "I",
+          "I",
+          "N",
+          "Mvs",
+          "Aa"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "chachlag",
+                "before": null,
+                "token": 5
+              }
+            ],
+            "rule": "III.1.chachlag"
+          },
+          {
+            "changes": [
+              {
+                "after": "chachlag_onset",
+                "before": null,
+                "token": 3
+              }
+            ],
+            "rule": "III.2c.chachlag_onset"
+          },
+          {
+            "changes": [
+              {
+                "after": "vowel_devsger",
+                "before": null,
+                "token": 2
+              }
+            ],
+            "rule": "III.4.vowel_devsger"
+          }
+        ],
+        "written_by_token": [
+          [
+            "S"
+          ],
+          [
+            "A"
+          ],
+          [
+            "I",
+            "I"
+          ],
+          [
+            "N"
+          ],
+          [],
+          [
+            "Aa"
+          ]
+        ]
+      },
+      "id": "iii2c-chachlag-onset",
+      "input_aliases": "s a i n mvs a",
+      "input_cps": [
+        6192,
+        6176,
+        6178,
+        6184,
+        6158,
+        6176
+      ],
+      "witness_rule": "III.2c.chachlag_onset"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "devsger",
+          "onset",
+          null
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "A",
+          "A",
+          "A",
+          "D",
+          "A"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "devsger",
+                "before": null,
+                "token": 1
+              },
+              {
+                "after": "onset",
+                "before": null,
+                "token": 2
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          }
+        ],
+        "written_by_token": [
+          [
+            "A",
+            "A"
+          ],
+          [
+            "A"
+          ],
+          [
+            "D"
+          ],
+          [
+            "A"
+          ]
+        ]
+      },
+      "id": "iii2e-onset-devsger",
+      "input_aliases": "a n d a",
+      "input_cps": [
+        6176,
+        6184,
+        6195,
+        6176
+      ],
+      "witness_rule": "III.2e.n_t_d.onset_devsger"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          "masculine_onset",
+          null,
+          null
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "Hx",
+          "A",
+          "R"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "masculine_onset",
+                "before": null,
+                "token": 0
+              }
+            ],
+            "rule": "III.2f.h_g.harmony"
+          }
+        ],
+        "written_by_token": [
+          [
+            "Hx"
+          ],
+          [
+            "A"
+          ],
+          [
+            "R"
+          ]
+        ]
+      },
+      "id": "iii2f-hg-harmony",
+      "input_aliases": "g a r",
+      "input_cps": [
+        6189,
+        6176,
+        6199
+      ],
+      "witness_rule": "III.2f.h_g.harmony"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          "devsger",
+          null,
+          "devsger"
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "T",
+          "W",
+          "A"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "devsger",
+                "before": null,
+                "token": 2
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          },
+          {
+            "changes": [
+              {
+                "after": "devsger",
+                "before": null,
+                "token": 0
+              }
+            ],
+            "rule": "III.2g.t.devsger"
+          }
+        ],
+        "written_by_token": [
+          [
+            "T"
+          ],
+          [
+            "W"
+          ],
+          [
+            "A"
+          ]
+        ]
+      },
+      "id": "iii2g-t-devsger",
+      "input_aliases": "t ee n",
+      "input_cps": [
+        6194,
+        6183,
+        6184
+      ],
+      "witness_rule": "III.2g.t.devsger"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          "dotless",
+          null,
+          "devsger"
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "S",
+          "I",
+          "A"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "devsger",
+                "before": null,
+                "token": 2
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          },
+          {
+            "changes": [
+              {
+                "after": "dotless",
+                "before": null,
+                "token": 0
+              }
+            ],
+            "rule": "III.2g.sh.dotless"
+          }
+        ],
+        "written_by_token": [
+          [
+            "S"
+          ],
+          [
+            "I"
+          ],
+          [
+            "A"
+          ]
+        ]
+      },
+      "id": "iii2g-sh-dotless",
+      "input_aliases": "sh i n",
+      "input_cps": [
+        6193,
+        6178,
+        6184
+      ],
+      "witness_rule": "III.2g.sh.dotless"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "dotless",
+          null
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "S",
+          "H",
+          "A"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "masculine_onset",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.2f.h_g.harmony"
+          },
+          {
+            "changes": [
+              {
+                "after": "dotless",
+                "before": "masculine_onset",
+                "token": 1
+              }
+            ],
+            "rule": "III.2g.g.dotless"
+          }
+        ],
+        "written_by_token": [
+          [
+            "S"
+          ],
+          [
+            "H"
+          ],
+          [
+            "A"
+          ]
+        ]
+      },
+      "id": "iii2g-g-dotless",
+      "input_aliases": "s g a",
+      "input_cps": [
+        6192,
+        6189,
+        6176
+      ],
+      "witness_rule": "III.2g.g.dotless"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "particle",
+          null,
+          "devsger"
+        ],
+        "positions": [
+          "isol",
+          "init",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "Mvs",
+          "I",
+          "I",
+          "A"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "devsger",
+                "before": null,
+                "token": 3
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          },
+          {
+            "changes": [
+              {
+                "after": "particle",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.3.particle"
+          }
+        ],
+        "written_by_token": [
+          [],
+          [
+            "I"
+          ],
+          [
+            "I"
+          ],
+          [
+            "A"
+          ]
+        ]
+      },
+      "id": "iii3-particle",
+      "input_aliases": "mvs y i n",
+      "input_cps": [
+        6158,
+        6198,
+        6178,
+        6184
+      ],
+      "witness_rule": "III.3.particle"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "vowel_devsger",
+          "devsger"
+        ],
+        "positions": [
+          "init",
+          "medi",
+          "fina"
+        ],
+        "shape": [
+          "A",
+          "A",
+          "I",
+          "I",
+          "A"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "devsger",
+                "before": null,
+                "token": 2
+              }
+            ],
+            "rule": "III.2e.n_t_d.onset_devsger"
+          },
+          {
+            "changes": [
+              {
+                "after": "vowel_devsger",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.4.vowel_devsger"
+          }
+        ],
+        "written_by_token": [
+          [
+            "A",
+            "A"
+          ],
+          [
+            "I",
+            "I"
+          ],
+          [
+            "A"
+          ]
+        ]
+      },
+      "id": "iii4-vowel-devsger",
+      "input_aliases": "a i n",
+      "input_cps": [
+        6176,
+        6178,
+        6184
+      ],
+      "witness_rule": "III.4.vowel_devsger"
+    },
+    {
+      "expected": {
+        "final_conditions": [
+          null,
+          "post_bowed"
+        ],
+        "positions": [
+          "init",
+          "fina"
+        ],
+        "shape": [
+          "B",
+          "Aa"
+        ],
+        "transitions": [
+          {
+            "changes": [
+              {
+                "after": "post_bowed",
+                "before": null,
+                "token": 1
+              }
+            ],
+            "rule": "III.5.post_bowed"
+          }
+        ],
+        "written_by_token": [
+          [
+            "B"
+          ],
+          [
+            "Aa"
+          ]
+        ]
+      },
+      "id": "iii5-post-bowed",
+      "input_aliases": "b a",
+      "input_cps": [
+        6186,
+        6176
+      ],
+      "witness_rule": "III.5.post_bowed"
+    }
+  ]
+}

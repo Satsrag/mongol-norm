@@ -40,6 +40,7 @@ class TestNormalizeTableExport(unittest.TestCase):
     def test_compute_returns_json_serializable_spec(self):
         spec = gen.compute_normalize_tables(self.s)
         self.assertEqual(spec["locale"], "MNG")
+        self.assertEqual(spec["canonical_version"], "mng-canonical/1")
         self.assertIn("schema", spec)
         for key in ("unit_table", "velar_fem", "velar_fem_units",
                     "masc_to_fem", "constants", "unit_enc_max_len"):
@@ -48,6 +49,16 @@ class TestNormalizeTableExport(unittest.TestCase):
             self.assertIn(pos, spec["unit_table"])
         # must be JSON-serializable as-is
         json.dumps(spec)
+
+    def test_shaper_exposes_loaded_canonical_version(self):
+        self.assertEqual(self.s.canonical_version, "mng-canonical/1")
+
+    def test_loader_rejects_unexpected_canonical_version(self):
+        spec = gen.compute_normalize_tables(self.s)
+        spec["canonical_version"] = "mng-canonical/999"
+        loaded = MongolianShaper(locale="MNG")
+        with self.assertRaisesRegex(ValueError, "unsupported canonical version"):
+            loaded._load_normalize_tables(spec)
 
     def test_spec_matches_bundled_table(self):
         """A freshly-computed spec matches the bundled table the shaper loads

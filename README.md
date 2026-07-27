@@ -98,6 +98,8 @@ Per word:
 
 > Note: output is **FVS-pinned**, not bare — each unit carries the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md), so ports in other languages can implement `normalize` with just a JSON parser.
 
+The exact canonical selection policy is frozen as **`mng-canonical/1`**. It is available as `shaper.canonical_version` and embedded in `MNG.normalize.json`. Applications that persist normalized search/index keys should store this version alongside them and rebuild those keys if a future release changes it.
+
 ### Installation
 
 `mongol-norm` is a single self-contained package on [PyPI](https://pypi.org/project/mongol-norm/) — the shaping/normalize data is bundled, no runtime dependencies:
@@ -256,7 +258,7 @@ The hand-written suite covers:
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI input, canonical control spelling, and parser errors |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **174 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
+Current totals: **186 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
 
 ### Use Cases
 
@@ -414,6 +416,8 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 
 > 注意:输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
 
+当前精确 canonical 选择策略冻结为 **`mng-canonical/1`**。可通过 `shaper.canonical_version` 读取，并写入 `MNG.normalize.json`。持久化规范化搜索键/索引键的应用应同时保存该版本；未来版本若发生变化，应重建这些键。
+
 ### 安装
 
 `mongol-norm` 是单一自包含包,已发布到 [PyPI](https://pypi.org/project/mongol-norm/) —— shaping/normalize 数据内置,零运行时依赖:
@@ -568,7 +572,7 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI输入、control标准拼写与解析错误 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **174 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
+当前总数: **186 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
 
 ### 应用场景
 
