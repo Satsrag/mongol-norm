@@ -64,7 +64,30 @@ Malformed outer input or a non-string item raises `TypeError`; unknown units and
 sequences that cannot reshape to the exact requested units raise `ValueError`.
 There is no partial-output or first-candidate fallback.
 
-The equivalent CLI subcommand accepts either uniquely segmented compact
+For callers that already carry one explicit position per flat written-unit slot,
+use the record API:
+
+```python
+shaper.normalize_positioned_written_units([
+    {"unit": "B", "position": "init"},
+    {"unit": "Aa", "position": "fina"},
+])
+```
+
+Every item must be a built-in dict containing exactly the string fields `unit`
+and `position`. Each position describes one flat written-unit slot, not grouping
+metadata for an emitted Unicode letter. Slot positions are `isol`, `init`,
+`medi`, or `fina`; structural units `Mvs`,
+`Nirugu`, and `Zwj` require `control`. `Mvs` splits position chains without
+joining, while explicit `Nirugu`/`Zwj` controls join the adjacent side. The API
+validates the supplied positions, then delegates to `normalize_written_units()`.
+It never infers or inserts controls: a connected position that would need an
+omitted ZWJ fails before encoding. A wrong outer/record/field type raises
+`TypeError`; wrong keys, unit, position, structural context, or exact encoding
+raises `ValueError`. This API currently has no CLI subcommand.
+
+The CLI equivalent of the plain `normalize_written_units()` API accepts either
+uniquely segmented compact
 PascalCase units or explicit `+` separators:
 
 ```sh

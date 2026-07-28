@@ -998,6 +998,120 @@ class MongolianShaper:
             return text
         return canonical
 
+    def normalize_positioned_written_units(self, positioned_units):
+        """
+        Encode explicit-position records as canonical MNG Unicode.
+        将显式位置 record 编码为 canonical MNG Unicode。
+
+        Each item must be exactly a built-in
+        ``{"unit": str, "position": str}`` dict. Flat slot positions are
+        ``isol``/``init``/``medi``/``fina``; ``Mvs``, ``Nirugu``,
+        and ``Zwj`` require ``control``. One record describes one flat written-
+        unit slot. Positions must already follow the supplied structural context:
+        this API validates but never infers or inserts controls. In particular,
+        a connected position that would need an omitted ZWJ raises ``ValueError``.
+
+        每项必须严格为内建 ``{"unit": str, "position": str}`` dict。扁平slot
+        position只能是
+        ``isol``/``init``/``medi``/``fina``；``Mvs``、``Nirugu``、``Zwj``
+        使用 ``control``。每个 record 对应一个扁平 written-unit slot。position
+        必须已由输入中的显式结构上下文成立；本 API 只校验，不推断或插入 control。
+        若连接位置需要未提供的 ZWJ，则抛出 ``ValueError``。
+
+        After validation, encoding delegates to :meth:`normalize_written_units`,
+        including its exact reshape safety check and no-partial-output behavior.
+
+        Raises:
+            TypeError: the outer value, a record, or a field has the wrong type.
+            ValueError: record keys, unit, position, contextual position, or exact
+                canonical encoding is invalid.
+        """
+        if (isinstance(positioned_units, (str, bytes))
+                or not isinstance(positioned_units, Sequence)):
+            raise TypeError(
+                "positioned_units must be an ordered sequence of records"
+            )
+        records = []
+        for index, record in enumerate(positioned_units):
+            if type(record) is not dict:
+                raise TypeError(f"positioned_units[{index}] must be a record")
+            if set(record) != {"unit", "position"}:
+                raise ValueError(
+                    f"positioned_units[{index}] must contain exactly "
+                    "'unit' and 'position'"
+                )
+            unit = record["unit"]
+            position = record["position"]
+            if not isinstance(unit, str):
+                raise TypeError(
+                    f"positioned_units[{index}].unit must be a string"
+                )
+            if not isinstance(position, str):
+                raise TypeError(
+                    f"positioned_units[{index}].position must be a string"
+                )
+            if position not in self._POSITIONED_UNIT_POSITIONS:
+                raise ValueError(
+                    f"positioned_units[{index}] has unknown position "
+                    f"{position!r}"
+                )
+            records.append((unit, position))
+        if not records:
+            return ""
+        self._build_unit_enc()
+        known_units = {
+            unit
+            for (_position, written) in self._unit_enc
+            for unit in written
+        }
+        known_units.update(self._STRUCTURAL_CHARS)
+        for index, (unit, _position) in enumerate(records):
+            if unit not in known_units:
+                raise ValueError(
+                    f"positioned_units[{index}] has unknown unit "
+                    f"{unit!r}"
+                )
+        units = [unit for unit, _position in records]
+        actual_positions = self._flat_written_unit_positions(units)
+        for index, (_unit, requested) in enumerate(records):
+            actual = actual_positions[index]
+            if requested != actual:
+                raise ValueError(
+                    f"positioned_units[{index}] requests position {requested!r}, "
+                    f"but the sequence gives {actual!r}"
+                )
+        return self.normalize_written_units(units)
+
+    def _flat_written_unit_positions(self, units):
+        """Infer one position per flat unit from explicit structural controls."""
+        positions = []
+        index = 0
+        while index < len(units):
+            if units[index] in self._STRUCTURAL_CHARS:
+                positions.append("control")
+                index += 1
+                continue
+            chain_start = index
+            while index < len(units) and units[index] not in self._STRUCTURAL_CHARS:
+                index += 1
+            chain_end = index
+            joined_left = (
+                chain_start > 0
+                and units[chain_start - 1] in self._JOINER_TOKENS
+            )
+            joined_right = (
+                chain_end < len(units)
+                and units[chain_end] in self._JOINER_TOKENS
+            )
+            pad_left = 1 if joined_left else 0
+            pad_right = 1 if joined_right else 0
+            padded_count = chain_end - chain_start + pad_left + pad_right
+            positions.extend(
+                self._slot_position(offset + pad_left, 1, padded_count)
+                for offset in range(chain_end - chain_start)
+            )
+        return positions
+
     def normalize_written_units(self, written_units):
         """
         Encode an ordered written-unit sequence as canonical MNG Unicode.
@@ -1143,6 +1257,9 @@ class MongolianShaper:
                 suffix_target = body + suffix_target
         return "".join(encoded)
 
+    _POSITIONED_UNIT_POSITIONS = frozenset({
+        'isol', 'init', 'medi', 'fina', 'control',
+    })
     # Structural shape tokens and the characters they encode to, verbatim.
     # 结构 shape token 及其原样对应的字符。
     _STRUCTURAL_CHARS = {
