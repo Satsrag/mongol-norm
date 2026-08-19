@@ -13,6 +13,53 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
     def setUp(self):
         self.shaper = MongolianShaper(locale="MNG")
 
+    def test_rejects_explicit_zwj_input(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "unsupported positioned control 'Zwj'",
+        ):
+            self.shaper.normalize_positioned_written_units([
+                {"unit": "Zwj", "position": "control"},
+            ])
+
+    def test_rejects_unsupported_f_isol_pair(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "unsupported positioned written unit 'F:isol'",
+        ):
+            self.shaper.normalize_positioned_written_units([
+                {"unit": "F", "position": "isol"},
+            ])
+
+
+    def test_i_isol_and_init_use_the_plain_i_canonical(self):
+        expected = self.shaper.normalize_written_units(["I"])
+        for position in ("isol", "init"):
+            with self.subTest(position=position):
+                self.assertEqual(
+                    self.shaper.normalize_positioned_written_units([
+                        {"unit": "I", "position": position},
+                    ]),
+                    expected,
+                )
+
+    def test_isolated_consonant_borrows_its_initial_written_unit(self):
+        result = self.shaper.normalize_positioned_written_units([
+            {"unit": "B", "position": "init"},
+        ])
+
+        self.assertEqual(result, "\u182a")
+        self.assertNotIn("\u200d", result)
+
+    def test_isolated_fa_borrows_the_initial_f_written_unit(self):
+        self.assertEqual(self.shaper.shape("\u1839"), ["F"])
+        result = self.shaper.normalize_positioned_written_units([
+            {"unit": "F", "position": "init"},
+        ])
+
+        self.assertEqual(result, "\u1839")
+        self.assertNotIn("\u200d", result)
+
     def test_snapshots_an_accepted_sequence_once(self):
         class ChangingList(list):
             def __init__(self, values):
@@ -26,7 +73,7 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 return iter(())
 
         positioned = ChangingList([
-            {"unit": "B", "position": "isol"},
+            {"unit": "B", "position": "init"},
         ])
 
         self.assertEqual(
@@ -41,21 +88,27 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             "",
         )
 
-    def test_all_letter_positions_follow_the_explicit_sequence(self):
-        cases = [
-            ([{"unit": "B", "position": "isol"}], ["B"]),
-            ([
-                {"unit": "B", "position": "init"},
-                {"unit": "O", "position": "medi"},
-                {"unit": "N", "position": "fina"},
-            ], ["B", "O", "N"]),
+    def test_complete_compound_needs_no_implicit_zwj(self):
+        positioned = [
+            {"unit": "B", "position": "init"},
+            {"unit": "O", "position": "medi"},
+            {"unit": "G", "position": "fina"},
         ]
-        for positioned, plain in cases:
-            with self.subTest(positioned=positioned):
-                self.assertEqual(
-                    self.shaper.normalize_positioned_written_units(positioned),
-                    self.shaper.normalize_written_units(plain),
-                )
+        self.assertEqual(
+            self.shaper.normalize_positioned_written_units(positioned),
+            self.shaper.normalize_written_units(["B", "O", "G"]),
+        )
+
+    def test_medi_started_compound_gets_a_leading_zwj(self):
+        positioned = [
+            {"unit": "B", "position": "medi"},
+            {"unit": "O", "position": "medi"},
+            {"unit": "G", "position": "fina"},
+        ]
+        self.assertEqual(
+            self.shaper.normalize_positioned_written_units(positioned),
+            self.shaper.normalize_written_units(["Zwj", "B", "O", "G"]),
+        )
 
     def test_mvs_splits_letter_position_chains_without_joining(self):
         positioned = [
@@ -71,21 +124,24 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             self.shaper.normalize_positioned_written_units(positioned),
             self.shaper.normalize_written_units(plain),
         )
-
-    def test_valid_position_still_requires_an_exact_canonical_encoding(self):
-        with self.assertRaisesRegex(ValueError, "no canonical MNG encoding"):
+        self.assertEqual(
             self.shaper.normalize_positioned_written_units([
-                {"unit": "O", "position": "isol"},
-            ])
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "Aa", "position": "fina"},
+            ]),
+            self.shaper.normalize_written_units(["Mvs", "Zwj", "Aa"]),
+        )
+
 
     def test_controls_require_control_position_and_letters_reject_it(self):
         malformed = [
             {"unit": "Mvs", "position": "isol"},
             {"unit": "B", "position": "control"},
         ]
-        for record in malformed:
+        expected = ["requires position 'control'", "unsupported positioned"]
+        for record, message in zip(malformed, expected):
             with self.subTest(record=record):
-                with self.assertRaisesRegex(ValueError, "sequence gives"):
+                with self.assertRaisesRegex(ValueError, message):
                     self.shaper.normalize_positioned_written_units([record])
 
     def test_rejects_unknown_unit_name(self):
@@ -169,28 +225,20 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 ):
                     self.shaper.normalize_positioned_written_units(positioned)
 
-    def test_explicit_zwj_controls_make_a_medi_position_valid(self):
+    def test_explicit_nirugu_controls_make_a_medi_position_valid(self):
         positioned = [
-            {"unit": "Zwj", "position": "control"},
+            {"unit": "Nirugu", "position": "control"},
             {"unit": "O", "position": "medi"},
-            {"unit": "Zwj", "position": "control"},
+            {"unit": "Nirugu", "position": "control"},
         ]
 
         self.assertEqual(
             self.shaper.normalize_positioned_written_units(positioned),
-            self.shaper.normalize_written_units(["Zwj", "O", "Zwj"]),
+            self.shaper.normalize_written_units(["Nirugu", "O", "Nirugu"]),
         )
 
     def test_one_sided_joiners_and_repeated_controls(self):
         cases = [
-            ([
-                {"unit": "Zwj", "position": "control"},
-                {"unit": "B", "position": "fina"},
-            ], ["Zwj", "B"]),
-            ([
-                {"unit": "B", "position": "init"},
-                {"unit": "Zwj", "position": "control"},
-            ], ["B", "Zwj"]),
             ([
                 {"unit": "Nirugu", "position": "control"},
                 {"unit": "U", "position": "fina"},
@@ -212,6 +260,36 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                     self.shaper.normalize_written_units(plain),
                 )
 
+    def test_long_invalid_chain_fails_closed_without_recursion_error(self):
+        positioned = [
+            {"unit": "A", "position": "isol"}
+            for _index in range(1000)
+        ]
+        with self.assertRaisesRegex(
+            ValueError,
+            "no canonical MNG encoding in the supplied context",
+        ):
+            self.shaper.normalize_positioned_written_units(positioned)
+
+    def test_long_control_sequence_stays_iterative(self):
+        positioned = [
+            {"unit": "Mvs", "position": "control"}
+            for _index in range(1000)
+        ]
+        positioned.append({"unit": "F", "position": "init"})
+        self.assertEqual(
+            self.shaper.normalize_positioned_written_units(positioned),
+            "\u180e" * 1000 + "\u1839",
+        )
+
+    def test_record_limit_fails_closed(self):
+        positioned = [
+            {"unit": "Mvs", "position": "control"}
+            for _index in range(1025)
+        ]
+        with self.assertRaisesRegex(ValueError, "at most 1024 records"):
+            self.shaper.normalize_positioned_written_units(positioned)
+
     def test_positioned_records_have_no_cli_subcommand(self):
         result = subprocess.run(
             [
@@ -229,17 +307,21 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         self.assertIn("invalid choice", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_rejects_a_position_that_needs_implicit_zwj(self):
-        positioned = [
-            {"unit": "O", "position": "medi"},
+    def test_singleton_medi_and_fina_insert_zwj_by_position(self):
+        cases = [
+            ("O", "medi", ["Zwj", "O", "Zwj"], 2),
+            ("U", "fina", ["Zwj", "U"], 1),
         ]
-
-        with self.assertRaisesRegex(
-            ValueError,
-            r"positioned_units\[0\] requests position 'medi', "
-            r"but the sequence gives 'isol'",
-        ):
-            self.shaper.normalize_positioned_written_units(positioned)
+        for unit, position, plain, zwj_count in cases:
+            with self.subTest(unit=unit, position=position):
+                result = self.shaper.normalize_positioned_written_units([
+                    {"unit": unit, "position": position},
+                ])
+                self.assertEqual(
+                    result,
+                    self.shaper.normalize_written_units(plain),
+                )
+                self.assertEqual(result.count("\u200d"), zwj_count)
 
     def test_encodes_a_valid_positioned_sequence(self):
         positioned = (
