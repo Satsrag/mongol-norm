@@ -17,6 +17,12 @@
           "written": [
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "isol"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -27,6 +33,12 @@
           "fvs": 2,
           "written": [
             "Aa"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Aa",
+              "position": "isol"
+            }
           ],
           "default": false,
           "conditions": [
@@ -43,6 +55,16 @@
             "A",
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "A",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -53,6 +75,12 @@
           "fvs": 1,
           "written": [
             "A"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -68,6 +96,16 @@
             "A",
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "A",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -78,6 +116,12 @@
           "fvs": 0,
           "written": [
             "A"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -91,6 +135,16 @@
             "A",
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "A",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -101,6 +155,12 @@
           "fvs": 1,
           "written": [
             "Aa"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Aa",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -114,6 +174,12 @@
           "fvs": 2,
           "written": [
             "A"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -133,6 +199,12 @@
           "written": [
             "Aa"
           ],
+          "positioned_written": [
+            {
+              "unit": "Aa",
+              "position": "isol"
+            }
+          ],
           "default": false,
           "conditions": [
             "chachlag",
@@ -147,6 +219,12 @@
           "written": [
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "isol"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -157,6 +235,12 @@
           "fvs": 0,
           "written": [
             "A"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -170,6 +254,16 @@
             "A",
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "A",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -181,6 +275,12 @@
           "written": [
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -191,6 +291,12 @@
           "fvs": 1,
           "written": [
             "Aa"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Aa",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -204,6 +310,12 @@
           "fvs": 2,
           "written": [
             "A"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -223,6 +335,12 @@
           "written": [
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "isol"
+            }
+          ],
           "default": false,
           "conditions": [
             "particle"
@@ -236,6 +354,12 @@
           "written": [
             "Ix"
           ],
+          "positioned_written": [
+            {
+              "unit": "Ix",
+              "position": "isol"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -248,6 +372,16 @@
             "A",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "I",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -258,6 +392,12 @@
           "fvs": 1,
           "written": [
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -273,6 +413,16 @@
             "A",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -285,6 +435,16 @@
             "A",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -296,6 +456,16 @@
           "written": [
             "I",
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -310,6 +480,12 @@
           "written": [
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -320,6 +496,12 @@
           "fvs": 0,
           "written": [
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -340,6 +522,16 @@
             "A",
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "O",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -352,6 +544,16 @@
             "A",
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -362,6 +564,12 @@
           "fvs": 0,
           "written": [
             "O"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -375,6 +583,16 @@
             "A",
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -385,6 +603,12 @@
           "fvs": 1,
           "written": [
             "O"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -399,6 +623,12 @@
           "fvs": 2,
           "written": [
             "U"
+          ],
+          "positioned_written": [
+            {
+              "unit": "U",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -418,6 +648,12 @@
           "written": [
             "U"
           ],
+          "positioned_written": [
+            {
+              "unit": "U",
+              "position": "isol"
+            }
+          ],
           "default": false,
           "conditions": [
             "particle"
@@ -431,6 +667,12 @@
           "written": [
             "Ux"
           ],
+          "positioned_written": [
+            {
+              "unit": "Ux",
+              "position": "isol"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -443,6 +685,16 @@
             "A",
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "O",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -453,6 +705,12 @@
           "fvs": 1,
           "written": [
             "O"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -468,6 +726,16 @@
             "A",
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -478,6 +746,12 @@
           "fvs": 0,
           "written": [
             "O"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -491,6 +765,16 @@
             "A",
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -501,6 +785,12 @@
           "fvs": 1,
           "written": [
             "O"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -515,6 +805,12 @@
           "fvs": 2,
           "written": [
             "U"
+          ],
+          "positioned_written": [
+            {
+              "unit": "U",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [
@@ -537,6 +833,16 @@
             "A",
             "Ue"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "Ue",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -548,6 +854,16 @@
           "written": [
             "A",
             "U"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "U",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -562,6 +878,20 @@
             "O",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -573,6 +903,16 @@
           "written": [
             "O",
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -589,6 +929,20 @@
             "O",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -600,6 +954,12 @@
           "written": [
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -610,6 +970,12 @@
           "fvs": 1,
           "written": [
             "Ue"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Ue",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -624,6 +990,12 @@
           "written": [
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "fina"
+            }
+          ],
           "default": false,
           "conditions": [
             "post_bowed"
@@ -636,6 +1008,12 @@
           "fvs": 3,
           "written": [
             "U"
+          ],
+          "positioned_written": [
+            {
+              "unit": "U",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -656,6 +1034,16 @@
             "A",
             "Ue"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "Ue",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -668,6 +1056,16 @@
             "A",
             "U"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "U",
+              "position": "fina"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -678,6 +1076,12 @@
           "fvs": 2,
           "written": [
             "U"
+          ],
+          "positioned_written": [
+            {
+              "unit": "U",
+              "position": "isol"
+            }
           ],
           "default": false,
           "conditions": [
@@ -692,6 +1096,12 @@
           "written": [
             "Ux"
           ],
+          "positioned_written": [
+            {
+              "unit": "Ux",
+              "position": "isol"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -702,6 +1112,12 @@
           "fvs": 1,
           "written": [
             "O"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -718,6 +1134,20 @@
             "O",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -729,6 +1159,16 @@
           "written": [
             "O",
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -745,6 +1185,20 @@
             "O",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "O",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -755,6 +1209,12 @@
           "fvs": 3,
           "written": [
             "O"
+          ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [
@@ -769,6 +1229,12 @@
           "written": [
             "Ue"
           ],
+          "positioned_written": [
+            {
+              "unit": "Ue",
+              "position": "fina"
+            }
+          ],
           "default": false,
           "conditions": [
             "marked"
@@ -782,6 +1248,12 @@
           "written": [
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "fina"
+            }
+          ],
           "default": false,
           "conditions": [
             "post_bowed"
@@ -794,6 +1266,12 @@
           "fvs": 3,
           "written": [
             "U"
+          ],
+          "positioned_written": [
+            {
+              "unit": "U",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [
@@ -816,6 +1294,16 @@
             "A",
             "W"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "W",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -828,6 +1316,16 @@
             "A",
             "W"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "W",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -839,6 +1337,12 @@
           "written": [
             "W"
           ],
+          "positioned_written": [
+            {
+              "unit": "W",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -849,6 +1353,12 @@
           "fvs": 0,
           "written": [
             "W"
+          ],
+          "positioned_written": [
+            {
+              "unit": "W",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -868,6 +1378,12 @@
           "written": [
             "N"
           ],
+          "positioned_written": [
+            {
+              "unit": "N",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -878,6 +1394,12 @@
           "fvs": 1,
           "written": [
             "A"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -890,6 +1412,12 @@
           "written": [
             "N"
           ],
+          "positioned_written": [
+            {
+              "unit": "N",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -901,6 +1429,12 @@
           "written": [
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -911,6 +1445,12 @@
           "fvs": 1,
           "written": [
             "N"
+          ],
+          "positioned_written": [
+            {
+              "unit": "N",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -925,6 +1465,12 @@
           "written": [
             "A"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [
             "devsger"
@@ -938,6 +1484,12 @@
           "written": [
             "N"
           ],
+          "positioned_written": [
+            {
+              "unit": "N",
+              "position": "fina"
+            }
+          ],
           "default": false,
           "conditions": [
             "chachlag_onset"
@@ -950,6 +1502,12 @@
           "fvs": 2,
           "written": [
             "A"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [
@@ -972,6 +1530,16 @@
             "A",
             "G"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "G",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -983,6 +1551,16 @@
           "written": [
             "A",
             "G"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "G",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -996,6 +1574,16 @@
             "A",
             "G"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "G",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1007,6 +1595,16 @@
           "written": [
             "A",
             "G"
+          ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "medi"
+            },
+            {
+              "unit": "G",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1026,6 +1624,12 @@
           "written": [
             "B"
           ],
+          "positioned_written": [
+            {
+              "unit": "B",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1036,6 +1640,12 @@
           "fvs": 0,
           "written": [
             "B"
+          ],
+          "positioned_written": [
+            {
+              "unit": "B",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1048,6 +1658,12 @@
           "written": [
             "B"
           ],
+          "positioned_written": [
+            {
+              "unit": "B",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1059,6 +1675,12 @@
           "written": [
             "B"
           ],
+          "positioned_written": [
+            {
+              "unit": "B",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1069,6 +1691,12 @@
           "fvs": 1,
           "written": [
             "B2"
+          ],
+          "positioned_written": [
+            {
+              "unit": "B2",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -1088,6 +1716,12 @@
           "written": [
             "P"
           ],
+          "positioned_written": [
+            {
+              "unit": "P",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1098,6 +1732,12 @@
           "fvs": 0,
           "written": [
             "P"
+          ],
+          "positioned_written": [
+            {
+              "unit": "P",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1110,6 +1750,12 @@
           "written": [
             "P"
           ],
+          "positioned_written": [
+            {
+              "unit": "P",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1120,6 +1766,12 @@
           "fvs": 0,
           "written": [
             "P"
+          ],
+          "positioned_written": [
+            {
+              "unit": "P",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1139,6 +1791,12 @@
           "written": [
             "H"
           ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1150,6 +1808,12 @@
           "written": [
             "Hx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1160,6 +1824,12 @@
           "fvs": 2,
           "written": [
             "G"
+          ],
+          "positioned_written": [
+            {
+              "unit": "G",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -1172,6 +1842,12 @@
           "written": [
             "Gx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Gx",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1183,6 +1859,12 @@
           "written": [
             "Hx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1193,6 +1875,12 @@
           "fvs": 2,
           "written": [
             "G"
+          ],
+          "positioned_written": [
+            {
+              "unit": "G",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1206,6 +1894,12 @@
           "fvs": 3,
           "written": [
             "H"
+          ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [
@@ -1220,6 +1914,12 @@
           "written": [
             "Gx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Gx",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1231,6 +1931,12 @@
           "written": [
             "Hx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1241,6 +1947,12 @@
           "fvs": 2,
           "written": [
             "G"
+          ],
+          "positioned_written": [
+            {
+              "unit": "G",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [
@@ -1254,6 +1966,12 @@
           "fvs": 3,
           "written": [
             "H"
+          ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1269,6 +1987,12 @@
           "written": [
             "Gx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Gx",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1279,6 +2003,12 @@
           "fvs": 0,
           "written": [
             "H"
+          ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [
@@ -1293,6 +2023,12 @@
           "fvs": 1,
           "written": [
             "Hx"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -1312,6 +2048,12 @@
           "written": [
             "Hx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1323,6 +2065,12 @@
           "written": [
             "H"
           ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1333,6 +2081,12 @@
           "fvs": 2,
           "written": [
             "G"
+          ],
+          "positioned_written": [
+            {
+              "unit": "G",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -1345,6 +2099,12 @@
           "written": [
             "Gx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Gx",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1356,6 +2116,12 @@
           "written": [
             "H"
           ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1366,6 +2132,12 @@
           "fvs": 2,
           "written": [
             "G"
+          ],
+          "positioned_written": [
+            {
+              "unit": "G",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1380,6 +2152,12 @@
           "written": [
             "Hx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [
             "masculine_onset"
@@ -1393,6 +2171,12 @@
           "written": [
             "Gx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Gx",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1403,6 +2187,12 @@
           "fvs": 1,
           "written": [
             "Hx"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1417,6 +2207,12 @@
           "written": [
             "G"
           ],
+          "positioned_written": [
+            {
+              "unit": "G",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [
             "feminine"
@@ -1429,6 +2225,12 @@
           "fvs": 3,
           "written": [
             "H"
+          ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1444,6 +2246,12 @@
           "written": [
             "Gx"
           ],
+          "positioned_written": [
+            {
+              "unit": "Gx",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": true,
@@ -1454,6 +2262,12 @@
           "fvs": 1,
           "written": [
             "H"
+          ],
+          "positioned_written": [
+            {
+              "unit": "H",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1470,6 +2284,12 @@
           "written": [
             "G"
           ],
+          "positioned_written": [
+            {
+              "unit": "G",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [
             "feminine"
@@ -1482,6 +2302,12 @@
           "fvs": 3,
           "written": [
             "Hx"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Hx",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1503,6 +2329,12 @@
           "written": [
             "M"
           ],
+          "positioned_written": [
+            {
+              "unit": "M",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1513,6 +2345,12 @@
           "fvs": 0,
           "written": [
             "M"
+          ],
+          "positioned_written": [
+            {
+              "unit": "M",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1525,6 +2363,12 @@
           "written": [
             "M"
           ],
+          "positioned_written": [
+            {
+              "unit": "M",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1535,6 +2379,12 @@
           "fvs": 0,
           "written": [
             "M"
+          ],
+          "positioned_written": [
+            {
+              "unit": "M",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1554,6 +2404,12 @@
           "written": [
             "L"
           ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1564,6 +2420,12 @@
           "fvs": 0,
           "written": [
             "L"
+          ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1576,6 +2438,12 @@
           "written": [
             "L"
           ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1586,6 +2454,12 @@
           "fvs": 0,
           "written": [
             "L"
+          ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1605,6 +2479,12 @@
           "written": [
             "S"
           ],
+          "positioned_written": [
+            {
+              "unit": "S",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1615,6 +2495,12 @@
           "fvs": 0,
           "written": [
             "S"
+          ],
+          "positioned_written": [
+            {
+              "unit": "S",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1627,6 +2513,12 @@
           "written": [
             "S"
           ],
+          "positioned_written": [
+            {
+              "unit": "S",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1638,6 +2530,12 @@
           "written": [
             "S"
           ],
+          "positioned_written": [
+            {
+              "unit": "S",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1648,6 +2546,12 @@
           "fvs": 1,
           "written": [
             "Sz"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Sz",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -1667,6 +2571,12 @@
           "written": [
             "Sh"
           ],
+          "positioned_written": [
+            {
+              "unit": "Sh",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1678,6 +2588,12 @@
           "written": [
             "S"
           ],
+          "positioned_written": [
+            {
+              "unit": "S",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -1688,6 +2604,12 @@
           "fvs": 1,
           "written": [
             "S"
+          ],
+          "positioned_written": [
+            {
+              "unit": "S",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1701,6 +2623,12 @@
           "fvs": 2,
           "written": [
             "Sh"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Sh",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1713,6 +2641,12 @@
           "written": [
             "S"
           ],
+          "positioned_written": [
+            {
+              "unit": "S",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [
             "dotless"
@@ -1725,6 +2659,12 @@
           "fvs": 2,
           "written": [
             "Sh"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Sh",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1736,6 +2676,12 @@
           "fvs": 0,
           "written": [
             "Sh"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Sh",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1755,6 +2701,12 @@
           "written": [
             "T"
           ],
+          "positioned_written": [
+            {
+              "unit": "T",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1766,6 +2718,12 @@
           "written": [
             "T"
           ],
+          "positioned_written": [
+            {
+              "unit": "T",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1776,6 +2734,12 @@
           "fvs": 1,
           "written": [
             "T"
+          ],
+          "positioned_written": [
+            {
+              "unit": "T",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1790,6 +2754,12 @@
           "written": [
             "D"
           ],
+          "positioned_written": [
+            {
+              "unit": "D",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1800,6 +2770,12 @@
           "fvs": 0,
           "written": [
             "T"
+          ],
+          "positioned_written": [
+            {
+              "unit": "T",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1819,6 +2795,12 @@
           "written": [
             "D"
           ],
+          "positioned_written": [
+            {
+              "unit": "D",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1830,6 +2812,12 @@
           "written": [
             "T"
           ],
+          "positioned_written": [
+            {
+              "unit": "T",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -1840,6 +2828,12 @@
           "fvs": 1,
           "written": [
             "D"
+          ],
+          "positioned_written": [
+            {
+              "unit": "D",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1855,6 +2849,12 @@
           "written": [
             "T"
           ],
+          "positioned_written": [
+            {
+              "unit": "T",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [
             "onset"
@@ -1867,6 +2867,12 @@
           "fvs": 1,
           "written": [
             "D"
+          ],
+          "positioned_written": [
+            {
+              "unit": "D",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -1881,6 +2887,12 @@
           "written": [
             "Dd"
           ],
+          "positioned_written": [
+            {
+              "unit": "Dd",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [
             "devsger"
@@ -1894,6 +2906,12 @@
           "written": [
             "Dd"
           ],
+          "positioned_written": [
+            {
+              "unit": "Dd",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [
             "devsger"
@@ -1906,6 +2924,12 @@
           "fvs": 1,
           "written": [
             "D"
+          ],
+          "positioned_written": [
+            {
+              "unit": "D",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [],
@@ -1925,6 +2949,12 @@
           "written": [
             "Ch"
           ],
+          "positioned_written": [
+            {
+              "unit": "Ch",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1935,6 +2965,12 @@
           "fvs": 0,
           "written": [
             "Ch"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Ch",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1947,6 +2983,12 @@
           "written": [
             "Ch"
           ],
+          "positioned_written": [
+            {
+              "unit": "Ch",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1957,6 +2999,12 @@
           "fvs": 0,
           "written": [
             "Ch"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Ch",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -1976,6 +3024,12 @@
           "written": [
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -1986,6 +3040,12 @@
           "fvs": 1,
           "written": [
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "isol"
+            }
           ],
           "default": false,
           "conditions": [
@@ -2000,6 +3060,12 @@
           "written": [
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2011,6 +3077,12 @@
           "written": [
             "J"
           ],
+          "positioned_written": [
+            {
+              "unit": "J",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2022,6 +3094,12 @@
           "written": [
             "J"
           ],
+          "positioned_written": [
+            {
+              "unit": "J",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2032,6 +3110,12 @@
           "fvs": 1,
           "written": [
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -2053,6 +3137,12 @@
           "written": [
             "Y"
           ],
+          "positioned_written": [
+            {
+              "unit": "Y",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2064,6 +3154,12 @@
           "written": [
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "init"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -2074,6 +3170,12 @@
           "fvs": 1,
           "written": [
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "init"
+            }
           ],
           "default": false,
           "conditions": [
@@ -2088,6 +3190,12 @@
           "written": [
             "Y"
           ],
+          "positioned_written": [
+            {
+              "unit": "Y",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2098,6 +3206,12 @@
           "fvs": 1,
           "written": [
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "medi"
+            }
           ],
           "default": false,
           "conditions": [
@@ -2113,6 +3227,16 @@
             "I",
             "I"
           ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "medi"
+            },
+            {
+              "unit": "I",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -2124,6 +3248,12 @@
           "written": [
             "Y"
           ],
+          "positioned_written": [
+            {
+              "unit": "Y",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2134,6 +3264,12 @@
           "fvs": 0,
           "written": [
             "I"
+          ],
+          "positioned_written": [
+            {
+              "unit": "I",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2153,6 +3289,12 @@
           "written": [
             "R"
           ],
+          "positioned_written": [
+            {
+              "unit": "R",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2163,6 +3305,12 @@
           "fvs": 0,
           "written": [
             "R"
+          ],
+          "positioned_written": [
+            {
+              "unit": "R",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2175,6 +3323,12 @@
           "written": [
             "R"
           ],
+          "positioned_written": [
+            {
+              "unit": "R",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2185,6 +3339,12 @@
           "fvs": 0,
           "written": [
             "R"
+          ],
+          "positioned_written": [
+            {
+              "unit": "R",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2204,6 +3364,12 @@
           "written": [
             "W"
           ],
+          "positioned_written": [
+            {
+              "unit": "W",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2215,6 +3381,12 @@
           "written": [
             "W"
           ],
+          "positioned_written": [
+            {
+              "unit": "W",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2225,6 +3397,12 @@
           "fvs": 0,
           "written": [
             "W"
+          ],
+          "positioned_written": [
+            {
+              "unit": "W",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2237,6 +3415,12 @@
           "written": [
             "O"
           ],
+          "positioned_written": [
+            {
+              "unit": "O",
+              "position": "medi"
+            }
+          ],
           "default": false,
           "conditions": [],
           "archaic": false,
@@ -2248,6 +3432,12 @@
           "written": [
             "W"
           ],
+          "positioned_written": [
+            {
+              "unit": "W",
+              "position": "fina"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2258,6 +3448,12 @@
           "fvs": 1,
           "written": [
             "U"
+          ],
+          "positioned_written": [
+            {
+              "unit": "U",
+              "position": "fina"
+            }
           ],
           "default": false,
           "conditions": [
@@ -2279,6 +3475,12 @@
           "written": [
             "F"
           ],
+          "positioned_written": [
+            {
+              "unit": "F",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2289,6 +3491,12 @@
           "fvs": 0,
           "written": [
             "F"
+          ],
+          "positioned_written": [
+            {
+              "unit": "F",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2301,6 +3509,12 @@
           "written": [
             "F"
           ],
+          "positioned_written": [
+            {
+              "unit": "F",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2311,6 +3525,12 @@
           "fvs": 0,
           "written": [
             "F"
+          ],
+          "positioned_written": [
+            {
+              "unit": "F",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2330,6 +3550,12 @@
           "written": [
             "K2"
           ],
+          "positioned_written": [
+            {
+              "unit": "K2",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2340,6 +3566,12 @@
           "fvs": 0,
           "written": [
             "K2"
+          ],
+          "positioned_written": [
+            {
+              "unit": "K2",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2352,6 +3584,12 @@
           "written": [
             "K2"
           ],
+          "positioned_written": [
+            {
+              "unit": "K2",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2362,6 +3600,12 @@
           "fvs": 0,
           "written": [
             "K2"
+          ],
+          "positioned_written": [
+            {
+              "unit": "K2",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2381,6 +3625,12 @@
           "written": [
             "K"
           ],
+          "positioned_written": [
+            {
+              "unit": "K",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2391,6 +3641,12 @@
           "fvs": 0,
           "written": [
             "K"
+          ],
+          "positioned_written": [
+            {
+              "unit": "K",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2403,6 +3659,12 @@
           "written": [
             "K"
           ],
+          "positioned_written": [
+            {
+              "unit": "K",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2413,6 +3675,12 @@
           "fvs": 0,
           "written": [
             "K"
+          ],
+          "positioned_written": [
+            {
+              "unit": "K",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2432,6 +3700,12 @@
           "written": [
             "C"
           ],
+          "positioned_written": [
+            {
+              "unit": "C",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2442,6 +3716,12 @@
           "fvs": 0,
           "written": [
             "C"
+          ],
+          "positioned_written": [
+            {
+              "unit": "C",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2454,6 +3734,12 @@
           "written": [
             "C"
           ],
+          "positioned_written": [
+            {
+              "unit": "C",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2464,6 +3750,12 @@
           "fvs": 0,
           "written": [
             "C"
+          ],
+          "positioned_written": [
+            {
+              "unit": "C",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2483,6 +3775,12 @@
           "written": [
             "Z"
           ],
+          "positioned_written": [
+            {
+              "unit": "Z",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2493,6 +3791,12 @@
           "fvs": 0,
           "written": [
             "Z"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Z",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2505,6 +3809,12 @@
           "written": [
             "Z"
           ],
+          "positioned_written": [
+            {
+              "unit": "Z",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2515,6 +3825,12 @@
           "fvs": 0,
           "written": [
             "Z"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Z",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2535,6 +3851,16 @@
             "A",
             "Hr"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "Hr",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2547,6 +3873,16 @@
             "A",
             "Hr"
           ],
+          "positioned_written": [
+            {
+              "unit": "A",
+              "position": "init"
+            },
+            {
+              "unit": "Hr",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2558,6 +3894,12 @@
           "written": [
             "Hr"
           ],
+          "positioned_written": [
+            {
+              "unit": "Hr",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2568,6 +3910,12 @@
           "fvs": 0,
           "written": [
             "Hr"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Hr",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2587,6 +3935,12 @@
           "written": [
             "Rh"
           ],
+          "positioned_written": [
+            {
+              "unit": "Rh",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2597,6 +3951,12 @@
           "fvs": 0,
           "written": [
             "Rh"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Rh",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2609,6 +3969,12 @@
           "written": [
             "Rh"
           ],
+          "positioned_written": [
+            {
+              "unit": "Rh",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2619,6 +3985,12 @@
           "fvs": 0,
           "written": [
             "Rh"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Rh",
+              "position": "fina"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2639,6 +4011,16 @@
             "L",
             "Hr"
           ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "init"
+            },
+            {
+              "unit": "Hr",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2650,6 +4032,16 @@
           "written": [
             "L",
             "Hr"
+          ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "init"
+            },
+            {
+              "unit": "Hr",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2663,6 +4055,16 @@
             "L",
             "Hr"
           ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "medi"
+            },
+            {
+              "unit": "Hr",
+              "position": "medi"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2674,6 +4076,16 @@
           "written": [
             "L",
             "Hr"
+          ],
+          "positioned_written": [
+            {
+              "unit": "L",
+              "position": "medi"
+            },
+            {
+              "unit": "Hr",
+              "position": "medi"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2693,6 +4105,12 @@
           "written": [
             "Zr"
           ],
+          "positioned_written": [
+            {
+              "unit": "Zr",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2703,6 +4121,12 @@
           "fvs": 0,
           "written": [
             "Zr"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Zr",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2715,6 +4139,12 @@
           "written": [
             "Zr"
           ],
+          "positioned_written": [
+            {
+              "unit": "Zr",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2725,6 +4155,12 @@
           "fvs": 0,
           "written": [
             "Zr"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Zr",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2744,6 +4180,12 @@
           "written": [
             "Cr"
           ],
+          "positioned_written": [
+            {
+              "unit": "Cr",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2754,6 +4196,12 @@
           "fvs": 0,
           "written": [
             "Cr"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Cr",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],
@@ -2766,6 +4214,12 @@
           "written": [
             "Cr"
           ],
+          "positioned_written": [
+            {
+              "unit": "Cr",
+              "position": "init"
+            }
+          ],
           "default": true,
           "conditions": [],
           "archaic": false,
@@ -2776,6 +4230,12 @@
           "fvs": 0,
           "written": [
             "Cr"
+          ],
+          "positioned_written": [
+            {
+              "unit": "Cr",
+              "position": "init"
+            }
           ],
           "default": true,
           "conditions": [],

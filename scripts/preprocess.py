@@ -75,6 +75,48 @@ def _resolve_written(
     return [str(x) for x in written]
 
 
+def _resolve_positioned_written(
+    written: Any,
+    char_name: str,
+    locale: str,
+    variants: Dict[str, Any],
+    position: str,
+    depth: int = 0,
+) -> Optional[List[Dict[str, str]]]:
+    """Resolve written units while preserving the referenced unit position."""
+    if depth > 8 or written is None or not isinstance(written, list):
+        return None
+
+    if (
+        len(written) >= 2
+        and isinstance(written[0], str)
+        and written[0] in POSITIONS
+        and isinstance(written[1], int)
+    ):
+        ref_pos = written[0]
+        ref_fvs = str(written[1])
+        ref_locale = written[2] if len(written) > 2 and written[2] else locale
+        pd = variants.get(char_name, {}).get(ref_pos, {}).get(ref_fvs, {})
+        src = pd.get("locales", {}).get(ref_locale, {}).get("written") or pd.get("written")
+        return _resolve_positioned_written(
+            src, char_name, ref_locale, variants, ref_pos, depth + 1
+        )
+
+    total = len(written)
+    records: List[Dict[str, str]] = []
+    for index, unit in enumerate(written):
+        if total == 1:
+            unit_position = position
+        elif index == 0 and position in ("isol", "init"):
+            unit_position = "init"
+        elif index == total - 1 and position in ("isol", "fina"):
+            unit_position = "fina"
+        else:
+            unit_position = "medi"
+        records.append({"unit": str(unit), "position": unit_position})
+    return records
+
+
 def _resolve_alias(alias_data: Any, locale: str) -> Optional[str]:
     if isinstance(alias_data, str):
         return alias_data
@@ -114,17 +156,32 @@ def build_rules(locale: str, raw: Dict[str, Any]) -> Dict[str, Any]:
                 locale_data = locale_block[locale]
                 w_raw = locale_data.get("written") or vdata.get("written")
                 written = _resolve_written(w_raw, char_name, locale, variants)
-                if written is None:
+                positioned_written = (
+                    _resolve_positioned_written(
+                        w_raw, char_name, locale, variants, pos
+                    )
+                    if locale == "MNG"
+                    else None
+                )
+                if (
+                    written is None
+                    or (locale == "MNG" and positioned_written is None)
+                ):
                     continue
-                letter_variants.append({
+                variant = {
                     "position": pos,
                     "fvs": int(fvs_str),
                     "written": written,
+                }
+                if positioned_written is not None:
+                    variant["positioned_written"] = positioned_written
+                variant.update({
                     "default": bool(vdata.get("default", False)),
                     "conditions": list(locale_data.get("conditions", [])),
                     "archaic": bool(locale_data.get("archaic", False)),
                     "unrecommended": bool(locale_data.get("unrecommended", False)),
                 })
+                letter_variants.append(variant)
 
         if not letter_variants:
             continue
