@@ -1004,22 +1004,23 @@ class MongolianShaper:
         将显式位置 record 编码为 canonical MNG Unicode。
 
         Each item must be exactly a built-in
-        ``{"unit": str, "position": str}`` dict. Flat slot positions are
-        ``isol``/``init``/``medi``/``fina``; ``Mvs``, ``Nirugu``,
-        and ``Zwj`` require ``control``. One record describes one flat written-
-        unit slot. Positions must already follow the supplied structural context:
-        this API validates but never infers or inserts controls. In particular,
-        a connected position that would need an omitted ZWJ raises ``ValueError``.
+        ``{"unit": str, "position": str}`` dict. Letter positions are the
+        authoritative HUD written-unit positions ``isol``/``init``/``medi``/
+        ``fina``. Encoding delegates to :meth:`normalize_written_units`: a
+        complete multi-record chain runs from ``init`` to ``fina``; an incomplete
+        edge gets an implicit ZWJ. A single ``init`` record is encoded without
+        ZWJ, while single ``medi`` and ``fina`` records receive the joining
+        context their positions need. ``Mvs`` and ``Nirugu`` require ``control``;
+        explicit ``Zwj`` input is rejected.
 
-        每项必须严格为内建 ``{"unit": str, "position": str}`` dict。扁平slot
-        position只能是
-        ``isol``/``init``/``medi``/``fina``；``Mvs``、``Nirugu``、``Zwj``
-        使用 ``control``。每个 record 对应一个扁平 written-unit slot。position
-        必须已由输入中的显式结构上下文成立；本 API 只校验，不推断或插入 control。
-        若连接位置需要未提供的 ZWJ，则抛出 ``ValueError``。
+        每项必须严格为内建 ``{"unit": str, "position": str}`` dict。字母position
+        是权威HUD written-unit position：``isol``/``init``/``medi``/``fina``。
+        编码直接交给 :meth:`normalize_written_units`：完整复合链从``init``开始、
+        到``fina``结束；边界不完整时自动补ZWJ。单个``init``不补ZWJ；单个
+        ``medi``和``fina``补足其位置所需的连接上下文。``Mvs``与``Nirugu``
+        使用``control``；显式``Zwj``输入被拒绝。
 
-        After validation, encoding delegates to :meth:`normalize_written_units`,
-        including its exact reshape safety check and no-partial-output behavior.
+        This word-level API accepts at most 1024 records.
 
         Raises:
             TypeError: the outer value, a record, or a field has the wrong type.
@@ -1031,6 +1032,8 @@ class MongolianShaper:
             raise TypeError(
                 "positioned_units must be an ordered sequence of records"
             )
+        if len(positioned_units) > 1024:
+            raise ValueError("positioned_units accepts at most 1024 records")
         records = []
         for index, record in enumerate(positioned_units):
             if type(record) is not dict:
@@ -1056,61 +1059,80 @@ class MongolianShaper:
                     f"{position!r}"
                 )
             records.append((unit, position))
+        if any(unit == "Zwj" for unit, _position in records):
+            raise ValueError("unsupported positioned control 'Zwj'")
         if not records:
             return ""
         self._build_unit_enc()
-        known_units = {
-            unit
-            for (_position, written) in self._unit_enc
-            for unit in written
-        }
-        known_units.update(self._STRUCTURAL_CHARS)
-        for index, (unit, _position) in enumerate(records):
-            if unit not in known_units:
-                raise ValueError(
-                    f"positioned_units[{index}] has unknown unit "
-                    f"{unit!r}"
-                )
-        units = [unit for unit, _position in records]
-        actual_positions = self._flat_written_unit_positions(units)
-        for index, (_unit, requested) in enumerate(records):
-            actual = actual_positions[index]
-            if requested != actual:
-                raise ValueError(
-                    f"positioned_units[{index}] requests position {requested!r}, "
-                    f"but the sequence gives {actual!r}"
-                )
-        return self.normalize_written_units(units)
-
-    def _flat_written_unit_positions(self, units):
-        """Infer one position per flat unit from explicit structural controls."""
-        positions = []
-        index = 0
-        while index < len(units):
-            if units[index] in self._STRUCTURAL_CHARS:
-                positions.append("control")
-                index += 1
+        for index, (unit, position) in enumerate(records):
+            if unit in ("Mvs", "Nirugu"):
+                if position != "control":
+                    raise ValueError(
+                        f"positioned_units[{index}] control {unit!r} "
+                        "requires position 'control'"
+                    )
                 continue
-            chain_start = index
-            while index < len(units) and units[index] not in self._STRUCTURAL_CHARS:
-                index += 1
-            chain_end = index
+            if (unit, position) not in self._positioned_units:
+                raise ValueError(
+                    "unsupported positioned written unit "
+                    f"{unit + ':' + position!r}"
+                )
+
+        parts = []
+        chain = []
+        for unit, position in records:
+            if position == "control":
+                if chain:
+                    parts.append(("chain", tuple(chain)))
+                    chain = []
+                parts.append((unit, None))
+            else:
+                chain.append((unit, position))
+        if chain:
+            parts.append(("chain", tuple(chain)))
+
+        written_units = []
+        for index, (kind, body) in enumerate(parts):
+            if kind != "chain":
+                written_units.append(kind)
+                continue
+
             joined_left = (
-                chain_start > 0
-                and units[chain_start - 1] in self._JOINER_TOKENS
+                index > 0 and parts[index - 1][0] in self._JOINER_TOKENS
             )
             joined_right = (
-                chain_end < len(units)
-                and units[chain_end] in self._JOINER_TOKENS
+                index + 1 < len(parts)
+                and parts[index + 1][0] in self._JOINER_TOKENS
             )
-            pad_left = 1 if joined_left else 0
-            pad_right = 1 if joined_right else 0
-            padded_count = chain_end - chain_start + pad_left + pad_right
-            positions.extend(
-                self._slot_position(offset + pad_left, 1, padded_count)
-                for offset in range(chain_end - chain_start)
-            )
-        return positions
+            if len(body) == 1:
+                unit, position = body[0]
+                if position in ("medi", "fina") and not joined_left:
+                    written_units.append("Zwj")
+                written_units.append(unit)
+                if position == "medi" and not joined_right:
+                    written_units.append("Zwj")
+                continue
+
+            padded_left = joined_left or body[0][1] != "init"
+            padded_right = joined_right or body[-1][1] != "fina"
+            padded_count = len(body) + int(padded_left) + int(padded_right)
+            for offset, (_unit, position) in enumerate(body):
+                expected = self._slot_position(
+                    offset + int(padded_left), 1, padded_count
+                )
+                if position != expected:
+                    raise ValueError(
+                        "positioned written-unit sequence has no canonical "
+                        "MNG encoding in the supplied context"
+                    )
+
+            if padded_left and not joined_left:
+                written_units.append("Zwj")
+            written_units.extend(unit for unit, _position in body)
+            if padded_right and not joined_right:
+                written_units.append("Zwj")
+
+        return self.normalize_written_units(written_units)
 
     def normalize_written_units(self, written_units):
         """
@@ -1398,6 +1420,11 @@ class MongolianShaper:
         self._unit_enc_max_len = (spec.get("unit_enc_max_len")
                                   or max((len(written) for (_, written) in table),
                                          default=1))
+
+        self._positioned_units = frozenset(
+            (record["unit"], record["position"])
+            for record in spec.get("positioned_units", [])
+        )
 
     def _unit_encode_chain(self, chain_shape, prefix_tokens=(),
                            suffix_text="", suffix_target=()):

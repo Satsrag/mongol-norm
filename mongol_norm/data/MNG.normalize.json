@@ -4,6 +4,388 @@
   "locale": "MNG",
   "description": "Per-(position, written-unit) FVS-pinned encoding table for normalize. Each value is a (letter, fvs) that renders exactly the written unit at that position regardless of neighbours. See the mongol-norm README for the consuming algorithm.",
   "unit_enc_max_len": 3,
+  "positioned_units": [
+    {
+      "unit": "A",
+      "position": "fina"
+    },
+    {
+      "unit": "A",
+      "position": "init"
+    },
+    {
+      "unit": "A",
+      "position": "isol"
+    },
+    {
+      "unit": "A",
+      "position": "medi"
+    },
+    {
+      "unit": "Aa",
+      "position": "fina"
+    },
+    {
+      "unit": "Aa",
+      "position": "isol"
+    },
+    {
+      "unit": "B",
+      "position": "fina"
+    },
+    {
+      "unit": "B",
+      "position": "init"
+    },
+    {
+      "unit": "B",
+      "position": "medi"
+    },
+    {
+      "unit": "B2",
+      "position": "fina"
+    },
+    {
+      "unit": "C",
+      "position": "fina"
+    },
+    {
+      "unit": "C",
+      "position": "init"
+    },
+    {
+      "unit": "C",
+      "position": "medi"
+    },
+    {
+      "unit": "Ch",
+      "position": "fina"
+    },
+    {
+      "unit": "Ch",
+      "position": "init"
+    },
+    {
+      "unit": "Ch",
+      "position": "medi"
+    },
+    {
+      "unit": "Cr",
+      "position": "init"
+    },
+    {
+      "unit": "D",
+      "position": "fina"
+    },
+    {
+      "unit": "D",
+      "position": "init"
+    },
+    {
+      "unit": "D",
+      "position": "medi"
+    },
+    {
+      "unit": "Dd",
+      "position": "fina"
+    },
+    {
+      "unit": "Dd",
+      "position": "medi"
+    },
+    {
+      "unit": "F",
+      "position": "fina"
+    },
+    {
+      "unit": "F",
+      "position": "init"
+    },
+    {
+      "unit": "F",
+      "position": "medi"
+    },
+    {
+      "unit": "G",
+      "position": "fina"
+    },
+    {
+      "unit": "G",
+      "position": "init"
+    },
+    {
+      "unit": "G",
+      "position": "medi"
+    },
+    {
+      "unit": "Gx",
+      "position": "init"
+    },
+    {
+      "unit": "Gx",
+      "position": "medi"
+    },
+    {
+      "unit": "H",
+      "position": "fina"
+    },
+    {
+      "unit": "H",
+      "position": "init"
+    },
+    {
+      "unit": "H",
+      "position": "medi"
+    },
+    {
+      "unit": "Hr",
+      "position": "fina"
+    },
+    {
+      "unit": "Hr",
+      "position": "medi"
+    },
+    {
+      "unit": "Hx",
+      "position": "fina"
+    },
+    {
+      "unit": "Hx",
+      "position": "init"
+    },
+    {
+      "unit": "Hx",
+      "position": "medi"
+    },
+    {
+      "unit": "I",
+      "position": "fina"
+    },
+    {
+      "unit": "I",
+      "position": "init"
+    },
+    {
+      "unit": "I",
+      "position": "isol"
+    },
+    {
+      "unit": "I",
+      "position": "medi"
+    },
+    {
+      "unit": "Ix",
+      "position": "isol"
+    },
+    {
+      "unit": "J",
+      "position": "fina"
+    },
+    {
+      "unit": "J",
+      "position": "medi"
+    },
+    {
+      "unit": "K",
+      "position": "fina"
+    },
+    {
+      "unit": "K",
+      "position": "init"
+    },
+    {
+      "unit": "K",
+      "position": "medi"
+    },
+    {
+      "unit": "K2",
+      "position": "fina"
+    },
+    {
+      "unit": "K2",
+      "position": "init"
+    },
+    {
+      "unit": "K2",
+      "position": "medi"
+    },
+    {
+      "unit": "L",
+      "position": "fina"
+    },
+    {
+      "unit": "L",
+      "position": "init"
+    },
+    {
+      "unit": "L",
+      "position": "medi"
+    },
+    {
+      "unit": "M",
+      "position": "fina"
+    },
+    {
+      "unit": "M",
+      "position": "init"
+    },
+    {
+      "unit": "M",
+      "position": "medi"
+    },
+    {
+      "unit": "N",
+      "position": "fina"
+    },
+    {
+      "unit": "N",
+      "position": "init"
+    },
+    {
+      "unit": "N",
+      "position": "medi"
+    },
+    {
+      "unit": "O",
+      "position": "fina"
+    },
+    {
+      "unit": "O",
+      "position": "init"
+    },
+    {
+      "unit": "O",
+      "position": "medi"
+    },
+    {
+      "unit": "P",
+      "position": "fina"
+    },
+    {
+      "unit": "P",
+      "position": "init"
+    },
+    {
+      "unit": "P",
+      "position": "medi"
+    },
+    {
+      "unit": "R",
+      "position": "fina"
+    },
+    {
+      "unit": "R",
+      "position": "init"
+    },
+    {
+      "unit": "R",
+      "position": "medi"
+    },
+    {
+      "unit": "Rh",
+      "position": "fina"
+    },
+    {
+      "unit": "Rh",
+      "position": "init"
+    },
+    {
+      "unit": "Rh",
+      "position": "medi"
+    },
+    {
+      "unit": "S",
+      "position": "fina"
+    },
+    {
+      "unit": "S",
+      "position": "init"
+    },
+    {
+      "unit": "S",
+      "position": "medi"
+    },
+    {
+      "unit": "Sh",
+      "position": "fina"
+    },
+    {
+      "unit": "Sh",
+      "position": "init"
+    },
+    {
+      "unit": "Sh",
+      "position": "medi"
+    },
+    {
+      "unit": "Sz",
+      "position": "fina"
+    },
+    {
+      "unit": "T",
+      "position": "fina"
+    },
+    {
+      "unit": "T",
+      "position": "init"
+    },
+    {
+      "unit": "T",
+      "position": "medi"
+    },
+    {
+      "unit": "U",
+      "position": "fina"
+    },
+    {
+      "unit": "U",
+      "position": "isol"
+    },
+    {
+      "unit": "Ue",
+      "position": "fina"
+    },
+    {
+      "unit": "Ux",
+      "position": "isol"
+    },
+    {
+      "unit": "W",
+      "position": "fina"
+    },
+    {
+      "unit": "W",
+      "position": "init"
+    },
+    {
+      "unit": "W",
+      "position": "medi"
+    },
+    {
+      "unit": "Y",
+      "position": "init"
+    },
+    {
+      "unit": "Y",
+      "position": "medi"
+    },
+    {
+      "unit": "Z",
+      "position": "fina"
+    },
+    {
+      "unit": "Z",
+      "position": "init"
+    },
+    {
+      "unit": "Z",
+      "position": "medi"
+    },
+    {
+      "unit": "Zr",
+      "position": "init"
+    }
+  ],
   "constants": {
     "MVS": "180E",
     "NIRUGU": "180A",

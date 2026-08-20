@@ -151,12 +151,18 @@ shaper.normalize_written_units(["B", "Aa"])
 # Every written unit is PascalCase, including shape() control output
 shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 
-# Validate explicit positions without inferring or inserting controls
+# Encode authoritative HUD written-unit positions without inferring controls
 shaper.normalize_positioned_written_units([
     {"unit": "B", "position": "init"},
     {"unit": "Aa", "position": "fina"},
 ])
 # → 'ᠪᠠ᠋'
+
+# HUD position is not Unicode topology: isolated FA borrows F:init
+shaper.normalize_positioned_written_units([
+    {"unit": "F", "position": "init"},
+])
+# → 'ᠹ' (bare U+1839, no ZWJ); F:isol is unsupported
 ```
 
 `normalize_written_units()` accepts an ordered `Sequence[str]` of shape units,
@@ -172,16 +178,18 @@ that cannot reshape exactly raise `ValueError` rather than being guessed or
 partially encoded.
 
 `normalize_positioned_written_units()` accepts an ordered sequence of exact
-built-in `{"unit": str, "position": str}` dict records. Each record represents
-one flat written-unit slot, not grouping metadata for an emitted Unicode letter.
-Slot positions are `isol`, `init`, `medi`, or `fina`;
-`Mvs`, `Nirugu`, and `Zwj` use `control`. The positions must already agree with
-the supplied sequence and explicit controls. The API validates them but never
-inserts a missing ZWJ, so a lone `{"unit": "O", "position": "medi"}` raises
-`ValueError`. Encoding then reuses `normalize_written_units()` and its exact
-reshape safety check. A wrong outer/record/field type raises `TypeError`; wrong
-keys, unit, position, structural context, or exact encoding raises `ValueError`.
-This API has no CLI subcommand yet.
+built-in `{"unit": str, "position": str}` dict records. Here `position` is the
+position of the written unit in the authoritative HUD inventory, not a Unicode
+letter's joining topology. It reuses `normalize_written_units()` rather than a
+second encoding table. A complete multi-record chain starts with `init` and ends
+with `fina`. An incomplete left or right edge gets an implicit `Zwj`; for example
+`B:medi, O:medi, G:fina` is normalized as `Zwj, B, O, G`. A single `init` record
+is the exception and is normalized without ZWJ, so `F:init` becomes bare U+1839.
+A single `medi` gets ZWJ on both sides and a single `fina` gets ZWJ on the left.
+`F:isol` is absent from the source inventory and fails closed. `Mvs` and `Nirugu`
+use `control`; explicit `Zwj` input is rejected. A wrong outer/record/field type
+raises `TypeError`; wrong keys, unit, position, chain positions, exact encoding,
+or more than 1024 records raises `ValueError`. This API has no CLI subcommand yet.
 
 #### Full-text normalization
 
@@ -274,11 +282,11 @@ The hand-written suite covers:
 | `TestNormalize` | `normalize()` produces canonical output; idempotency; normalized result matches original visually |
 | `TestNormalizeText` | `normalize_text()` handles multi-word, mixed-script, punctuation, empty input; idempotency; word independence |
 | `TestNormalizeWrittenUnits` | public shape-unit input, structural controls, validation, and exact reshape |
-| `TestNormalizePositionedWrittenUnits` | exact position records, structural context validation, no implicit ZWJ, and fail-closed record validation |
+| `TestNormalizePositionedWrittenUnits` | authoritative HUD pair inventory, borrowed-position variants, generation-time exact-position audits, no inserted/explicit ZWJ, and fail-closed records |
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI input, canonical control spelling, and parser errors |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **203 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
+Current totals: **214 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
 
 ### Use Cases
 
@@ -489,12 +497,18 @@ shaper.normalize_written_units(["B", "Aa"])
 # 所有书写单元均为PascalCase，包括shape()输出的结构control
 shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 
-# 校验显式position，不推断或插入control
+# 按权威HUD written-unit position编码，不推断或插入control
 shaper.normalize_positioned_written_units([
     {"unit": "B", "position": "init"},
     {"unit": "Aa", "position": "fina"},
 ])
 # → 'ᠪᠠ᠋'
+
+# HUD position不是Unicode topology：FA的isolated variant借用F:init
+shaper.normalize_positioned_written_units([
+    {"unit": "F", "position": "init"},
+])
+# → 'ᠹ'（裸U+1839，不含ZWJ）；F:isol不受支持
 ```
 
 `normalize_written_units()`接受由shape unit组成的有序`Sequence[str]`，而不是
@@ -507,15 +521,16 @@ position record。所有written-unit名称统一使用PascalCase；结构control
 `ValueError`，不会猜测或返回部分编码结果。
 
 `normalize_positioned_written_units()`接受由严格内建
-`{"unit": str, "position": str}` dict record组成的有序序列。每个record对应一个
-扁平written-unit slot，而不是某个输出Unicode字母的分组元数据。slot position为
-`isol`、`init`、`medi`或`fina`；`Mvs`、
-`Nirugu`、`Zwj`使用`control`。position必须已与输入序列及显式control一致；
-API只校验，绝不补充缺失的ZWJ。因此单独的
-`{"unit": "O", "position": "medi"}`会抛出`ValueError`。通过校验后复用
-`normalize_written_units()`及其exact reshape安全门。外层/record/字段类型错误抛出
-`TypeError`；keys、unit、position、结构上下文或exact encoding错误抛出
-`ValueError`。本API暂不增加CLI命令。
+`{"unit": str, "position": str}` dict record组成的有序序列。这里的`position`
+表示权威HUD inventory中的written-unit position，不是Unicode字母在当前序列中的
+joining topology。它直接复用`normalize_written_units()`，不再维护第二套编码表。
+完整复合链必须以`init`开头、以`fina`结束；左端或右端不完整时自动补`Zwj`。
+例如`B:medi, O:medi, G:fina`会按`Zwj, B, O, G`规范化。单个`init`是特例，
+不补ZWJ，因此`F:init`输出裸`U+1839`；单个`medi`前后补ZWJ，单个`fina`只在
+左侧补ZWJ。inventory中不存在的`F:isol`会fail closed。`Mvs`与`Nirugu`使用
+`control`，显式`Zwj`输入被拒绝。外层/record/字段类型错误抛出`TypeError`；
+keys、unit、position、复合链位置、exact encoding错误以及超过1024条record均
+抛出`ValueError`。本API暂不增加CLI命令。
 
 #### 全文规范化
 
@@ -607,11 +622,11 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalize` | `normalize()` 输出规范结果; 幂等性; 规范化后与原始词形视觉相同 |
 | `TestNormalizeText` | `normalize_text()` 处理多词、混合文字、标点、空输入; 幂等性; 词独立性 |
 | `TestNormalizeWrittenUnits` | 公开shape-unit输入、结构control、校验与精确回形 |
-| `TestNormalizePositionedWrittenUnits` | 显式position record、结构上下文校验、不隐式补ZWJ及fail-closed record校验 |
+| `TestNormalizePositionedWrittenUnits` | 权威HUD pair inventory、borrowed-position variant、生成期精确position审计、禁止插入/输入ZWJ及fail-closed record |
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI输入、control标准拼写与解析错误 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **203 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
+当前总数: **214 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
 
 ### 应用场景
 

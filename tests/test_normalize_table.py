@@ -42,9 +42,13 @@ class TestNormalizeTableExport(unittest.TestCase):
         self.assertEqual(spec["locale"], "MNG")
         self.assertEqual(spec["canonical_version"], "mng-canonical/1")
         self.assertIn("schema", spec)
-        for key in ("unit_table", "velar_fem", "velar_fem_units",
-                    "masc_to_fem", "constants", "unit_enc_max_len"):
+        for key in ("unit_table", "positioned_units",
+                    "velar_fem", "velar_fem_units", "masc_to_fem",
+                    "constants", "unit_enc_max_len"):
             self.assertIn(key, spec, f"spec missing {key!r}")
+        self.assertNotIn("positioned_unit_table", spec)
+        self.assertNotIn("positioned_left_mvs_table", spec)
+        self.assertNotIn("positioned_unit_enc_max_len", spec)
         for pos in ("isol", "init", "medi", "fina"):
             self.assertIn(pos, spec["unit_table"])
         # must be JSON-serializable as-is
@@ -67,6 +71,18 @@ class TestNormalizeTableExport(unittest.TestCase):
         spec = gen.compute_normalize_tables(self.s)
         self.assertEqual(_rebuild_unit_enc(spec), dict(self.s._unit_enc))
 
+    def test_positioned_inventory_matches_hud_contract(self):
+        spec = gen.compute_normalize_tables(self.s)
+        pairs = {
+            (record["unit"], record["position"])
+            for record in spec["positioned_units"]
+        }
+        self.assertEqual(len(pairs), 95)
+        self.assertIn(("F", "init"), pairs)
+        self.assertIn(("I", "isol"), pairs)
+        self.assertNotIn(("F", "isol"), pairs)
+        self.assertNotIn(("Zwj", "control"), pairs)
+
     def test_shaper_loads_spec_identically(self):
         """A shaper populated from a fresh spec equals one loaded from the
         bundled JSON."""
@@ -82,6 +98,8 @@ class TestNormalizeTableExport(unittest.TestCase):
                          dict(baseline._unit_enc_fem))
         self.assertEqual(loaded._unit_enc_max_len,
                          baseline._unit_enc_max_len)
+        self.assertEqual(loaded._positioned_units,
+                         baseline._positioned_units)
 
     def test_normalize_identical_when_loaded_from_spec(self):
         """normalize() output is identical whether table is loaded or computed."""

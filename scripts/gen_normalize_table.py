@@ -82,6 +82,21 @@ def _is_context_independent(shaper, position, written, cp, fvs_cp):
     return landed
 
 
+def compute_positioned_units(shaper):
+    """Return the valid source-declared ``(unit, position)`` inventory."""
+    positioned_units = set()
+    for letter in shaper._rules["letters"]:
+        for variant in letter["variants"]:
+            records = variant.get("positioned_written")
+            if not records:
+                continue
+            positioned_units.update(
+                (record["unit"], record["position"])
+                for record in records
+            )
+    return sorted(positioned_units)
+
+
 def compute_unit_tables(shaper):
     """
     Run the context-independence battery against `shaper` and return
@@ -165,6 +180,7 @@ def compute_normalize_tables(shaper):
     — the artifact the runtime and other-language ports consume.
     """
     table, feminine_table, max_length = compute_unit_tables(shaper)
+    positioned_units = compute_positioned_units(shaper)
 
     def encode_entry(cp, fvs_cp):
         return {
@@ -192,6 +208,10 @@ def compute_normalize_tables(shaper):
             "See the mongol-norm README for the consuming algorithm."
         ),
         "unit_enc_max_len": max_length,
+        "positioned_units": [
+            {"unit": unit, "position": position}
+            for unit, position in positioned_units
+        ],
         "constants": {
             "MVS": f"{MVS_CP:04X}",
             "NIRUGU": f"{NIRUGU_CP:04X}",

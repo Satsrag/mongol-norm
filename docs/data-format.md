@@ -64,8 +64,8 @@ Malformed outer input or a non-string item raises `TypeError`; unknown units and
 sequences that cannot reshape to the exact requested units raise `ValueError`.
 There is no partial-output or first-candidate fallback.
 
-For callers that already carry one explicit position per flat written-unit slot,
-use the record API:
+For callers that carry authoritative HUD written-unit positions, use the record
+API:
 
 ```python
 shaper.normalize_positioned_written_units([
@@ -75,16 +75,22 @@ shaper.normalize_positioned_written_units([
 ```
 
 Every item must be a built-in dict containing exactly the string fields `unit`
-and `position`. Each position describes one flat written-unit slot, not grouping
-metadata for an emitted Unicode letter. Slot positions are `isol`, `init`,
-`medi`, or `fina`; structural units `Mvs`,
-`Nirugu`, and `Zwj` require `control`. `Mvs` splits position chains without
-joining, while explicit `Nirugu`/`Zwj` controls join the adjacent side. The API
-validates the supplied positions, then delegates to `normalize_written_units()`.
-It never infers or inserts controls: a connected position that would need an
-omitted ZWJ fails before encoding. A wrong outer/record/field type raises
-`TypeError`; wrong keys, unit, position, structural context, or exact encoding
-raises `ValueError`. This API currently has no CLI subcommand.
+and `position`. `position` is the written unit's position in the authoritative HUD
+inventory, not the emitted Unicode letter's joining topology. Resolved variant
+references preserve that distinction: isolated Unicode FA borrows `F:init`, so a
+lone `F:init` record encodes as bare `U+1839`; `F:isol` is not a valid pair and is
+rejected. Letter positions are `isol`, `init`, `medi`, or `fina`; structural units
+`Mvs` and `Nirugu` require `control`. Explicit `Zwj` input is rejected, but the
+encoder may insert ZWJ in its Unicode output when a valid HUD position needs
+joining context. Borrowed forms with a bare candidate remain bare; temporarily,
+`I:isol` and `I:init` both use the plain `I` canonical without inserted ZWJ. The
+generator combines unchanged plain shaping
+traces with source `positioned_written` metadata to verify exact positions and
+MVS-boundary alternatives. Runtime normalization reads those tables; public
+`shape()` remains plain and contains no position records.
+A wrong outer/record/field type raises `TypeError`; wrong keys, unit, position,
+structural context, exact encoding, or more than 1024 records raises `ValueError`.
+This word-level API currently has no CLI subcommand.
 
 The CLI equivalent of the plain `normalize_written_units()` API accepts either
 uniquely segmented compact
@@ -150,6 +156,10 @@ Bundle the file with your package. Parse with any JSON library.
       "position": "isol",
       "fvs": 3,
       "written": ["A", "A"],
+      "positioned_written": [
+        {"unit": "A", "position": "init"},
+        {"unit": "A", "position": "fina"}
+      ],
       "default": true,
       "conditions": [],
       "archaic": false,
@@ -173,6 +183,7 @@ Bundle the file with your package. Parse with any JSON library.
 | `position` | string | One of `isol`, `init`, `medi`, `fina`. |
 | `fvs` | int | `0` = no FVS; `1..4` = FVS1..FVS4 (Unicode U+180B, U+180C, U+180D, U+180F). |
 | `written` | array of string | The sequence of **written units** this variant renders to. Written units are opaque identifiers for glyph atoms (e.g. `"A"`, `"Aa"`, `"Bg"`, `"Ix"`). Your shaper does not need to interpret them — they're compared/concatenated as strings. |
+| `positioned_written` | array of record\|missing | For MNG normalization, the same resolved units with their authoritative HUD positions preserved. References retain the referenced position, so FA `isol` has `[{"unit":"F","position":"init"}]`, not a fabricated `F:isol`. Other locales currently omit this normalization-only field. |
 | `default` | bool | `true` if this is the variant used when no FVS/condition applies. Exactly one default per `(cp, position)`. |
 | `conditions` | array of string | Named shaping conditions that select this variant. See [Conditions](#conditions) below. |
 | `archaic` | bool | Variant is archaic per UTN #57. Skip when computing the reverse map (normalizer). |
@@ -289,6 +300,10 @@ tbl = load_normalize_table("MNG")   # -> dict
   "canonical_version": "mng-canonical/1",
   "locale": "MNG",
   "unit_enc_max_len": 3,
+  "positioned_units": [
+    {"unit": "F", "position": "init"},
+    {"unit": "I", "position": "isol"}
+  ],
   "constants": { "MVS": "180E", "NIRUGU": "180A", "FVS1": "180B", "...": "..." },
   "velar_fem_units": ["G", "Gx"],
   "masc_to_fem": { "a": "e", "o": "oe", "u": "ue" },
@@ -305,6 +320,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 | `canonical_version` | Version of the exact shape → canonical Unicode selection policy. Persist this alongside normalized index keys; a changed value means stored keys may need rebuilding. |
 | `unit_table[pos][unit]` | The pinned encoding for a written `unit` at `pos` (`isol`/`init`/`medi`/`fina`). `unit` is a `+`-joined written-unit tuple — single (`"A"`) or multi (`"A+O+I"`). Value: `letter` (alias), `cp` (hex codepoint), `fvs` (hex codepoint or `null`). |
 | `unit_enc_max_len` | Longest written-unit tuple in `unit_table`; bounds the multi-unit lookahead during partition. |
+| `positioned_units` | Complete valid HUD `(unit, position)` inventory used to validate positioned requests. Encoding reuses `unit_table` through `normalize_written_units()`; incomplete chain edges are represented by implicit ZWJ. |
 | `velar_fem[pos][unit]` | The feminine encoding of a single vowel unit, used by the velar-feminine refinement. |
 | `velar_fem_units` | Units that trigger that refinement (`G`, `Gx`). |
 | `masc_to_fem` | Masculine→feminine vowel alias map the refinement applies. |
