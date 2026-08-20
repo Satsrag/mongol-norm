@@ -1064,9 +1064,6 @@ class MongolianShaper:
         if not records:
             return ""
         self._build_unit_enc()
-        known_positioned_names = {
-            unit for unit, _position in self._positioned_units
-        }
         for index, (unit, position) in enumerate(records):
             if unit in ("Mvs", "Nirugu"):
                 if position != "control":
@@ -1075,10 +1072,6 @@ class MongolianShaper:
                         "requires position 'control'"
                     )
                 continue
-            if unit not in known_positioned_names:
-                raise ValueError(
-                    f"positioned_units[{index}] has unknown unit {unit!r}"
-                )
             if (unit, position) not in self._positioned_units:
                 raise ValueError(
                     "unsupported positioned written unit "

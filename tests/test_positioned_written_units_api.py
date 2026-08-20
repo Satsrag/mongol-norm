@@ -144,10 +144,10 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     self.shaper.normalize_positioned_written_units([record])
 
-    def test_rejects_unknown_unit_name(self):
+    def test_rejects_unknown_unit_position_pair(self):
         with self.assertRaisesRegex(
             ValueError,
-            r"positioned_units\[0\] has unknown unit 'Unknown'",
+            r"unsupported positioned written unit 'Unknown:isol'",
         ):
             self.shaper.normalize_positioned_written_units([
                 {"unit": "Unknown", "position": "isol"},
