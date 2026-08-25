@@ -13,7 +13,8 @@ must produce the identical canonical output.
 所有五种都必须产生相同的规范输出。
 """
 import unittest
-from mongol_norm import MongolianShaper
+
+from mongol_norm import MongolianShaper, NormalizationFallbackError
 
 _ALIAS_TO_CP = {
     'a': '\u1820', 'e': '\u1821', 'i': '\u1822', 'o': '\u1823',
@@ -984,6 +985,26 @@ class TestNormalize(unittest.TestCase):
     # 无关,FVS 杂讯是前缀稳定的代价。
     CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
 
+    def test_non_strict_mode_preserves_input_when_canonicalization_falls_back(self):
+        word = "ᠰᠠᠢᠨ"
+        shaper = MongolianShaper(locale="MNG")
+        shaper._build_unit_enc()
+        shaper._unit_enc.clear()
+        self.assertEqual(shaper.normalize(word, strict=False), word)
+
+    def test_default_mode_raises_when_canonicalization_falls_back(self):
+        word = "ᠰᠠᠢᠨ"
+        shaper = MongolianShaper(locale="MNG")
+        shaper._build_unit_enc()
+        shaper._unit_enc.clear()
+        with self.assertRaisesRegex(
+                NormalizationFallbackError,
+                "no canonical encoding for written units S\\+A\\+I\\+I\\+A") as raised:
+            shaper.normalize(word)
+
+        self.assertEqual(raised.exception.text, word)
+        self.assertEqual(raised.exception.written_units, ("S", "A", "I", "I", "A"))
+
     def test_sain_base(self):
         self.assertEqual(self.s.normalize("ᠰᠠᠢᠨ"), self.CANONICAL_SAIN)
 
@@ -1029,6 +1050,21 @@ class TestNormalizeText(unittest.TestCase):
     # Canonical "sain" under the FVS-pinned per-unit encoder (see
     # TestNormalize for the rationale). All variants converge to one output.
     CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
+
+    def test_default_mode_reports_a_fallback_inside_mixed_text(self):
+        text = "Hello ᠰᠠᠢᠨ world"
+        shaper = MongolianShaper(locale="MNG")
+        shaper._build_unit_enc()
+        shaper._unit_enc.clear()
+        with self.assertRaises(NormalizationFallbackError):
+            shaper.normalize_text(text)
+
+    def test_non_strict_mode_preserves_a_fallback_inside_mixed_text(self):
+        text = "Hello ᠰᠠᠢᠨ world"
+        shaper = MongolianShaper(locale="MNG")
+        shaper._build_unit_enc()
+        shaper._unit_enc.clear()
+        self.assertEqual(shaper.normalize_text(text, strict=False), text)
 
     def test_single_word_matches_normalize(self):
         # normalize_text on a single word should match normalize

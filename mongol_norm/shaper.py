@@ -172,6 +172,19 @@ class Token:
 
 # ── Shaper ──────────────────────────────────────────────────────
 
+
+class NormalizationFallbackError(ValueError):
+    """Raised when strict normalization cannot encode a written-unit shape."""
+
+    def __init__(self, text, written_units):
+        self.text = text
+        self.written_units = tuple(written_units)
+        super().__init__(
+            "normalization fallback: no canonical encoding for written units "
+            + "+".join(self.written_units)
+        )
+
+
 class MongolianShaper:
     """
     Full UTN57 Hudum shaping engine.
@@ -931,18 +944,20 @@ class MongolianShaper:
         self._build_unit_enc()
         return self._canonical_version
 
-    def normalize(self, text):
+    def normalize(self, text, strict=True):
         """
         Canonical normalize: a pure function of shape.
         规范化:纯粹的 shape → Unicode 函数。
 
-        Stronger than round-trip / 比保形更强的性质:
+        For written-unit shapes covered by the bundled normalization table:
+        对内置规范化表覆盖的 written-unit shape:
           shape(x) == shape(y)  ⟹  normalize(x) == normalize(y)
-        Two inputs with the same shape always normalize to the SAME Unicode
-        sequence. This is achieved by deriving the output from shape() alone,
-        not from the input encoding's token structure.
-        同 shape 的两个输入必然得到完全相同的 Unicode 输出。算法只依赖 shape,
-        不读输入的编码细节,从而保证多对一。
+        Two covered inputs with the same shape normalize to the SAME Unicode
+        sequence. If a shape is not encodable, strict mode raises
+        :class:`NormalizationFallbackError` by default. Pass ``strict=False``
+        explicitly to return ``text`` unchanged instead.
+        表内同 shape 输入得到相同 Unicode。无法编码时默认抛出
+        :class:`NormalizationFallbackError`；显式传 ``strict=False`` 才原样返回。
 
         Canonical = SHORTEST encoding, lex-smallest tiebreak.
         规范形 = 最短编码,字典序最小作为 tiebreak。
@@ -995,6 +1010,8 @@ class MongolianShaper:
         # production rule that shape() emits.
         # 安全网:若枚举失败,回退到原文。对正常蒙古文应不会触发。
         if not canonical or self.shape(canonical) != target:
+            if strict:
+                raise NormalizationFallbackError(text, target)
             return text
         return canonical
 
@@ -1569,7 +1586,7 @@ class MongolianShaper:
             return 'init'
         return 'fina' if letter_index == total - 1 else 'medi'
 
-    def normalize_text(self, text):
+    def normalize_text(self, text, strict=True):
         """
         Normalize a whole text string (sentence, paragraph, etc.).
         规范化整段文本（句子、段落等）。
@@ -1579,6 +1596,10 @@ class MongolianShaper:
         else (spaces, punctuation, Latin text, etc.) verbatim.
         将输入分段为蒙古文词段和非蒙古文片段，独立规范化每个蒙古文词，
         其余内容（空格、标点、拉丁文等）原样保留。
+
+        Strict mode raises :class:`NormalizationFallbackError` by default if
+        any Mongolian word cannot be canonically encoded. Pass ``strict=False``
+        explicitly to preserve such a word through the safety fallback.
 
         Why a separate method / 为什么需要单独的方法:
           normalize() treats its entire input as one word — spaces and
@@ -1615,7 +1636,7 @@ class MongolianShaper:
         parts = []
         for is_mong, span in segments:
             if is_mong:
-                parts.append(self.normalize(span))
+                parts.append(self.normalize(span, strict=strict))
             else:
                 parts.append(span)
 
@@ -1815,13 +1836,17 @@ def main():
         help="Normalize a single Mongolian WORD to canonical Unicode",
         description=(
             "Normalize a single Mongolian word (no spaces / non-Mongolian).\n"
-            "Property: same shape → same Unicode. For mixed-script / multi-word\n"
+            "For supported shapes: same shape → same Unicode. For mixed-script / multi-word\n"
             "text use `normalize-text` instead."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_io_epilog("normalize", "ᠰᠡᠢᠨ"),
     )
     _add_io_args(p_norm)
+    p_norm.add_argument(
+        "--allow-fallback", action="store_true",
+        help="Return the input unchanged instead of failing if canonicalization falls back.",
+    )
 
     p_norm_units = sub.add_parser(
         "normalize-written-units",
@@ -1845,6 +1870,10 @@ def main():
         epilog=_io_epilog("normalize-text", "Hello ᠰᠡᠢᠨ world"),
     )
     _add_io_args(p_normt)
+    p_normt.add_argument(
+        "--allow-fallback", action="store_true",
+        help="Preserve an uncovered Mongolian word instead of failing.",
+    )
 
     p_same = sub.add_parser(
         "same",
@@ -1873,7 +1902,7 @@ def main():
     if args.cmd == "shape":
         op = lambda s: "+".join(shaper.shape(s))
     elif args.cmd == "normalize":
-        op = shaper.normalize
+        op = lambda s: shaper.normalize(s, strict=not args.allow_fallback)
     elif args.cmd == "normalize-written-units":
         shaper._build_unit_enc()
         known_units = {
@@ -1886,7 +1915,8 @@ def main():
             _parse_written_units(s, known_units)
         )
     elif args.cmd == "normalize-text":
-        op = shaper.normalize_text
+        op = lambda s: shaper.normalize_text(
+            s, strict=not args.allow_fallback)
     else:
         parser.error(f"unknown command: {args.cmd}")
         return

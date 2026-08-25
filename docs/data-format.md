@@ -285,7 +285,7 @@ The reference Python implementation (`shaper.py`) shows exactly how these are bu
 
 Alongside the shape rules, `mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
 
-It exists so other languages can implement mongol-norm's `normalize` (same shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. The Python runtime loads this exact file too.
+It exists so other languages can implement mongol-norm's `normalize` for covered written-unit chains (same supported shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. The Python runtime loads this exact file too. An uncovered chain is outside this table contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False`.
 
 ```python
 from mongol_norm._data import load_normalize_table
