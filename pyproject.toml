@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mongol-norm"
-version = "0.0.2"
+version = "0.0.3"
 description = "Shape-aware normalizer for Traditional Mongolian script. Implements the UTN #57 v4 shaping pipeline in pure Python."
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 license = { text = "MIT" }
 keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
 classifiers = [

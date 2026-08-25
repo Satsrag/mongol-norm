@@ -46,7 +46,7 @@ FVS4_CP = 0x180F
 
 class Rule:
     """A single shaping rule = a single mongfontbuilder Lookup.
-    (Plain class, not a dataclass, to keep the package Python 3.6+.)"""
+    (Plain class, not a dataclass, to keep the package Python 3.7+.)"""
     __slots__ = ("name", "locales", "apply")
 
     def __init__(self, name: str, locales: FrozenSet[str],

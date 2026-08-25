@@ -24,8 +24,8 @@ SCHEMA_VERSION = 1
 SUPPORTED_LOCALES = ("MNG", "MNGx", "TOD", "TODx", "SIB", "MCH", "MCHx")
 
 # Plain filesystem path (not importlib.resources) so the package runs on
-# Python 3.6+; wheel/sdist installs unpack to a real directory anyway.
-# 用普通文件路径而非 importlib.resources,兼容 Python 3.6+。
+# Python 3.7+; wheel/sdist installs unpack to a real directory anyway.
+# 用普通文件路径而非 importlib.resources,兼容 Python 3.7+。
 _DATA = Path(__file__).parent / "data"
 
 

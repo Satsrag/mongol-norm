@@ -23,9 +23,9 @@ Both halves of the library — shaping and normalization (MNG / Hudum) — are v
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 cases excluded as UTN ↔ EAC xfail, matching mongfontbuilder's own `pytest.mark.xfail` set |
 | Hand-written unit tests | — | **100%** | shape / same_shape / joiner tokens (nirugu, ZWJ) |
 
-#### ✅ Normalization — same guarantees, machine-checked
+#### ✅ Normalization — corpus-scoped guarantees, machine-checked
 
-`normalize()` / `normalize_text()` / `normalize_written_units()` are **pure functions of shape** with invariants checked in CI over every corpus encoding:
+For written-unit shapes covered by the bundled normalization table, `normalize()` / `normalize_text()` / `normalize_written_units()` are **pure functions of shape** with invariants checked in CI over every corpus encoding:
 
 | Property | Result |
 |---|---|
@@ -33,7 +33,7 @@ Both halves of the library — shaping and normalization (MNG / Hudum) — are v
 | Shape-canonicity — same shape ⟹ same Unicode output | **1993 / 1993** shape groups (100%) |
 | Prefix-stability — word and word+suffix share their prefix encoding | **99.87%** of real corpus pairs |
 
-Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping rules but have no normalizer yet.
+Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping rules but have no normalizer yet. The guarantees above cover the checked corpus and any input whose written-unit chains can be encoded by the bundled table. For an uncovered out-of-corpus chain, normalization raises `NormalizationFallbackError` by default. Pass `strict=False` explicitly only when returning the original word unchanged is acceptable.
 
 This project was generated with [Claude Code](https://claude.ai/code) (AI-assisted coding). The tests and key parts of the core code have been **manually reviewed**, and test coverage is extensive (corpus round-trip / shape-canonicity / prefix-stability plus the upstream cross-implementation suites). Treat this as a **preview release** — it should be fine for normal use; if you hit a problem, please open an [issue or PR](https://github.com/Satsrag/mongol-norm/issues). Shaping logic is derived from UTN #57 v4 and mongfontbuilder.
 
@@ -60,7 +60,7 @@ This is a **shaping-aware normalizer** for Traditional Mongolian. It:
 
 1. **Shapes** the input using the full UTN #57 v4 shaping process (5-step conditional mapping)
 2. **Compares** glyph sequences to detect identical visual forms
-3. **Normalizes** to one canonical, FVS-pinned Unicode encoding — same shape ⟹ same Unicode, and it always round-trips
+3. **Normalizes** supported shapes to one canonical, FVS-pinned Unicode encoding — same shape ⟹ same Unicode, with an exact shape round-trip
 
 **Example**: All five of these encode the word "sain" (good) and look identical:
 
@@ -80,7 +80,7 @@ The normalizer implements a **lightweight Mongolian shaping engine** — equival
 
 #### Normalization Strategy
 
-`normalize` is a **pure function of shape**: any two encodings that shape identically produce the same Unicode output, and the output always round-trips — `shape(normalize(x)) == shape(x)`. It is also **prefix-stable**. When these goals conflict the priority is **round-trip > prefix-stable > shortest**.
+Within the normalization table's supported written-unit domain, `normalize` is a **pure function of shape**: any two encodings that shape identically produce the same Unicode output, and the output round-trips — `shape(normalize(x)) == shape(x)`. It is also **prefix-stable**. When these goals conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
@@ -89,14 +89,14 @@ Per word:
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
    3. **verify** — reshape the candidate in full context; accept only if it equals the target chain shape.
-   4. **no search fallback** — the table is total over the corpus (with FVS-first selection there are no gap chains left). If an out-of-corpus shape ever misses the table, the safety net returns the input unchanged (round-trip preserved, never a silent mis-encoding). A letter next to a joiner simply looks its unit up at the shifted (joined) position.
+   4. **no search fallback** — the table is total over the corpus (with FVS-first selection there are no gap chains left). If an out-of-corpus shape ever misses the table, normalization raises `NormalizationFallbackError` with the input and uncovered written-unit sequence. Callers may explicitly pass `strict=False` to return the input unchanged (round-trip preserved, never a mis-encoding). A letter next to a joiner simply looks its unit up at the shifted (joined) position.
 3. **post-MVS suffix rule** — a chain directly after MVS takes its **standalone** canonical (drop the MVS, normalize, re-attach), so the spelling never depends on MVS. One exception: chachlag `Aa` after MVS is written the bare letter `a`. (The isolate-`I` → `i+FVS1` spelling is pinned in the table itself — no post-processing pass exists.)
 
 **Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the shared region encodes identically except the single boundary unit whose position changes (final in *B* → medial in *A*). The per-unit table delivers this for free — each unit's encoding depends only on its own position, never on its neighbours.
 
 **How the table is built** (the *selection method*): offline, a **context-independence battery** fills each `(position, written-unit)` slot with the `(letter, FVS)` that renders *exactly* that unit in *every* probed neighbour context (the probes include a bowed consonant, so post-bowed effects can't hide). Candidate order is **letter-major, FVS-first within the letter** — an FVS exists precisely to pin a form against context, so the pinned variant of the right letter always beats its context-sensitive bare form. The result is exported and shipped as JSON; the battery lives in `scripts/gen_normalize_table.py`.
 
-> Note: output is **FVS-pinned**, not bare — each unit carries the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md), so ports in other languages can implement `normalize` with just a JSON parser.
+> Note: supported output is **FVS-pinned**, not bare — each unit carries the selector that fixes its form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability hold inside the table's domain. The per-unit table is exported as language-agnostic JSON (`mongol_norm/data/MNG.normalize.json`); schema + consuming algorithm are in [docs/data-format.md](docs/data-format.md), so ports in other languages can implement `normalize` with just a JSON parser.
 
 The exact canonical selection policy is frozen as **`mng-canonical/1`**. It is available as `shaper.canonical_version` and embedded in `MNG.normalize.json`. Applications that persist normalized search/index keys should store this version alongside them and rebuild those keys if a future release changes it.
 
@@ -119,7 +119,7 @@ pip install .
 ### Usage
 
 ```python
-from mongol_norm import MongolianShaper
+from mongol_norm import MongolianShaper, NormalizationFallbackError
 
 shaper = MongolianShaper(locale="MNG")  # Hudum Traditional Mongolian
 
@@ -134,7 +134,7 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 # → False
 
-# Normalize: one canonical, FVS-pinned Unicode (same shape ⟹ same Unicode)
+# Normalize a supported shape to canonical, FVS-pinned Unicode
 shaper.normalize("ᠰᠡᠢᠨ")
 # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 
@@ -143,6 +143,9 @@ shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
+
+# Strict is the default. strict=False preserves the input only if fallback occurs.
+shaper.normalize("ᠰᠠᠢᠨ", strict=False)
 
 # Normalize an already-shaped written-unit sequence
 shaper.normalize_written_units(["B", "Aa"])
@@ -223,9 +226,11 @@ After `pip install mongol-norm`, the `mongol-norm` command is on `PATH` (or run 
 # Inline text
 mongol-norm shape 'ᠰᠠᠢᠨ'                   # → S+A+I+I+A
 mongol-norm normalize 'ᠰᠡᠢᠨ'               # canonical form
+mongol-norm normalize --allow-fallback 'ᠰᠡᠢᠨ'  # preserve input if fallback occurs
 mongol-norm normalize-written-units 'B+Aa'  # → ᠪᠠ᠋
 mongol-norm normalize-written-units 'BZwj'  # compact PascalCase units
 mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # mixed script
+mongol-norm normalize-text --allow-fallback -i in.txt
 
 # Pipe / stdin (use `-` as the text)
 echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
@@ -339,7 +344,7 @@ mongol-norm/                          # the repo = the package (single, self-con
 
 ### Requirements
 
-- Python 3.6+ (CI-tested on 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
+- Python 3.7+ (CI-tested on 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
 - No runtime dependencies (shaping/normalize data is bundled)
 
 ### License
@@ -367,9 +372,9 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 个 UTN ↔ EAC 分歧 case 跳过(跟 mongfontbuilder 自己的 `pytest.mark.xfail` 列表一致) |
 | 手写单元测试 | — | **100%** | shape / same_shape / joiner token(nirugu、ZWJ) |
 
-#### ✅ Normalization(规范化)— 与整形同级保障,机器验证
+#### ✅ Normalization(规范化)— 语料域保证,机器验证
 
-`normalize()` / `normalize_text()` / `normalize_written_units()` 是 **shape 的纯函数**,以下不变量在 CI 中对每一条语料编码逐一验证:
+对于内置规范化表覆盖的written-unit shape，`normalize()` / `normalize_text()` / `normalize_written_units()` 是 **shape 的纯函数**,以下不变量在 CI 中对每一条语料编码逐一验证:
 
 | 性质 | 结果 |
 |---|---|
@@ -377,7 +382,7 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 | 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1993 / 1993** shape 组(100%) |
 | 前缀稳定 —— 词与词+后缀共享前缀编码 | **99.87%** 真实语料词对 |
 
-范围说明:规范化目前只实现了 MNG(Hudum)—— Todo / 锡伯文 / 满文已加载 shaping 规则,尚无规范化。
+范围说明:规范化目前只实现了 MNG(Hudum)—— Todo / 锡伯文 / 满文已加载 shaping 规则,尚无规范化。上述保证覆盖已检查语料及内置表可编码的written-unit chain。语料外chain若未被覆盖，默认抛出`NormalizationFallbackError`；只有调用者明确接受原样回退时才传入`strict=False`。
 
 本项目由 [Claude Code](https://claude.ai/code)(AI 辅助编码)生成;测试与部分核心代码经**人工审核**,测试覆盖比较充分(语料往返 / 同形同码 / 前缀稳定 + 上游跨实现套件)。当前为**预览版**,正常使用应无问题;遇到问题欢迎提 [issue 和 PR](https://github.com/Satsrag/mongol-norm/issues)。Shaping 逻辑源自 UTN #57 v4 和 mongfontbuilder。
 
@@ -404,7 +409,7 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 
 1. 使用完整的 UTN #57 v4 shaping 过程（5 步条件映射）对输入进行**字形化**
 2. 通过比较字形序列来**检测**视觉上相同的词形
-3. **规范化**为唯一的、FVS 钉死的 canonical Unicode 编码 —— 同 shape ⟹ 同 Unicode,且必定往返还原
+3. 将受支持的shape**规范化**为唯一的、FVS 钉死的 canonical Unicode 编码 —— 同 shape ⟹ 同 Unicode,并精确往返还原
 
 **示例**：以下五种编码都表示 "sain"（好的），外形完全相同：
 
@@ -426,7 +431,7 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 
 #### 规范化策略
 
-`normalize` 是 **shape 的纯函数**:任意两个 shape 相同的编码,normalize 输出相同,且始终往返成立 —— `shape(normalize(x)) == shape(x)`,同时**前缀稳定**。三者冲突时优先级:**往返 > 前缀稳定 > 最短**。
+在规范化表支持的written-unit域内，`normalize` 是 **shape 的纯函数**:任意两个 shape 相同的编码,normalize 输出相同,且往返成立 —— `shape(normalize(x)) == shape(x)`,同时**前缀稳定**。三者冲突时优先级:**往返 > 前缀稳定 > 最短**。
 
 逐词:
 
@@ -435,14 +440,14 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
    1. **划分 + 查表**(主路径):每个位置优先取单单元(输出干净),否则取最长多单元,查 `(位置, 书写单元) → (字母, FVS)` 的 FVS 钉死表。每个值**不依赖邻居**就渲染出该单元 → 确定性、O(N)、前缀稳定。
    2. **velar 阴性微调**:`G`/`Gx` 前向耦合的元音(`a`/`o`/`u`)换成阴性(`e`/`oe`/`ue`),输出更干净。
    3. **校验**:在完整上下文里重新 shape,只接受与目标 chain shape 一致的结果。
-   4. **没有搜索兜底**:FVS 优先的选择下,表对全部语料 chain 是完备的(缺口为零)。语料外的 shape 万一查不到表,安全网原样返回输入(保住往返,绝不静默错编)。紧邻 joiner 的字母只是按移动后的连接位置查表。
+   4. **没有搜索兜底**:FVS 优先的选择下,表对全部语料 chain 是完备的(缺口为零)。语料外的 shape 万一查不到表，默认抛出包含原输入与未覆盖written-unit序列的`NormalizationFallbackError`。只有明确接受原样回退时才传入`strict=False`(保住往返,绝不错编)。紧邻 joiner 的字母只是按移动后的连接位置查表。
 3. **MVS 后缀规则**:紧跟 MVS 的 chain 用其 **standalone** canonical(去掉 MVS、归一、再拼回),拼写不依赖 MVS。唯一例外:MVS 后的 chachlag `Aa` 写裸字母 `a`。(孤立 `I` → `i+FVS1` 的拼写已钉进表本身 —— 不存在后处理。)
 
 **前缀稳定**的含义:若词 *A* = 词 *B* + 后缀,且二者 shape 共享前缀,则共享部分编码完全一致,只有那个位置发生变化的边界单元不同(在 *B* 里是词尾、在 *A* 里变词中)。逐单元表天然保证这点 —— 每个单元的编码只取决于它自己的位置,与邻居无关。
 
 **表是怎么来的**(*选择方法*):离线跑一个 **context 无关性电池** —— 对每个 `(位置, 书写单元)`,挑出在**所有**探测邻居上下文里都**恰好**渲染出该单元的 `(字母, FVS)`(探针含弓形辅音,post-bowed 效应藏不住)。候选顺序是**字母优先、字母内 FVS 优先** —— FVS 的意义就是把字形从 context 里隔离出来,所以正确字母的钉死形永远优于其受感染的裸形。结果导出成 JSON 随包发布;电池在 `scripts/gen_normalize_table.py`。
 
-> 注意:输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符,这正是"同 shape ⟹ 同 Unicode"和前缀稳定成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
+> 注意:受支持输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符,这正是"同 shape ⟹ 同 Unicode"和前缀稳定在表内成立的原因。逐单元表导出为语言无关的 JSON(`mongol_norm/data/MNG.normalize.json`),schema 与消费算法见 [docs/data-format.md](docs/data-format.md);其他语言只需一个 JSON 解析器即可实现 normalize。
 
 当前精确 canonical 选择策略冻结为 **`mng-canonical/1`**。可通过 `shaper.canonical_version` 读取，并写入 `MNG.normalize.json`。持久化规范化搜索键/索引键的应用应同时保存该版本；未来版本若发生变化，应重建这些键。
 
@@ -465,7 +470,7 @@ pip install .
 ### 使用方法
 
 ```python
-from mongol_norm import MongolianShaper
+from mongol_norm import MongolianShaper, NormalizationFallbackError
 
 shaper = MongolianShaper(locale="MNG")  # Hudum 传统蒙文
 
@@ -480,7 +485,7 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠨᠠᠢ᠍ᠮᠠ")
 # → False
 
-# 规范化:唯一的 FVS 钉死 canonical(同 shape ⟹ 同 Unicode)
+# 将受支持shape规范化为唯一的FVS钉死canonical Unicode
 shaper.normalize("ᠰᠡᠢᠨ")
 # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 
@@ -489,6 +494,9 @@ shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")
 
 shaper.normalize("ᠰᠠᠶ᠋ᠶ᠋ᠨ")
 # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
+
+# strict是默认行为；strict=False只在触发fallback时原样返回
+shaper.normalize("ᠰᠠᠢᠨ", strict=False)
 
 # 从已经shape好的书写单元序列直接生成canonical Unicode
 shaper.normalize_written_units(["B", "Aa"])
@@ -564,9 +572,11 @@ print(f"{len(words)} 个输入 → {len(unique)} 个唯一形态：{unique}")
 # 直接传文本
 mongol-norm shape 'ᠰᠠᠢᠨ'                   # → S+A+I+I+A
 mongol-norm normalize 'ᠰᠡᠢᠨ'               # 输出 canonical
+mongol-norm normalize --allow-fallback 'ᠰᠡᠢᠨ'  # 若触发fallback则原样返回
 mongol-norm normalize-written-units 'B+Aa'  # → ᠪᠠ᠋
 mongol-norm normalize-written-units 'BZwj'  # 紧凑PascalCase单元串
 mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ'    # 混合文字
+mongol-norm normalize-text --allow-fallback -i in.txt
 
 # 管道 / 标准输入(文本位置写 `-`)
 echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
@@ -679,7 +689,7 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 
 ### 环境要求
 
-- Python 3.6+(CI 实测矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
+- Python 3.7+(CI 实测矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
 - 无运行时依赖(shaping/normalize 数据已内置)
 
 ### 许可证
