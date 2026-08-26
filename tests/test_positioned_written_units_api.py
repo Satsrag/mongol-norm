@@ -60,6 +60,35 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         self.assertEqual(result, "\u1839")
         self.assertNotIn("\u200d", result)
 
+    def test_o_init_gets_its_required_trailing_zwj(self):
+        result = self.shaper.normalize_positioned_written_units([
+            {"unit": "O", "position": "init"},
+        ])
+        oa = self.shaper.normalize_positioned_written_units([
+            {"unit": "O", "position": "init"},
+            {"unit": "A", "position": "fina"},
+        ])
+
+        self.assertEqual(result[:-1], oa[:2])
+        self.assertEqual(
+            tuple(map(ord, result)),
+            (0x1824, 0x180B, 0x200D),
+        )
+
+    def test_o_is_the_only_singleton_init_that_adds_zwj(self):
+        self.shaper._build_unit_enc()
+        init_units = sorted({
+            unit for unit, position in self.shaper._positioned_units
+            if position == "init"
+        })
+
+        for unit in init_units:
+            with self.subTest(unit=unit):
+                result = self.shaper.normalize_positioned_written_units([
+                    {"unit": unit, "position": "init"},
+                ])
+                self.assertEqual(result.count("\u200d"), int(unit == "O"))
+
     def test_snapshots_an_accepted_sequence_once(self):
         class ChangingList(list):
             def __init__(self, values):

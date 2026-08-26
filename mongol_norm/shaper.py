@@ -1025,17 +1025,18 @@ class MongolianShaper:
         authoritative HUD written-unit positions ``isol``/``init``/``medi``/
         ``fina``. Encoding delegates to :meth:`normalize_written_units`: a
         complete multi-record chain runs from ``init`` to ``fina``; an incomplete
-        edge gets an implicit ZWJ. A single ``init`` record is encoded without
-        ZWJ, while single ``medi`` and ``fina`` records receive the joining
-        context their positions need. ``Mvs`` and ``Nirugu`` require ``control``;
-        explicit ``Zwj`` input is rejected.
+        edge gets an implicit ZWJ. A single ``init`` record is normally encoded
+        without ZWJ; the sole ``O:init`` exception receives a trailing ZWJ. Single
+        ``medi`` and ``fina`` records receive the joining context their positions
+        need. ``Mvs`` and ``Nirugu`` require ``control``; explicit ``Zwj`` input is
+        rejected.
 
         每项必须严格为内建 ``{"unit": str, "position": str}`` dict。字母position
         是权威HUD written-unit position：``isol``/``init``/``medi``/``fina``。
         编码直接交给 :meth:`normalize_written_units`：完整复合链从``init``开始、
-        到``fina``结束；边界不完整时自动补ZWJ。单个``init``不补ZWJ；单个
-        ``medi``和``fina``补足其位置所需的连接上下文。``Mvs``与``Nirugu``
-        使用``control``；显式``Zwj``输入被拒绝。
+        到``fina``结束；边界不完整时自动补ZWJ。单个``init``通常不补ZWJ；唯一
+        特例``O:init``在末尾补ZWJ。单个``medi``和``fina``补足其位置所需的连接
+        上下文。``Mvs``与``Nirugu``使用``control``；显式``Zwj``输入被拒绝。
 
         This word-level API accepts at most 1024 records.
 
@@ -1123,6 +1124,10 @@ class MongolianShaper:
             )
             if len(body) == 1:
                 unit, position = body[0]
+                if (len(records) == 1
+                        and unit == "O" and position == "init"):
+                    written_units.extend((unit, "Zwj"))
+                    continue
                 if position in ("medi", "fina") and not joined_left:
                     written_units.append("Zwj")
                 written_units.append(unit)

@@ -166,6 +166,12 @@ shaper.normalize_positioned_written_units([
     {"unit": "F", "position": "init"},
 ])
 # → 'ᠹ' (bare U+1839, no ZWJ); F:isol is unsupported
+
+# O:init reuses the O+A canonical prefix, then adds the required trailing ZWJ
+shaper.normalize_positioned_written_units([
+    {"unit": "O", "position": "init"},
+])
+# → U+1824 U+180B U+200D
 ```
 
 `normalize_written_units()` accepts an ordered `Sequence[str]` of shape units,
@@ -187,8 +193,10 @@ letter's joining topology. It reuses `normalize_written_units()` rather than a
 second encoding table. A complete multi-record chain starts with `init` and ends
 with `fina`. An incomplete left or right edge gets an implicit `Zwj`; for example
 `B:medi, O:medi, G:fina` is normalized as `Zwj, B, O, G`. A single `init` record
-is the exception and is normalized without ZWJ, so `F:init` becomes bare U+1839.
-A single `medi` gets ZWJ on both sides and a single `fina` gets ZWJ on the left.
+is normally normalized without ZWJ, so `F:init` becomes bare U+1839. The sole
+exception is `O:init`: it reuses the U+1824 U+180B prefix selected by canonical
+`O:init, A:fina`, then adds U+200D. A
+single `medi` gets ZWJ on both sides and a single `fina` gets ZWJ on the left.
 `F:isol` is absent from the source inventory and fails closed. `Mvs` and `Nirugu`
 use `control`; explicit `Zwj` input is rejected. A wrong outer/record/field type
 raises `TypeError`; wrong keys, unit, position, chain positions, exact encoding,
@@ -517,6 +525,12 @@ shaper.normalize_positioned_written_units([
     {"unit": "F", "position": "init"},
 ])
 # → 'ᠹ'（裸U+1839，不含ZWJ）；F:isol不受支持
+
+# O:init复用O+A canonical前缀，再添加所需的尾部ZWJ
+shaper.normalize_positioned_written_units([
+    {"unit": "O", "position": "init"},
+])
+# → U+1824 U+180B U+200D
 ```
 
 `normalize_written_units()`接受由shape unit组成的有序`Sequence[str]`，而不是
@@ -533,9 +547,11 @@ position record。所有written-unit名称统一使用PascalCase；结构control
 表示权威HUD inventory中的written-unit position，不是Unicode字母在当前序列中的
 joining topology。它直接复用`normalize_written_units()`，不再维护第二套编码表。
 完整复合链必须以`init`开头、以`fina`结束；左端或右端不完整时自动补`Zwj`。
-例如`B:medi, O:medi, G:fina`会按`Zwj, B, O, G`规范化。单个`init`是特例，
-不补ZWJ，因此`F:init`输出裸`U+1839`；单个`medi`前后补ZWJ，单个`fina`只在
-左侧补ZWJ。inventory中不存在的`F:isol`会fail closed。`Mvs`与`Nirugu`使用
+例如`B:medi, O:medi, G:fina`会按`Zwj, B, O, G`规范化。单个`init`通常不补
+ZWJ，因此`F:init`输出裸`U+1839`；唯一特例`O:init`复用canonical
+`O:init, A:fina`选出的`U+1824 U+180B`前缀，再添加`U+200D`。单个`medi`
+前后补ZWJ，单个`fina`只在左侧补ZWJ。
+inventory中不存在的`F:isol`会fail closed。`Mvs`与`Nirugu`使用
 `control`，显式`Zwj`输入被拒绝。外层/record/字段类型错误抛出`TypeError`；
 keys、unit、position、复合链位置、exact encoding错误以及超过1024条record均
 抛出`ValueError`。本API暂不增加CLI命令。
