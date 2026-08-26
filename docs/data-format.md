@@ -84,6 +84,8 @@ rejected. Letter positions are `isol`, `init`, `medi`, or `fina`; structural uni
 encoder may insert ZWJ in its Unicode output when a valid HUD position needs
 joining context. Borrowed forms with a bare candidate remain bare; temporarily,
 `I:isol` and `I:init` both use the plain `I` canonical without inserted ZWJ. The
+sole singleton-initial exception is `O:init`: it reuses the U+1824 U+180B prefix
+selected by canonical `O:init, A:fina`, then adds the trailing U+200D. The
 generator combines unchanged plain shaping
 traces with source `positioned_written` metadata to verify exact positions and
 MVS-boundary alternatives. Runtime normalization reads those tables; public
