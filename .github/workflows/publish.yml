@@ -1,0 +1,118 @@
+name: Build and publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# No job receives repository permissions unless it declares them below.
+permissions: {}
+
+# Never cancel an in-flight publication for the same tag/ref.
+concurrency:
+  group: pypi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify distributions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the release commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+
+      - name: Verify package versions agree
+        run: |
+          python - <<'PY'
+          import pathlib
+          import tomllib
+
+          from mongol_norm import __version__ as runtime_version
+
+          metadata = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          package_version = metadata["project"]["version"]
+          if runtime_version != package_version:
+              raise SystemExit(
+                  f"runtime version {runtime_version!r} does not match "
+                  f"package version {package_version!r}"
+              )
+          print(f"package versions agree: {package_version}")
+          PY
+
+      - name: Verify release tag matches package version
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          metadata = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          expected = "v" + metadata["project"]["version"]
+          actual = os.environ["RELEASE_TAG"]
+          if actual != expected:
+              raise SystemExit(
+                  f"release tag {actual!r} does not match package version {expected!r}"
+              )
+          print(f"release tag matches package version: {actual}")
+          PY
+
+      - name: Install test and build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install . build twine
+
+      - name: Run test suite
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Build wheel and source distribution
+        run: python -m build
+
+      - name: Check distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Smoke-test the built wheel
+        run: |
+          python -m pip install --force-reinstall --no-deps dist/*.whl
+          cd /tmp
+          python -c "import mongol_norm; print(mongol_norm.__version__)"
+
+      - name: Save distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish to PyPI
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mongol-norm
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: python-distributions
+          path: dist/
+
+      # Pinned release/v1 commit for supply-chain stability.
+      - name: Publish distributions with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
