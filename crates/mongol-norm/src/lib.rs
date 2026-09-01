@@ -17,12 +17,14 @@ mod shaper;
 mod tables;
 mod token;
 mod unicode;
+mod written_units;
 
 pub use error::Error;
 pub use generated::enums::{Alias, Condition, WrittenUnit};
 pub use shaper::{ConditionChange, RuleTransition, ShapeTrace, Shaper, TokenDetail};
 pub use tables::{Fvs, Locale, Position, UnitPosition};
 pub use unicode::{is_mongolian_letter, is_mongolian_word_char};
+pub use written_units::{PositionedWrittenUnit, MAX_POSITIONED_RECORDS};
 
 /// Crate version (the Cargo package version; lockstep with the Python package version).
 pub fn version() -> &'static str {

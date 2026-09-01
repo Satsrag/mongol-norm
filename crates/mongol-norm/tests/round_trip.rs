@@ -386,3 +386,168 @@ fn normalize_text_throughput() {
         "long-word batch took {elapsed:?} (want <5s)"
     );
 }
+
+// ── Bare-chain encodings (Python used private helpers; the public written-unit API is the same path) ──
+
+const LONG_CHAIN: [WrittenUnit; 18] = [
+    WrittenUnit::A,
+    WrittenUnit::O,
+    WrittenUnit::I,
+    WrittenUnit::I,
+    WrittenUnit::L,
+    WrittenUnit::A,
+    WrittenUnit::D,
+    WrittenUnit::O,
+    WrittenUnit::L,
+    WrittenUnit::G,
+    WrittenUnit::A,
+    WrittenUnit::J,
+    WrittenUnit::I,
+    WrittenUnit::G,
+    WrittenUnit::O,
+    WrittenUnit::L,
+    WrittenUnit::G,
+    WrittenUnit::O,
+];
+
+/// An 18-unit single morpheme must encode in milliseconds (`TestNormalizeFast.test_long_chain_is_fast`).
+#[test]
+fn long_chain_is_fast() {
+    let shaper = shaper();
+    let start = Instant::now();
+    let encoded = shaper.normalize_written_units(&LONG_CHAIN).unwrap();
+    let elapsed = start.elapsed();
+    assert_eq!(
+        shaper.shape(&encoded).unwrap(),
+        LONG_CHAIN,
+        "long-chain encoding must round-trip"
+    );
+    assert!(
+        elapsed.as_millis() < 200,
+        "18-unit chain took {elapsed:?} (want <200ms)"
+    );
+}
+
+/// Prefix stability: A = B + suffix ⟹ the shared region (all of B's letters except the boundary
+/// letter, whose position flips fina→medi) encodes identically.
+#[test]
+fn ab_shared_prefix_identical() {
+    let shaper = shaper();
+    let a = &LONG_CHAIN[..];
+    let b = &LONG_CHAIN[..9];
+    let letters_a = common::split_letters(&shaper.normalize_written_units(a).unwrap());
+    let letters_b = common::split_letters(&shaper.normalize_written_units(b).unwrap());
+    let shared = letters_b.len() - 1;
+    assert_eq!(
+        letters_a[..shared],
+        letters_b[..shared],
+        "shared prefix diverges"
+    );
+}
+
+/// Over real corpus pairs where shape(B) is a shape-prefix of shape(A), ≥ 99 % encode the shared
+/// region identically (a handful of deep partition/pinning edge cases remain).
+#[test]
+fn corpus_real_pair_stability() {
+    let shaper = shaper();
+    let mut shapes: HashMap<Vec<WrittenUnit>, String> = HashMap::new();
+    for word in all_corpus_words() {
+        let shape = shaper.shape(&word).unwrap();
+        if shape.iter().any(|unit| unit.is_structural()) {
+            continue; // structural tokens split words into chains; only pure-letter chains qualify
+        }
+        let encoded = shaper.normalize_written_units(&shape).unwrap_or_default();
+        shapes.insert(shape, encoded);
+    }
+    let (mut pairs, mut violations) = (0usize, 0usize);
+    let mut examples = Vec::new();
+    for (a, encoded_a) in &shapes {
+        for m in 1..a.len() {
+            let Some(encoded_b) = shapes.get(&a[..m]) else {
+                continue;
+            };
+            pairs += 1;
+            let letters_a = common::split_letters(encoded_a);
+            let letters_b = common::split_letters(encoded_b);
+            let shared = letters_b.len().saturating_sub(1);
+            if shared > 0 && letters_a[..shared] != letters_b[..shared] {
+                violations += 1;
+                if examples.len() < 5 {
+                    examples.push((unit_names(a), unit_names(&a[..m]), letters_a, letters_b));
+                }
+            }
+        }
+    }
+    let rate = if pairs == 0 {
+        1.0
+    } else {
+        (pairs - violations) as f64 / pairs as f64
+    };
+    eprintln!(
+        "\nprefix-stability (real corpus pairs): {}/{pairs} = {:.2}%",
+        pairs - violations,
+        rate * 100.0
+    );
+    for (a, b, full, prefix) in &examples {
+        eprintln!("  VIOL A={a:?} B={b:?}\n    full={full:?}\n    pre ={prefix:?}");
+    }
+    assert!(rate >= 0.99, "prefix-stability {:.2}% < 99%", rate * 100.0);
+}
+
+/// Every corpus shape group is reachable through the public written-unit API: compact PascalCase
+/// parses back to the shape, and the API agrees with `normalize` of a representative word.
+#[test]
+fn public_written_unit_api_covers_all_shape_groups() {
+    let shaper = shaper();
+    let mut representatives: Vec<(Vec<WrittenUnit>, String)> = Vec::new();
+    let mut seen: HashMap<Vec<WrittenUnit>, ()> = HashMap::new();
+    for word in all_corpus_words() {
+        let shape = shaper.shape(&word).unwrap();
+        if seen.insert(shape.clone(), ()).is_none() {
+            representatives.push((shape, word));
+        }
+    }
+    assert_eq!(
+        representatives.len(),
+        1993,
+        "corpus shape-group coverage drifted"
+    );
+    let mut failures = Vec::new();
+    for (shape, word) in &representatives {
+        let compact: String = shape.iter().map(|unit| unit.as_str()).collect();
+        match shaper.parse_written_units(&compact) {
+            Ok(parsed) if &parsed == shape => {}
+            Ok(parsed) => failures.push(format!(
+                "compact {compact:?} parsed as {:?}",
+                unit_names(&parsed)
+            )),
+            Err(e) => failures.push(format!("compact {compact:?}: {e}")),
+        }
+        match shaper.normalize_written_units(shape) {
+            Err(e) => failures.push(format!("shape={:?}: {e}", unit_names(shape))),
+            Ok(encoded) => {
+                let expected = shaper.normalize(word).unwrap();
+                if encoded != expected {
+                    failures.push(format!(
+                        "shape={:?}: written-unit API {encoded:?} != normalize {expected:?}",
+                        unit_names(shape)
+                    ));
+                } else if shaper.shape(&encoded).unwrap() != *shape {
+                    failures.push(format!(
+                        "shape={:?}: output reshaped differently",
+                        unit_names(shape)
+                    ));
+                }
+            }
+        }
+    }
+    for failure in failures.iter().take(20) {
+        eprintln!("{failure}");
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} shape groups failed the public written-unit API",
+        failures.len(),
+        representatives.len()
+    );
+}

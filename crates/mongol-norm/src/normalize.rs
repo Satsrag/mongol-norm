@@ -57,13 +57,8 @@ pub(crate) struct NormalizeTable {
     masculine_cps: HashSet<u32>,
     /// Every unit that occurs in a table key, plus the three structural tokens — the vocabulary
     /// of `normalize_written_units` and `parse_written_units`.
-    // dead_code: built here, read by the written-unit APIs in `written_units.rs`; drop the allow
-    // when that module lands.
-    #[allow(dead_code)]
     pub known_units: HashSet<WrittenUnit>,
     /// The authoritative HUD `(unit, position)` inventory.
-    // dead_code: as above — `normalize_positioned_written_units` is this field's only reader.
-    #[allow(dead_code)]
     pub positioned_units: HashSet<(WrittenUnit, Position)>,
 }
 
@@ -595,6 +590,12 @@ mod tests {
         assert_eq!(shaper.normalize("\u{180A}").unwrap(), "\u{180A}"); // structural-only shape needs no table (Python parity)
         assert_eq!(
             shaper.normalize("\u{1820}"),
+            Err(Error::NormalizeUnsupported {
+                locale: Locale::Tod
+            })
+        );
+        assert_eq!(
+            shaper.normalize_written_units(&[WrittenUnit::Mvs]),
             Err(Error::NormalizeUnsupported {
                 locale: Locale::Tod
             })
