@@ -1,10 +1,6 @@
 //! Tokens of the shaping pipeline: one per letter (with its trailing FVS run), MVS, nirugu or
 //! ZWJ; plus tokenization and structural position assignment.
 
-// dead_code: TEMPORARY — `has_fvs`/`written_ends_with` are only consumed once the rules (Task 6)
-// use them; remove once they do.
-#![allow(dead_code)]
-
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::tables::{Fvs, Position};
 use crate::unicode::{is_mongolian_letter_cp, MVS, NIRUGU, NNBSP, ZWJ};

@@ -305,7 +305,6 @@ pub(crate) enum ParticleSym {
     Alias(Alias),
     /// A letter without an alias in this locale — never appears in generated keys, so any
     /// segment containing one never matches (Python: an empty alias never matches either).
-    #[allow(dead_code)] // TEMPORARY — constructed by the particle rule (Task 6); remove then.
     Unknown,
 }
 

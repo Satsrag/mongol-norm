@@ -1,7 +1,5 @@
 //! The shaper: data indexes, written-unit resolution, the context helpers the rules use, and the
 //! public shaping entry points (`shape`, `same_shape`, `shape_detailed`, `trace`).
-#![allow(dead_code)] // TEMPORARY — removed in Task 6 when the rules use the helpers.
-
 use std::collections::{HashMap, HashSet};
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
