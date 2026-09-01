@@ -155,6 +155,17 @@ pub fn hex(text: &str) -> String {
         .join(" ")
 }
 
+/// The code points of every non-empty word of a `space`-separated alias row, joined with ` | `
+/// (used in corpus-test failure output).
+pub fn row_hex(aliases: &str) -> String {
+    aliases_to_words(aliases)
+        .iter()
+        .filter(|word| !word.is_empty())
+        .map(|word| hex(word))
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
+
 /// Python `_split_letters`: per-letter chunks, each letter with its trailing FVS marks.
 pub fn split_letters(text: &str) -> Vec<String> {
     let mut chunks: Vec<String> = Vec::new();

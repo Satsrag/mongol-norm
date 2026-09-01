@@ -5,20 +5,8 @@
 
 mod common;
 
-use common::{
-    aliases_to_words, hex, load_tsv, normalize_expected, shape_aliases, unit_names, UTN_XFAIL_CASES,
-};
+use common::{load_tsv, normalize_expected, row_hex, shape_aliases, unit_names, UTN_XFAIL_CASES};
 use mongol_norm::{Locale, Shaper};
-
-/// The code points of every non-empty word of a row, for failure output.
-fn row_hex(aliases: &str) -> String {
-    aliases_to_words(aliases)
-        .iter()
-        .filter(|word| !word.is_empty())
-        .map(|word| hex(word))
-        .collect::<Vec<_>>()
-        .join(" | ")
-}
 
 #[test]
 fn eac_hud_all() {

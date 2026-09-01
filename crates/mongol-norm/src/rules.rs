@@ -190,8 +190,9 @@ per_token!(iii2a_oe_ue_cluster_marked => iii2a_oe_ue_cluster_marked_at);
 ///
 /// `saw_medi` is required, not incidental: the single-init case (`consonant.init + vowel.medi`)
 /// belongs to iii2a.MAIN ([`iii2a_o_u_oe_ue_marked_at`]), so this rule must fire only for an
-/// init + ≥1 medi consonant chain. Verified against DraftNew-Regular.otf: `g ue l` leaves ue
-/// default, `g g ue l` marks it — see rules.py::_iii2a_oe_ue_cluster_marked_at.
+/// init + ≥1 medi consonant chain (`g ue l` is marked by iii2a.MAIN, not here). Verified against
+/// DraftNew-Regular.otf: `g g ue l` marks ue, `b a g ue l` leaves it default (the vowel `a` breaks
+/// the chain) — see rules.py::_iii2a_oe_ue_cluster_marked_at.
 fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter {
