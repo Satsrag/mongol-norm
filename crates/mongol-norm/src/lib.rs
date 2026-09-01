@@ -16,6 +16,7 @@ mod generated;
 // remove once they do.
 #[allow(dead_code)]
 mod tables;
+mod token;
 mod unicode;
 
 pub use error::Error;
