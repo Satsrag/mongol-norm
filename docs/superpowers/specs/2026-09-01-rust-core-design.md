@@ -62,7 +62,7 @@ mongol-norm/
 │   │   ├── unicode.rs               # code-point constants + classification predicates
 │   │   ├── token.rs                 # Token, tokenize, assign_positions
 │   │   ├── rules.rs                 # the 15 MNG rules, Rule table, run_rules
-│   │   ├── tables.rs                # hand-written table types the generated data is expressed in (Letter, Variant, …)
+│   │   ├── tables.rs                # Locale / Position / UnitPosition / Fvs + the table types the generated data is expressed in
 │   │   ├── shaper.rs                # Shaper: indexes, resolve_written, shape, same_shape, shape_detailed, trace
 │   │   ├── normalize.rs             # NormalizeTable, canonical_for_shape, unit_partition, velar-fem, normalize, normalize_text
 │   │   ├── written_units.rs         # normalize_written_units, normalize_positioned_written_units, parse_written_units
@@ -114,21 +114,24 @@ The table types are hand-written in `src/tables.rs` (everything under `src/gener
 is generated):
 
 ```rust
-pub struct Letter  { pub cp: u32, pub alias: Alias, pub variants: &'static [Variant] }
-pub struct Variant { pub position: Position, pub fvs: Option<Fvs>, pub written: &'static [WrittenUnit],
-                     pub default: bool, pub conditions: &'static [Condition], pub archaic: bool, pub unrecommended: bool }
-pub struct Categories { pub vowel: &'static [Alias], pub consonant: &'static [Alias],
-                        pub vowel_masculine: &'static [Alias], pub vowel_feminine: &'static [Alias], pub vowel_neuter: &'static [Alias] }
-pub enum ParticleSym { Mvs, Alias(Alias) }
-pub struct Particle { pub key: &'static [ParticleSym], pub indices: &'static [usize] }
-pub struct LocaleData { pub locale: Locale, pub letters: &'static [Letter], pub categories: Categories,
-                        pub particles: &'static [Particle], pub schema_version: u32, pub generated_from: &'static str }
+pub(crate) struct Letter  { pub cp: u32, pub alias: Alias, pub variants: &'static [Variant] }
+pub(crate) struct Variant { pub position: Position, pub fvs: Option<Fvs>, pub written: &'static [WrittenUnit],
+                            pub default: bool, pub conditions: &'static [Condition] }
+pub(crate) struct Categories { pub vowel: &'static [Alias], pub consonant: &'static [Alias],
+                               pub vowel_masculine: &'static [Alias], pub vowel_feminine: &'static [Alias], pub vowel_neuter: &'static [Alias] }
+pub(crate) enum ParticleSym { Mvs, Alias(Alias), Unknown /* a letter without an alias; never generated, never matches */ }
+pub(crate) struct Particle { pub key: &'static [ParticleSym], pub indices: &'static [usize] }
+pub(crate) struct LocaleData { pub letters: &'static [Letter], pub categories: Categories, pub particles: &'static [Particle] }
 ```
 
-Each locale file exports `pub static DATA: LocaleData`. **Variant order within a letter is the JSON order** —
-`Shaper::condition_fvs` scans variants in that order and returns the first match, exactly like Python's
-`_get_condition_fvs` (dict insertion order). JSON fields not consumed by the runtime are dropped from the
-tables: `name`, `positioned_written`, `generated_from.package` details beyond a provenance string.
+Each locale file exports `pub(crate) static DATA: LocaleData`. **Variant order within a letter is the JSON
+order** — `Shaper::condition_fvs` scans variants in that order and returns the first match, exactly like
+Python's `_get_condition_fvs` (dict insertion order). JSON fields not consumed by the runtime are dropped from
+the tables (so the build stays `dead_code`-clean): `name`, `positioned_written`, `archaic`, `unrecommended`,
+`schema_version` and `generated_from` (the last two are asserted by the generator and recorded in the file
+header comment). Every generated item carries `#[rustfmt::skip]` (an inner `#![rustfmt::skip]` is unstable);
+`use` lines are emitted one per line in ASCII order so `cargo fmt --check` is a no-op on generated files, and
+`lib.rs` declares `#[allow(clippy::all)] mod generated;`.
 
 Generator invariants (assert, fail loudly): `schema_version == 1`; every letter has an alias; `(cp, position,
 fvs)` unique per locale; exactly one `default` per `(cp, position)`; `written` non-empty, length ≤ 3; `fvs` ∈ 0..=4;
@@ -169,6 +172,7 @@ pub struct Shaper { /* locale, indexes, Option<NormalizeTable> */ }   // Send + 
 impl Shaper {
     pub fn new(locale: Locale) -> Shaper;                         // infallible, microseconds
     pub fn locale(&self) -> Locale;
+    pub fn rule_names(&self) -> Vec<&'static str>;                // rule order, frozen by the phase-trace golden
     pub fn canonical_version(&self) -> Option<&'static str>;      // Some("mng-canonical/1") for MNG, None otherwise
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error>;
     pub fn shape_str(&self, text: &str) -> Result<String, Error>;                 // "+"-joined
@@ -249,6 +253,8 @@ pub enum Error {
     TooManyRecords { max: usize },
     /// parse_written_units: empty unit, whitespace, or ambiguous compact segmentation.
     InvalidUnitSpec(String),
+    /// A contract name (`Locale`, `Position`, `UnitPosition`, `WrittenUnit`, `Condition`, `Alias`) failed to parse (`FromStr`).
+    UnknownName { kind: &'static str, name: String },
 }
 impl std::fmt::Display for Error { /* wording mirrors the Python messages so CLI stderr matches */ }
 impl std::error::Error for Error {}
