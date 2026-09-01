@@ -290,7 +290,7 @@ Python: they produce no written units and vanish from the shape); `is_mongolian_
 ```rust
 pub(crate) enum TokenKind { Letter, Mvs, Nirugu, Zwj }   // nirugu and ZWJ are both `is_nirugu()` for the rules; kept apart so the shape emits the right token
 pub(crate) struct Token { kind, cp: u32, alias: Option<Alias>, fvs: Vec<Fvs> /* all trailing FVS in stream order */,
-                          position: Position /* default Isol */, condition: Option<Condition>, written: Option<Vec<WrittenUnit>> /* lazy memo */ }
+                          position: Position /* default Isol */, condition: Option<Condition>, written: Option<&'static [WrittenUnit]> /* lazy memo; points into the generated tables */ }
 ```
 
 `tokenize`: letter + all trailing FVS → `Letter`; `MVS`/`NNBSP` → `Mvs` (NNBSP normalised to MVS here, the
