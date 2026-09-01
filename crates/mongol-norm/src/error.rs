@@ -112,7 +112,14 @@ impl fmt::Display for Error {
                 locale.as_str()
             ),
             Error::UnknownWrittenUnit { index, unit } => {
-                write!(f, "written_units[{index}] is unknown: '{unit}'")
+                // `unit` is arbitrary user text (Python renders it with `repr()`), so escape it —
+                // a control character must never reach a terminal raw. Printable ASCII, which
+                // every real unit name is, passes through unchanged.
+                write!(
+                    f,
+                    "written_units[{index}] is unknown: '{}'",
+                    unit.escape_debug()
+                )
             }
             Error::UnsupportedWrittenUnit { index, unit } => {
                 write!(f, "written_units[{index}] is unknown: '{}'", unit.as_str())
@@ -189,6 +196,15 @@ mod tests {
             }
             .to_string(),
             "written_units[1] is unknown: 'Unknown'"
+        );
+        // A name is arbitrary user text; control characters are escaped, never emitted raw.
+        assert_eq!(
+            Error::UnknownWrittenUnit {
+                index: 0,
+                unit: "A\0B".into()
+            }
+            .to_string(),
+            "written_units[0] is unknown: 'A\\0B'"
         );
         assert_eq!(
             Error::UnsupportedWrittenUnit {

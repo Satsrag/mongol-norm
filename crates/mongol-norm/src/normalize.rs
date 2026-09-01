@@ -58,8 +58,18 @@ pub(crate) struct NormalizeTable {
     /// Every unit that occurs in a table key, plus the three structural tokens — the vocabulary
     /// of `normalize_written_units` and `parse_written_units`.
     pub known_units: HashSet<WrittenUnit>,
+    /// `known_units` as names, in Python's `(-len, name)` order — the compact-segmentation
+    /// vocabulary, built once here so `parse_written_units` never sorts per call.
+    pub sorted_vocabulary: Vec<&'static str>,
     /// The authoritative HUD `(unit, position)` inventory.
     pub positioned_units: HashSet<(WrittenUnit, Position)>,
+}
+
+/// The unit names of `units` in Python's `sorted(known, key=lambda u: (-len(u), u))` order.
+fn sorted_vocabulary(units: &HashSet<WrittenUnit>) -> Vec<&'static str> {
+    let mut names: Vec<&'static str> = units.iter().map(|unit| unit.as_str()).collect();
+    names.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
+    names
 }
 
 fn index_entries(entries: &'static [UnitEntry]) -> HashMap<(Position, UnitKey), Encoding> {
@@ -82,6 +92,7 @@ impl NormalizeTable {
             .flat_map(|entry| entry.units.iter().copied())
             .collect();
         known_units.extend([WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]);
+        let sorted_vocabulary = sorted_vocabulary(&known_units);
         NormalizeTable {
             canonical_version: data.canonical_version,
             max_len: data.unit_enc_max_len,
@@ -90,6 +101,7 @@ impl NormalizeTable {
             velar_fem_units: data.velar_fem_units.iter().copied().collect(),
             masculine_cps: data.masc_to_fem.iter().map(|(masc, _)| *masc).collect(),
             known_units,
+            sorted_vocabulary,
             positioned_units: data.positioned_units.iter().copied().collect(),
         }
     }
@@ -98,6 +110,10 @@ impl NormalizeTable {
     /// encodings at all, so every chain falls back.
     #[cfg(test)]
     pub fn empty(canonical_version: &'static str) -> NormalizeTable {
+        let known_units: HashSet<WrittenUnit> =
+            [WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]
+                .into_iter()
+                .collect();
         NormalizeTable {
             canonical_version,
             max_len: 1,
@@ -105,9 +121,8 @@ impl NormalizeTable {
             feminine: HashMap::new(),
             velar_fem_units: HashSet::new(),
             masculine_cps: HashSet::new(),
-            known_units: [WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]
-                .into_iter()
-                .collect(),
+            known_units: known_units.clone(),
+            sorted_vocabulary: sorted_vocabulary(&known_units),
             positioned_units: HashSet::new(),
         }
     }

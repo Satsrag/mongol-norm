@@ -6,7 +6,7 @@
 
 mod common;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::time::Instant;
 
 use common::json::Json;
@@ -445,8 +445,10 @@ fn ab_shared_prefix_identical() {
     );
 }
 
-/// Over real corpus pairs where shape(B) is a shape-prefix of shape(A), ≥ 99 % encode the shared
-/// region identically (a handful of deep partition/pinning edge cases remain).
+/// Prefix stability over real corpus pairs: wherever shape(B) is a shape-prefix of shape(A), the
+/// shared region (all of B's letters except the boundary one) encodes identically. This is exact
+/// today — all 2237 pairs hold — and both the pair count and the violation count are pinned, so a
+/// regression shows up as a failure rather than as a slightly lower percentage.
 #[test]
 fn corpus_real_pair_stability() {
     let shaper = shaper();
@@ -456,12 +458,17 @@ fn corpus_real_pair_stability() {
         if shape.iter().any(|unit| unit.is_structural()) {
             continue; // structural tokens split words into chains; only pure-letter chains qualify
         }
-        let encoded = shaper.normalize_written_units(&shape).unwrap_or_default();
+        let encoded = shaper
+            .normalize_written_units(&shape)
+            .unwrap_or_else(|e| panic!("{:?} failed to encode: {e}", unit_names(&shape)));
         shapes.insert(shape, encoded);
     }
+    // Deterministic iteration order so the reported examples are reproducible (HashMap's is not).
+    let mut ordered: Vec<(&Vec<WrittenUnit>, &String)> = shapes.iter().collect();
+    ordered.sort_by_key(|(shape, _)| unit_names(shape));
     let (mut pairs, mut violations) = (0usize, 0usize);
     let mut examples = Vec::new();
-    for (a, encoded_a) in &shapes {
+    for (a, encoded_a) in ordered {
         for m in 1..a.len() {
             let Some(encoded_b) = shapes.get(&a[..m]) else {
                 continue;
@@ -488,10 +495,19 @@ fn corpus_real_pair_stability() {
         pairs - violations,
         rate * 100.0
     );
-    for (a, b, full, prefix) in &examples {
-        eprintln!("  VIOL A={a:?} B={b:?}\n    full={full:?}\n    pre ={prefix:?}");
-    }
-    assert!(rate >= 0.99, "prefix-stability {:.2}% < 99%", rate * 100.0);
+    assert_eq!(pairs, 2237, "corpus prefix-pair coverage drifted");
+    let report: Vec<String> = examples
+        .iter()
+        .map(|(a, b, full, prefix)| {
+            format!("  VIOL A={a:?} B={b:?}\n    full={full:?}\n    pre ={prefix:?}")
+        })
+        .collect();
+    assert_eq!(
+        violations,
+        0,
+        "prefix-stability regressed: {violations} of {pairs} pairs diverge\n{}",
+        report.join("\n")
+    );
 }
 
 /// Every corpus shape group is reachable through the public written-unit API: compact PascalCase
@@ -500,10 +516,10 @@ fn corpus_real_pair_stability() {
 fn public_written_unit_api_covers_all_shape_groups() {
     let shaper = shaper();
     let mut representatives: Vec<(Vec<WrittenUnit>, String)> = Vec::new();
-    let mut seen: HashMap<Vec<WrittenUnit>, ()> = HashMap::new();
+    let mut seen: HashSet<Vec<WrittenUnit>> = HashSet::new();
     for word in all_corpus_words() {
         let shape = shaper.shape(&word).unwrap();
-        if seen.insert(shape.clone(), ()).is_none() {
+        if seen.insert(shape.clone()) {
             representatives.push((shape, word));
         }
     }
