@@ -400,8 +400,8 @@ literals) — keeping the crate at zero dependencies including dev-dependencies,
 | `joiners.rs` | `test_joiners.py` | nirugu/ZWJ shape tokens and round trips |
 | `written_units.rs` | `test_written_units_api.py` (API classes) | unit sequences, controls, rejections |
 | `positioned.rs` | `test_positioned_written_units_api.py` | inventory, borrowed forms, ZWJ completion, fail-closed records, 1024 cap |
-| `core_hud.rs` | `test_core_hud.py` | all 225 rows |
-| `eac_hud.rs` | `test_eac_hud.py` | all 3513 rows, the same 5 UTN-xfail ids skipped, prints the pass summary |
+| `core_hud.rs` | `test_core_hud.py` | all 177 rows (the README's "225 cases" counts differently); also asserts `trace().shape == shape()` per word |
+| `eac_hud.rs` | `test_eac_hud.py` | all 3512 rows, the same 5 UTN-xfail ids skipped, `Zwj` dropped from the actual shape like the Python test, prints the pass summary |
 | `round_trip.rs` | `test_round_trip.py` | inline / core / eac round trips; shape-canonicity (1993 shape groups, compact parsing of every group, written-unit API == normalize); particle uniformity (incl. the data-driven sweep over the 47 particles); prefix stability (18-unit A/B pair; real-corpus pairs ≥ 99 %); long-chain speed (< 200 ms, < 5 s) |
 | `canonical_golden.rs` | `test_canonical_golden.py` | manifest metadata; every current corpus shape group is in the fixture; frozen cardinality; canonical code points byte-for-byte |
 | `phase_trace_golden.rs` | `test_phase_trace_golden.py` | schema + rule order; every vector's trace matches; every rule has a witness vector |
