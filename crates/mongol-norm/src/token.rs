@@ -26,6 +26,7 @@ pub(crate) enum TokenKind {
 /// One token. Field semantics follow the Python `Token` class.
 #[derive(Clone, Debug)]
 pub(crate) struct Token {
+    /// The token's kind: letter, MVS, nirugu or ZWJ.
     pub kind: TokenKind,
     /// Code point (MVS for NNBSP input).
     pub cp: u32,
@@ -55,10 +56,12 @@ impl Token {
         }
     }
 
+    /// Is this a letter token (as opposed to MVS, nirugu or ZWJ)?
     pub fn is_letter(&self) -> bool {
         self.kind == TokenKind::Letter
     }
 
+    /// Is this an MVS token?
     pub fn is_mvs(&self) -> bool {
         self.kind == TokenKind::Mvs
     }
@@ -68,6 +71,7 @@ impl Token {
         matches!(self.kind, TokenKind::Nirugu | TokenKind::Zwj)
     }
 
+    /// Does this token carry at least one FVS?
     pub fn has_fvs(&self) -> bool {
         !self.fvs.is_empty()
     }
@@ -242,5 +246,43 @@ mod tests {
         token.written = Some(vec![WrittenUnit::A, WrittenUnit::A]);
         assert!(token.written_ends_with(WrittenUnit::A));
         assert!(!token.written_ends_with(WrittenUnit::I));
+    }
+
+    #[test]
+    fn alias_of_is_threaded_onto_letters_only() {
+        let tokens = tokenize("\u{1820}\u{180B}\u{180E}", |cp| {
+            (cp == 0x1820).then_some(Alias::A)
+        });
+        assert_eq!(tokens[0].alias, Some(Alias::A)); // from the letter, not its FVS
+        assert_eq!(tokens[1].alias, None); // structural token
+    }
+
+    #[test]
+    fn empty_and_mvs_edge_cases() {
+        use Position::*;
+        use TokenKind::*;
+
+        assert!(tokenize("", no_alias).is_empty());
+        let mut empty: Vec<Token> = Vec::new();
+        assign_positions(&mut empty);
+        assert!(empty.is_empty());
+
+        // Leading MVS.
+        assert_eq!(
+            positions("\u{180E}\u{1820}"),
+            vec![(Mvs, Isol), (Letter, Isol)]
+        );
+
+        // Doubled MVS: no empty-segment problems, both letters stay Isol.
+        assert_eq!(
+            positions("\u{1820}\u{180E}\u{180E}\u{1820}"),
+            vec![(Letter, Isol), (Mvs, Isol), (Mvs, Isol), (Letter, Isol)]
+        );
+
+        // A leading FVS (nothing precedes it) is dropped, not attached to anything.
+        let tokens = tokenize("\u{180B}\u{1820}", no_alias);
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].kind, Letter);
+        assert!(!tokens[0].has_fvs());
     }
 }

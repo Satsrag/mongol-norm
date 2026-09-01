@@ -5,6 +5,7 @@
 // remove this allow then.
 #![allow(dead_code)]
 
+use crate::tables::Fvs;
 use crate::Error;
 
 /// U+180E MONGOLIAN VOWEL SEPARATOR.
@@ -17,7 +18,7 @@ pub(crate) const ZWJ: u32 = 0x200D;
 pub(crate) const NNBSP: u32 = 0x202F;
 
 const fn is_fvs(cp: u32) -> bool {
-    matches!(cp, 0x180B | 0x180C | 0x180D | 0x180F)
+    Fvs::from_cp(cp).is_some()
 }
 
 /// Is `cp` a Mongolian letter (not FVS / MVS / nirugu / punctuation / digit)?
