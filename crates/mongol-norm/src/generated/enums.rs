@@ -221,7 +221,7 @@ pub enum WrittenUnit {
 #[rustfmt::skip]
 impl WrittenUnit {
     /// Every variant, in declaration (sorted contract-name) order.
-    pub const ALL: &'static [WrittenUnit] = &[
+    pub const ALL: [WrittenUnit; 101] = [
         WrittenUnit::A,
         WrittenUnit::Aa,
         WrittenUnit::Ah,
@@ -597,7 +597,7 @@ pub enum Condition {
 #[rustfmt::skip]
 impl Condition {
     /// Every variant, in declaration (sorted contract-name) order.
-    pub const ALL: &'static [Condition] = &[
+    pub const ALL: [Condition; 15] = [
         Condition::Chachlag,
         Condition::ChachlagOnset,
         Condition::ChachlagOnsetGb,
@@ -764,7 +764,7 @@ pub enum Alias {
 #[rustfmt::skip]
 impl Alias {
     /// Every variant, in declaration (sorted contract-name) order.
-    pub const ALL: &'static [Alias] = &[
+    pub const ALL: [Alias; 42] = [
         Alias::A,
         Alias::B,
         Alias::C,

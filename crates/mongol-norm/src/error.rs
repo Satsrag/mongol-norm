@@ -104,6 +104,8 @@ impl fmt::Display for Error {
                     names.join("+")
                 )
             }
+            // Python appends "; generate it with scripts/gen_normalize_table.py"; deliberately
+            // dropped here because the Rust tables are compiled in, not generated on demand.
             Error::NormalizeUnsupported { locale } => write!(
                 f,
                 "no bundled normalize table for locale '{}'",
@@ -144,3 +146,100 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// These strings are a byte-exact contract: later CLI tests assert on them directly, the
+    /// same way the Python CLI's own error messages are asserted on.
+    #[test]
+    fn display_wording_matches_python() {
+        assert_eq!(
+            Error::NonMongolianChar { ch: 'x', index: 3 }.to_string(),
+            "non-Mongolian character 'x' (U+0078) at index 3: shape() / normalize() accept only \
+             Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script input use \
+             normalize_text()."
+        );
+        assert_eq!(
+            Error::NormalizationFallback {
+                text: "t".into(),
+                written_units: vec![
+                    WrittenUnit::S,
+                    WrittenUnit::A,
+                    WrittenUnit::I,
+                    WrittenUnit::I,
+                    WrittenUnit::A,
+                ],
+            }
+            .to_string(),
+            "normalization fallback: no canonical encoding for written units S+A+I+I+A"
+        );
+        assert_eq!(
+            Error::NormalizeUnsupported {
+                locale: Locale::Tod
+            }
+            .to_string(),
+            "no bundled normalize table for locale 'TOD'"
+        );
+        assert_eq!(
+            Error::UnknownWrittenUnit {
+                index: 1,
+                unit: "Unknown".into()
+            }
+            .to_string(),
+            "written_units[1] is unknown: 'Unknown'"
+        );
+        assert_eq!(
+            Error::UnsupportedWrittenUnit {
+                index: 1,
+                unit: WrittenUnit::E
+            }
+            .to_string(),
+            "written_units[1] is unknown: 'E'"
+        );
+        assert_eq!(
+            Error::NoCanonicalEncoding.to_string(),
+            "written-unit sequence has no canonical MNG encoding"
+        );
+        assert_eq!(
+            Error::ExplicitZwj.to_string(),
+            "unsupported positioned control 'Zwj'"
+        );
+        assert_eq!(
+            Error::ControlRequiresControlPosition {
+                index: 0,
+                unit: WrittenUnit::Mvs
+            }
+            .to_string(),
+            "positioned_units[0] control 'Mvs' requires position 'control'"
+        );
+        assert_eq!(
+            Error::UnsupportedPositionedUnit {
+                index: 0,
+                unit: WrittenUnit::F,
+                position: UnitPosition::Isol,
+            }
+            .to_string(),
+            "unsupported positioned written unit 'F:isol'"
+        );
+        assert_eq!(
+            Error::ChainPositionMismatch.to_string(),
+            "positioned written-unit sequence has no canonical MNG encoding in the supplied \
+             context"
+        );
+        assert_eq!(
+            Error::TooManyRecords { max: 1024 }.to_string(),
+            "positioned_units accepts at most 1024 records"
+        );
+        assert_eq!(Error::InvalidUnitSpec("x".into()).to_string(), "x");
+        assert_eq!(
+            Error::UnknownName {
+                kind: "locale",
+                name: "XX".into()
+            }
+            .to_string(),
+            "unknown locale 'XX'"
+        );
+    }
+}

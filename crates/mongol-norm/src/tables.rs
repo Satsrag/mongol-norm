@@ -227,8 +227,13 @@ impl Fvs {
     }
 
     /// The selector as a `char`.
-    pub fn as_char(self) -> char {
-        char::from_u32(self.cp()).expect("FVS code points are scalar values")
+    pub const fn as_char(self) -> char {
+        match self {
+            Fvs::Fvs1 => '\u{180B}',
+            Fvs::Fvs2 => '\u{180C}',
+            Fvs::Fvs3 => '\u{180D}',
+            Fvs::Fvs4 => '\u{180F}',
+        }
     }
 
     /// `1` for FVS1 … `4` for FVS4 (the `fvs` integer of the data files).
@@ -377,14 +382,14 @@ mod tests {
     #[test]
     fn generated_enums_round_trip() {
         for unit in WrittenUnit::ALL {
-            assert_eq!(unit.as_str().parse::<WrittenUnit>().unwrap(), *unit);
+            assert_eq!(unit.as_str().parse::<WrittenUnit>().unwrap(), unit);
             assert_eq!(unit.to_string(), unit.as_str());
         }
         for condition in Condition::ALL {
-            assert_eq!(condition.as_str().parse::<Condition>().unwrap(), *condition);
+            assert_eq!(condition.as_str().parse::<Condition>().unwrap(), condition);
         }
         for alias in Alias::ALL {
-            assert_eq!(alias.as_str().parse::<Alias>().unwrap(), *alias);
+            assert_eq!(alias.as_str().parse::<Alias>().unwrap(), alias);
         }
         assert!(WrittenUnit::Mvs.is_structural());
         assert!(WrittenUnit::Nirugu.is_structural());

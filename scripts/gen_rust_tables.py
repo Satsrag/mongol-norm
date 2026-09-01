@@ -101,6 +101,7 @@ def hex_cp(value):
 
 def load_rules():
     rules = {}
+    aliases = {}
     for locale in LOCALES:
         path = DATA / (locale + ".json")
         with path.open(encoding="utf-8") as stream:
@@ -108,10 +109,10 @@ def load_rules():
         if doc.get("schema_version") != SCHEMA_VERSION:
             die("{}: schema_version {!r} != {}".format(path.name, doc.get("schema_version"), SCHEMA_VERSION))
         if doc.get("locale") != locale:
-            die("{}: locale mismatch".format(path.name))
-        validate_rules(locale, doc)
+            die("{}: locale is {!r}, expected {!r}".format(path.name, doc.get("locale"), locale))
+        aliases[locale] = validate_rules(locale, doc)
         rules[locale] = doc
-    return rules
+    return rules, aliases
 
 
 def validate_rules(locale, doc):
@@ -168,7 +169,7 @@ def validate_rules(locale, doc):
     return aliases
 
 
-def load_normalize(rules):
+def load_normalize(rules, aliases):
     tables = {}
     for locale in NORMALIZE_LOCALES:
         path = DATA / (locale + ".normalize.json")
@@ -179,11 +180,11 @@ def load_normalize(rules):
         if doc.get("canonical_version") != CANONICAL_VERSION:
             die("{}: canonical_version {!r}".format(path.name, doc.get("canonical_version")))
         if doc.get("locale") != locale:
-            die("{}: locale mismatch".format(path.name))
+            die("{}: locale is {!r}, expected {!r}".format(path.name, doc.get("locale"), locale))
         for name, value in CONSTANTS.items():
             if doc["constants"].get(name) != value:
                 die("{}: constant {} is {!r}, expected {!r}".format(path.name, name, doc["constants"].get(name), value))
-        validate_normalize(locale, doc, rules[locale])
+        validate_normalize(locale, doc, rules[locale], aliases[locale])
         tables[locale] = doc
     return tables
 
@@ -192,7 +193,7 @@ def locale_units(doc):
     return {unit for letter in doc["letters"] for variant in letter["variants"] for unit in variant["written"]}
 
 
-def validate_normalize(locale, doc, rules_doc):
+def validate_normalize(locale, doc, rules_doc, aliases):
     units = locale_units(rules_doc)
     cps = {letter["cp"] for letter in rules_doc["letters"]}
     max_len = 0
@@ -216,10 +217,9 @@ def validate_normalize(locale, doc, rules_doc):
     for unit in doc["velar_fem_units"]:
         if unit not in units:
             die("{}: velar_fem_units names unknown unit {!r}".format(locale, unit))
-    aliases = {letter["alias"]: letter["cp"] for letter in rules_doc["letters"]}
     for masc, fem in doc["masc_to_fem"].items():
         if masc not in aliases or fem not in aliases:
-            die("{}: masc_to_fem names unknown alias".format(locale))
+            die("{}: masc_to_fem names unknown alias {!r}".format(locale, (masc, fem)))
     for record in doc["positioned_units"]:
         if record["unit"] not in units:
             die("{}: positioned_units names unknown unit {!r}".format(locale, record["unit"]))
@@ -250,7 +250,7 @@ def render_enum(name, doc, entries, kind, extra_methods=""):
     out.append("#[rustfmt::skip]\n")
     out.append("impl {} {{\n".format(name))
     out.append("    /// Every variant, in declaration (sorted contract-name) order.\n")
-    out.append("    pub const ALL: &'static [{}] = &[\n".format(name))
+    out.append("    pub const ALL: [{}; {}] = [\n".format(name, len(entries)))
     for ident, _contract, _line in entries:
         out.append("        {}::{},\n".format(name, ident))
     out.append("    ];\n\n")
@@ -430,8 +430,7 @@ def render_entries(section):
     return "".join(lines)
 
 
-def render_normalize(locale, doc, rules_doc):
-    aliases = {letter["alias"]: letter["cp"] for letter in rules_doc["letters"]}
+def render_normalize(locale, doc, aliases):
     body = []
     body.append("#[rustfmt::skip]\n")
     body.append("pub(crate) static DATA: NormalizeData = NormalizeData {\n")
@@ -468,13 +467,13 @@ def render_mod(files):
 
 
 def render_all():
-    rules = load_rules()
-    normalize = load_normalize(rules)
+    rules, aliases = load_rules()
+    normalize = load_normalize(rules, aliases)
     files = {"enums.rs": render_enums(rules)}
     for locale in LOCALES:
         files[locale.lower() + ".rs"] = render_locale(locale, rules[locale])
     for locale in NORMALIZE_LOCALES:
-        files[locale.lower() + "_normalize.rs"] = render_normalize(locale, normalize[locale], rules[locale])
+        files[locale.lower() + "_normalize.rs"] = render_normalize(locale, normalize[locale], aliases[locale])
     files["mod.rs"] = render_mod([name[:-3] for name in files])
     return files
 

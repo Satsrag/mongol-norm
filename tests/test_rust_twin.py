@@ -6,7 +6,9 @@ The Rust core (crates/mongol-norm) is a twin of this package.
 Two invariants keep the twins in lockstep:
   * the generated Rust tables (src/generated/*.rs) are exactly what
     scripts/gen_rust_tables.py produces from mongol_norm/data/*.json;
-  * the workspace crate version equals the Python package version.
+  * the workspace version equals the Python package version, and the
+    member crate (crates/mongol-norm) inherits it rather than pinning
+    its own.
 """
 import re
 import subprocess
@@ -45,6 +47,13 @@ class TestRustTwin(unittest.TestCase):
     def test_crate_version_matches_package_version(self):
         self.assertEqual(_toml_version(ROOT / "Cargo.toml"), mongol_norm.__version__)
         self.assertEqual(_toml_version(ROOT / "pyproject.toml"), mongol_norm.__version__)
+        crate_manifest = ROOT / "crates" / "mongol-norm" / "Cargo.toml"
+        self.assertRegex(
+            crate_manifest.read_text(encoding="utf-8"),
+            re.compile(r"^version\.workspace = true$", re.MULTILINE),
+            "{} must inherit the workspace version (version.workspace = true), "
+            "not pin its own".format(crate_manifest),
+        )
 
 
 if __name__ == "__main__":
