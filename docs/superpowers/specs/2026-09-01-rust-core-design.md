@@ -97,7 +97,7 @@ or the existing tests changes.
 ### 4.1 Generated enums (`enums.rs`)
 
 All three enums: `#[non_exhaustive]`, `#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]`,
-`pub const ALL: &[Self]`, `pub fn as_str(self) -> &'static str`, `impl FromStr` (exact, case-sensitive
+`pub const ALL: [Self; N]` (a fixed-size array, like the hand-written enums), `pub fn as_str(self) -> &'static str`, `impl FromStr` (exact, case-sensitive
 contract names), `impl Display` (= `as_str`).
 
 | enum | variants | source | naming |
