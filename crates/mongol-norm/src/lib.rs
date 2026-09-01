@@ -16,10 +16,12 @@ mod generated;
 // remove once they do.
 #[allow(dead_code)]
 mod tables;
+mod unicode;
 
 pub use error::Error;
 pub use generated::enums::{Alias, Condition, WrittenUnit};
 pub use tables::{Fvs, Locale, Position, UnitPosition};
+pub use unicode::{is_mongolian_letter, is_mongolian_word_char};
 
 /// Crate version (the Cargo package version; lockstep with the Python package version).
 pub fn version() -> &'static str {
