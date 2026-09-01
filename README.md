@@ -269,7 +269,8 @@ still be rejected when it has no canonical MNG encoding.
 
 The same normalizer is also available as a zero-dependency Rust crate, `mongol-norm`, developed
 in this repository (`crates/mongol-norm/`). It is a **twin implementation**: same data tables
-(generated from `mongol_norm/data/*.json`), same corpus and golden fixtures, byte-identical
+(generated from `mongol_norm/data/*.json`), same corpus and golden fixtures, byte-identical results on
+every value-producing operation (only a few error-message spellings differ — see the crate docs),
 output, lockstep version numbers.
 
 The crate is **not on crates.io yet**. Until it is published, depend on it from git — or install
@@ -672,7 +673,7 @@ mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 
 同一个规范化器还有一个零依赖的 Rust crate `mongol-norm`，就在本仓库的 `crates/mongol-norm/` 下开发。
 它是一份**双实现**：相同的数据表（由 `mongol_norm/data/*.json` 生成）、相同的语料与 golden 固件、
-逐字节相同的输出、锁步的版本号。
+所有产出值的操作逐字节相同的输出（只有个别错误信息的拼写不同，见 crate 文档）、锁步的版本号。
 
 该 crate **尚未发布到 crates.io**。发布之前请用 git 依赖；命令行工具可从仓库 checkout 安装：
 `cargo install --path crates/mongol-norm`。
@@ -764,7 +765,7 @@ python -m unittest tests.test_rust_twin   # 生成表新鲜、版本锁步
 mongol-norm/                          # 仓库 = 包(单一自包含)
 ├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.13 + Rust job
 ├── pyproject.toml
-├── Cargo.toml                        # Rust workspace root (lockstep version with pyproject.toml)
+├── Cargo.toml                        # Rust 工作区根（版本与 pyproject.toml 锁步）
 ├── mongol_norm/
 │   ├── shaper.py                     # tokenize / assign_positions / shape / normalize
 │   ├── rules.py                      # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
@@ -772,9 +773,9 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 │   └── data/                         # 内置 shaping + normalize 数据
 │       ├── MNG.json  TOD.json  SIB.json  MCH.json
 │       └── MNG.normalize.json        # 逐单元 normalize 表
-├── crates/mongol-norm/               # the Rust twin: src/ (generated/ = tables from the JSON), tests/
+├── crates/mongol-norm/               # Rust 双实现：src/（generated/ = 由 JSON 生成的表）、tests/
 ├── scripts/                          # 仅开发用的生成脚本 (preprocess, gen_normalize_table)
-│   └── gen_rust_tables.py            # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
+│   └── gen_rust_tables.py            # JSON → crates/mongol-norm/src/generated/*.rs（CI 跑 --check）
 ├── docs/data-format.md               # JSON schema, 供其他语言移植
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py

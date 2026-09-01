@@ -39,7 +39,8 @@ SCHEMA_VERSION = 1
 NORMALIZE_SCHEMA = "mongol-normalize-table/1"
 CANONICAL_VERSION = "mng-canonical/1"
 MAX_UNIT_KEY_LEN = 3  # crates/mongol-norm/src/normalize.rs::UnitKey capacity
-# Must equal the constants in crates/mongol-norm/src/unicode.rs.
+# Must equal the code points hard-coded in crates/mongol-norm/src/unicode.rs (MVS,
+# NIRUGU, ZWJ) and crates/mongol-norm/src/tables.rs (Fvs::cp).
 CONSTANTS = {
     "MVS": "180E", "NIRUGU": "180A", "ZWJ": "200D",
     "FVS1": "180B", "FVS2": "180C", "FVS3": "180D", "FVS4": "180F",
@@ -206,7 +207,11 @@ def validate_normalize(locale, doc, rules_doc, aliases):
                 for unit in parts:
                     if unit not in units:
                         die("{}: {} names unknown unit {!r}".format(locale, section, unit))
-                if int(entry["cp"], 16) not in cps:
+                try:
+                    cp = int(entry["cp"], 16)
+                except (TypeError, ValueError):
+                    die("{}: {} entry {!r} has a non-hex cp {!r}".format(locale, section, key, entry["cp"]))
+                if cp not in cps:
                     die("{}: {} entry {!r} has unknown cp {!r}".format(locale, section, key, entry["cp"]))
                 if entry["fvs"] is not None and entry["fvs"] not in FVS_CP_TO_INDEX:
                     die("{}: {} entry {!r} has bad fvs {!r}".format(locale, section, key, entry["fvs"]))

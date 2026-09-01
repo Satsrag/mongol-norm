@@ -21,7 +21,8 @@
 //! * [`Shaper::trace`] — per-rule condition transitions, for debugging and the golden fixtures
 //!
 //! The crate has no dependencies and builds for `wasm32-unknown-unknown`. Its data tables are
-//! generated from the repository's JSON by `scripts/gen_rust_tables.py`; output is byte-identical
+//! generated from the repository's JSON by `scripts/gen_rust_tables.py`; every value-producing
+//! operation is byte-identical
 //! to the Python package of the same version. Design:
 //! <https://github.com/Satsrag/mongol-norm/blob/main/docs/superpowers/specs/2026-09-01-rust-core-design.md>.
 

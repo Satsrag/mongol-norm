@@ -21,6 +21,9 @@
 //! * A hyphen-initial `same` argument is rejected with the global usage line and
 //!   `unrecognized arguments: …`; Python's `same` sub-parser instead reports the missing
 //!   `text1, text2`.
+//! * `same` on invalid input (e.g. a non-Mongolian character) reports `error: …` with exit 2;
+//!   Python lets the `ValueError` escape (traceback, exit 1 — which collided with the
+//!   "shapes differ" exit code).
 //! * Non-UTF-8 argv is rejected instead of being smuggled through as surrogate escapes.
 
 use std::io::{self, Read, Write};

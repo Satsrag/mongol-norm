@@ -1,6 +1,6 @@
 # mongol-norm Rust core — design
 
-Date: 2026-09-01 · Status: approved (conversation), implementation pending
+Date: 2026-09-01 · Status: implemented on branch `feat/rust-core` (2026-09-01); the plan's amendments banner records execution deviations
 
 > 中文摘要：在本仓库内做 **双实现**——运行时核心（shaping + normalization + 薄 CLI）用 Rust 重写为 crate `mongol-norm`（`crates/mongol-norm/`），
 > 代码生成脚本与其他开发脚本继续用 Python。Rust 版与 Python 版共用同一份 JSON 数据、语料和 golden 固件，要求**逐字节相同的输出**。
@@ -10,7 +10,7 @@ Date: 2026-09-01 · Status: approved (conversation), implementation pending
 
 **Goal.** A pure-Rust implementation of the mongol-norm runtime — the UTN #57 v4 Hudum shaping engine and the
 FVS-pinned canonical normalizer — living next to the Python package in this repository, producing
-**byte-identical output** to `mongol-norm` Python 0.0.4 for every public operation, verified by the same corpus and
+**byte-identical output** to `mongol-norm` Python 0.0.4 for every value-producing operation, verified by the same corpus and
 golden fixtures. It exists so that Rust consumers (`zvvnmod-utn57` → `meco-rust`, including its WASM / iOS /
 Android / C targets) can drop the Python subprocess bridge.
 
@@ -30,7 +30,7 @@ For every input, the Rust crate returns exactly what the Python implementation r
 |---|---|---|
 | `shape(text)` | `Shaper::shape` | identical written-unit sequence (incl. `Mvs`/`Nirugu`/`Zwj` tokens) |
 | `same_shape(a, b)` | `Shaper::same_shape` | identical boolean |
-| `shape_detailed(text)` | `Shaper::shape_detailed` | identical per-token position / fvs / condition / written |
+| `shape_detailed(text)` | `Shaper::shape_detailed` | identical per-token position / fvs / condition / written; `alias` is `None` for structural tokens where Python yields the strings `"mvs"`/`"nirugu"`/`"zwj"` (the `Alias` enum has no structural variants) |
 | per-rule condition transitions (`tests/test_phase_trace_golden.py::_trace`) | `Shaper::trace` | identical rule names, order and transitions |
 | `normalize(text, strict)` | `normalize` / `normalize_allow_fallback` | identical Unicode string; `NormalizationFallbackError` ⇔ `Error::NormalizationFallback` |
 | `normalize_text(text, strict)` | `normalize_text` / `normalize_text_allow_fallback` | identical |
@@ -264,7 +264,9 @@ impl std::fmt::Display for Error { /* wording mirrors the Python messages so CLI
 impl std::error::Error for Error {}
 ```
 
-`Display` strings that tests observe (mirror Python verbatim): `normalization fallback: no canonical encoding
+`Display` strings that tests observe (mirror Python verbatim for printable ASCII; the offending character/name is
+escaped with `escape_debug`, which matches Python's `repr()` for control characters but spells quotes and
+non-printable non-ASCII differently): `normalization fallback: no canonical encoding
 for written units S+A+I+I+A`; `written_units[1] is unknown: 'Unknown'`; `written-unit sequence has no canonical
 MNG encoding`; `unsupported positioned control 'Zwj'`; `positioned_units[0] control 'Mvs' requires position
 'control'`; `unsupported positioned written unit 'F:isol'`; `positioned written-unit sequence has no canonical

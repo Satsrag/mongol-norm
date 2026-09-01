@@ -8,7 +8,9 @@
 Shape-aware normalizer for Traditional Mongolian (Hudum) script — the pure-Rust twin of the
 [`mongol-norm`](https://pypi.org/project/mongol-norm/) Python package, living in the same
 repository. It implements the UTN #57 v4 shaping pipeline and the FVS-pinned canonical
-normalizer with **zero dependencies**, and produces byte-identical output to the Python package
+normalizer with **zero dependencies**, and produces byte-identical results to the Python package on
+every value-producing operation (shaping, normalization, the written-unit APIs, the CLI results;
+only some error-message spellings and `shape_detailed`'s alias of structural tokens differ)
 of the same version (verified against the shared corpus and golden fixtures in CI).
 
 The crate is developed in this repository and is **not on crates.io yet**. Until it is published,
@@ -83,7 +85,7 @@ cargo install --path crates/mongol-norm
 
 传统蒙古文（回鹘式）形态感知规范化器的 **纯 Rust 实现**，与同仓库的 Python 包
 [`mongol-norm`](https://pypi.org/project/mongol-norm/) 是一对双实现：实现完整的 UTN #57 v4
-整形流程和 FVS 钉死的 canonical 规范化，**零依赖**，输出与同版本 Python 包逐字节相同（CI 用共享的
+整形流程和 FVS 钉死的 canonical 规范化，**零依赖**，所有产出值的操作与同版本 Python 包逐字节相同（个别错误信息拼写除外；CI 用共享的
 语料和 golden 固件验证）。
 
 本 crate 在本仓库中开发，**尚未发布到 crates.io**。发布之前请用 git 依赖：
