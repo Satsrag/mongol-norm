@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["crates/mongol-norm"]
+
+# Lockstep with pyproject.toml / mongol_norm.__version__ (checked by tests/test_rust_twin.py).
+[workspace.package]
+version = "0.0.4"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT"
+repository = "https://github.com/Satsrag/mongol-norm"
