@@ -3,15 +3,25 @@
 //! it exists so the binary is a shim and the crate's own tests can drive every path
 //! in-process, including normalization fallback (which no real input triggers).
 //!
-//! Intentional differences from the Python CLI (all deliberate, pinned by `tests/cli.rs`):
-//! `-V` / `--version` exists, so the usage line reads `[-V]`; `<cmd> --help` prints the global
-//! help instead of the sub-command's; `invalid choice` quotes the choices argparse-≤3.13 style
-//! (argparse 3.14 dropped the quotes); the two cases where Python raises an uncaught exception
-//! are diagnosed and exit 2 here — `--locale XX` as a usage error, a missing `-i` file as
-//! `error: cannot read …`; a hyphen-initial `same` argument is rejected with the global usage
-//! line and `unrecognized arguments: …` rather than the `same` sub-parser's "required
-//! arguments" message; non-UTF-8 argv is rejected instead of being smuggled through; and EPIPE
-//! while writing stdout is reported as `error: …` rather than silently ignored.
+//! Intentional differences from the Python CLI (all deliberate, pinned by `tests/cli.rs` and
+//! this module's unit tests):
+//!
+//! * `-V` / `--version` exists, so the usage line reads `[-V]`.
+//! * `<cmd> --help` prints the global help instead of the sub-command's (an *unknown* command
+//!   still loses to argparse's `invalid choice`, which resolves CMD before `-h`).
+//! * `invalid choice` quotes the choices argparse-≤3.13 style; argparse 3.14 dropped the quotes.
+//! * `--locale XX` is a usage error (usage line, exit 2) where Python tracebacks on the missing
+//!   `data/XX.json`.
+//! * The remaining places Python lets an exception escape are `error: …` with exit 2 here: a
+//!   missing or unreadable `-i` file and a non-UTF-8 input file (Python: `FileNotFoundError` /
+//!   `UnicodeDecodeError`), an unwritable `-o` path (`OSError`), and EPIPE on stdout — Python
+//!   prints `Exception ignored while flushing sys.stdout: BrokenPipeError` at shutdown (exit
+//!   120) or a `BrokenPipeError` traceback when a mid-write flush fails (exit 1), while this
+//!   CLI prints `error: Broken pipe (os error 32)` and exits 2.
+//! * A hyphen-initial `same` argument is rejected with the global usage line and
+//!   `unrecognized arguments: …`; Python's `same` sub-parser instead reports the missing
+//!   `text1, text2`.
+//! * Non-UTF-8 argv is rejected instead of being smuggled through as surrogate escapes.
 
 use std::io::{self, Read, Write};
 
@@ -187,6 +197,16 @@ fn looks_like_option(arg: &str) -> bool {
     arg.starts_with('-') && arg != "-"
 }
 
+/// argparse's `argument CMD: invalid choice`, with the choices quoted the way argparse ≤ 3.13
+/// quotes them (3.14 prints them bare).
+fn invalid_choice(name: &str) -> Failure {
+    let choices: Vec<String> = COMMANDS.iter().map(|c| format!("'{c}'")).collect();
+    Failure::Usage(format!(
+        "argument CMD: invalid choice: '{name}' (choose from {})",
+        choices.join(", ")
+    ))
+}
+
 fn parse(args: &[String]) -> Result<(Locale, Command), Failure> {
     let mut locale = Locale::Mng;
     let mut index = 0;
@@ -225,6 +245,11 @@ fn parse(args: &[String]) -> Result<(Locale, Command), Failure> {
         ));
     };
     let rest = &args[index + 1..];
+    // argparse resolves CMD against its sub-parsers before any of them sees `-h`, so
+    // `mongol-norm bogus --help` is an invalid choice, not a help request.
+    if !COMMANDS.contains(&name.as_str()) {
+        return Err(invalid_choice(name));
+    }
     // A `-h` after `--` is text, not a help request.
     if rest
         .iter()
@@ -248,13 +273,9 @@ fn parse(args: &[String]) -> Result<(Locale, Command), Failure> {
             Command::NormalizeWrittenUnits(parse_io("normalize-written-units", rest)?)
         }
         "normalize-text" => Command::NormalizeText(parse_io("normalize-text", rest)?),
-        other => {
-            let choices: Vec<String> = COMMANDS.iter().map(|c| format!("'{c}'")).collect();
-            return Err(Failure::Usage(format!(
-                "argument CMD: invalid choice: '{other}' (choose from {})",
-                choices.join(", ")
-            )));
-        }
+        // Unreachable while `COMMANDS` and these arms agree; kept so a command added to one
+        // and not the other degrades to the argparse error instead of a panic.
+        other => return Err(invalid_choice(other)),
     };
     Ok((locale, command))
 }
@@ -637,6 +658,8 @@ mod tests {
             &["shape", "--", "a", "b"],
             &["--locale"],
             &["--locale=XX", "shape", "a"],
+            // CMD is resolved before `-h`, so an unknown command is an invalid choice.
+            &["bogus", "--help"],
         ] {
             let (code, _, stderr) = run_real(args, "");
             assert_eq!(code, 2, "{args:?}");

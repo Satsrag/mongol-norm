@@ -120,8 +120,8 @@ per-locale shaping tables and the MNG normalize table), and `tests/test_rust_twi
 Python suite whenever the committed tables are stale:
 
 ```sh
-python3 scripts/gen_rust_tables.py          # regenerate after changing the JSON
-python3 scripts/gen_rust_tables.py --check  # what CI runs
+python scripts/gen_rust_tables.py          # regenerate after changing the JSON
+python scripts/gen_rust_tables.py --check  # what CI runs
 ```
 
 ### Any other language

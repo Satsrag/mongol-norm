@@ -272,20 +272,33 @@ in this repository (`crates/mongol-norm/`). It is a **twin implementation**: sam
 (generated from `mongol_norm/data/*.json`), same corpus and golden fixtures, byte-identical
 output, lockstep version numbers.
 
+The crate is **not on crates.io yet**. Until it is published, depend on it from git — or install
+the CLI from a checkout with `cargo install --path crates/mongol-norm`:
+
 ```toml
+[dependencies]
+mongol-norm = { git = "https://github.com/Satsrag/mongol-norm", version = "0.0.4" }
+```
+
+```toml
+# once published to crates.io
 [dependencies]
 mongol-norm = "0.0.4"
 ```
 
 ```rust
-use mongol_norm::{Locale, Shaper};
+use mongol_norm::{Error, Locale, Shaper};
 
-let shaper = Shaper::new(Locale::Mng);
-assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
-assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);
-let canonical = shaper.normalize("ᠰᠡᠢᠨ")?;                   // strict; `normalize_allow_fallback` keeps uncovered input
-let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
-# Ok::<(), mongol_norm::Error>(())
+fn main() -> Result<(), Error> {
+    let shaper = Shaper::new(Locale::Mng);
+    assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
+    assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);
+    // strict; `normalize_allow_fallback` keeps uncovered input unchanged
+    let canonical = shaper.normalize("ᠰᠡᠢᠨ")?;
+    let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
+    println!("{canonical}\n{text}");
+    Ok(())
+}
 ```
 
 See [`crates/mongol-norm/README.md`](crates/mongol-norm/README.md) for the full API (written-unit
@@ -325,7 +338,7 @@ The hand-written suite covers:
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI input, canonical control spelling, and parser errors |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **214 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
+Current totals: **224 Python tests** and **255 Rust tests** (unit + property + 177 core-hud + 3512 eac-hud corpus rows, 1993 canonical + 15 phase-trace golden vectors, fuzz), all green on Python 3.9 – 3.13 and Rust stable / 1.82.
 
 The Rust twin has its own suite (needs a repository checkout for the shared fixtures):
 
@@ -359,7 +372,7 @@ mongol-norm/                          # the repo = the package (single, self-con
 │       └── MNG.normalize.json        # per-unit normalize table
 ├── crates/mongol-norm/               # the Rust twin: src/ (generated/ = tables from the JSON), tests/
 ├── scripts/                          # dev-only generators (preprocess, gen_normalize_table)
-├── scripts/gen_rust_tables.py        # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
+│   └── gen_rust_tables.py            # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
 ├── docs/data-format.md               # JSON schema, for other-language ports
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
@@ -661,20 +674,33 @@ mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 它是一份**双实现**：相同的数据表（由 `mongol_norm/data/*.json` 生成）、相同的语料与 golden 固件、
 逐字节相同的输出、锁步的版本号。
 
+该 crate **尚未发布到 crates.io**。发布之前请用 git 依赖；命令行工具可从仓库 checkout 安装：
+`cargo install --path crates/mongol-norm`。
+
 ```toml
+[dependencies]
+mongol-norm = { git = "https://github.com/Satsrag/mongol-norm", version = "0.0.4" }
+```
+
+```toml
+# 发布到 crates.io 之后
 [dependencies]
 mongol-norm = "0.0.4"
 ```
 
 ```rust
-use mongol_norm::{Locale, Shaper};
+use mongol_norm::{Error, Locale, Shaper};
 
-let shaper = Shaper::new(Locale::Mng);
-assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
-assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);
-let canonical = shaper.normalize("ᠰᠡᠢᠨ")?;                   // 严格模式；`normalize_allow_fallback` 会原样保留未覆盖的输入
-let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
-# Ok::<(), mongol_norm::Error>(())
+fn main() -> Result<(), Error> {
+    let shaper = Shaper::new(Locale::Mng);
+    assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
+    assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);
+    // 严格模式；`normalize_allow_fallback` 会原样保留未覆盖的输入
+    let canonical = shaper.normalize("ᠰᠡᠢᠨ")?;
+    let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
+    println!("{canonical}\n{text}");
+    Ok(())
+}
 ```
 
 完整 API（书写单元 / 带位置书写单元编码、`trace`、`mongol-norm` 命令行）见
@@ -714,7 +740,7 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI输入、control标准拼写与解析错误 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **214 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
+当前总数: **224 个 Python 测试** 和 **255 个 Rust 测试**(单元 + 性质 + 177 条 core-hud + 3512 条 eac-hud 语料行、1993 个 canonical + 15 个 phase-trace golden 向量、fuzz), 在 Python 3.9 – 3.13 与 Rust stable / 1.82 上全绿。
 
 Rust 版有自己的测试套件（共享固件需要仓库 checkout）：
 
@@ -748,7 +774,7 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 │       └── MNG.normalize.json        # 逐单元 normalize 表
 ├── crates/mongol-norm/               # the Rust twin: src/ (generated/ = tables from the JSON), tests/
 ├── scripts/                          # 仅开发用的生成脚本 (preprocess, gen_normalize_table)
-├── scripts/gen_rust_tables.py        # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
+│   └── gen_rust_tables.py            # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
 ├── docs/data-format.md               # JSON schema, 供其他语言移植
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py

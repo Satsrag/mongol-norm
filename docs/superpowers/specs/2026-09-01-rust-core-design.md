@@ -83,10 +83,12 @@ mongol-norm/
 Nothing under `mongol_norm/`, `pyproject.toml`, `scripts/{preprocess,gen_normalize_table,gen_compat_goldens}.py`
 or the existing tests changes.
 
-**Versioning is lockstep.** `crates/mongol-norm/Cargo.toml` `version` == `pyproject.toml` `version` ==
-`mongol_norm.__version__` (currently `0.0.4`). `tests/test_rust_twin.py` asserts it, and the existing
-"Verify package versions agree" step in `publish.yml` also reads the Cargo manifest. One release tag
-`vX.Y.Z` means "this behaviour, in both languages".
+**Versioning is lockstep.** The root `Cargo.toml` `[workspace.package]` `version` == `pyproject.toml`
+`version` == `mongol_norm.__version__` (currently `0.0.4`); `crates/mongol-norm/Cargo.toml` carries no
+version of its own but inherits it with `version.workspace = true`. `tests/test_rust_twin.py` asserts all
+three and that the crate manifest really inherits, and the existing "Verify package versions agree" step in
+`publish.yml` reads the same root manifest. One release tag `vX.Y.Z` means "this behaviour, in both
+languages".
 
 ## 4. Data embedding: Python code generation into committed Rust tables
 
@@ -431,10 +433,13 @@ shaper. Also `parse_written_units` edge cases and `Locale`/enum `FromStr` round 
 `.github/workflows/test.yml` gains a `rust` job: `actions/checkout@v5`; `dtolnay/rust-toolchain` (SHA-pinned as in
 `meco-rust`) stable with `rustfmt`, `clippy` and target `wasm32-unknown-unknown`; `cargo fmt --all --check`;
 `cargo clippy --workspace --all-targets --locked -- -D warnings`; `cargo test --workspace --locked`;
-`cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked`; then `rustup toolchain install
-1.82.0 --profile minimal` and `cargo +1.82.0 test --workspace --locked` (MSRV). The Python job is unchanged and
-now also runs `test_rust_twin.py` through discovery. `publish.yml`'s version check additionally reads
-`crates/mongol-norm/Cargo.toml`.
+`cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked`; `cargo doc -p mongol-norm
+--no-deps --locked` under `RUSTDOCFLAGS: -D warnings`; then `rustup toolchain install 1.82.0 --profile minimal`
+and `cargo +1.82.0 test --workspace --locked` (MSRV); and finally `cargo package -p mongol-norm --locked`. The
+job carries `timeout-minutes: 20`. The Python job is unchanged and now also runs `test_rust_twin.py` through
+discovery. `publish.yml`'s version check additionally reads the root `Cargo.toml` `[workspace.package]`
+`version` — the crate manifest inherits it via `version.workspace = true`, which `tests/test_rust_twin.py`
+asserts.
 
 ## 9. Documentation
 

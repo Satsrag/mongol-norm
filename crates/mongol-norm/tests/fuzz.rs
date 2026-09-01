@@ -2,7 +2,7 @@
 //! every public entry point. Nothing may panic; every successful strict normalization must
 //! round-trip through `shape` and be idempotent.
 
-use mongol_norm::{Locale, Shaper};
+use mongol_norm::{Locale, PositionedWrittenUnit, Shaper, UnitPosition, WrittenUnit};
 
 struct XorShift(u64);
 
@@ -38,6 +38,38 @@ fn random_text(rng: &mut XorShift) -> String {
         .collect()
 }
 
+/// A random 0–5 record positioned request. Any unit may be paired with any position, so most of
+/// these are rejected by the exact-position audit — the point is that none of them panics.
+fn random_records(rng: &mut XorShift) -> Vec<PositionedWrittenUnit> {
+    let len = rng.below(6);
+    (0..len)
+        .map(|_| {
+            let unit = WrittenUnit::ALL[rng.below(WrittenUnit::ALL.len())];
+            let position = UnitPosition::ALL[rng.below(UnitPosition::ALL.len())];
+            PositionedWrittenUnit::new(unit, position)
+        })
+        .collect()
+}
+
+/// Every public entry point, on one random input (`other` is a second random string, for
+/// `same_shape`). No call may panic, whatever it returns.
+fn exercise(shaper: &Shaper, rng: &mut XorShift, text: &str, other: &str) {
+    let _ = shaper.shape(text);
+    let _ = shaper.shape_str(text);
+    let _ = shaper.shape_detailed(text);
+    let _ = shaper.trace(text);
+    let _ = shaper.same_shape(text, other);
+    let _ = shaper.normalize(text);
+    let _ = shaper.normalize_allow_fallback(text);
+    let _ = shaper.normalize_text(text);
+    let _ = shaper.normalize_text_allow_fallback(text);
+    // Whatever parses as a unit stream must also survive being encoded again.
+    if let Ok(units) = shaper.parse_written_units(text) {
+        let _ = shaper.normalize_written_units(&units);
+    }
+    let _ = shaper.normalize_positioned_written_units(&random_records(rng));
+}
+
 #[test]
 fn never_panics_and_strict_normalization_round_trips() {
     let shaper = Shaper::new(Locale::Mng);
@@ -45,12 +77,8 @@ fn never_panics_and_strict_normalization_round_trips() {
     let mut normalized = 0;
     for _ in 0..20_000 {
         let text = random_text(&mut rng);
-        let _ = shaper.shape_detailed(&text);
-        let _ = shaper.trace(&text);
-        let _ = shaper.normalize_allow_fallback(&text);
-        let _ = shaper.normalize_text(&text);
-        let _ = shaper.normalize_text_allow_fallback(&text);
-        let _ = shaper.parse_written_units(&text);
+        let other = random_text(&mut rng);
+        exercise(&shaper, &mut rng, &text, &other);
         let Ok(shape) = shaper.shape(&text) else {
             continue;
         };
@@ -74,23 +102,26 @@ fn never_panics_and_strict_normalization_round_trips() {
         }
     }
     assert!(
-        normalized > 1_000,
+        normalized > 10_000,
         "too few strict normalizations succeeded: {normalized}"
     );
 }
 
 #[test]
 fn other_locales_never_panic() {
-    let mut rng = XorShift(0x2545_F491_4F6C_DD1D);
-    for locale in [Locale::Tod, Locale::Sib, Locale::Mch] {
+    // A fixed seed per locale, so each locale gets its own reproducible stream and adding a
+    // locale cannot shift the inputs the others see.
+    for (locale, seed) in [
+        (Locale::Tod, 0x2545_F491_4F6C_DD1D_u64),
+        (Locale::Sib, 0x1D8E_4E27_C47D_124F),
+        (Locale::Mch, 0x0F1E_2D3C_4B5A_6978),
+    ] {
         let shaper = Shaper::new(locale);
+        let mut rng = XorShift(seed);
         for _ in 0..2_000 {
             let text = random_text(&mut rng);
-            let _ = shaper.shape(&text);
-            let _ = shaper.shape_detailed(&text);
-            let _ = shaper.trace(&text);
-            let _ = shaper.normalize(&text);
-            let _ = shaper.normalize_text_allow_fallback(&text);
+            let other = random_text(&mut rng);
+            exercise(&shaper, &mut rng, &text, &other);
         }
     }
 }

@@ -96,6 +96,44 @@ fn assert_clean_failure(output: &Output, needle: &str) {
 fn test_missing_subcommand_fails_cleanly() {
     let output = run(&[], None);
     assert_clean_failure(&output, "CMD");
+    // The usage line advertises `-V`, which the Python CLI does not have.
+    assert!(output.stderr.contains("[-V]"), "{}", output.stderr);
+}
+
+#[test]
+fn test_invalid_choice_quotes_the_choices() {
+    // argparse ≤ 3.13 quotes each choice; 3.14 prints them bare. We pin the ≤ 3.13 spelling.
+    let output = run(&["bogus", "a"], None);
+    assert_clean_failure(&output, "invalid choice: 'bogus'");
+    assert!(
+        output.stderr.contains("choose from 'shape'"),
+        "{}",
+        output.stderr
+    );
+}
+
+#[test]
+fn test_help_after_an_unknown_command_is_an_invalid_choice() {
+    // argparse resolves CMD before a sub-parser can act on `-h`, so this is not a help request.
+    for args in [&["bogus", "--help"][..], &["bogus", "-h"]] {
+        let output = run(args, None);
+        assert_clean_failure(&output, "invalid choice: 'bogus'");
+        assert!(output.stdout.is_empty(), "{args:?}: {}", output.stdout);
+    }
+}
+
+#[test]
+fn test_help_after_a_known_command_prints_the_global_help() {
+    // Python prints the sub-parser's help here; this CLI has one help text.
+    for args in [&["shape", "--help"][..], &["same", "-h"]] {
+        let output = run(args, None);
+        assert_eq!(output.code, 0, "{args:?}: {}", output.stderr);
+        assert!(
+            output.stdout.contains("normalize-written-units"),
+            "{args:?}: {}",
+            output.stdout
+        );
+    }
 }
 
 #[test]

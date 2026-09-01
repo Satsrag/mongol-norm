@@ -52,6 +52,7 @@ jobs:
 
   rust:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v5
@@ -83,3 +84,6 @@ jobs:
         run: |
           rustup toolchain install 1.82.0 --profile minimal
           cargo +1.82.0 test --workspace --locked
+
+      - name: Package
+        run: cargo package -p mongol-norm --locked

@@ -22,7 +22,13 @@
 //!
 //! The crate has no dependencies and builds for `wasm32-unknown-unknown`. Its data tables are
 //! generated from the repository's JSON by `scripts/gen_rust_tables.py`; output is byte-identical
-//! to the Python package of the same version. Design: `docs/superpowers/specs/2026-09-01-rust-core-design.md`.
+//! to the Python package of the same version. Design:
+//! <https://github.com/Satsrag/mongol-norm/blob/main/docs/superpowers/specs/2026-09-01-rust-core-design.md>.
+
+/// The crate README is compiled and run as a doctest, so its example cannot rot.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
 
 mod error;
 // clippy::all silences style lints on generated code (see the design doc).
