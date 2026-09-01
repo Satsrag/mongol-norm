@@ -8,11 +8,10 @@
 //! Design: `docs/superpowers/specs/2026-09-01-rust-core-design.md`.
 
 mod error;
-// dead_code: TEMPORARY — `generated::mng_normalize` (the MNG canonical-normalization table) has
-// no consumer until `normalize.rs` lands (Task 8); remove once it does. clippy::all silences
-// style lints on generated code (see the design doc).
-#[allow(clippy::all, dead_code)]
+// clippy::all silences style lints on generated code (see the design doc).
+#[allow(clippy::all)]
 mod generated;
+mod normalize;
 mod rules;
 mod shaper;
 mod tables;

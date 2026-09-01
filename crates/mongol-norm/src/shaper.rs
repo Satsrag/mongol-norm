@@ -3,7 +3,9 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
+use crate::generated::mng_normalize;
 use crate::generated::{mch, mng, sib, tod};
+use crate::normalize::NormalizeTable;
 use crate::rules::{self, Rule};
 use crate::tables::{Fvs, Letter, Locale, LocaleData, ParticleSym, Position, Variant};
 use crate::token::{assign_positions, tokenize, Token, TokenKind};
@@ -84,6 +86,7 @@ pub struct Shaper {
     neuter: HashSet<Alias>,
     particles: HashMap<&'static [ParticleSym], &'static [usize]>,
     rules: &'static [Rule],
+    pub(crate) normalize: Option<NormalizeTable>,
 }
 
 /// `Shaper` holds only owned tables and `&'static` data, so sharing one behind a reference
@@ -148,7 +151,25 @@ impl Shaper {
                 .map(|particle| (particle.key, particle.indices))
                 .collect(),
             rules: rules::rules_for(locale),
+            normalize: match locale {
+                Locale::Mng => Some(NormalizeTable::new(&mng_normalize::DATA)),
+                Locale::Tod | Locale::Sib | Locale::Mch => None,
+            },
         }
+    }
+
+    /// Python's monkeypatched empty normalize table (`tests/test_shaper.py`,
+    /// `tests/test_cli.py`): every chain falls back. No reachable MNG input misses the real
+    /// table, so the fallback paths are only testable this way.
+    #[cfg(test)]
+    pub(crate) fn with_empty_normalize_table(locale: Locale) -> Shaper {
+        let mut shaper = Shaper::new(locale);
+        let version = shaper
+            .normalize
+            .as_ref()
+            .map_or("mng-canonical/1", |table| table.canonical_version);
+        shaper.normalize = Some(NormalizeTable::empty(version));
+        shaper
     }
 
     /// The locale this shaper was built for.

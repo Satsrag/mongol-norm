@@ -322,7 +322,6 @@ pub(crate) struct LocaleData {
 }
 
 /// One normalize-table entry: `(position, written units) → (letter code point, FVS)`.
-#[allow(dead_code)] // TEMPORARY — consumed once normalize.rs lands (Task 8); remove then.
 pub(crate) struct UnitEntry {
     pub position: Position,
     pub units: &'static [WrittenUnit],
@@ -331,7 +330,6 @@ pub(crate) struct UnitEntry {
 }
 
 /// The normalize table of a locale (`MNG.normalize.json`).
-#[allow(dead_code)] // TEMPORARY — consumed once normalize.rs lands (Task 8); remove then.
 pub(crate) struct NormalizeData {
     pub canonical_version: &'static str,
     pub unit_enc_max_len: usize,
