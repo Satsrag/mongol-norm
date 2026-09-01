@@ -396,7 +396,9 @@ literals) — keeping the crate at zero dependencies including dev-dependencies,
 
 | Rust test file | Python source | what |
 |---|---|---|
-| `shaper.rs` | `test_shaper.py` `TestShape`, `TestSameShape`, `TestNormalize`, `TestNormalizeText`, `TestNNBSP` | every hand-written case (sain variants, the 5 phases step by step, UTN-vs-EAC divergences, positions, NNBSP) |
+| `shaper.rs` | `test_shaper.py` `TestShape`, `TestSameShape`, the tokenization/shape half of `TestNNBSP` | every hand-written shaping case (sain variants, the 5 phases step by step, UTN-vs-EAC divergences, positions, NNBSP) — 87 tests |
+| `normalize.rs` | `test_shaper.py` `TestNormalize`, `TestNormalizeText`, the normalize half of `TestNNBSP` | normalize / normalize_text / NNBSP behaviour (the fallback cases are in-crate unit tests, §8.3) |
+| `json.rs` | — | unit test of the harness's JSON reader, in its own binary |
 | `joiners.rs` | `test_joiners.py` | nirugu/ZWJ shape tokens and round trips |
 | `written_units.rs` | `test_written_units_api.py` (API classes) | unit sequences, controls, rejections |
 | `positioned.rs` | `test_positioned_written_units_api.py` | inventory, borrowed forms, ZWJ completion, fail-closed records, 1024 cap |

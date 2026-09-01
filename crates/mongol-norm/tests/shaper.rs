@@ -5,17 +5,23 @@
 mod common;
 
 use common::{mgl, unit_names};
-use mongol_norm::{Condition, Locale, Position, Shaper, TokenDetail};
+use mongol_norm::{Alias, Condition, Locale, Position, Shaper, TokenDetail};
 
 fn shaper() -> Shaper {
     Shaper::new(Locale::Mng)
 }
 
 /// `shape()` as contract names, so expectations can be written as `&["S", "A", "I", "I", "A"]`.
+#[track_caller]
 fn shape(text: &str) -> Vec<String> {
-    unit_names(&shaper().shape(text).unwrap())
+    unit_names(
+        &shaper()
+            .shape(text)
+            .unwrap_or_else(|e| panic!("shape({text:?}) failed: {e}")),
+    )
 }
 
+#[track_caller]
 fn assert_shape(text: &str, expected: &[&str]) {
     assert_eq!(
         shape(text),
@@ -25,19 +31,24 @@ fn assert_shape(text: &str, expected: &[&str]) {
     );
 }
 
+#[track_caller]
 fn details(text: &str) -> Vec<TokenDetail> {
-    shaper().shape_detailed(text).unwrap()
+    shaper()
+        .shape_detailed(text)
+        .unwrap_or_else(|e| panic!("shape_detailed({text:?}) failed: {e}"))
 }
 
 /// The first token whose alias is `alias` (Python: `[d for d in details if d["alias"] == alias][0]`).
-fn token_with_alias(text: &str, alias: &str) -> TokenDetail {
+#[track_caller]
+fn token_with_alias(text: &str, alias: Alias) -> TokenDetail {
     details(text)
         .into_iter()
-        .find(|d| d.alias.map(|a| a.as_str()) == Some(alias))
-        .unwrap_or_else(|| panic!("no token with alias {alias:?} in {text:?}"))
+        .find(|d| d.alias == Some(alias))
+        .unwrap_or_else(|| panic!("no token with alias {alias} in {text:?}"))
 }
 
 /// Letter positions in order (Python: `[t.position for t in tokens if t.is_letter]`).
+#[track_caller]
 fn letter_positions(text: &str) -> Vec<Position> {
     details(text)
         .into_iter()
@@ -149,7 +160,7 @@ fn test_step2_oe_ue_fina_hg_medi_fvs_default() {
 #[test]
 fn test_step2_oe_marked_after_cc() {
     // mnoege (m n oe g e): oe after init m + medi n -> marked
-    let oe = token_with_alias(&mgl("m n oe g e"), "oe");
+    let oe = token_with_alias(&mgl("m n oe g e"), Alias::Oe);
     assert_eq!(oe.condition, Some(Condition::Marked));
     assert_shape(&mgl("m n oe g e"), &["M", "N", "O", "I", "G", "Aa"]);
 }
@@ -363,7 +374,7 @@ fn test_step2_t_devsger_before_ee() {
     // ateen (a t ee n): t.medi before ee -> iii2g.t.devsger fires -> "T" (NOT iii2e onset —
     // see iii2e block comment for the carve-out). Verified against DraftNew-Regular.otf:
     // u1832.T.medi (devsger T).
-    let t = token_with_alias(&mgl("a t ee n"), "t");
+    let t = token_with_alias(&mgl("a t ee n"), Alias::T);
     assert_eq!(t.condition, Some(Condition::Devsger));
     assert_eq!(unit_names(&t.written), ["T"]);
     // Full shape regression: D form would be the buggy output.
@@ -861,6 +872,9 @@ fn test_nnbsp_token_is_mvs_flag() {
         details(&text).iter().filter(|d| d.cp == '\u{180E}').count(),
         1
     );
+    // Python also asserts `is_mvs` on that token; the flag is not public here, but the behaviour
+    // it drives is: the token shapes as the `Mvs` structural unit.
+    assert_shape(&text, &["S", "Mvs", "Aa"]);
 }
 
 #[test]
@@ -873,8 +887,8 @@ fn test_nnbsp_same_shape_as_mvs() {
 fn test_nnbsp_chachlag_trigger() {
     // The suffix 'a' after NNBSP should get the chachlag condition, same as after MVS.
     let text = mgl("s a i n nnbsp a");
-    let triggered = details(&text).iter().any(|d| {
-        d.alias.map(|a| a.as_str()) == Some("a") && d.condition == Some(Condition::Chachlag)
-    });
+    let triggered = details(&text)
+        .iter()
+        .any(|d| d.alias == Some(Alias::A) && d.condition == Some(Condition::Chachlag));
     assert!(triggered, "NNBSP should trigger chachlag on following a/e");
 }
