@@ -31,7 +31,7 @@ For written-unit shapes covered by the bundled normalization table, `normalize()
 |---|---|
 | Round-trip — `shape(normalize(x)) == shape(x)` | **3757 / 3757** corpus encodings (100%) |
 | Shape-canonicity — same shape ⟹ same Unicode output | **1993 / 1993** shape groups (100%) |
-| Prefix-stability — word and word+suffix share their prefix encoding | **99.87%** of real corpus pairs |
+| Prefix-stability — word and word+suffix share their prefix encoding | **2237 / 2237** real corpus pairs (100%) |
 
 Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping rules but have no normalizer yet. The guarantees above cover the checked corpus and any input whose written-unit chains can be encoded by the bundled table. For an uncovered out-of-corpus chain, normalization raises `NormalizationFallbackError` by default. Pass `strict=False` explicitly only when returning the original word unchanged is acceptable.
 
@@ -265,6 +265,32 @@ still be rejected when it has no canonical MNG encoding.
 
 `normalize` (single-word) skips non-Mongolian characters, so feeding it a multi-line file treats the whole thing as one word. Use `--batch` for one-word-per-line files, or `normalize-text` for free-form text.
 
+### Rust crate
+
+The same normalizer is also available as a zero-dependency Rust crate, `mongol-norm`, developed
+in this repository (`crates/mongol-norm/`). It is a **twin implementation**: same data tables
+(generated from `mongol_norm/data/*.json`), same corpus and golden fixtures, byte-identical
+output, lockstep version numbers.
+
+```toml
+[dependencies]
+mongol-norm = "0.0.4"
+```
+
+```rust
+use mongol_norm::{Locale, Shaper};
+
+let shaper = Shaper::new(Locale::Mng);
+assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
+assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);
+let canonical = shaper.normalize("ᠰᠡᠢᠨ")?;                   // strict; `normalize_allow_fallback` keeps uncovered input
+let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
+# Ok::<(), mongol_norm::Error>(())
+```
+
+See [`crates/mongol-norm/README.md`](crates/mongol-norm/README.md) for the full API (written-unit
+and positioned written-unit encoders, `trace`, the `mongol-norm` binary).
+
 ### Running Tests
 
 ```bash
@@ -301,6 +327,13 @@ The hand-written suite covers:
 
 Current totals: **214 tests** (unit + property + 225 core-hud + 3513 eac-hud corpus runners), all green on Python 3.9 – 3.13.
 
+The Rust twin has its own suite (needs a repository checkout for the shared fixtures):
+
+```bash
+cargo test --workspace            # unit + integration (corpus, goldens, properties, CLI, fuzz)
+python -m unittest tests.test_rust_twin   # generated tables fresh, versions in lockstep
+```
+
 ### Use Cases
 
 - **Search & Retrieval** — Index Mongolian text with unique keys per visual word
@@ -314,8 +347,9 @@ Current totals: **214 tests** (unit + property + 225 core-hud + 3513 eac-hud cor
 
 ```
 mongol-norm/                          # the repo = the package (single, self-contained)
-├── .github/workflows/test.yml        # CI: Python 3.9-3.13 on every push
+├── .github/workflows/test.yml        # CI: Python 3.9-3.13 + the Rust job on every push
 ├── pyproject.toml
+├── Cargo.toml                        # Rust workspace root (lockstep version with pyproject.toml)
 ├── mongol_norm/
 │   ├── shaper.py                     # tokenize / assign_positions / shape / normalize
 │   ├── rules.py                      # the 5 shaping phases (iii1..iii5) mirroring iii.py
@@ -323,12 +357,15 @@ mongol-norm/                          # the repo = the package (single, self-con
 │   └── data/                         # bundled shaping + normalize data
 │       ├── MNG.json  TOD.json  SIB.json  MCH.json
 │       └── MNG.normalize.json        # per-unit normalize table
+├── crates/mongol-norm/               # the Rust twin: src/ (generated/ = tables from the JSON), tests/
 ├── scripts/                          # dev-only generators (preprocess, gen_normalize_table)
+├── scripts/gen_rust_tables.py        # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
 ├── docs/data-format.md               # JSON schema, for other-language ports
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
     ├── test_written_units_api.py
     ├── test_core_hud.py  test_eac_hud.py
+    ├── test_rust_twin.py
     └── data/{core,eac}-hud.tsv       # vendored from mongfontbuilder
 ```
 
@@ -388,7 +425,7 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 |---|---|
 | 往返 —— `shape(normalize(x)) == shape(x)` | **3757 / 3757** 语料编码(100%) |
 | 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1993 / 1993** shape 组(100%) |
-| 前缀稳定 —— 词与词+后缀共享前缀编码 | **99.87%** 真实语料词对 |
+| 前缀稳定 —— 词与词+后缀共享前缀编码 | **2237 / 2237** 真实语料词对(100%) |
 
 范围说明:规范化目前只实现了 MNG(Hudum)—— Todo / 锡伯文 / 满文已加载 shaping 规则,尚无规范化。上述保证覆盖已检查语料及内置表可编码的written-unit chain。语料外chain若未被覆盖，默认抛出`NormalizationFallbackError`；只有调用者明确接受原样回退时才传入`strict=False`。
 
@@ -618,6 +655,31 @@ mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 
 `normalize`(单词模式)会跳过非蒙古文字符,多行文件直接喂给它会被当成一整个词;一行一词的文件请用 `--batch`,自由文本请用 `normalize-text`。
 
+### Rust crate（Rust 实现）
+
+同一个规范化器还有一个零依赖的 Rust crate `mongol-norm`，就在本仓库的 `crates/mongol-norm/` 下开发。
+它是一份**双实现**：相同的数据表（由 `mongol_norm/data/*.json` 生成）、相同的语料与 golden 固件、
+逐字节相同的输出、锁步的版本号。
+
+```toml
+[dependencies]
+mongol-norm = "0.0.4"
+```
+
+```rust
+use mongol_norm::{Locale, Shaper};
+
+let shaper = Shaper::new(Locale::Mng);
+assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
+assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);
+let canonical = shaper.normalize("ᠰᠡᠢᠨ")?;                   // 严格模式；`normalize_allow_fallback` 会原样保留未覆盖的输入
+let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
+# Ok::<(), mongol_norm::Error>(())
+```
+
+完整 API（书写单元 / 带位置书写单元编码、`trace`、`mongol-norm` 命令行）见
+[`crates/mongol-norm/README.md`](crates/mongol-norm/README.md)。
+
 ### 运行测试
 
 ```bash
@@ -654,6 +716,13 @@ python -m unittest discover -s tests -p 'test_*.py'
 
 当前总数: **214 个测试**(单元 + 性质 + 225 core-hud + 3513 eac-hud 语料跑批), 在 Python 3.9 – 3.13 上全绿。
 
+Rust 版有自己的测试套件（共享固件需要仓库 checkout）：
+
+```bash
+cargo test --workspace            # 单元 + 集成（语料、golden、性质、CLI、fuzz）
+python -m unittest tests.test_rust_twin   # 生成表新鲜、版本锁步
+```
+
 ### 应用场景
 
 - **搜索与检索** — 为每个可见词形建立唯一索引键
@@ -667,8 +736,9 @@ python -m unittest discover -s tests -p 'test_*.py'
 
 ```
 mongol-norm/                          # 仓库 = 包(单一自包含)
-├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.13
+├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.13 + Rust job
 ├── pyproject.toml
+├── Cargo.toml                        # Rust workspace root (lockstep version with pyproject.toml)
 ├── mongol_norm/
 │   ├── shaper.py                     # tokenize / assign_positions / shape / normalize
 │   ├── rules.py                      # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
@@ -676,12 +746,15 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 │   └── data/                         # 内置 shaping + normalize 数据
 │       ├── MNG.json  TOD.json  SIB.json  MCH.json
 │       └── MNG.normalize.json        # 逐单元 normalize 表
+├── crates/mongol-norm/               # the Rust twin: src/ (generated/ = tables from the JSON), tests/
 ├── scripts/                          # 仅开发用的生成脚本 (preprocess, gen_normalize_table)
+├── scripts/gen_rust_tables.py        # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
 ├── docs/data-format.md               # JSON schema, 供其他语言移植
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
     ├── test_written_units_api.py
     ├── test_core_hud.py  test_eac_hud.py
+    ├── test_rust_twin.py
     └── data/{core,eac}-hud.tsv       # 来自 mongfontbuilder
 ```
 

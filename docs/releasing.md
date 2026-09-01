@@ -43,3 +43,11 @@ both files as a workflow artifact. It never runs the publish job.
 Do not upload the same version twice: PyPI release files are immutable. If a
 publication fails after any file reaches PyPI, increment the package version
 before retrying.
+
+## The Rust crate
+
+`crates/mongol-norm` is versioned in lockstep with the Python package: `[workspace.package]
+version` in `Cargo.toml` must equal `pyproject.toml` and `mongol_norm.__version__`
+(`tests/test_rust_twin.py` and the publish workflow check this). Update all three in the release
+commit. Publication to crates.io (Trusted Publishing, mirroring `publish.yml`) is a follow-up and
+is not part of the PyPI release workflow yet.

@@ -2,10 +2,27 @@
 #![deny(missing_docs)]
 //! # mongol-norm
 //!
-//! Shape-aware normalizer for Traditional Mongolian (Hudum) script — a pure-Rust twin of the
-//! `mongol-norm` Python package living in the same repository.
+//! Shape-aware normalizer for Traditional Mongolian (Hudum) script — the pure-Rust twin of the
+//! `mongol-norm` Python package that lives in the same repository.
 //!
-//! Design: `docs/superpowers/specs/2026-09-01-rust-core-design.md`.
+//! Traditional Mongolian in Unicode has a fundamental problem: the same visible word can be
+//! encoded in many different code-point sequences (letters share glyphs, FVS selectors create
+//! equivalent spellings, joiners and MVS suffixes collapse more letters together). This crate
+//! implements a lightweight shaping engine — the UTN #57 v4 Mongolian-specific phase, driven only
+//! by the rule data of UTN #57 / mongfontbuilder, no font needed — and, on top of it, a canonical
+//! normalizer: within the bundled table's domain, `shape(x) == shape(y)` implies
+//! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.
+//!
+//! * [`Shaper::shape`] — text → written-unit sequence (`Mvs` / `Nirugu` / `Zwj` appear verbatim)
+//! * [`Shaper::same_shape`] — do two encodings render identically?
+//! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
+//! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —
+//!   encode written units directly
+//! * [`Shaper::trace`] — per-rule condition transitions, for debugging and the golden fixtures
+//!
+//! The crate has no dependencies and builds for `wasm32-unknown-unknown`. Its data tables are
+//! generated from the repository's JSON by `scripts/gen_rust_tables.py`; output is byte-identical
+//! to the Python package of the same version. Design: `docs/superpowers/specs/2026-09-01-rust-core-design.md`.
 
 mod error;
 // clippy::all silences style lints on generated code (see the design doc).

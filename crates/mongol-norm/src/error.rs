@@ -89,8 +89,10 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            // `escape_debug` is the closest stable equivalent of Python's `repr(ch)`: a newline
-            // prints as `'\n'`, a printable character as itself.
+            // `escape_debug` mirrors Python's `repr(ch)` for control characters only: a newline
+            // prints as `\n`, a printable character as itself. Quotes and non-printable
+            // non-ASCII are spelled differently — Rust escapes `'` as `\'` and writes `\u{85}`
+            // where Python switches the quote style and writes `\x85`.
             Error::NonMongolianChar { ch, index } => write!(
                 f,
                 "non-Mongolian character '{}' (U+{:04X}) at index {}: shape() / normalize() \
@@ -118,7 +120,9 @@ impl fmt::Display for Error {
             Error::UnknownWrittenUnit { index, unit } => {
                 // `unit` is arbitrary user text (Python renders it with `repr()`), so escape it —
                 // a control character must never reach a terminal raw. Printable ASCII, which
-                // every real unit name is, passes through unchanged.
+                // every real unit name is, passes through unchanged. As above, the escaping
+                // matches Python's `repr()` for control characters only; quotes and
+                // non-printable non-ASCII use Rust's `\'` / `\u{…}` spelling instead.
                 write!(
                     f,
                     "written_units[{index}] is unknown: '{}'",

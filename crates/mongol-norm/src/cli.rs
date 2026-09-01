@@ -2,6 +2,16 @@
 //! (`_read_input`, `_write_output`, `_process_batch`, argument handling). Hidden from the docs:
 //! it exists so the binary is a shim and the crate's own tests can drive every path
 //! in-process, including normalization fallback (which no real input triggers).
+//!
+//! Intentional differences from the Python CLI (all deliberate, pinned by `tests/cli.rs`):
+//! `-V` / `--version` exists, so the usage line reads `[-V]`; `<cmd> --help` prints the global
+//! help instead of the sub-command's; `invalid choice` quotes the choices argparse-≤3.13 style
+//! (argparse 3.14 dropped the quotes); the two cases where Python raises an uncaught exception
+//! are diagnosed and exit 2 here — `--locale XX` as a usage error, a missing `-i` file as
+//! `error: cannot read …`; a hyphen-initial `same` argument is rejected with the global usage
+//! line and `unrecognized arguments: …` rather than the `same` sub-parser's "required
+//! arguments" message; non-UTF-8 argv is rejected instead of being smuggled through; and EPIPE
+//! while writing stdout is reported as `error: …` rather than silently ignored.
 
 use std::io::{self, Read, Write};
 
