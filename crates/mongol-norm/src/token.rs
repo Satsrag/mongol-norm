@@ -39,8 +39,10 @@ pub(crate) struct Token {
     pub position: Position,
     /// Condition assigned by the rule pipeline.
     pub condition: Option<Condition>,
-    /// Lazily resolved written units (memoised exactly like Python's `tok.written`).
-    pub written: Option<Vec<WrittenUnit>>,
+    /// Lazily resolved written units (memoised exactly like Python's `tok.written`): a slice
+    /// borrowed from the generated tables, or the empty slice for structural tokens and letters
+    /// this locale has no variant for.
+    pub written: Option<&'static [WrittenUnit]>,
 }
 
 impl Token {
@@ -83,7 +85,7 @@ impl Token {
 
     /// Python `_written_ends_with`: resolved, non-empty, and ending in `unit`.
     pub fn written_ends_with(&self, unit: WrittenUnit) -> bool {
-        self.written.as_deref().and_then(<[WrittenUnit]>::last) == Some(&unit)
+        self.written.and_then(<[WrittenUnit]>::last) == Some(&unit)
     }
 }
 
@@ -243,7 +245,7 @@ mod tests {
     fn written_ends_with_requires_resolution() {
         let mut token = tokenize("\u{1820}", no_alias).remove(0);
         assert!(!token.written_ends_with(WrittenUnit::A));
-        token.written = Some(vec![WrittenUnit::A, WrittenUnit::A]);
+        token.written = Some(&[WrittenUnit::A, WrittenUnit::A]);
         assert!(token.written_ends_with(WrittenUnit::A));
         assert!(!token.written_ends_with(WrittenUnit::I));
     }

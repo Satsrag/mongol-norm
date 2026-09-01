@@ -14,6 +14,7 @@ use crate::Error;
 
 /// Per-token breakdown returned by [`Shaper::shape_detailed`].
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct TokenDetail {
     /// The token's code point (MVS for NNBSP input).
     pub cp: char,
@@ -30,7 +31,8 @@ pub struct TokenDetail {
 }
 
 /// One condition change recorded by [`Shaper::trace`].
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ConditionChange {
     /// Token index.
     pub token: usize,
@@ -42,6 +44,7 @@ pub struct ConditionChange {
 
 /// The changes one rule made, in [`Shaper::trace`].
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct RuleTransition {
     /// The rule name (see [`Shaper::rule_names`]).
     pub rule: &'static str,
@@ -53,6 +56,7 @@ pub struct RuleTransition {
 /// `tests/golden/mng-phase-trace-v1.json`. Every vector covers *all* tokens, structural ones
 /// included (position `Isol`, condition `None`, no written units).
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ShapeTrace {
     /// Position of every token.
     pub positions: Vec<Position>,
@@ -84,9 +88,27 @@ pub struct Shaper {
     rules: &'static [Rule],
 }
 
+/// `Shaper` holds only owned tables and `&'static` data, so sharing one behind a reference
+/// across threads is sound; this pins that claim at compile time.
+const _: () = {
+    fn assert_send_sync<T: Send + Sync>() {}
+    let _ = assert_send_sync::<Shaper>;
+};
+
 impl Default for Shaper {
     fn default() -> Shaper {
         Shaper::new(Locale::Mng)
+    }
+}
+
+impl std::fmt::Debug for Shaper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Shaper")
+            .field("locale", &self.locale)
+            .field("letters", &self.letters.len())
+            .field("variants", &self.variants.len())
+            .field("rules", &self.rules.len())
+            .finish_non_exhaustive()
     }
 }
 
@@ -158,6 +180,9 @@ impl Shaper {
 
     /// Python `_get_condition_fvs`: the FVS of the first variant (in table order) at `position`
     /// whose conditions include `condition`.
+    ///
+    /// `None` means no variant at `position` carries `condition`; `Some(None)` means the bare
+    /// (FVS-less) variant carries it — Python's FVS `0`.
     fn condition_fvs(
         &self,
         cp: u32,
@@ -181,7 +206,7 @@ impl Shaper {
             return;
         }
         if !token.is_letter() {
-            token.written = Some(Vec::new());
+            token.written = Some(&[]);
             return;
         }
         let mut written: Option<&'static [WrittenUnit]> = None;
@@ -207,7 +232,7 @@ impl Shaper {
                 .get(&(token.cp, token.position))
                 .map(|variant| variant.written);
         }
-        token.written = Some(written.map(<[WrittenUnit]>::to_vec).unwrap_or_default());
+        token.written = Some(written.unwrap_or(&[]));
     }
 
     // ── predicates used by the rules ────────────────────────────────────────────────────────
@@ -328,14 +353,26 @@ impl Shaper {
 
     // ── shaping ─────────────────────────────────────────────────────────────────────────────
 
-    fn run_pipeline(&self, text: &str) -> Result<Vec<Token>, Error> {
+    /// The prologue shared by [`Shaper::shape`] and [`Shaper::trace`]: validate, tokenize,
+    /// assign positions.
+    fn prepare(&self, text: &str) -> Result<Vec<Token>, Error> {
         check_word_chars(text)?;
         let mut tokens = self.tokenize(text);
         assign_positions(&mut tokens);
-        rules::run_rules(self.rules, &mut tokens, self);
-        for token in &mut tokens {
+        Ok(tokens)
+    }
+
+    /// Resolve every token's written units (idempotent — the rules may have resolved some).
+    fn resolve_all(&self, tokens: &mut [Token]) {
+        for token in tokens {
             self.resolve_written(token);
         }
+    }
+
+    fn run_pipeline(&self, text: &str) -> Result<Vec<Token>, Error> {
+        let mut tokens = self.prepare(text)?;
+        rules::run_rules(self.rules, &mut tokens, self);
+        self.resolve_all(&mut tokens);
         Ok(tokens)
     }
 
@@ -351,11 +388,14 @@ impl Shaper {
     /// [`Shaper::shape`] joined with `+` (`S+A+I+I+A`), the CLI's output format.
     pub fn shape_str(&self, text: &str) -> Result<String, Error> {
         let units = self.shape(text)?;
-        Ok(units
-            .iter()
-            .map(|unit| unit.as_str())
-            .collect::<Vec<_>>()
-            .join("+"))
+        let mut out = String::new();
+        for unit in units {
+            if !out.is_empty() {
+                out.push('+');
+            }
+            out.push_str(unit.as_str());
+        }
+        Ok(out)
     }
 
     /// Do `a` and `b` render the same glyph sequence?
@@ -374,16 +414,17 @@ impl Shaper {
                 position: token.position,
                 fvs: token.first_fvs(),
                 condition: token.condition,
-                written: token.written.clone().unwrap_or_default(),
+                written: token
+                    .written
+                    .map(<[WrittenUnit]>::to_vec)
+                    .unwrap_or_default(),
             })
             .collect())
     }
 
     /// Run the pipeline one rule at a time and record every condition change.
     pub fn trace(&self, text: &str) -> Result<ShapeTrace, Error> {
-        check_word_chars(text)?;
-        let mut tokens = self.tokenize(text);
-        assign_positions(&mut tokens);
+        let mut tokens = self.prepare(text)?;
         let mut transitions = Vec::new();
         for rule in self.rules {
             let before: Vec<Option<Condition>> =
@@ -407,16 +448,19 @@ impl Shaper {
                 });
             }
         }
-        for token in &mut tokens {
-            self.resolve_written(token);
-        }
+        self.resolve_all(&mut tokens);
         Ok(ShapeTrace {
             positions: tokens.iter().map(|token| token.position).collect(),
             transitions,
             final_conditions: tokens.iter().map(|token| token.condition).collect(),
             written_by_token: tokens
                 .iter()
-                .map(|token| token.written.clone().unwrap_or_default())
+                .map(|token| {
+                    token
+                        .written
+                        .map(<[WrittenUnit]>::to_vec)
+                        .unwrap_or_default()
+                })
                 .collect(),
             shape: flatten(&tokens),
         })
@@ -425,14 +469,14 @@ impl Shaper {
 
 /// Flatten resolved tokens into the public shape.
 pub(crate) fn flatten(tokens: &[Token]) -> Vec<WrittenUnit> {
-    let mut shape = Vec::with_capacity(tokens.len());
+    let mut shape = Vec::with_capacity(tokens.len() * 2);
     for token in tokens {
         match token.kind {
             TokenKind::Mvs => shape.push(WrittenUnit::Mvs),
             TokenKind::Nirugu => shape.push(WrittenUnit::Nirugu),
             TokenKind::Zwj => shape.push(WrittenUnit::Zwj),
             TokenKind::Letter => {
-                if let Some(written) = &token.written {
+                if let Some(written) = token.written {
                     shape.extend_from_slice(written);
                 }
             }
@@ -453,9 +497,10 @@ pub(crate) fn next_letter(tokens: &[Token], index: usize) -> Option<usize> {
     (index + 1..tokens.len()).find(|&j| tokens[j].is_letter())
 }
 
-/// The token right before `index`.
-pub(crate) fn prev_tok(tokens: &[Token], index: usize) -> Option<usize> {
-    if index > 0 && index <= tokens.len() {
+/// The token right before `index`. (`_tokens` is unused; it keeps the signature symmetric with
+/// the other context helpers.)
+pub(crate) fn prev_tok(_tokens: &[Token], index: usize) -> Option<usize> {
+    if index > 0 {
         Some(index - 1)
     } else {
         None
@@ -577,6 +622,145 @@ mod tests {
             vec![vec![WrittenUnit::A, WrittenUnit::A]]
         );
         assert_eq!(trace.shape, shaper.shape("\u{1820}").unwrap());
+    }
+
+    /// Tokenize `text` and assign positions, ready for the context helpers.
+    fn prepared(shaper: &Shaper, text: &str) -> Vec<Token> {
+        let mut tokens = shaper.tokenize(text);
+        assign_positions(&mut tokens);
+        tokens
+    }
+
+    /// One letter token at `position` carrying `condition`, resolved.
+    fn resolved(
+        shaper: &Shaper,
+        cp: u32,
+        position: Position,
+        condition: Option<Condition>,
+    ) -> Token {
+        let text = char::from_u32(cp).expect("scalar value").to_string();
+        let mut token = shaper.tokenize(&text).remove(0);
+        token.position = position;
+        token.condition = condition;
+        shaper.resolve_written(&mut token);
+        token
+    }
+
+    #[test]
+    fn masc_marker_reaches_g_h_paths() {
+        let shaper = Shaper::new(Locale::Mng);
+        // Every expectation below was cross-checked against Python's
+        // `MongolianShaper('MNG')._masc_marker_reaches_g_h`.
+
+        // (a) Forward (preprocessing.A/B/C): a masc vowel at init/medi before the g/h.
+        // `a l g` (ᠠᠯᠭ) — a.init is masculine, so the marker reaches g.fina.
+        let tokens = prepared(&shaper, "\u{1820}\u{182F}\u{182D}");
+        assert!(shaper.masc_marker_reaches_g_h(&tokens, 2));
+
+        // (b) Backward (preprocessing.G/H/J/K), the witness from the Python docstring:
+        // `s i g s i g a` (ᠰᠢᠭᠰᠢᠭᠠ) — the first g reaches the trailing masc `a` through
+        // the unbroken init/medi chain g→s→i→g.
+        let tokens = prepared(
+            &shaper,
+            "\u{1830}\u{1822}\u{182D}\u{1830}\u{1822}\u{182D}\u{1820}",
+        );
+        assert!(shaper.masc_marker_reaches_g_h(&tokens, 2));
+
+        // (c) A feminine vowel blocks both directions.
+        let tokens = prepared(&shaper, "\u{1821}\u{182F}\u{182D}"); // `e l g`
+        assert!(!shaper.masc_marker_reaches_g_h(&tokens, 2));
+        // `e g e n i g t a` — the fem `e` earlier in the word blocks the second g.
+        let tokens = prepared(
+            &shaper,
+            "\u{1821}\u{182D}\u{1821}\u{1828}\u{1822}\u{182D}\u{1832}\u{1820}",
+        );
+        assert!(!shaper.masc_marker_reaches_g_h(&tokens, 5));
+
+        // (d) The `fina letter + mvs + isol a` terminator of the backward walk:
+        // `i g l mvs a` (ᠢᠭᠯ᠎ᠠ) — g.medi, then l.fina, MVS, isolated `a`.
+        let tokens = prepared(&shaper, "\u{1822}\u{182D}\u{182F}\u{180E}\u{1820}");
+        assert!(shaper.masc_marker_reaches_g_h(&tokens, 1));
+        // … and `e` in place of the `a` is not the terminator.
+        let tokens = prepared(&shaper, "\u{1822}\u{182D}\u{182F}\u{180E}\u{1821}");
+        assert!(!shaper.masc_marker_reaches_g_h(&tokens, 1));
+    }
+
+    #[test]
+    fn resolve_written_condition_branch() {
+        let shaper = Shaper::new(Locale::Mng);
+
+        // (a) The bare (FVS-less) h.fina variant carries `chachlag_onset` and
+        // `masculine_devsger`, so `condition_fvs` reports `Some(None)` (Python FVS 0).
+        assert_eq!(
+            shaper.condition_fvs(0x182C, Position::Fina, Condition::MasculineDevsger),
+            Some(None)
+        );
+        let token = resolved(
+            &shaper,
+            0x182C,
+            Position::Fina,
+            Some(Condition::MasculineDevsger),
+        );
+        assert_eq!(token.written, Some(&[WrittenUnit::H][..]));
+
+        // (b) The first FVS-carrying variant that owns a condition and whose written units
+        // differ from that (cp, position)'s default: the condition must pick the variant.
+        let (letter, variant, condition) = mng::DATA
+            .letters
+            .iter()
+            .flat_map(|letter| letter.variants.iter().map(move |variant| (letter, variant)))
+            .filter_map(|(letter, variant)| {
+                let condition = *variant.conditions.first()?;
+                variant.fvs?;
+                let default = shaper.defaults.get(&(letter.cp, variant.position))?;
+                (default.written != variant.written
+                    && shaper.condition_fvs(letter.cp, variant.position, condition)
+                        == Some(variant.fvs))
+                .then_some((letter, variant, condition))
+            })
+            .next()
+            .expect("MNG has an FVS variant selected by a condition");
+        let default = shaper.defaults[&(letter.cp, variant.position)].written;
+        let token = resolved(&shaper, letter.cp, variant.position, Some(condition));
+        assert_eq!(
+            token.written,
+            Some(variant.written),
+            "U+{:04X} {} {}",
+            letter.cp,
+            variant.position,
+            condition.as_str()
+        );
+        assert_ne!(token.written, Some(default));
+
+        // (c) An FVS on the token wins over the condition: h.init + FVS1 is `Hx`, while the
+        // `feminine` condition would select h.init.fvs2 = `G`.
+        let mut token = shaper.tokenize("\u{182C}\u{180B}").remove(0);
+        token.position = Position::Init;
+        token.condition = Some(Condition::Feminine);
+        shaper.resolve_written(&mut token);
+        assert_eq!(token.written, Some(&[WrittenUnit::Hx][..]));
+
+        // (d) A condition unknown to the position falls back to the default: h.fina has no
+        // `feminine` variant, so the default `H` is used.
+        assert_eq!(
+            shaper.condition_fvs(0x182C, Position::Fina, Condition::Feminine),
+            None
+        );
+        let token = resolved(&shaper, 0x182C, Position::Fina, Some(Condition::Feminine));
+        assert_eq!(token.written, Some(&[WrittenUnit::H][..]));
+    }
+
+    #[test]
+    fn debug_reports_the_index_sizes() {
+        let shaper = Shaper::new(Locale::Mng);
+        let text = format!("{shaper:?}");
+        assert!(text.starts_with("Shaper { locale: Mng,"), "{text}");
+        assert!(text.contains("letters: 35"), "{text}");
+        assert!(
+            text.contains(&format!("rules: {}", shaper.rule_names().len())),
+            "{text}"
+        );
+        assert!(text.ends_with(".. }"), "{text}");
     }
 
     #[test]
