@@ -239,8 +239,31 @@ pub const PARTICLE_EQUIVALENCE_GROUPS: &[(&str, &[&str])] = &[
 pub const UTN_XFAIL_CASES: &[&str] =
     &["XIM11-38", "XIM11-39", "XIM11-40", "XIM11-41", "XIM11-1012"];
 
+/// Every non-empty word of a loaded corpus TSV. Panics on an unknown alias instead of silently
+/// shrinking coverage; `file` only names the offending corpus in that message.
+pub fn corpus_words_from_rows(file: &str, rows: &[(String, String, String)]) -> Vec<String> {
+    let mut words = Vec::new();
+    for (index, aliases, _) in rows {
+        let unknown: Vec<&str> = aliases
+            .split_whitespace()
+            .filter(|t| *t != "space" && !is_known_alias(t))
+            .collect();
+        assert!(
+            unknown.is_empty(),
+            "{file}:{index} unknown aliases: {}",
+            unknown.join(", ")
+        );
+        words.extend(
+            aliases_to_words(aliases)
+                .into_iter()
+                .filter(|w| !w.is_empty()),
+        );
+    }
+    words
+}
+
 /// `tests/test_canonical_golden.py::_all_corpus_words`: every non-empty word of the inline cases
-/// and both TSV corpora; panics on an unknown alias instead of silently shrinking coverage.
+/// and both TSV corpora.
 pub fn all_corpus_words() -> Vec<String> {
     let mut words = Vec::new();
     for (_, aliases) in INLINE_CASES {
@@ -251,22 +274,7 @@ pub fn all_corpus_words() -> Vec<String> {
         );
     }
     for file in ["data/core-hud.tsv", "data/eac-hud.tsv"] {
-        for (index, aliases, _) in load_tsv(file) {
-            let unknown: Vec<&str> = aliases
-                .split_whitespace()
-                .filter(|t| *t != "space" && !is_known_alias(t))
-                .collect();
-            assert!(
-                unknown.is_empty(),
-                "{file}:{index} unknown aliases: {}",
-                unknown.join(", ")
-            );
-            words.extend(
-                aliases_to_words(&aliases)
-                    .into_iter()
-                    .filter(|w| !w.is_empty()),
-            );
-        }
+        words.extend(corpus_words_from_rows(file, &load_tsv(file)));
     }
     words
 }

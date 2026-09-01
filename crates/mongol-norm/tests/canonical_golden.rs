@@ -118,5 +118,8 @@ fn canonical_codepoints_are_frozen() {
 #[test]
 #[should_panic(expected = "unknown aliases")]
 fn unknown_alias_fails_instead_of_shrinking_coverage() {
-    common::aliases_to_words("a typo_alias");
+    common::corpus_words_from_rows(
+        "core-hud.tsv",
+        &[("1".into(), "a typo_alias".into(), String::new())],
+    );
 }

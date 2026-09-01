@@ -69,15 +69,21 @@ fn report(kind: &str, failures: &[String], total: usize) {
 fn round_trip_inline() {
     let shaper = shaper();
     let mut failures = Vec::new();
+    let mut word_count = 0;
     for (label, aliases) in INLINE_CASES {
-        check_aliases(&shaper, label, aliases, &mut failures);
+        for word in aliases_to_words(aliases) {
+            if word.is_empty() {
+                continue;
+            }
+            word_count += 1;
+            check_word(&shaper, label, &word, &mut failures);
+        }
     }
     eprintln!(
-        "\nINLINE: {} / {} round-tripped",
-        INLINE_CASES.len() - failures.len(),
-        INLINE_CASES.len()
+        "\nINLINE: {} / {word_count} round-tripped",
+        word_count - failures.len()
     );
-    report("inline", &failures, INLINE_CASES.len());
+    report("inline", &failures, word_count);
 }
 
 #[test]
@@ -143,10 +149,12 @@ fn same_shape_same_normalize() {
             .or_default()
             .push(word);
     }
-    let divergences: Vec<_> = groups
+    // Sort by unit names so the reported sample is deterministic (HashMap order is not).
+    let mut divergences: Vec<_> = groups
         .iter()
         .filter(|(_, by_norm)| by_norm.len() > 1)
         .collect();
+    divergences.sort_by_key(|(shape, _)| unit_names(shape));
     eprintln!(
         "\nSHAPE-CANONICITY: {} / {} shape-groups converge to one normalize",
         groups.len() - divergences.len(),
@@ -321,7 +329,11 @@ fn particles_from_data() {
         other => panic!("particles is not an object: {other:?}"),
     };
     keys.sort();
-    assert_eq!(keys.len(), 47);
+    assert_eq!(
+        keys.len(),
+        47,
+        "the particle inventory in mongol_norm/data/MNG.json changed"
+    );
     let mut failures = Vec::new();
     let (mut checked, mut skipped_no_mvs) = (0, 0);
     for key in &keys {

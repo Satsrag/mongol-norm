@@ -7,6 +7,10 @@
 //! table; every chain is verified by reshaping it in full context; a chain right after MVS takes
 //! its standalone canonical so a suffix's spelling never depends on the MVS. There is no search
 //! fallback — an uncovered shape is reported (strict) or echoed back unchanged.
+//!
+//! The remedy for a genuine table gap is to widen the table, not the runtime: the table is
+//! generated offline by `scripts/gen_normalize_table.py` (Python), so extending coverage means
+//! regenerating it there and rerunning `scripts/gen_rust_tables.py`.
 
 use std::collections::{HashMap, HashSet};
 
@@ -29,6 +33,8 @@ struct UnitKey {
 impl UnitKey {
     fn new(units: &[WrittenUnit]) -> UnitKey {
         debug_assert!(!units.is_empty() && units.len() <= MAX_KEY_LEN);
+        // The padding value is arbitrary but deterministic per slice, and `len` disambiguates
+        // shorter keys from longer ones, so `Hash` and `Eq` stay consistent.
         let mut padded = [units[0]; MAX_KEY_LEN];
         padded[..units.len()].copy_from_slice(units);
         UnitKey {
@@ -246,7 +252,6 @@ fn unit_partition(
 /// Python `_apply_velar_fem`: switch the vowel forward-coupled to each init/medi `G`/`Gx` velar to
 /// its feminine letter (only masculine a/o/u flip; backward coupling is deliberately skipped for
 /// prefix-stability).
-#[allow(clippy::needless_range_loop)] // the index feeds two slices and position arithmetic
 fn apply_velar_fem(
     table: &NormalizeTable,
     letters: &mut [Encoding],
@@ -254,15 +259,24 @@ fn apply_velar_fem(
     pad_left: usize,
     pad_right: usize,
 ) {
+    // `letters` and `unit_at` are pushed in lockstep by `unit_partition`, so they have equal
+    // length; iterating `unit_at` (a separate slice, so no borrow conflict with `letters`)
+    // yields exactly the indices of `letters`.
     let total = letters.len();
     let padded_total = total + pad_left + pad_right;
-    for letter_index in 0..total {
-        let Some(unit) = unit_at[letter_index] else {
+    for (letter_index, unit) in unit_at.iter().enumerate() {
+        let Some(unit) = *unit else {
             continue;
         };
         if !table.velar_fem_units.contains(&unit) {
             continue;
         }
+        // FORWARD coupling only (init/medi velar → following vowel). Backward coupling (fina
+        // velar → preceding vowel) is deliberately skipped: a fina velar becomes medi when a
+        // suffix is appended, flipping its coupling direction, which would make the shared-prefix
+        // vowel diverge between word B and word A. The FVS-pinned velar renders `G` regardless,
+        // so a masculine preceding vowel still round-trips — that one's prettiness is traded for
+        // prefix-stability. — see shaper.py::_apply_velar_fem
         let position = letter_position(letter_index + pad_left, padded_total);
         if !matches!(position, Position::Init | Position::Medi) {
             continue;
@@ -303,12 +317,19 @@ impl Shaper {
     /// Python `_canonical_for_shape`: encode a full shape (chains right-to-left so each chain is
     /// verified with the already-encoded suffix; structural tokens copied verbatim).
     ///
+    /// Right-to-left with the encoded suffix in hand is necessary because rules interact across
+    /// MVS: a masculine vowel after an MVS can propagate backward through the MVS and mark a g/h
+    /// in the previous chain, changing its rendering between `G` and `H`. Per-chain verification
+    /// with only the adjacent MVS is insufficient. — see shaper.py::_canonical_for_shape
+    ///
     /// The table is fetched only when a chain has to be encoded (Python calls `_build_unit_enc`
     /// lazily), so a structural-only shape — e.g. a lone nirugu — is copied through even for
     /// locales without a normalize table.
     pub(crate) fn canonical_for_shape(&self, shape: &[WrittenUnit]) -> Result<String, Error> {
         let parts = split_parts(shape);
-        let mut encoded: Vec<String> = vec![String::new(); parts.len()];
+        // `suffix_text` accumulates the whole result: each part is prepended as it is encoded, so
+        // after the last (leftmost) part it *is* the canonical text. (Python keeps a parallel
+        // `encoded` list and joins it at the end — this deviates from that structure on purpose.)
         let mut suffix_text = String::new();
         let mut suffix_target: Vec<WrittenUnit> = Vec::new();
         for index in (0..parts.len()).rev() {
@@ -319,11 +340,12 @@ impl Shaper {
                         .to_string();
                     suffix_text.insert_str(0, &text);
                     suffix_target.insert(0, *unit);
-                    encoded[index] = text;
                 }
                 Part::Chain(body) => {
                     let table = self.table()?;
-                    // Context = the full run of structural tokens right before this chain.
+                    // Context = the full run of structural tokens right before this chain, not
+                    // just the adjacent one: an MVS behind a nirugu still matters, because
+                    // chachlag looks through nirugu. — see shaper.py::_canonical_for_shape
                     let mut prefix_tokens: Vec<WrittenUnit> = Vec::new();
                     let mut scan = index;
                     while scan > 0 {
@@ -368,11 +390,10 @@ impl Shaper {
                     let mut target = body.clone();
                     target.extend_from_slice(&suffix_target);
                     suffix_target = target;
-                    encoded[index] = chain_canonical;
                 }
             }
         }
-        Ok(encoded.concat())
+        Ok(suffix_text)
     }
 
     /// Python `_encode_chain_canonical` / `_compute_chain_canonical`: the table encoding of one
@@ -406,6 +427,9 @@ impl Shaper {
             return Ok(None);
         };
         let prefix_text = structural_text(prefix_tokens);
+        // `verify_target` MUST include `suffix_target`: without it the non-last chains of a
+        // multi-chain word never verify, and every one of them falls back.
+        // — see shaper.py::_unit_encode_chain
         let mut verify_target = prefix_tokens.to_vec();
         verify_target.extend_from_slice(chain);
         verify_target.extend_from_slice(suffix_target);
@@ -422,7 +446,8 @@ impl Shaper {
         }
         let target = self.shape(text)?;
         if target.is_empty() {
-            // Only invisible input (joiners / FVS) — canonical is the empty string.
+            // Only FVS marks, no letter — canonical is the empty string. (Joiners are *not*
+            // dropped here: a lone nirugu/ZWJ shapes to a structural token and round-trips.)
             return Ok(String::new());
         }
         let canonical = self.canonical_for_shape(&target)?;
