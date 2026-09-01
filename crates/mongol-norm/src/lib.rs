@@ -8,19 +8,20 @@
 //! Design: `docs/superpowers/specs/2026-09-01-rust-core-design.md`.
 
 mod error;
-// dead_code: TEMPORARY — the shaper/rules/normalize modules (later tasks) consume this generated
-// data; remove once they do. clippy::all silences style lints on generated code (see the design doc).
+// dead_code: TEMPORARY — `generated::mng_normalize` (the MNG canonical-normalization table) has
+// no consumer until `normalize.rs` lands (Task 8); remove once it does. clippy::all silences
+// style lints on generated code (see the design doc).
 #[allow(clippy::all, dead_code)]
 mod generated;
-// dead_code: TEMPORARY — the shaper/rules/normalize modules (later tasks) consume these tables;
-// remove once they do.
-#[allow(dead_code)]
+mod rules;
+mod shaper;
 mod tables;
 mod token;
 mod unicode;
 
 pub use error::Error;
 pub use generated::enums::{Alias, Condition, WrittenUnit};
+pub use shaper::{ConditionChange, RuleTransition, ShapeTrace, Shaper, TokenDetail};
 pub use tables::{Fvs, Locale, Position, UnitPosition};
 pub use unicode::{is_mongolian_letter, is_mongolian_word_char};
 

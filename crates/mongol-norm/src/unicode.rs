@@ -1,10 +1,5 @@
 //! Code-point constants and the character classification the shaper relies on.
 
-// dead_code: TEMPORARY — `check_word_chars` is only exercised by this module's own unit tests
-// until Task 5's `Shaper::shape`/`normalize` call it (mirroring Python's `_check_word_chars`);
-// remove this allow then.
-#![allow(dead_code)]
-
 use crate::tables::Fvs;
 use crate::Error;
 

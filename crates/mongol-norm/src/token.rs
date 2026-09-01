@@ -1,8 +1,8 @@
 //! Tokens of the shaping pipeline: one per letter (with its trailing FVS run), MVS, nirugu or
 //! ZWJ; plus tokenization and structural position assignment.
 
-// dead_code: TEMPORARY — the shaper (Task 5) is the only consumer of `Token`/`tokenize`/
-// `assign_positions` outside this module's own tests; remove once it lands.
+// dead_code: TEMPORARY — `has_fvs`/`written_ends_with` are only consumed once the rules (Task 6)
+// use them; remove once they do.
 #![allow(dead_code)]
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};

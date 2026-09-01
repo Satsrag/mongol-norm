@@ -305,6 +305,7 @@ pub(crate) enum ParticleSym {
     Alias(Alias),
     /// A letter without an alias in this locale — never appears in generated keys, so any
     /// segment containing one never matches (Python: an empty alias never matches either).
+    #[allow(dead_code)] // TEMPORARY — constructed by the particle rule (Task 6); remove then.
     Unknown,
 }
 
@@ -322,6 +323,7 @@ pub(crate) struct LocaleData {
 }
 
 /// One normalize-table entry: `(position, written units) → (letter code point, FVS)`.
+#[allow(dead_code)] // TEMPORARY — consumed once normalize.rs lands (Task 8); remove then.
 pub(crate) struct UnitEntry {
     pub position: Position,
     pub units: &'static [WrittenUnit],
@@ -330,6 +332,7 @@ pub(crate) struct UnitEntry {
 }
 
 /// The normalize table of a locale (`MNG.normalize.json`).
+#[allow(dead_code)] // TEMPORARY — consumed once normalize.rs lands (Task 8); remove then.
 pub(crate) struct NormalizeData {
     pub canonical_version: &'static str,
     pub unit_enc_max_len: usize,
