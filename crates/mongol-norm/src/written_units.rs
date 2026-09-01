@@ -269,7 +269,7 @@ fn strip_one_newline(text: &str) -> &str {
 /// the compact path — which the caller maps to units.
 ///
 /// `vocabulary` is expected in Python's `(-len, name)` order (see
-/// [`NormalizeTable::sorted_vocabulary`]), but that order is *not* semantically load-bearing: the
+/// [`crate::normalize::NormalizeTable::sorted_vocabulary`]), but that order is *not* semantically load-bearing: the
 /// per-offset count saturates at 2 and `choice` is cleared by any second match, so the final
 /// `(count, choice)` pair is independent of iteration order. Sorting only lets the longest
 /// candidates hit the `count == 2` early `break` sooner.
