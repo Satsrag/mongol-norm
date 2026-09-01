@@ -15,10 +15,19 @@ const COMMANDS: [&str; 5] = [
     "same",
 ];
 
-const USAGE: &str = "usage: mongol-norm [-h] [-V] [--locale LOCALE] CMD ...";
+/// The one place the usage line is spelled; [`USAGE`] and [`HELP`] are both built from it so the
+/// two can never drift apart.
+macro_rules! usage_line {
+    () => {
+        "usage: mongol-norm [-h] [-V] [--locale LOCALE] CMD ..."
+    };
+}
 
-const HELP: &str = "\
-usage: mongol-norm [-h] [-V] [--locale LOCALE] CMD ...
+const USAGE: &str = usage_line!();
+
+const HELP: &str = concat!(
+    usage_line!(),
+    "
 
 Mongolian shaping / normalization tool (UTN #57 v4 + GB/T 25914-2023).
 蒙古文字形 / 规范化工具 (UTN #57 v4 + GB/T 25914-2023)。
@@ -26,7 +35,7 @@ Mongolian shaping / normalization tool (UTN #57 v4 + GB/T 25914-2023).
 options:
   -h, --help            show this help and exit
   -V, --version         print the version and exit
-  --locale LOCALE       MNG (default), TOD, SIB or MCH
+  --locale LOCALE       MNG (default), TOD, SIB or MCH (also --locale=LOCALE)
 
 commands:
   shape                   Return the '+'-joined written-unit sequence
@@ -39,22 +48,40 @@ I/O modes (shape / normalize / normalize-text / normalize-written-units):
   inline      :  mongol-norm <cmd> 'TEXT'
   stdin       :  echo 'TEXT' | mongol-norm <cmd> -
   file input  :  mongol-norm <cmd> -i input.txt
+                 (also --input FILE and --input=FILE)
   file output :  mongol-norm <cmd> -i input.txt -o output.txt
+                 (also --output FILE and --output=FILE)
   batch       :  mongol-norm <cmd> --batch -i words.txt -o out.txt
                  (one word/text per line in, one result per line out)
   --allow-fallback (normalize, normalize-text): keep an uncovered word instead of failing
+  --                    end of options: every later argument is text, even a leading '-'
 
 Examples / 示例:
   mongol-norm normalize 'ᠰᠡᠢᠨ'
   mongol-norm shape 'ᠰᠠᠢᠨ'                          # → S+A+I+I+A
   mongol-norm normalize-written-units 'B+Aa'           # → ᠪᠠ᠋
   mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ world'
+  mongol-norm normalize-text -- '-ᠰᠡᠢᠨ'                # text starting with '-'
   echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -
-";
+"
+);
 
 /// Run the CLI on the process arguments and standard streams; returns the exit code.
 pub fn main() -> i32 {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut args: Vec<String> = Vec::new();
+    for argument in std::env::args_os().skip(1) {
+        match argument.into_string() {
+            Ok(text) => args.push(text),
+            Err(raw) => {
+                let lossy = raw.to_string_lossy().into_owned();
+                let _ = writeln!(
+                    io::stderr(),
+                    "{USAGE}\nmongol-norm: error: argument is not valid UTF-8: {lossy}"
+                );
+                return 2;
+            }
+        }
+    }
     let stdin = io::stdin();
     let stdout = io::stdout();
     let stderr = io::stderr();
@@ -67,7 +94,7 @@ pub fn main() -> i32 {
 }
 
 /// Run the CLI with explicit streams (`args` excludes the program name); returns the exit code.
-pub fn run(
+pub(crate) fn run(
     args: &[String],
     stdin: &mut dyn Read,
     stdout: &mut dyn Write,
@@ -77,7 +104,7 @@ pub fn run(
 }
 
 /// [`run`] with a custom shaper factory (tests inject a table-less shaper).
-pub fn run_with(
+pub(crate) fn run_with(
     args: &[String],
     stdin: &mut dyn Read,
     stdout: &mut dyn Write,
@@ -140,12 +167,27 @@ fn parse_locale(value: &str) -> Result<Locale, Failure> {
         .map_err(|error| Failure::Usage(format!("argument --locale: {error}")))
 }
 
+/// The value of a `--name=VALUE` argument, if `arg` is that option in its `=` form.
+fn split_long<'a>(arg: &'a str, name: &str) -> Option<&'a str> {
+    arg.strip_prefix(name)?.strip_prefix('=')
+}
+
+/// True for an argument argparse would read as an option (a bare `-` is stdin, not an option).
+fn looks_like_option(arg: &str) -> bool {
+    arg.starts_with('-') && arg != "-"
+}
+
 fn parse(args: &[String]) -> Result<(Locale, Command), Failure> {
     let mut locale = Locale::Mng;
     let mut index = 0;
     while index < args.len() {
         let arg = args[index].as_str();
         match arg {
+            // End of options: the next argument is CMD even if it starts with '-'.
+            "--" => {
+                index += 1;
+                break;
+            }
             "-h" | "--help" => return Ok((locale, Command::Help)),
             "-V" | "--version" => return Ok((locale, Command::Version)),
             "--locale" => {
@@ -155,14 +197,16 @@ fn parse(args: &[String]) -> Result<(Locale, Command), Failure> {
                 locale = parse_locale(value)?;
                 index += 2;
             }
-            _ if arg.starts_with("--locale=") => {
-                locale = parse_locale(&arg["--locale=".len()..])?;
-                index += 1;
+            _ => {
+                if let Some(value) = split_long(arg, "--locale") {
+                    locale = parse_locale(value)?;
+                    index += 1;
+                } else if looks_like_option(arg) {
+                    return Err(Failure::Usage(format!("unrecognized arguments: {arg}")));
+                } else {
+                    break;
+                }
             }
-            _ if arg.starts_with('-') && arg != "-" => {
-                return Err(Failure::Usage(format!("unrecognized arguments: {arg}")));
-            }
-            _ => break,
         }
     }
     let Some(name) = args.get(index) else {
@@ -171,12 +215,17 @@ fn parse(args: &[String]) -> Result<(Locale, Command), Failure> {
         ));
     };
     let rest = &args[index + 1..];
-    if rest.iter().any(|arg| arg == "-h" || arg == "--help") {
+    // A `-h` after `--` is text, not a help request.
+    if rest
+        .iter()
+        .take_while(|arg| arg.as_str() != "--")
+        .any(|arg| arg == "-h" || arg == "--help")
+    {
         return Ok((locale, Command::Help));
     }
     let command = match name.as_str() {
-        "same" => match rest {
-            [a, b] => Command::Same(a.clone(), b.clone()),
+        "same" => match parse_same(rest)?.as_slice() {
+            [a, b] => Command::Same((*a).to_owned(), (*b).to_owned()),
             _ => {
                 return Err(Failure::Usage(
                     "same: expected exactly two arguments: TEXT1 TEXT2".to_owned(),
@@ -200,18 +249,49 @@ fn parse(args: &[String]) -> Result<(Locale, Command), Failure> {
     Ok((locale, command))
 }
 
+/// `same` has no options at all: its two arguments are positional, with `--` ending options.
+fn parse_same(rest: &[String]) -> Result<Vec<&str>, Failure> {
+    let mut positional = Vec::new();
+    let mut positional_only = false;
+    for arg in rest {
+        let arg = arg.as_str();
+        if !positional_only {
+            if arg == "--" {
+                positional_only = true;
+                continue;
+            }
+            if looks_like_option(arg) {
+                return Err(Failure::Usage(format!("unrecognized arguments: {arg}")));
+            }
+        }
+        positional.push(arg);
+    }
+    Ok(positional)
+}
+
 fn parse_io(name: &str, rest: &[String]) -> Result<IoArgs, Failure> {
-    let mut io = IoArgs {
+    let mut io_args = IoArgs {
         text: None,
         input: None,
         output: None,
         batch: false,
         allow_fallback: false,
     };
+    let mut positional_only = false;
     let mut index = 0;
     while index < rest.len() {
         let arg = rest[index].as_str();
+        if positional_only {
+            set_text(&mut io_args, arg)?;
+            index += 1;
+            continue;
+        }
         match arg {
+            // End of options: every later argument is the positional text.
+            "--" => {
+                positional_only = true;
+                index += 1;
+            }
             "-i" | "--input" | "-o" | "--output" => {
                 let value = rest
                     .get(index + 1)
@@ -220,33 +300,44 @@ fn parse_io(name: &str, rest: &[String]) -> Result<IoArgs, Failure> {
                     })?
                     .clone();
                 if arg == "-i" || arg == "--input" {
-                    io.input = Some(value);
+                    io_args.input = Some(value);
                 } else {
-                    io.output = Some(value);
+                    io_args.output = Some(value);
                 }
                 index += 2;
             }
             "--batch" => {
-                io.batch = true;
+                io_args.batch = true;
                 index += 1;
             }
             "--allow-fallback" if matches!(name, "normalize" | "normalize-text") => {
-                io.allow_fallback = true;
+                io_args.allow_fallback = true;
                 index += 1;
             }
-            _ if arg.starts_with('-') && arg != "-" => {
-                return Err(Failure::Usage(format!("unrecognized arguments: {arg}")));
-            }
             _ => {
-                if io.text.is_some() {
+                if let Some(value) = split_long(arg, "--input") {
+                    io_args.input = Some(value.to_owned());
+                } else if let Some(value) = split_long(arg, "--output") {
+                    io_args.output = Some(value.to_owned());
+                } else if looks_like_option(arg) {
                     return Err(Failure::Usage(format!("unrecognized arguments: {arg}")));
+                } else {
+                    set_text(&mut io_args, arg)?;
                 }
-                io.text = Some(arg.to_owned());
                 index += 1;
             }
         }
     }
-    Ok(io)
+    Ok(io_args)
+}
+
+/// Store the single positional TEXT; a second one is an argparse "unrecognized arguments" error.
+fn set_text(io_args: &mut IoArgs, arg: &str) -> Result<(), Failure> {
+    if io_args.text.is_some() {
+        return Err(Failure::Usage(format!("unrecognized arguments: {arg}")));
+    }
+    io_args.text = Some(arg.to_owned());
+    Ok(())
 }
 
 fn execute(
@@ -273,10 +364,10 @@ fn execute(
             writeln!(stdout, "{}", if same { "true" } else { "false" })?;
             Ok(if same { 0 } else { 1 })
         }
-        Command::Shape(io) => run_op(&io, stdin, stdout, |text| shaper.shape_str(text)),
-        Command::Normalize(io) => {
-            let allow_fallback = io.allow_fallback;
-            run_op(&io, stdin, stdout, |text| {
+        Command::Shape(io_args) => run_op(&io_args, stdin, stdout, |text| shaper.shape_str(text)),
+        Command::Normalize(io_args) => {
+            let allow_fallback = io_args.allow_fallback;
+            run_op(&io_args, stdin, stdout, |text| {
                 if allow_fallback {
                     shaper.normalize_allow_fallback(text)
                 } else {
@@ -284,13 +375,13 @@ fn execute(
                 }
             })
         }
-        Command::NormalizeWrittenUnits(io) => run_op(&io, stdin, stdout, |text| {
+        Command::NormalizeWrittenUnits(io_args) => run_op(&io_args, stdin, stdout, |text| {
             let units = shaper.parse_written_units(text)?;
             shaper.normalize_written_units(&units)
         }),
-        Command::NormalizeText(io) => {
-            let allow_fallback = io.allow_fallback;
-            run_op(&io, stdin, stdout, |text| {
+        Command::NormalizeText(io_args) => {
+            let allow_fallback = io_args.allow_fallback;
+            run_op(&io_args, stdin, stdout, |text| {
                 if allow_fallback {
                     shaper.normalize_text_allow_fallback(text)
                 } else {
@@ -303,28 +394,28 @@ fn execute(
 }
 
 fn run_op(
-    io: &IoArgs,
+    io_args: &IoArgs,
     stdin: &mut dyn Read,
     stdout: &mut dyn Write,
     op: impl Fn(&str) -> Result<String, Error>,
 ) -> Result<i32, Failure> {
-    let text = read_input(io, stdin)?;
-    let result = if io.batch {
+    let text = read_input(io_args, stdin)?;
+    let result = if io_args.batch {
         process_batch(&text, &op)?
     } else {
         op(&text)?
     };
-    write_output(&result, io.output.as_deref(), stdout)?;
+    write_output(&result, io_args.output.as_deref(), stdout)?;
     Ok(0)
 }
 
 /// Python `_read_input`: `-i FILE` wins; else the positional text, with `-` (or no text) = stdin.
-fn read_input(io: &IoArgs, stdin: &mut dyn Read) -> Result<String, Failure> {
-    if let Some(path) = &io.input {
+fn read_input(io_args: &IoArgs, stdin: &mut dyn Read) -> Result<String, Failure> {
+    if let Some(path) = &io_args.input {
         return std::fs::read_to_string(path)
             .map_err(|error| Failure::Operation(format!("cannot read {path}: {error}")));
     }
-    match io.text.as_deref() {
+    match io_args.text.as_deref() {
         None | Some("-") => {
             let mut text = String::new();
             stdin
@@ -350,14 +441,14 @@ fn write_output(text: &str, output: Option<&str>, stdout: &mut dyn Write) -> Res
     Ok(())
 }
 
-/// Python `_process_batch`: one result per input line; errors carry the line number; the
-/// trailing newline of the input is preserved.
+/// Python `_process_batch`: one result per input line (split like `str.splitlines()`), joined
+/// with `\n`; errors carry the line number; a trailing newline of the input is preserved.
 fn process_batch(
     lines: &str,
     op: &dyn Fn(&str) -> Result<String, Error>,
 ) -> Result<String, Failure> {
     let mut out = Vec::new();
-    for (number, line) in lines.lines().enumerate() {
+    for (number, line) in split_lines_like_python(lines).enumerate() {
         match op(line) {
             Ok(result) => out.push(result),
             Err(error) => return Err(Failure::Operation(format!("line {}: {error}", number + 1))),
@@ -368,6 +459,44 @@ fn process_batch(
         result.push('\n');
     }
     Ok(result)
+}
+
+/// Every character Python's `str.splitlines()` treats as a line boundary (`\r\n` counts once).
+const LINE_BOUNDARIES: [char; 10] = [
+    '\n', '\r', '\u{b}', '\u{c}', '\u{1c}', '\u{1d}', '\u{1e}', '\u{85}', '\u{2028}', '\u{2029}',
+];
+
+/// Split `text` the way Python's `str.splitlines()` does — `std::str::lines` would keep `\r`,
+/// `\x0b`, U+2028 … inside a line and so disagree with `_process_batch` on the line count.
+fn split_lines_like_python(text: &str) -> SplitLines<'_> {
+    SplitLines { rest: text }
+}
+
+struct SplitLines<'a> {
+    rest: &'a str,
+}
+
+impl<'a> Iterator for SplitLines<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<&'a str> {
+        if self.rest.is_empty() {
+            return None;
+        }
+        let Some(offset) = self.rest.find(LINE_BOUNDARIES) else {
+            let line = self.rest;
+            self.rest = "";
+            return Some(line);
+        };
+        let (line, tail) = self.rest.split_at(offset);
+        let boundary = tail.chars().next().expect("`find` located a boundary");
+        let mut tail = &tail[boundary.len_utf8()..];
+        if boundary == '\r' {
+            tail = tail.strip_prefix('\n').unwrap_or(tail);
+        }
+        self.rest = tail;
+        Some(line)
+    }
 }
 
 #[cfg(test)]
@@ -465,14 +594,39 @@ mod tests {
         assert_eq!((code, stdout.as_str()), (0, "\n"));
     }
 
+    /// Python: `"a\rb\u{2028}c".splitlines() == ["a", "b", "c"]`, and `\r\n` is one boundary.
+    #[test]
+    fn split_lines_matches_python_splitlines() {
+        let cases: [(&str, &[&str]); 8] = [
+            ("", &[]),
+            ("a", &["a"]),
+            ("a\n", &["a"]),
+            ("a\n\n", &["a", ""]),
+            ("a\r\nb", &["a", "b"]),
+            ("a\rb", &["a", "b"]),
+            ("a\u{2028}b\u{2029}c\u{85}d", &["a", "b", "c", "d"]),
+            (
+                "a\u{b}b\u{c}c\u{1c}d\u{1d}e\u{1e}f",
+                &["a", "b", "c", "d", "e", "f"],
+            ),
+        ];
+        for (text, expected) in cases {
+            let lines: Vec<&str> = split_lines_like_python(text).collect();
+            assert_eq!(lines, expected, "{text:?}");
+        }
+    }
+
     #[test]
     fn argument_errors_are_usage_errors() {
         for args in [
             &["--bogus"][..],
             &["shape", "--bogus"],
             &["same", "a"],
+            &["same", "--batch", "a"],
             &["shape", "a", "b"],
+            &["shape", "--", "a", "b"],
             &["--locale"],
+            &["--locale=XX", "shape", "a"],
         ] {
             let (code, _, stderr) = run_real(args, "");
             assert_eq!(code, 2, "{args:?}");
@@ -484,5 +638,15 @@ mod tests {
         );
         assert_eq!(code, 2);
         assert!(stderr.starts_with("error: cannot read"), "{stderr}");
+    }
+
+    #[test]
+    fn double_dash_ends_option_parsing() {
+        let (code, stdout, stderr) = run_real(&["normalize-text", "--", "--batch"], "");
+        assert_eq!((code, stdout.as_str()), (0, "--batch\n"), "{stderr}");
+        // `-a` is taken as TEXT1, so this fails while shaping (runtime), not while parsing.
+        let (code, _, stderr) = run_real(&["same", "--", "-a", "-a"], "");
+        assert_eq!(code, 2);
+        assert!(stderr.starts_with("error: non-Mongolian"), "{stderr}");
     }
 }

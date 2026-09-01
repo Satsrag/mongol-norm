@@ -89,12 +89,16 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            // `escape_debug` is the closest stable equivalent of Python's `repr(ch)`: a newline
+            // prints as `'\n'`, a printable character as itself.
             Error::NonMongolianChar { ch, index } => write!(
                 f,
                 "non-Mongolian character '{}' (U+{:04X}) at index {}: shape() / normalize() \
                  accept only Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script \
                  input use normalize_text().",
-                ch, *ch as u32, index
+                ch.escape_debug(),
+                *ch as u32,
+                index
             ),
             Error::NormalizationFallback { written_units, .. } => {
                 let names: Vec<&str> = written_units.iter().map(|u| u.as_str()).collect();
@@ -165,6 +169,13 @@ mod tests {
         assert_eq!(
             Error::NonMongolianChar { ch: 'x', index: 3 }.to_string(),
             "non-Mongolian character 'x' (U+0078) at index 3: shape() / normalize() accept only \
+             Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script input use \
+             normalize_text()."
+        );
+        // Python's `{ch!r}` escapes a control character; so must ours (`repr('\n')` == r"'\n'").
+        assert_eq!(
+            Error::NonMongolianChar { ch: '\n', index: 4 }.to_string(),
+            "non-Mongolian character '\\n' (U+000A) at index 4: shape() / normalize() accept only \
              Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script input use \
              normalize_text()."
         );

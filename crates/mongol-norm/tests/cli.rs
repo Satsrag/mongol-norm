@@ -4,7 +4,9 @@
 
 mod common;
 
+use std::ffi::OsStr;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use common::mgl;
@@ -16,7 +18,11 @@ struct Output {
     stderr: String,
 }
 
-fn run(args: &[&str], stdin: Option<&str>) -> Output {
+fn spawn<I, S>(args: I, stdin: Option<&str>) -> Output
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
     let mut child = Command::new(env!("CARGO_BIN_EXE_mongol-norm"))
         .args(args)
         .stdin(Stdio::piped())
@@ -27,7 +33,8 @@ fn run(args: &[&str], stdin: Option<&str>) -> Output {
     {
         let mut input = child.stdin.take().unwrap();
         if let Some(text) = stdin {
-            input.write_all(text.as_bytes()).unwrap();
+            // A child that fails before reading stdin closes the pipe: EPIPE is not a test failure.
+            let _ = input.write_all(text.as_bytes());
         }
     }
     let output = child.wait_with_output().unwrap();
@@ -38,8 +45,41 @@ fn run(args: &[&str], stdin: Option<&str>) -> Output {
     }
 }
 
+fn run(args: &[&str], stdin: Option<&str>) -> Output {
+    spawn(args, stdin)
+}
+
 fn shaper() -> Shaper {
     Shaper::new(Locale::Mng)
+}
+
+/// A scratch directory for the file-I/O tests, removed when the test ends (pass or panic).
+struct TempDir {
+    path: PathBuf,
+}
+
+impl TempDir {
+    fn new(name: &str) -> TempDir {
+        let path =
+            std::env::temp_dir().join(format!("mongol-norm-cli-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).unwrap();
+        TempDir { path }
+    }
+
+    fn join(&self, name: &str) -> PathBuf {
+        self.path.join(name)
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+fn path_str(path: &Path) -> &str {
+    path.to_str().expect("temp paths are UTF-8")
 }
 
 fn assert_clean_failure(output: &Output, needle: &str) {
@@ -161,8 +201,7 @@ fn test_non_batch_stdin_accepts_one_transport_newline() {
 
 #[test]
 fn test_file_input_and_output() {
-    let dir = std::env::temp_dir().join(format!("mongol-norm-cli-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
+    let dir = TempDir::new("file-io");
     let input = dir.join("units.txt");
     let output_path = dir.join("canonical.txt");
     std::fs::write(&input, "B+Aa\n").unwrap();
@@ -170,9 +209,9 @@ fn test_file_input_and_output() {
         &[
             "normalize-written-units",
             "-i",
-            input.to_str().unwrap(),
+            path_str(&input),
             "-o",
-            output_path.to_str().unwrap(),
+            path_str(&output_path),
         ],
         None,
     );
@@ -182,7 +221,45 @@ fn test_file_input_and_output() {
         std::fs::read_to_string(&output_path).unwrap(),
         "\u{182A}\u{1820}\u{180B}"
     );
-    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn test_long_option_equals_forms() {
+    let dir = TempDir::new("equals-forms");
+    let input = dir.join("units.txt");
+    let output_path = dir.join("canonical.txt");
+    std::fs::write(&input, "B+Aa\n").unwrap();
+    let input_arg = format!("--input={}", path_str(&input));
+    let output_arg = format!("--output={}", path_str(&output_path));
+    let output = run(&["normalize-written-units", &input_arg, &output_arg], None);
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.stdout, "");
+    assert_eq!(
+        std::fs::read_to_string(&output_path).unwrap(),
+        "\u{182A}\u{1820}\u{180B}"
+    );
+}
+
+#[test]
+fn test_batch_writes_every_line_to_the_output_file() {
+    let dir = TempDir::new("batch-output");
+    let output_path = dir.join("canonical.txt");
+    let output = run(
+        &[
+            "normalize-written-units",
+            "--batch",
+            "-",
+            "-o",
+            path_str(&output_path),
+        ],
+        Some("B+Aa\nB+Aa\n"),
+    );
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.stdout, "");
+    assert_eq!(
+        std::fs::read_to_string(&output_path).unwrap(),
+        "\u{182A}\u{1820}\u{180B}\n".repeat(2)
+    );
 }
 
 #[test]
@@ -289,4 +366,75 @@ fn test_locale_option_help_and_version() {
         version.stdout,
         format!("mongol-norm {}\n", mongol_norm::version())
     );
+}
+
+#[test]
+fn test_locale_equals_form_and_short_version_flag() {
+    let equals = run(&["--locale=TOD", "shape", "\u{1820}"], None);
+    let spaced = run(&["--locale", "TOD", "shape", "\u{1820}"], None);
+    assert_eq!(equals.code, 0, "{}", equals.stderr);
+    assert_eq!(equals.stdout, spaced.stdout);
+    assert_clean_failure(
+        &run(&["--locale=XX", "shape", "\u{1820}"], None),
+        "unknown locale",
+    );
+    let short = run(&["-V"], None);
+    assert_eq!(short.code, 0, "{}", short.stderr);
+    assert_eq!(short.stdout, run(&["--version"], None).stdout);
+}
+
+#[test]
+fn test_double_dash_ends_option_parsing() {
+    // Without `--` a hyphen-initial TEXT would be an unrecognized option.
+    let text = format!("-{}", mgl("s e i n"));
+    let canonical = mgl("s a i fvs3 i fvs3 a fvs2");
+    let dashed = run(&["normalize-text", "--", &text], None);
+    assert_eq!(
+        (dashed.code, dashed.stdout.as_str()),
+        (0, format!("-{canonical}\n").as_str()),
+        "{}",
+        dashed.stderr
+    );
+    assert_clean_failure(
+        &run(&["normalize-text", &text], None),
+        "unrecognized arguments",
+    );
+    // `--batch` after `--` is text, not the flag.
+    let literal = run(&["normalize-text", "--", "--batch"], None);
+    assert_eq!((literal.code, literal.stdout.as_str()), (0, "--batch\n"));
+}
+
+#[test]
+fn test_same_rejects_options() {
+    assert_clean_failure(
+        &run(&["same", "--batch", &mgl("s a i n")], None),
+        "unrecognized arguments",
+    );
+}
+
+#[test]
+fn test_batch_splits_lines_like_python_splitlines() {
+    let expected = "\u{182A}\u{1820}\u{180B}\n";
+    // Python `"B+Aa\rB+Aa\n".splitlines()` has two entries; `str::lines` would see one.
+    let carriage = run(
+        &["normalize-written-units", "--batch", "-"],
+        Some("B+Aa\rB+Aa\n"),
+    );
+    assert_eq!(carriage.code, 0, "{}", carriage.stderr);
+    assert_eq!(carriage.stdout, expected.repeat(2));
+    let separators = run(
+        &["normalize-written-units", "--batch", "-"],
+        Some("B+Aa\u{2028}B+Aa\r\nB+Aa\n"),
+    );
+    assert_eq!(separators.code, 0, "{}", separators.stderr);
+    assert_eq!(separators.stdout, expected.repeat(3));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_non_utf8_argument_fails_cleanly() {
+    use std::os::unix::ffi::OsStrExt;
+
+    let output = spawn([OsStr::new("shape"), OsStr::from_bytes(b"\xff\xfe")], None);
+    assert_clean_failure(&output, "not valid UTF-8");
 }
