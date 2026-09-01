@@ -19,6 +19,9 @@ mod token;
 mod unicode;
 mod written_units;
 
+#[doc(hidden)]
+pub mod cli;
+
 pub use error::Error;
 pub use generated::enums::{Alias, Condition, WrittenUnit};
 pub use shaper::{ConditionChange, RuleTransition, ShapeTrace, Shaper, TokenDetail};

@@ -15,4 +15,8 @@ include = ["src/**", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
 [lib]
 name = "mongol_norm"
 
+[[bin]]
+name = "mongol-norm"
+path = "src/bin/mongol-norm.rs"
+
 [dependencies]
