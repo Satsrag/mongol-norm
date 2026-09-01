@@ -279,8 +279,8 @@ reviewable side by side.
 
 ### 7.1 `unicode.rs`
 
-Constants `MVS = U+180E`, `NIRUGU = U+180A`, `ZWJ = U+200D`, `ZWNJ = U+200C`, `NNBSP = U+202F`, FVS code
-points; `is_mongolian_letter(c)` = in `U+1800..=U+18AF` and not FVS/MVS/nirugu, not punctuation
+Constants `MVS = U+180E`, `NIRUGU = U+180A`, `ZWJ = U+200D`, `NNBSP = U+202F` and the FVS code points
+(Python's `ZWNJ_CP` is defined but never read, so it is not ported — ZWNJ is simply not a word character); `is_mongolian_letter(c)` = in `U+1800..=U+18AF` and not FVS/MVS/nirugu, not punctuation
 `U+1800..=U+1809`, not digits `U+1810..=U+1819` (so unassigned `U+181A..=U+181F` count as letters, as in
 Python: they produce no written units and vanish from the shape); `is_mongolian_word_char(c)` = letter ∪ FVS ∪
 {MVS, NNBSP, NIRUGU, ZWJ}; `check_word_chars(text)` → first offender as `Error::NonMongolianChar`.
@@ -288,14 +288,14 @@ Python: they produce no written units and vanish from the shape); `is_mongolian_
 ### 7.2 `token.rs`
 
 ```rust
-pub(crate) enum TokenKind { Letter, Mvs, Nirugu { zwj: bool } }
+pub(crate) enum TokenKind { Letter, Mvs, Nirugu, Zwj }   // nirugu and ZWJ are both `is_nirugu()` for the rules; kept apart so the shape emits the right token
 pub(crate) struct Token { kind, cp: u32, alias: Option<Alias>, fvs: Vec<Fvs> /* all trailing FVS in stream order */,
                           position: Position /* default Isol */, condition: Option<Condition>, written: Option<Vec<WrittenUnit>> /* lazy memo */ }
 ```
 
 `tokenize`: letter + all trailing FVS → `Letter`; `MVS`/`NNBSP` → `Mvs` (NNBSP normalised to MVS here, the
-earliest point); `NIRUGU`/`ZWJ` → `Nirugu{zwj}` (both extend the joining chain; the kind is kept so the shape
-emits `Nirugu` vs `Zwj`); everything else skipped. `assign_positions`: segments split at `Mvs`; letters **and**
+earliest point); `NIRUGU` → `Nirugu`, `ZWJ` → `Zwj` (both extend the joining chain and answer `is_nirugu()`; the kind
+is kept so the shape emits `Nirugu` vs `Zwj`); everything else skipped. `assign_positions`: segments split at `Mvs`; letters **and**
 nirugu tokens count toward segment length; nirugu tokens keep `Isol` and get no position; letters get
 `isol`/`init`/`medi`/`fina` by index. `first_fvs()` mirrors Python's `fvs_cp`; `has_fvs()`.
 
