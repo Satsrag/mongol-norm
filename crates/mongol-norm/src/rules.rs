@@ -80,6 +80,8 @@ macro_rules! per_token {
 
 per_token!(iii1_chachlag => iii1_chachlag_at);
 
+/// Isolated a/e directly after an MVS take `chachlag`; a GB carve-out lets an FVS on the vowel
+/// cancel it so the MVS shaping is postponed to III.3 — see rules.py::_iii1_chachlag_at.
 fn iii1_chachlag_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if !tok.is_letter {
@@ -106,6 +108,8 @@ fn iii1_chachlag_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
 
 per_token!(iii2a_o_u_oe_ue_marked => iii2a_o_u_oe_ue_marked_at);
 
+/// iii2a.MAIN: o/u/oe/ue directly after an *initial* consonant take the tall-stem `marked`
+/// form — see rules.py::_iii2a_o_u_oe_ue_marked_at.
 fn iii2a_o_u_oe_ue_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter {
@@ -126,7 +130,9 @@ fn iii2a_o_u_oe_ue_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper
 per_token!(iii2a_o_u_oe_ue_marked_gb_a => iii2a_o_u_oe_ue_marked_gb_a_at);
 
 /// GB.A: an FVS directly before or after the vowel resets `marked` — observed only on
-/// fina-position vowels (verified against DraftNew-Regular.otf; see rules.py).
+/// fina-position vowels (verified against DraftNew-Regular.otf: `h fvs3 oe` resets, `h fvs3 oe l`
+/// stays marked), so the position gate is load-bearing — see
+/// rules.py::_iii2a_o_u_oe_ue_marked_gb_a_at.
 fn iii2a_o_u_oe_ue_marked_gb_a_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if !tok.is_letter {
@@ -154,7 +160,8 @@ fn iii2a_o_u_oe_ue_marked_gb_a_at(tokens: &mut [Token], index: usize, _shaper: &
 
 per_token!(iii2a_o_u_oe_ue_marked_gb_b => iii2a_o_u_oe_ue_marked_gb_b_at);
 
-/// GB.B: initial h/g carrying FVS2/FVS4 + final oe/ue stays `marked`.
+/// GB.B: the single exception to GB.A — initial h/g carrying FVS2/FVS4 + final oe/ue stays
+/// `marked` even though an FVS sits between them — see rules.py::_iii2a_o_u_oe_ue_marked_gb_b_at.
 fn iii2a_o_u_oe_ue_marked_gb_b_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter {
@@ -180,6 +187,11 @@ per_token!(iii2a_oe_ue_cluster_marked => iii2a_oe_ue_cluster_marked_at);
 
 /// iii2a.GB.A/B/C combined: a medial o/u/oe/ue at the end of an unbroken init→medi consonant
 /// cluster (≥ 1 medi consonant) gets `marked`. Nirugu is transparent.
+///
+/// `saw_medi` is required, not incidental: the single-init case (`consonant.init + vowel.medi`)
+/// belongs to iii2a.MAIN ([`iii2a_o_u_oe_ue_marked_at`]), so this rule must fire only for an
+/// init + ≥1 medi consonant chain. Verified against DraftNew-Regular.otf: `g ue l` leaves ue
+/// default, `g g ue l` marks it — see rules.py::_iii2a_oe_ue_cluster_marked_at.
 fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter {
@@ -221,7 +233,9 @@ fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Sh
 per_token!(iii2a_d_marked => iii2a_d_marked_at);
 
 /// Initial d before a final vowel (Twelve Syllabaries form); an FVS on d or the vowel cancels.
-/// Gated on d.init (mirrors iii.py / .fea, not the UTN prose — see rules.py).
+/// Gated on d.init (mirrors iii.py / .fea, not the UTN prose: the data ships a marked variant
+/// only for d.init, and without the gate a d.medi would claim the slot and block III.2e's
+/// `onset`) — see rules.py::_iii2a_d_marked_at.
 fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -251,6 +265,9 @@ fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 
 per_token!(iii2c_chachlag_onset => iii2c_chachlag_onset_at);
 
+/// n/j/w before MVS + isolated a/e, and h/g before MVS + isolated a, take `chachlag_onset`;
+/// `g` before MVS + isolated e takes the GB-specific condition instead — see
+/// rules.py::_iii2c_chachlag_onset_at.
 fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter || tok.has_fvs {
@@ -262,7 +279,7 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper)
     if !tokens[next].is_mvs() {
         return;
     }
-    let Some(after) = next_letter(tokens, index + 1) else {
+    let Some(after) = next_letter(tokens, next) else {
         return;
     };
     let after = view(tokens, after);
@@ -292,6 +309,8 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper)
 
 per_token!(iii2e_n_t_d_onset_devsger => iii2e_n_t_d_onset_devsger_at);
 
+/// n/t/d: `onset` before a vowel, `devsger` after one — see
+/// rules.py::_iii2e_n_t_d_onset_devsger_at.
 fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -301,6 +320,10 @@ fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Sha
         return;
     }
     if let Some(next) = next_letter(tokens, index) {
+        // Carve-out: III.2g.t.devsger owns `t + ee`. In iii.py it overwrites this lookup's
+        // substitution through OpenType class membership, which first-writer-wins cannot
+        // replicate, so III.2e bows out and falls through to the devsger check below. It is
+        // t-only: `d + ee` still goes `onset` — see rules.py::_iii2e_n_t_d_onset_devsger_at.
         if shaper.is_vowel(&tokens[next])
             && !(tok.alias == Some(Alias::T) && tokens[next].alias == Some(Alias::Ee))
         {
@@ -322,6 +345,18 @@ fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Sha
 
 per_token!(iii2f_h_g_harmony => iii2f_h_g_harmony_at);
 
+/// h/g harmony in three layers: (a) the adjacent vowel decides, (b) `i + g/h` with a reachable
+/// MASC marker, (c) g.init/h.init + consonant → feminine — see rules.py::_iii2f_h_g_harmony_at.
+///
+/// Doc/implementation discrepancy: `hudum.mdx` describes four further "remotely follows /
+/// remotely precedes" harmony rules, but neither iii.py nor the .fea implements them — the font
+/// renders `o l g` as `G`, not `H`. Layer (b) is the only non-adjacent mechanism, and it is
+/// strictly gated on prev = `i`.
+///
+/// Adjacency is deliberately strict: iii2f runs with `IgnoreMarks` (FVS invisible) but MVS is a
+/// base glyph that breaks adjacency, hence [`prev_adjacent_letter`]/[`next_adjacent_letter`].
+/// Do NOT "simplify" these to `prev_letter`/`next_letter`: an earlier unconstrained scan matched
+/// vowels across MVS word boundaries and caused the `o l g → H` regression.
 fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -387,6 +422,8 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 
 per_token!(iii2g_t_devsger => iii2g_t_devsger_at);
 
+/// t before `ee` or a consonant → `devsger` (it also owns the `t + ee` case III.2e skips) —
+/// see rules.py::_iii2g_t_devsger_at.
 fn iii2g_t_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -405,6 +442,8 @@ fn iii2g_t_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 
 per_token!(iii2g_sh_dotless => iii2g_sh_dotless_at);
 
+/// sh before i → `dotless` (the dot would collide with the following i) — see
+/// rules.py::_iii2g_sh_dotless_at.
 fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -432,7 +471,9 @@ fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
 per_token!(iii2g_g_dotless => iii2g_g_dotless_at);
 
 /// `s/d + g.medi + masc vowel` and `s/d + g.fina + MVS + chachlag a.isol` → `dotless`.
-/// OVERRIDES any earlier condition (no first-writer guard) — see rules.py for why.
+/// OVERRIDES any earlier condition (no first-writer guard): in iii.py the same effect falls out
+/// of OpenType class membership, which rewrites the glyph III.2c/III.2f already substituted —
+/// see rules.py::_iii2g_g_dotless_at.
 fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if !tok.is_letter || tok.alias != Some(Alias::G) || tok.has_fvs {
@@ -453,11 +494,14 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
             }
         }
     }
-    // Rule (2): g.fina + MVS + chachlag a.isol
+    // Rule (2): g.fina + MVS + chachlag a.isol. The chachlag check encodes iii.py's literal
+    // `u1820.Aa.isol` context — the glyph name *after* III.1 fired. An FVS that cancelled
+    // chachlag leaves the default `a.isol` glyph, which iii.py's rule would not match, so this
+    // rule must not fire either — see rules.py::_iii2g_g_dotless_at.
     if tok.position == Position::Fina {
         if let Some(next) = next_tok(tokens, index) {
             if tokens[next].is_mvs() {
-                if let Some(after) = next_letter(tokens, index + 1) {
+                if let Some(after) = next_letter(tokens, next) {
                     let after = view(tokens, after);
                     if after.alias == Some(Alias::A)
                         && after.position == Position::Isol
@@ -475,6 +519,9 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 // Phase III.3 — Particle: MVS-headed segments matched against the particle dictionary
 // ═══════════════════════════════════════════════════════════════════════
 
+/// Match each MVS-headed segment against the particle dictionary; the hit indices take
+/// `particle`, for the alias subset that actually has a particle variant in the data — see
+/// rules.py::_iii3_particle.
 fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
     for (syms, indices) in build_mvs_segments(tokens) {
         // Try the segment as-is first, then (for mvs-headed segments) with mvs stripped —
@@ -522,8 +569,9 @@ fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
     }
 }
 
-/// Python `_build_mvs_segments`: `(symbols, token indices)` per MVS-headed segment; nirugu is
-/// skipped, a letter without an alias becomes `ParticleSym::Unknown` (never matches).
+/// `(symbols, token indices)` per MVS-headed segment; nirugu is skipped, and a letter without an
+/// alias becomes `ParticleSym::Unknown` (never matches, exactly like Python's empty alias) —
+/// see rules.py::_build_mvs_segments.
 fn build_mvs_segments(tokens: &[Token]) -> Vec<(Vec<ParticleSym>, Vec<usize>)> {
     let mut segments = Vec::new();
     let mut syms: Vec<ParticleSym> = Vec::new();
@@ -552,6 +600,8 @@ fn build_mvs_segments(tokens: &[Token]) -> Vec<(Vec<ParticleSym>, Vec<usize>)> {
 
 per_token!(iii4_vowel_devsger => iii4_vowel_devsger_at);
 
+/// A medial `i` after a vowel whose shape does not already end in `I` takes the double-tooth
+/// `vowel_devsger` form — see rules.py::_iii4_vowel_devsger_at.
 fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -583,6 +633,10 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 
 per_token!(iii5_post_bowed => iii5_post_bowed_at);
 
+/// A final vowel after a bowed consonant (`G`, `Gx`, `B`, `P`, `F`, `K`, `K2`) takes
+/// `post_bowed`. Like III.2g.g.dotless it OVERRIDES earlier conditions (notably III.3's
+/// `particle`), but it defers to `marked`, mirroring iii.py's leading ignore pattern for the
+/// post-marked oe/ue.fina glyphs — see rules.py::_iii5_post_bowed_at.
 fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition == Some(Condition::Marked) {
@@ -641,6 +695,10 @@ fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
             set(tokens, index, Condition::Marked);
             return;
         }
+        // iii.py's remaining GB rules need no code here: B/D (h/g + fvs1/3 → reset) cannot
+        // trigger because those render `Hx`/`H`, which are not bowed, so the main rule never
+        // fires; G (h/g.init + fvs2/4 + oe/ue → marked) is already covered by
+        // [`iii2a_o_u_oe_ue_marked_gb_b_at`] — see rules.py::_iii5_post_bowed_at.
     }
     set(tokens, index, Condition::PostBowed);
 }

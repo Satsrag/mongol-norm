@@ -5,8 +5,20 @@
 
 mod common;
 
-use common::{load_tsv, normalize_expected, shape_aliases, unit_names, UTN_XFAIL_CASES};
+use common::{
+    aliases_to_words, hex, load_tsv, normalize_expected, shape_aliases, unit_names, UTN_XFAIL_CASES,
+};
 use mongol_norm::{Locale, Shaper};
+
+/// The code points of every non-empty word of a row, for failure output.
+fn row_hex(aliases: &str) -> String {
+    aliases_to_words(aliases)
+        .iter()
+        .filter(|word| !word.is_empty())
+        .map(|word| hex(word))
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
 
 #[test]
 fn eac_hud_all() {
@@ -27,7 +39,8 @@ fn eac_hud_all() {
         let expected = normalize_expected(expected);
         if actual != expected {
             failures.push(format!(
-                "{index:14}  input={aliases:?}\n                got     {actual:?}\n                expect  {expected:?}"
+                "{index:14}  input={aliases:?}\n                hex     {}\n                got     {actual:?}\n                expect  {expected:?}",
+                row_hex(aliases)
             ));
         }
     }

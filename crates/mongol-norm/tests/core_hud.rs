@@ -3,8 +3,18 @@
 
 mod common;
 
-use common::{load_tsv, normalize_expected, shape_aliases, unit_names};
+use common::{aliases_to_words, hex, load_tsv, normalize_expected, shape_aliases, unit_names};
 use mongol_norm::{Locale, Shaper};
+
+/// The code points of every non-empty word of a row, for failure output.
+fn row_hex(aliases: &str) -> String {
+    aliases_to_words(aliases)
+        .iter()
+        .filter(|word| !word.is_empty())
+        .map(|word| hex(word))
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
 
 #[test]
 fn core_hud_all() {
@@ -13,11 +23,27 @@ fn core_hud_all() {
     assert_eq!(rows.len(), 177, "core-hud.tsv row count changed");
     let mut failures = Vec::new();
     for (index, aliases, expected) in &rows {
+        // Every word must shape the same way through `trace` as through `shape` — the trace is
+        // the phase-trace golden's verifier, so the two entry points must not drift apart.
+        for word in aliases_to_words(aliases) {
+            if word.is_empty() {
+                continue;
+            }
+            assert_eq!(
+                shaper.trace(&word).unwrap().shape,
+                shaper.shape(&word).unwrap(),
+                "{index}: trace/shape disagree on {}",
+                hex(&word)
+            );
+        }
         let actual = unit_names(&shape_aliases(&shaper, aliases));
+        // `normalize_expected` is the eac superset; core-hud's expected column only ever uses
+        // the `_` / `-` MVS spellings today, so the extra `Ni`/artifact arms are a no-op here.
         let expected = normalize_expected(expected);
         if actual != expected {
             failures.push(format!(
-                "{index:10}  input={aliases:?}\n            got     {actual:?}\n            expect  {expected:?}"
+                "{index:10}  input={aliases:?}\n            hex     {}\n            got     {actual:?}\n            expect  {expected:?}",
+                row_hex(aliases)
             ));
         }
     }

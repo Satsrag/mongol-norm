@@ -199,6 +199,10 @@ impl Shaper {
     /// 1. the first FVS in stream order that names an existing variant,
     /// 2. else the variant carrying the rule-assigned condition,
     /// 3. else the default variant. Structural tokens resolve to nothing.
+    ///
+    /// The result is memoised on the token and never invalidated: a rule that changes an
+    /// already-resolved token's condition has no effect on its written units (Python parity —
+    /// III.4 and III.5 resolve the *previous* token mid-pipeline, freezing it).
     pub(crate) fn resolve_written(&self, token: &mut Token) {
         if token.written.is_some() {
             return;
@@ -746,6 +750,37 @@ mod tests {
         );
         let token = resolved(&shaper, 0x182C, Position::Fina, Some(Condition::Feminine));
         assert_eq!(token.written, Some(&[WrittenUnit::H][..]));
+    }
+
+    #[test]
+    fn memoised_written_is_never_invalidated() {
+        let shaper = Shaper::new(Locale::Mng);
+        // `b a MVS nirugu i n`: III.4 resolves the `a` while walking back from the medial `i`,
+        // freezing its written units at the default `A`. III.5 then assigns `post_bowed` to the
+        // same `a`, which no longer has any effect. Python does exactly the same — verified with
+        // `MongolianShaper('MNG').shape_detailed(...)`.
+        let text = "\u{182A}\u{1820}\u{180E}\u{180A}\u{1822}\u{1828}";
+        let details = shaper.shape_detailed(text).unwrap();
+        assert_eq!(details[1].alias, Some(Alias::A));
+        assert_eq!(details[1].condition, Some(Condition::PostBowed));
+        assert_eq!(details[1].written, vec![WrittenUnit::A]);
+        assert_eq!(
+            shaper.shape(text).unwrap(),
+            vec![
+                WrittenUnit::B,
+                WrittenUnit::A,
+                WrittenUnit::Mvs,
+                WrittenUnit::Nirugu,
+                WrittenUnit::I,
+                WrittenUnit::I,
+                WrittenUnit::A,
+            ]
+        );
+        // Without the mid-pipeline freeze the same `b a` resolves through `post_bowed` to `Aa`.
+        assert_eq!(
+            shaper.shape("\u{182A}\u{1820}").unwrap(),
+            vec![WrittenUnit::B, WrittenUnit::Aa]
+        );
     }
 
     #[test]
