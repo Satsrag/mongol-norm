@@ -273,16 +273,10 @@ in this repository (`crates/mongol-norm/`). It is a **twin implementation**: sam
 every value-producing operation (only a few error-message spellings differ — see the crate docs),
 output, lockstep version numbers.
 
-The crate is **not on crates.io yet**. Until it is published, depend on it from git — or install
-the CLI from a checkout with `cargo install --path crates/mongol-norm`:
+Published on [crates.io](https://crates.io/crates/mongol-norm) (API docs on
+[docs.rs](https://docs.rs/mongol-norm)); the CLI installs with `cargo install mongol-norm`:
 
 ```toml
-[dependencies]
-mongol-norm = { git = "https://github.com/Satsrag/mongol-norm", version = "0.0.4" }
-```
-
-```toml
-# once published to crates.io
 [dependencies]
 mongol-norm = "0.0.4"
 ```
@@ -675,16 +669,10 @@ mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 它是一份**双实现**：相同的数据表（由 `mongol_norm/data/*.json` 生成）、相同的语料与 golden 固件、
 所有产出值的操作逐字节相同的输出（只有个别错误信息的拼写不同，见 crate 文档）、锁步的版本号。
 
-该 crate **尚未发布到 crates.io**。发布之前请用 git 依赖；命令行工具可从仓库 checkout 安装：
-`cargo install --path crates/mongol-norm`。
+已发布到 [crates.io](https://crates.io/crates/mongol-norm)（API 文档见
+[docs.rs](https://docs.rs/mongol-norm)）；命令行工具用 `cargo install mongol-norm` 安装：
 
 ```toml
-[dependencies]
-mongol-norm = { git = "https://github.com/Satsrag/mongol-norm", version = "0.0.4" }
-```
-
-```toml
-# 发布到 crates.io 之后
 [dependencies]
 mongol-norm = "0.0.4"
 ```
