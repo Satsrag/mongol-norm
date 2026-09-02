@@ -46,9 +46,11 @@ jobs:
           set -euo pipefail
           version=$(cargo metadata --no-deps --format-version 1 \
             | jq -r '.packages[] | select(.name == "mongol-norm") | .version')
-          python_version=$(python3 -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')
-          test "$version" = "$python_version"
-          echo "crate and package versions agree: $version"
+          # pyproject.toml declares `dynamic = ["version"]`: the Python package takes its
+          # version from [workspace.package] too, so the lockstep check is crate == workspace.
+          workspace_version=$(python3 -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("Cargo.toml").read_text())["workspace"]["package"]["version"])')
+          test "$version" = "$workspace_version"
+          echo "crate and workspace versions agree: $version"
           if [ "$EVENT_NAME" = "release" ]; then
             test "$RELEASE_TAG" = "v$version"
             git fetch --force origin main:refs/remotes/origin/main --no-tags
@@ -56,8 +58,8 @@ jobs:
             echo "release tag matches and is merged to main: $RELEASE_TAG"
           fi
 
-      - name: Run the Rust test suite
-        run: cargo test --workspace --locked
+      - name: Run the core crate's test suite (the binding crate needs Rust 1.83 and Python)
+        run: cargo test -p mongol-norm --locked
 
       - name: Package and check the crates.io registry state
         id: registry

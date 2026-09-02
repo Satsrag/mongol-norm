@@ -8,6 +8,18 @@ Spec: `docs/superpowers/specs/2026-09-02-python-bindings-design.md`. Branch
 > - Task 1 was prototyped directly (not via a subagent) because the PyO3/maturin
 >   integration needed compiler-driven iteration; landed as commit `5f39721` with the
 >   differential described in the spec.
+> - Local release wheels do not load on the dev Mac (macOS 27.0 beta, CLT/SDK 27.0,
+>   ld-27037.1): `dlopen` fails with "mis-aligned LINKEDIT string pool". Root cause
+>   established from dyld sources and PyPI samples: the beta linker does not pad the
+>   symbol-string pool to 8 bytes (`stroff = indirectsymoff + 4·nindirectsyms`, so
+>   any odd indirect-symbol count misaligns it), and the macOS 27 dyld enforces the
+>   new alignment only for binaries linked against SDK ≥ 27 (`Policy::_enforcementEpoch`
+>   keys off `LC_BUILD_VERSION.sdk`). Wheels built against a stable SDK — e.g.
+>   `rpds_py` 2026.6.3 (SDK 26.5, misaligned) — load fine on the same machine, so
+>   CI-built wheels are unaffected. Consequence for Task 5: the release-wheel smoke
+>   test on this Mac uses a CI-built wheel (publish.yml gains `workflow_dispatch` for
+>   build-only runs), not a locally built one; the debug wheel (`maturin develop`) is
+>   fine because its indirect-symbol count happens to be even.
 
 ## Working environment
 

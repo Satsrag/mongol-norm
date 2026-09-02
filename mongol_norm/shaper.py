@@ -8,3 +8,7 @@ names it used to define (``mongol-norm`` console script included).
 from ._api import MongolianShaper, NormalizationFallbackError, main
 
 __all__ = ["MongolianShaper", "NormalizationFallbackError", "main"]
+
+
+if __name__ == "__main__":  # python -m mongol_norm.shaper … (pre-0.1 invocation)
+    main()
