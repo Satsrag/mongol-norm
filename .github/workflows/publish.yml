@@ -331,6 +331,17 @@ jobs:
         with:
           python-version: '3.13'
 
+      # PyPI rejects an upload whose metadata declares a License-File the archive
+      # does not contain (0.1.0's sdist failed exactly like that); twine does not
+      # check it, scripts/check_dist_metadata.py does.
+      - name: Validate the sdist metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install 'twine>=6'
+          python -m twine check --strict dist/*
+          python scripts/check_dist_metadata.py --require LICENSE --require NOTICE dist/*
+
       # What `pip install mongol-norm` does on a platform without a wheel: pip fetches
       # maturin into an isolated build environment and compiles the extension with the
       # host Rust toolchain.
@@ -364,9 +375,20 @@ jobs:
       name: pypi
       url: https://pypi.org/p/mongol-norm
     permissions:
+      contents: read
       id-token: write
 
     steps:
+      - name: Check out the release commit (for scripts/check_dist_metadata.py)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+
       - name: Download every distribution into dist/
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -381,6 +403,16 @@ jobs:
           ls -l dist/
           test "$(find dist -maxdepth 1 -name '*.whl' | wc -l)" -eq 7
           test "$(find dist -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
+
+      # Last gate before the upload: every archive's metadata must be consistent
+      # (PyPI's own License-File check, which twine does not perform).
+      - name: Validate every distribution's metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install 'twine>=6'
+          python -m twine check --strict dist/*
+          python scripts/check_dist_metadata.py --require LICENSE --require NOTICE dist/*
 
       # Pinned release/v1 commit for supply-chain stability. Uploads everything in
       # dist/ with PEP 740 attestations, minted from the job's OIDC identity.

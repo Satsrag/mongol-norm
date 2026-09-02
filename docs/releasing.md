@@ -64,13 +64,16 @@ in a fresh virtual environment — and to rehearse a release before tagging.
    - the wheel jobs build the matrix below and smoke-test every wheel that can run on
      its build runner (`pip install --no-index --find-links dist mongol-norm`, import,
      shape `ᠰᠠᠢᠨ`, `mongol-norm shape ᠰᠠᠢᠨ`);
-   - `sdist` builds the source distribution and installs it with pip, compiling the
-     extension the way a user without a wheel would.
+   - `sdist` builds the source distribution, validates its metadata (`twine check
+     --strict` plus `scripts/check_dist_metadata.py`, which verifies that every
+     declared `License-File` is inside the archive — PyPI rejects the upload otherwise,
+     and twine does not check it) and installs it with pip, compiling the extension the
+     way a user without a wheel would.
 
    If any of these fails, nothing is published.
 5. The `publish` job enters the protected `pypi` environment, downloads all
    distributions into one `dist/`, checks that the set is complete (7 wheels + 1 sdist),
-   and exchanges its GitHub OIDC identity for a short-lived PyPI credential
+   runs the same metadata validation over all of them, and exchanges its GitHub OIDC identity for a short-lived PyPI credential
    (`pypa/gh-action-pypi-publish`, which also attaches PEP 740 attestations).
 6. `publish-crate.yml` runs in parallel from the same release (see below).
 

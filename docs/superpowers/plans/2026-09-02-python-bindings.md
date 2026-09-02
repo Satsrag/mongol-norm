@@ -46,6 +46,17 @@ Spec: `docs/superpowers/specs/2026-09-02-python-bindings-design.md`. Branch
 > - Task 3: `manylinux: '2014'` (explicit, fails instead of silently up-tagging) instead
 >   of `auto`; `--locked` in the wheel args; `workflow_dispatch` build-only mode; the
 >   smoke steps also assert the testing hook did not ship.
+> - Task 6, release `v0.1.0` (PR #23 merged as b2d8001): crates.io 0.1.0 published via
+>   trusted publishing; PyPI got all 7 wheels but **rejected the sdist** — "License-File
+>   LICENSE does not exist in distribution file … at mongol_norm-0.1.0/LICENSE". With
+>   `manifest-path` in a subdirectory maturin's sdist only carries the license files next
+>   to the crate manifest (`crates/mongol-norm/LICENSE`) while the PKG-INFO it writes
+>   declares the project-root ones; PyPI validates that for Metadata-Version 2.4 and
+>   `twine check --strict` (7.0.0) does not. Fix (0.1.1): `[tool.maturin] include`
+>   ships `LICENSE`/`NOTICE` in the sdist; new `scripts/check_dist_metadata.py`
+>   (declared License-Files must exist, `--require LICENSE --require NOTICE`) gates the
+>   sdist job and the publish job. PyPI 0.1.0 stays wheels-only (not yanked; every
+>   supported platform installs from a wheel); 0.1.1 is the first complete release.
 
 ## Working environment
 
