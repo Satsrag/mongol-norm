@@ -4,7 +4,9 @@ Flat, language-agnostic data for Traditional Mongolian shaping + normalization.
 
 mongol-norm bundles pre-processed JSON in [`mongol_norm/data/`](../mongol_norm/data/) that encodes the **letter × position × FVS → written-unit** mapping plus vowel-harmony categories, shaping conditions, the MVS particle dictionary, and the normalize table — everything a UTN #57 shaper/normalizer needs, minus the algorithm itself.
 
-**Audience:** anyone implementing a Mongolian shaper or normalizer in any language (Python, JS, Dart, Java, C, PHP, …). The JSON has no Python-specific structure — it is generated once (see [Regenerating](#regenerating)) and committed; there is no separate data package to install.
+**Audience:** anyone implementing a Mongolian shaper or normalizer in any language (JS, Dart, Java, C, PHP, …; Rust and Python are covered by the crate and its bindings). The JSON has no language-specific structure — it is generated once (see [Regenerating](#regenerating)) and committed; there is no separate data package to install.
+
+**How mongol-norm itself uses it:** the runtime — the Rust crate [`crates/mongol-norm/`](../crates/mongol-norm/), which the Python package wraps — does not read this JSON. `scripts/gen_rust_tables.py` compiles it into static Rust tables (`crates/mongol-norm/src/generated/`); the JSON is the input of that generator and of the other tooling (`scripts/gen_normalize_table.py` writes `MNG.normalize.json`, the tests read the files through `mongol_norm._data`). The wheel still ships the files for that tooling.
 
 The rules are derived from:
 - [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) — Unicode technical note defining the shaping algorithm.
@@ -31,8 +33,9 @@ Size: shape rules 45–60 KB each; the normalize table ~16 KB.
 
 ### Python
 
-The data ships inside `mongol-norm`; the shaper loads it for you. To read it
-directly, internal helpers are available:
+The files ship inside the `mongol-norm` wheel for tooling — the shaper itself does not
+read them (its tables are compiled in). To read them directly, the internal loaders the
+scripts and tests use are available:
 
 ```python
 from mongol_norm._data import load_rules, load_normalize_table
@@ -88,8 +91,8 @@ sole singleton-initial exception is `O:init`: it reuses the U+1824 U+180B prefix
 selected by canonical `O:init, A:fina`, then adds the trailing U+200D. The
 generator combines unchanged plain shaping
 traces with source `positioned_written` metadata to verify exact positions and
-MVS-boundary alternatives. Runtime normalization reads those tables; public
-`shape()` remains plain and contains no position records.
+MVS-boundary alternatives. The normalizer consults that inventory (compiled into the
+Rust tables); public `shape()` remains plain and contains no position records.
 A wrong outer/record/field type raises `TypeError`; wrong keys, unit, position,
 structural context, exact encoding, or more than 1024 records raises `ValueError`.
 This word-level API currently has no CLI subcommand.
@@ -111,13 +114,13 @@ boundary. For example, `AAaBZwj` segments as `A+Aa+B+Zwj`, then undergoes the
 same exact-shape encodability validation as sequence input. Unit names cannot be
 empty or contain surrounding whitespace.
 
-### Rust
+### Rust (the engine)
 
-The Rust crate in [`crates/mongol-norm/`](../crates/mongol-norm/) does not read the JSON at
-runtime. `scripts/gen_rust_tables.py` turns these files into static Rust tables
-(`crates/mongol-norm/src/generated/*.rs`: the `WrittenUnit` / `Condition` / `Alias` enums, the
-per-locale shaping tables and the MNG normalize table), and `tests/test_rust_twin.py` fails the
-Python suite whenever the committed tables are stale:
+The Rust crate in [`crates/mongol-norm/`](../crates/mongol-norm/) — the engine the Python
+package runs — does not read the JSON at runtime. `scripts/gen_rust_tables.py` turns these
+files into static Rust tables (`crates/mongol-norm/src/generated/*.rs`: the `WrittenUnit` /
+`Condition` / `Alias` enums, the per-locale shaping tables and the MNG normalize table), and
+`tests/test_rust_twin.py` fails the Python suite whenever the committed tables are stale:
 
 ```sh
 python scripts/gen_rust_tables.py          # regenerate after changing the JSON
@@ -128,7 +131,7 @@ python scripts/gen_rust_tables.py --check  # what CI runs
 
 Grab the raw files directly:
 
-- From the released GitHub artifact, or
+- From the wheel/sdist on PyPI (`mongol_norm/data/`), or
 - From the repo: [`mongol_norm/data/*.json`](../mongol_norm/data/)
 
 Bundle the file with your package. Parse with any JSON library.
@@ -265,7 +268,7 @@ Other locales may expose a different subset.
 This document is **data only**. For the algorithm, see:
 
 - **Spec:** [UTN #57 v4, section 3 ("Shaping")](https://www.unicode.org/notes/tn57/tn57-4.html) — the 5-step Mongolian-specific shaping phase.
-- **Reference implementation:** [`mongol_norm/shaper.py`](../mongol_norm/shaper.py) — readable pure Python.
+- **Reference implementation:** [`crates/mongol-norm/src/`](../crates/mongol-norm/src/) — dependency-free Rust: `token.rs` (tokenization, structural positions), `rules.rs` (the five phases, one function per rule), `shaper.rs` (variant resolution; `shape` / `same_shape` / `shape_detailed` / `trace`), `normalize.rs` (the normalize algorithm), `written_units.rs` (the written-unit input APIs). The Python package calls exactly this code through `crates/mongol-norm-py`.
 
 The 5 steps summarized:
 
@@ -292,7 +295,7 @@ condition_to_fvs      (cp, position, condition) -> fvs
 reverse_map           (position, tuple(written)) -> (cp, fvs)
 ```
 
-The reference Python implementation (`shaper.py`) shows exactly how these are built.
+The reference implementation builds them in two steps: `scripts/gen_rust_tables.py` derives the flat tables from the JSON at generation time, and `crates/mongol-norm/src/shaper.rs` indexes them when a `Shaper` is created — read both to see exactly how.
 
 ---
 
@@ -300,7 +303,7 @@ The reference Python implementation (`shaper.py`) shows exactly how these are bu
 
 Alongside the shape rules, `mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
 
-It exists so other languages can implement mongol-norm's `normalize` for covered written-unit chains (same supported shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. The Python runtime loads this exact file too. An uncovered chain is outside this table contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False`.
+It exists so other languages can implement mongol-norm's `normalize` for covered written-unit chains (same supported shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. mongol-norm's own engine consumes this exact file too, compiled into `crates/mongol-norm/src/generated/mng_normalize.rs` by `scripts/gen_rust_tables.py`. An uncovered chain is outside this table contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False` (the Rust API: `Error::NormalizationFallback`, or `normalize_allow_fallback`).
 
 ```python
 from mongol_norm._data import load_normalize_table
@@ -351,21 +354,23 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
 2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
-4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, return the input unchanged rather than mis-encode.
+4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, fail closed (raise), or return the input unchanged only when the caller opted in (`strict=False` / `--allow-fallback`); never mis-encode.
 
-Full reference: [`mongol_norm/shaper.py`](../mongol_norm/shaper.py) — `_unit_encode_chain`, `_unit_partition`, `_apply_velar_fem`.
+Full reference: [`crates/mongol-norm/src/normalize.rs`](../crates/mongol-norm/src/normalize.rs) — `canonical_for_shape`, `unit_encode_chain`, `unit_partition`, `apply_velar_fem`.
 
 ---
 
 ## Regenerating
 
 The JSON in `mongol_norm/data/` is generated and committed. Run these from the
-`mongol-norm` package directory after the relevant upstream/code change.
+repository root, in a virtualenv where the extension is built (`pip install maturin &&
+maturin develop --features testing`, see the README), after the relevant upstream/code
+change.
 
 Shape rules (when bumping `mongfontbuilder`):
 
 ```sh
-pip install -e ".[preprocess]"
+pip install 'mongfontbuilder>=0.10.6'   # the [preprocess] extra
 python scripts/preprocess.py           # all locales
 python scripts/preprocess.py MNG TOD   # specific
 ```
@@ -373,15 +378,19 @@ python scripts/preprocess.py MNG TOD   # specific
 The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `mongol_norm/data/`.
 
 Normalize table (after a change to shaping or the selection battery — no extra
-dependency, it uses this package's own shaper):
+dependency, it drives the package's own shaper, i.e. the compiled engine, so rebuild the
+extension first when the shaping rules changed):
 
 ```sh
 python scripts/gen_normalize_table.py        # all locales
 python scripts/gen_normalize_table.py MNG    # specific
 ```
 
-Rust tables (after any JSON change — regenerate them, then run
-`cargo test --workspace`):
+Rust tables (after any JSON change — regenerate them, rebuild the extension with
+`maturin develop --features testing`, then run `cargo test --workspace`). Mind the loop:
+the engine's tables come from the JSON and the normalize table comes from the engine, so a
+shape-rule change is `gen_rust_tables.py` → `maturin develop` → `gen_normalize_table.py` →
+`gen_rust_tables.py` again (the normalize table is compiled in too) → `maturin develop`:
 
 ```sh
 python scripts/gen_rust_tables.py            # regenerate crates/mongol-norm/src/generated/

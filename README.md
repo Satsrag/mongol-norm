@@ -11,7 +11,7 @@
 
 ### Status
 
-Both halves of the library — shaping and normalization (MNG / Hudum) — are verified against the same upstream corpora. CI runs the full suite on Python 3.9 – 3.13 on every push.
+Both halves of the library — shaping and normalization (MNG / Hudum) — are verified against the same upstream corpora. The engine is the Rust crate [`mongol-norm`](crates/mongol-norm/) (on [crates.io](https://crates.io/crates/mongol-norm)); the PyPI package `mongol-norm` is its Python binding (PyO3, built by maturin) and keeps the public Python API of the 0.0.x releases. CI runs the full suite on Python 3.9 – 3.14 and on Rust stable / MSRV on every push.
 
 #### ✅ Shaping
 
@@ -102,19 +102,23 @@ The exact canonical selection policy is frozen as **`mng-canonical/1`**. It is a
 
 ### Installation
 
-`mongol-norm` is a single self-contained package on [PyPI](https://pypi.org/project/mongol-norm/) — the shaping/normalize data is bundled, no runtime dependencies:
+`mongol-norm` ships as prebuilt binary wheels on [PyPI](https://pypi.org/project/mongol-norm/) — the Rust engine and its shaping/normalize tables are compiled into the package, so there are no runtime dependencies and no Rust toolchain to install:
 
 ```bash
 pip install mongol-norm
 ```
 
-Or from source:
+Wheels are built for CPython ≥ 3.9 (one `abi3` wheel per platform) on Linux x86_64 / aarch64 (glibc via manylinux2014 and musl via musllinux_1_2), macOS x86_64 / Apple silicon, and Windows x64. On any other platform `pip` falls back to the source distribution, which compiles the extension locally and needs a Rust toolchain ≥ 1.83 (pip fetches the `maturin` build backend by itself).
+
+Or from a checkout (same requirement: Rust ≥ 1.83):
 
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
 pip install .
 ```
+
+**Upgrading from 0.0.x.** The public API (`MongolianShaper`, `NormalizationFallbackError`, the `mongol-norm` command) is unchanged; `from mongol_norm.shaper import …` and `python -m mongol_norm.shaper …` still work through a compatibility shim. Differences: Python ≥ 3.9 is required; an unknown locale raises `ValueError` instead of `FileNotFoundError`; `mongol_norm.rules` and the private shaper internals no longer exist; the CLI is the crate's (adds `-V/--version`; its remaining intentional differences are listed at the top of `crates/mongol-norm/src/cli.rs`). New: `shaper.trace()`, `shaper.rule_names()`, `shaper.parse_written_units()`.
 
 ### Usage
 
@@ -228,7 +232,7 @@ print(f"{len(words)} inputs → {len(unique)} unique form(s): {unique}")
 
 #### Command line
 
-After `pip install mongol-norm`, the `mongol-norm` command is on `PATH` (or run `python -m mongol_norm.shaper ...` without installing).
+After `pip install mongol-norm`, the `mongol-norm` command is on `PATH`. It is the crate's own CLI — the same CLI code (`cargo install mongol-norm` gives it to you as a standalone binary), run in-process by the console script; `mongol-norm --version` prints the package version and `mongol-norm --help` lists every flag.
 
 ```bash
 # Inline text
@@ -267,18 +271,19 @@ still be rejected when it has no canonical MNG encoding.
 
 ### Rust crate
 
-The same normalizer is also available as a zero-dependency Rust crate, `mongol-norm`, developed
-in this repository (`crates/mongol-norm/`). It is a **twin implementation**: same data tables
-(generated from `mongol_norm/data/*.json`), same corpus and golden fixtures, byte-identical results on
-every value-producing operation (only a few error-message spellings differ — see the crate docs),
-output, lockstep version numbers.
+The engine is a zero-dependency Rust crate, `mongol-norm`, developed in this repository
+(`crates/mongol-norm/`); the Python package is a thin binding over it (`crates/mongol-norm-py/`,
+PyO3 + maturin). There is **one implementation**: one set of data tables (generated from
+`mongol_norm/data/*.json`), one corpus + golden fixture set, one version number
+(`[workspace.package].version` in `Cargo.toml`) — `pip install mongol-norm` and the crate return
+byte-identical results. Rust projects use the crate directly.
 
 Published on [crates.io](https://crates.io/crates/mongol-norm) (API docs on
 [docs.rs](https://docs.rs/mongol-norm)); the CLI installs with `cargo install mongol-norm`:
 
 ```toml
 [dependencies]
-mongol-norm = "0.0.4"
+mongol-norm = "0.1.0"
 ```
 
 ```rust
@@ -296,13 +301,19 @@ fn main() -> Result<(), Error> {
 }
 ```
 
-See [`crates/mongol-norm/README.md`](crates/mongol-norm/README.md) for the full API (written-unit
-and positioned written-unit encoders, `trace`, the `mongol-norm` binary).
+See [`crates/mongol-norm/README.md`](crates/mongol-norm/README.md) for the written-unit and
+positioned written-unit encoders and the `mongol-norm` binary, and [docs.rs](https://docs.rs/mongol-norm)
+for the full API (including `trace`).
 
 ### Running Tests
 
+The Python suite drives the compiled extension, so build it into a virtualenv first (needs Rust ≥ 1.83; the `testing` feature exposes the hook the fallback tests use). Re-run the `maturin develop` step after any Rust change.
+
 ```bash
 cd mongol-norm
+python -m venv .venv && source .venv/bin/activate
+pip install maturin
+maturin develop --features testing   # builds mongol_norm/_native, installs the package editable
 
 # Shaping + same_shape + normalize unit tests
 python -m unittest tests.test_shaper -v
@@ -310,7 +321,7 @@ python -m unittest tests.test_shaper -v
 # Normalize properties: round-trip + shape-canonicity + prefix-stability
 python -m unittest tests.test_round_trip
 
-# Normalize-table export (compute == load)
+# Normalize-table export (compute == bundled)
 python -m unittest tests.test_normalize_table
 
 # mongfontbuilder core-hud (225) + GB/T 25914-2023 eac-hud (3513, 5 UTN-xfail)
@@ -333,13 +344,13 @@ The hand-written suite covers:
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI input, canonical control spelling, and parser errors |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **224 Python tests** and **255 Rust tests** (unit + property + 177 core-hud + 3512 eac-hud corpus rows, 1993 canonical + 15 phase-trace golden vectors, fuzz), all green on Python 3.9 – 3.13 and Rust stable / 1.82.
+Current totals: **253 Python tests** and **255 Rust tests** (unit + property + 177 core-hud + 3512 eac-hud corpus rows, 1993 canonical + 15 phase-trace golden vectors, fuzz), all green on Python 3.9 – 3.14 and Rust stable / 1.82 (the core crate's MSRV; the binding crate needs 1.83).
 
-The Rust twin has its own suite (needs a repository checkout for the shared fixtures):
+The Rust crate has its own suite (needs a repository checkout for the shared fixtures):
 
 ```bash
 cargo test --workspace            # unit + integration (corpus, goldens, properties, CLI, fuzz)
-python -m unittest tests.test_rust_twin   # generated tables fresh, versions in lockstep
+python -m unittest tests.test_rust_twin   # generated tables fresh, package version == workspace version
 ```
 
 ### Use Cases
@@ -354,30 +365,35 @@ python -m unittest tests.test_rust_twin   # generated tables fresh, versions in 
 ### Project Structure
 
 ```
-mongol-norm/                          # the repo = the package (single, self-contained)
-├── .github/workflows/test.yml        # CI: Python 3.9-3.13 + the Rust job on every push
-├── pyproject.toml
-├── Cargo.toml                        # Rust workspace root (lockstep version with pyproject.toml)
+mongol-norm/                          # the repo = the package (Rust workspace + Python package)
+├── .github/workflows/test.yml        # CI: Python 3.9-3.14 (maturin develop + unittest) + the Rust job on every push
+├── pyproject.toml                    # maturin build backend; version is dynamic (read from Cargo.toml)
+├── Cargo.toml                        # Rust workspace root; [workspace.package].version is the only version literal
+├── crates/mongol-norm/               # the engine: src/ (generated/ = tables from the JSON), tests/ — on crates.io
+├── crates/mongol-norm-py/            # PyO3 binding crate → mongol_norm/_native (built by maturin; not on crates.io)
 ├── mongol_norm/
-│   ├── shaper.py                     # tokenize / assign_positions / shape / normalize
-│   ├── rules.py                      # the 5 shaping phases (iii1..iii5) mirroring iii.py
-│   ├── _data.py                      # loaders for the bundled JSON
-│   └── data/                         # bundled shaping + normalize data
+│   ├── __init__.py                   # MongolianShaper, NormalizationFallbackError, __version__
+│   ├── _api.py                       # the public Python API: a thin wrapper over _native
+│   ├── shaper.py                     # compat shim: re-exports the pre-0.1 names + the console-script main
+│   ├── _data.py                      # loaders for the JSON (tooling only — the runtime never reads it)
+│   └── data/                         # shaping + normalize data: input of the table generator
 │       ├── MNG.json  TOD.json  SIB.json  MCH.json
 │       └── MNG.normalize.json        # per-unit normalize table
-├── crates/mongol-norm/               # the Rust twin: src/ (generated/ = tables from the JSON), tests/
-├── scripts/                          # dev-only generators (preprocess, gen_normalize_table)
+├── scripts/                          # dev-only generators (preprocess, gen_normalize_table, gen_compat_goldens)
 │   └── gen_rust_tables.py            # JSON → crates/mongol-norm/src/generated/*.rs (--check in CI)
 ├── docs/data-format.md               # JSON schema, for other-language ports
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
-    ├── test_written_units_api.py
+    ├── test_written_units_api.py  test_positioned_written_units_api.py  test_cli.py  test_joiners.py
+    ├── test_bindings.py              # the wrapper layer: dict formats, error mapping, `__version__ == _native.version()`
     ├── test_core_hud.py  test_eac_hud.py
-    ├── test_rust_twin.py
+    ├── test_canonical_golden.py  test_phase_trace_golden.py  test_golden_generation.py
+    ├── test_rust_twin.py             # generated tables fresh, package version == workspace version
+    ├── golden/                       # canonical + phase-trace golden vectors
     └── data/{core,eac}-hud.tsv       # vendored from mongfontbuilder
 ```
 
-`mongol-norm` has **no runtime dependencies** — the shaping/normalize JSON is bundled in `mongol_norm/data/`. Install with `pip install mongol-norm`.
+`mongol-norm` has **no runtime dependencies** — the engine and its tables are compiled into the `mongol_norm._native` extension; the JSON in `mongol_norm/data/` ships for tooling only. Install with `pip install mongol-norm`.
 
 ### Data Sources & Acknowledgments
 
@@ -397,8 +413,9 @@ mongol-norm/                          # the repo = the package (single, self-con
 
 ### Requirements
 
-- Python 3.7+ (CI-tested on 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
-- No runtime dependencies (shaping/normalize data is bundled)
+- Python 3.9+ (CI-tested on 3.9 / 3.10 / 3.11 / 3.12 / 3.13 / 3.14)
+- Prebuilt wheels: Linux x86_64 / aarch64 (glibc and musl), macOS x86_64 / Apple silicon, Windows x64; elsewhere the sdist builds with Rust ≥ 1.83
+- No runtime dependencies (the engine and its shaping/normalize tables are compiled into the extension module)
 
 ### License
 
@@ -413,7 +430,7 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 
 ### 状态
 
-库的两部分 —— 整形与规范化(MNG / Hudum)—— 都对照同一批上游语料验证。CI 在每次 push 上对 Python 3.9 – 3.13 跑完整套件。
+库的两部分 —— 整形与规范化(MNG / Hudum)—— 都对照同一批上游语料验证。引擎是 Rust crate [`mongol-norm`](crates/mongol-norm/)(已发布到 [crates.io](https://crates.io/crates/mongol-norm));PyPI 包 `mongol-norm` 是它的 Python 绑定(PyO3,由 maturin 构建),保持 0.0.x 版本的公开 Python API 不变。CI 在每次 push 上对 Python 3.9 – 3.14 以及 Rust stable / MSRV 跑完整套件。
 
 #### ✅ Shaping(整形)
 
@@ -506,19 +523,23 @@ The shaping rules and bundled data are derived from [`mongfontbuilder`](https://
 
 ### 安装
 
-`mongol-norm` 是单一自包含包,已发布到 [PyPI](https://pypi.org/project/mongol-norm/) —— shaping/normalize 数据内置,零运行时依赖:
+`mongol-norm` 以预编译的二进制 wheel 发布到 [PyPI](https://pypi.org/project/mongol-norm/) —— Rust 引擎及其 shaping/normalize 表已编译进包内,零运行时依赖,也不需要安装 Rust 工具链:
 
 ```bash
 pip install mongol-norm
 ```
 
-或从源码安装:
+wheel 覆盖 CPython ≥ 3.9(每个平台一个 `abi3` wheel):Linux x86_64 / aarch64(glibc 走 manylinux2014,musl 走 musllinux_1_2)、macOS x86_64 / Apple silicon、Windows x64。其他平台 `pip` 会回退到源码包(sdist),在本地编译扩展,需要 Rust ≥ 1.83 工具链(`maturin` 构建后端由 pip 自动获取)。
+
+或从仓库 checkout 安装(同样需要 Rust ≥ 1.83):
 
 ```bash
 git clone https://github.com/Satsrag/mongol-norm.git
 cd mongol-norm
 pip install .
 ```
+
+**从 0.0.x 升级。** 公开 API（`MongolianShaper`、`NormalizationFallbackError`、`mongol-norm` 命令）不变；`from mongol_norm.shaper import …` 与 `python -m mongol_norm.shaper …` 通过兼容 shim 仍可用。差异：需要 Python ≥ 3.9；未知 locale 抛 `ValueError`（原为 `FileNotFoundError`）；`mongol_norm.rules` 及 shaper 私有内部实现已移除；命令行改为 crate 自带的 CLI（新增 `-V/--version`；其余刻意差异见 `crates/mongol-norm/src/cli.rs` 顶部）。新增：`trace()`、`rule_names()`、`parse_written_units()`。
 
 ### 使用方法
 
@@ -627,7 +648,7 @@ print(f"{len(words)} 个输入 → {len(unique)} 个唯一形态：{unique}")
 
 #### 命令行
 
-`pip install mongol-norm` 之后,`mongol-norm` 命令即在 `PATH` 上(不安装也可用 `python -m mongol_norm.shaper ...`)。
+`pip install mongol-norm` 之后,`mongol-norm` 命令即在 `PATH` 上。它就是 crate 自带的 CLI —— 同一份 CLI 代码(`cargo install mongol-norm` 会把它装成独立的二进制),由控制台脚本在进程内运行;`mongol-norm --version` 输出包版本,`mongol-norm --help` 列出全部参数。
 
 ```bash
 # 直接传文本
@@ -665,16 +686,17 @@ mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 
 ### Rust crate（Rust 实现）
 
-同一个规范化器还有一个零依赖的 Rust crate `mongol-norm`，就在本仓库的 `crates/mongol-norm/` 下开发。
-它是一份**双实现**：相同的数据表（由 `mongol_norm/data/*.json` 生成）、相同的语料与 golden 固件、
-所有产出值的操作逐字节相同的输出（只有个别错误信息的拼写不同，见 crate 文档）、锁步的版本号。
+引擎是零依赖的 Rust crate `mongol-norm`，就在本仓库的 `crates/mongol-norm/` 下开发；Python 包是它之上的
+一层薄绑定（`crates/mongol-norm-py/`，PyO3 + maturin）。**只有一份实现**：一套数据表（由
+`mongol_norm/data/*.json` 生成）、一套语料与 golden 固件、一个版本号（`Cargo.toml` 的
+`[workspace.package].version`）—— `pip install mongol-norm` 与 crate 的结果逐字节相同。Rust 项目直接使用 crate。
 
 已发布到 [crates.io](https://crates.io/crates/mongol-norm)（API 文档见
 [docs.rs](https://docs.rs/mongol-norm)）；命令行工具用 `cargo install mongol-norm` 安装：
 
 ```toml
 [dependencies]
-mongol-norm = "0.0.4"
+mongol-norm = "0.1.0"
 ```
 
 ```rust
@@ -692,13 +714,19 @@ fn main() -> Result<(), Error> {
 }
 ```
 
-完整 API（书写单元 / 带位置书写单元编码、`trace`、`mongol-norm` 命令行）见
-[`crates/mongol-norm/README.md`](crates/mongol-norm/README.md)。
+书写单元 / 带位置书写单元编码与 `mongol-norm` 命令行见
+[`crates/mongol-norm/README.md`](crates/mongol-norm/README.md)，完整 API（含 `trace`）见
+[docs.rs](https://docs.rs/mongol-norm)。
 
 ### 运行测试
 
+Python 套件跑的是编译好的扩展,所以先在 virtualenv 里把它构建出来(需要 Rust ≥ 1.83;`testing` feature 暴露 fallback 测试用的钩子)。任何 Rust 改动之后都要重跑 `maturin develop` 这一步。
+
 ```bash
 cd mongol-norm
+python -m venv .venv && source .venv/bin/activate
+pip install maturin
+maturin develop --features testing   # 构建 mongol_norm/_native,并以可编辑方式安装包
 
 # 手写 shaper / same_shape / normalize 测试
 python -m unittest tests.test_shaper -v
@@ -706,7 +734,7 @@ python -m unittest tests.test_shaper -v
 # normalize 性质:往返 + 同 shape 同输出 + 前缀稳定
 python -m unittest tests.test_round_trip
 
-# normalize 表导出(compute == load)
+# normalize 表导出(compute == bundled)
 python -m unittest tests.test_normalize_table
 
 # mongfontbuilder core-hud(225)+ GB/T 25914-2023 eac-hud(3513,5 个 UTN-xfail)
@@ -729,13 +757,13 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI输入、control标准拼写与解析错误 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **224 个 Python 测试** 和 **255 个 Rust 测试**(单元 + 性质 + 177 条 core-hud + 3512 条 eac-hud 语料行、1993 个 canonical + 15 个 phase-trace golden 向量、fuzz), 在 Python 3.9 – 3.13 与 Rust stable / 1.82 上全绿。
+当前总数: **253 个 Python 测试** 和 **255 个 Rust 测试**(单元 + 性质 + 177 条 core-hud + 3512 条 eac-hud 语料行、1993 个 canonical + 15 个 phase-trace golden 向量、fuzz), 在 Python 3.9 – 3.14 与 Rust stable / 1.82(核心 crate 的 MSRV;绑定 crate 需要 1.83)上全绿。
 
-Rust 版有自己的测试套件（共享固件需要仓库 checkout）：
+Rust crate 有自己的测试套件（共享固件需要仓库 checkout）：
 
 ```bash
 cargo test --workspace            # 单元 + 集成（语料、golden、性质、CLI、fuzz）
-python -m unittest tests.test_rust_twin   # 生成表新鲜、版本锁步
+python -m unittest tests.test_rust_twin   # 生成表新鲜、包版本 == 工作区版本
 ```
 
 ### 应用场景
@@ -750,30 +778,35 @@ python -m unittest tests.test_rust_twin   # 生成表新鲜、版本锁步
 ### 项目结构
 
 ```
-mongol-norm/                          # 仓库 = 包(单一自包含)
-├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.13 + Rust job
-├── pyproject.toml
-├── Cargo.toml                        # Rust 工作区根（版本与 pyproject.toml 锁步）
+mongol-norm/                          # 仓库 = 包(Rust 工作区 + Python 包)
+├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.14(maturin develop + unittest)+ Rust job
+├── pyproject.toml                    # maturin 构建后端；版本为 dynamic（从 Cargo.toml 读取）
+├── Cargo.toml                        # Rust 工作区根；[workspace.package].version 是唯一的版本字面量
+├── crates/mongol-norm/               # 引擎：src/（generated/ = 由 JSON 生成的表）、tests/ —— 已发布到 crates.io
+├── crates/mongol-norm-py/            # PyO3 绑定 crate → mongol_norm/_native（由 maturin 构建；不发布到 crates.io）
 ├── mongol_norm/
-│   ├── shaper.py                     # tokenize / assign_positions / shape / normalize
-│   ├── rules.py                      # 5 步 shaping 阶段 (iii1..iii5) 镜像 iii.py
-│   ├── _data.py                      # 内置 JSON 的加载器
-│   └── data/                         # 内置 shaping + normalize 数据
+│   ├── __init__.py                   # MongolianShaper、NormalizationFallbackError、__version__
+│   ├── _api.py                       # 公开 Python API：_native 之上的薄封装
+│   ├── shaper.py                     # 兼容 shim：re-export 0.1 之前的名字 + 命令行入口 main
+│   ├── _data.py                      # JSON 加载器（仅供工具脚本——运行时不读 JSON）
+│   └── data/                         # shaping + normalize 数据：表生成器的输入
 │       ├── MNG.json  TOD.json  SIB.json  MCH.json
 │       └── MNG.normalize.json        # 逐单元 normalize 表
-├── crates/mongol-norm/               # Rust 双实现：src/（generated/ = 由 JSON 生成的表）、tests/
-├── scripts/                          # 仅开发用的生成脚本 (preprocess, gen_normalize_table)
+├── scripts/                          # 仅开发用的生成脚本 (preprocess, gen_normalize_table, gen_compat_goldens)
 │   └── gen_rust_tables.py            # JSON → crates/mongol-norm/src/generated/*.rs（CI 跑 --check）
 ├── docs/data-format.md               # JSON schema, 供其他语言移植
 └── tests/
     ├── test_shaper.py  test_round_trip.py  test_normalize_table.py
-    ├── test_written_units_api.py
+    ├── test_written_units_api.py  test_positioned_written_units_api.py  test_cli.py  test_joiners.py
+    ├── test_bindings.py              # 封装层：dict 格式、错误映射、`__version__` 与扩展版本一致
     ├── test_core_hud.py  test_eac_hud.py
-    ├── test_rust_twin.py
+    ├── test_canonical_golden.py  test_phase_trace_golden.py  test_golden_generation.py
+    ├── test_rust_twin.py             # 生成表新鲜、包版本 == 工作区版本
+    ├── golden/                       # canonical + phase-trace golden 向量
     └── data/{core,eac}-hud.tsv       # 来自 mongfontbuilder
 ```
 
-`mongol-norm` **没有运行时依赖** —— shaping/normalize JSON 内置在 `mongol_norm/data/`。安装:`pip install mongol-norm`。
+`mongol-norm` **没有运行时依赖** —— 引擎及其数据表编译在 `mongol_norm._native` 扩展里;`mongol_norm/data/` 下的 JSON 只为工具脚本随包发布。安装:`pip install mongol-norm`。
 
 ### 数据来源与致谢
 
@@ -793,8 +826,9 @@ mongol-norm/                          # 仓库 = 包(单一自包含)
 
 ### 环境要求
 
-- Python 3.7+(CI 实测矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13)
-- 无运行时依赖(shaping/normalize 数据已内置)
+- Python 3.9+(CI 实测矩阵: 3.9 / 3.10 / 3.11 / 3.12 / 3.13 / 3.14)
+- 预编译 wheel:Linux x86_64 / aarch64(glibc 与 musl)、macOS x86_64 / Apple silicon、Windows x64;其他平台用 sdist 构建,需要 Rust ≥ 1.83
+- 无运行时依赖(引擎及其 shaping/normalize 表已编译进扩展模块)
 
 ### 许可证
 
