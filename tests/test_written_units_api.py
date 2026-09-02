@@ -2,52 +2,28 @@
 # -*- coding: utf-8 -*-
 """Public written-unit normalization API tests / 公开书写单元规范化 API 测试。"""
 
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from mongol_norm import MongolianShaper
-from mongol_norm.shaper import _parse_written_units
-
-
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def _run_cli(*args, stdin=None):
-    return subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            "from mongol_norm.shaper import main; main()",
-        ] + list(args),
-        input=stdin,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-        cwd=str(_REPO_ROOT),
-    )
+from tests._support import run_cli
 
 
 class TestNormalizeWrittenUnitsCli(unittest.TestCase):
     def test_missing_subcommand_fails_cleanly(self):
-        result = _run_cli()
+        result = run_cli()
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("CMD", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_ambiguous_compact_units_require_plus_separators(self):
-        with self.assertRaisesRegex(ValueError, r"ambiguous.*\+"):
-            _parse_written_units("AAA", {"A", "AA"})
-
     def test_shape_cli_pascal_case_output_pipes_back(self):
-        shaped = _run_cli("shape", "\u182A\u200D")
+        shaped = run_cli("shape", "\u182A\u200D")
 
         self.assertEqual(shaped.returncode, 0, shaped.stderr)
         self.assertEqual(shaped.stdout, "B+Zwj\n")
-        normalized = _run_cli(
+        normalized = run_cli(
             "normalize-written-units",
             shaped.stdout.rstrip("\n"),
         )
@@ -58,7 +34,7 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         )
 
     def test_compact_pascal_case_units(self):
-        result = _run_cli("normalize-written-units", "BZwj")
+        result = run_cli("normalize-written-units", "BZwj")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
@@ -67,7 +43,7 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         )
 
     def test_compact_units_are_segmented_before_shape_validation(self):
-        result = _run_cli("normalize-written-units", "AAaBZwj")
+        result = run_cli("normalize-written-units", "AAaBZwj")
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("no canonical MNG encoding", result.stderr)
@@ -79,14 +55,14 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         for units in cases:
             with self.subTest(units=units):
                 expected = shaper.normalize_written_units(units)
-                result = _run_cli("normalize-written-units", "+".join(units))
+                result = run_cli("normalize-written-units", "+".join(units))
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stdout, expected + "\n")
 
     def test_lowercase_control_spellings_are_rejected(self):
         for control in ("mvs", "nirugu", "zwj"):
             with self.subTest(control=control):
-                result = _run_cli("normalize-written-units", control)
+                result = run_cli("normalize-written-units", control)
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("is unknown", result.stderr)
 
@@ -94,19 +70,19 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         units = ["T", "A", "L", "Mvs", "Aa"]
         expected = MongolianShaper(locale="MNG").normalize_written_units(units)
 
-        result = _run_cli("normalize-written-units", "+".join(units))
+        result = run_cli("normalize-written-units", "+".join(units))
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, expected + "\n")
 
     def test_inline_plus_delimited_units(self):
-        result = _run_cli("normalize-written-units", "B+Aa")
+        result = run_cli("normalize-written-units", "B+Aa")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "\u182A\u1820\u180B\n")
 
     def test_non_batch_stdin_accepts_one_transport_newline(self):
-        result = _run_cli(
+        result = run_cli(
             "normalize-written-units",
             "-",
             stdin="B+Aa\n",
@@ -121,7 +97,7 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
             output_path = Path(directory) / "canonical.txt"
             input_path.write_text("B+Aa\n", encoding="utf-8")
 
-            result = _run_cli(
+            result = run_cli(
                 "normalize-written-units",
                 "-i",
                 str(input_path),
@@ -140,13 +116,13 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         cases = [("Unknown", "is unknown"), ("O", "no canonical MNG encoding")]
         for text, message in cases:
             with self.subTest(text=text):
-                result = _run_cli("normalize-written-units", text)
+                result = run_cli("normalize-written-units", text)
                 self.assertEqual(result.returncode, 2)
                 self.assertIn(message, result.stderr)
                 self.assertNotIn("Traceback", result.stderr)
 
     def test_stdin_batch_processes_one_sequence_per_line(self):
-        result = _run_cli(
+        result = run_cli(
             "normalize-written-units",
             "--batch",
             "-",
@@ -159,24 +135,77 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
     def test_surrounding_whitespace_is_rejected(self):
         for text in (" B+Aa", "B+Aa ", "\tB+Aa", "B+Aa\t"):
             with self.subTest(text=text):
-                result = _run_cli("normalize-written-units", text)
+                result = run_cli("normalize-written-units", text)
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("cannot be empty or contain whitespace", result.stderr)
 
     def test_internal_whitespace_is_rejected(self):
         for text in ("A A", "A A+B"):
             with self.subTest(text=text):
-                result = _run_cli("normalize-written-units", text)
+                result = run_cli("normalize-written-units", text)
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("whitespace", result.stderr)
                 self.assertNotIn("Traceback", result.stderr)
 
     def test_empty_unit_name_fails_without_a_traceback(self):
-        result = _run_cli("normalize-written-units", "B++Aa")
+        result = run_cli("normalize-written-units", "B++Aa")
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("cannot be empty or contain whitespace", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
+
+
+class TestParseWrittenUnits(unittest.TestCase):
+    """``parse_written_units`` — the CLI spelling of a unit sequence, as an API."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.shaper = MongolianShaper(locale="MNG")
+
+    def test_plus_and_compact_spellings_parse_identically(self):
+        cases = [
+            ("B+Aa", "BAa", ["B", "Aa"]),
+            ("T+A+L+Mvs+Aa", "TALMvsAa", ["T", "A", "L", "Mvs", "Aa"]),
+            ("Nirugu+O+Nirugu", "NiruguONirugu", ["Nirugu", "O", "Nirugu"]),
+            ("Zwj+Dd", "ZwjDd", ["Zwj", "Dd"]),
+        ]
+        for explicit, compact, units in cases:
+            with self.subTest(units=units):
+                self.assertEqual(self.shaper.parse_written_units(explicit), units)
+                self.assertEqual(self.shaper.parse_written_units(compact), units)
+
+    def test_compact_parse_is_unambiguous_for_the_real_vocabulary(self):
+        # No MNG written-unit name is a concatenation of others, so compact
+        # sequences of the real vocabulary always have exactly one parse — the
+        # "ambiguous; separate units with '+'" error can only be reached with
+        # a synthetic vocabulary (covered by the crate's `written_units` tests).
+        # MNG 书写单元名互不拼接,真实词汇表的紧凑形只有一种切分。
+        self.assertEqual(self.shaper.parse_written_units("AAA"), ["A", "A", "A"])
+        self.assertEqual(self.shaper.parse_written_units("AAaA"), ["A", "Aa", "A"])
+        self.assertEqual(self.shaper.parse_written_units("K2K"), ["K2", "K"])
+
+    def test_empty_text_and_one_transport_newline(self):
+        self.assertEqual(self.shaper.parse_written_units(""), [])
+        self.assertEqual(self.shaper.parse_written_units("\n"), [])
+        self.assertEqual(self.shaper.parse_written_units("B+Aa\n"), ["B", "Aa"])
+        self.assertEqual(self.shaper.parse_written_units("B+Aa\r\n"), ["B", "Aa"])
+
+    def test_whitespace_and_empty_units_are_rejected(self):
+        for text in (" B+Aa", "B+Aa ", "A A", "\tB", "B+Aa\n\n"):
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(
+                        ValueError, "cannot be empty or contain whitespace"):
+                    self.shaper.parse_written_units(text)
+        with self.assertRaisesRegex(ValueError, r"separate explicit units with '\+'"):
+            self.shaper.parse_written_units("B++Aa")
+
+    def test_unknown_units_are_reported_with_their_index(self):
+        with self.assertRaisesRegex(
+                ValueError, r"written_units\[0\] is unknown: 'Unknown'"):
+            self.shaper.parse_written_units("Unknown")
+        with self.assertRaisesRegex(
+                ValueError, r"written_units\[1\] is unknown: 'mvs'"):
+            self.shaper.parse_written_units("B+mvs")
 
 
 class TestNormalizeWrittenUnits(unittest.TestCase):

@@ -105,11 +105,19 @@ pub fn main() -> i32 {
             }
         }
     }
+    run_args(&args)
+}
+
+/// Run the CLI on an explicit argument list (without the program name) against the
+/// process's real stdin/stdout/stderr and return the exit status.
+///
+/// This is the entry point behind the Python package's `mongol-norm` console script.
+pub fn run_args(args: &[String]) -> i32 {
     let stdin = io::stdin();
     let stdout = io::stdout();
     let stderr = io::stderr();
     run(
-        &args,
+        args,
         &mut stdin.lock(),
         &mut stdout.lock(),
         &mut stderr.lock(),

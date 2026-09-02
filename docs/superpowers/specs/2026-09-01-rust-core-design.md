@@ -1,5 +1,15 @@
 # mongol-norm Rust core — design
 
+> **Status (2026-09-02):** superseded in part by
+> [`2026-09-02-python-bindings-design.md`](2026-09-02-python-bindings-design.md). The
+> "dual implementation" arrangement below no longer exists: the pure-Python runtime was
+> removed and the PyPI package is now a PyO3 binding of this crate
+> (`crates/mongol-norm-py`), so the crate is the only engine. The crate design, the
+> generated tables and the fidelity contract (now read as the wrapper's compatibility with
+> the pre-0.1 Python API) still apply.
+>
+> 2026-09-02 状态：Python 运行时已删除，PyPI 包改为本 crate 的 PyO3 绑定（`crates/mongol-norm-py`），下文的“双实现”已不存在。
+
 Date: 2026-09-01 · Status: implemented on branch `feat/rust-core` (2026-09-01); the plan's amendments banner records execution deviations
 
 > 中文摘要：在本仓库内做 **双实现**——运行时核心（shaping + normalization + 薄 CLI）用 Rust 重写为 crate `mongol-norm`（`crates/mongol-norm/`），

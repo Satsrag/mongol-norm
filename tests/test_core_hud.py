@@ -15,8 +15,8 @@ mongfontbuilder source tree). Re-sync when upgrading mongfontbuilder.
 
 mongfontbuilder's own test harness (`tests/test_font.py`) shapes the
 input through HarfBuzz on a built OTF and compares to `expected`. Here
-we shape through our pure-Python `MongolianShaper` and do the same
-comparison, after one normalization step: mongfontbuilder distinguishes
+we shape through `MongolianShaper` (the Rust engine's Python binding)
+and do the same comparison, after one normalization step: mongfontbuilder distinguishes
 narrow (`_`) vs wide (`-`) MVS in its expected output, while our
 `shape()` produces the generic `Mvs` token — we collapse both to
 `Mvs` before comparing.

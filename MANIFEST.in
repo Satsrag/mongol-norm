@@ -1,3 +1,0 @@
-recursive-include scripts *.py
-recursive-include tests/data *.tsv
-recursive-include tests/golden *.json *.jsonl

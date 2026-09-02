@@ -1,10 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["crates/mongol-norm"]
+members = ["crates/mongol-norm", "crates/mongol-norm-py"]
 
-# Lockstep with pyproject.toml / mongol_norm.__version__ (checked by tests/test_rust_twin.py).
+# The single version literal: both crates inherit it, maturin reads it for the Python
+# package (pyproject.toml has `dynamic = ["version"]`), and mongol_norm.__version__ reports
+# it at runtime (checked by tests/test_rust_twin.py).
 [workspace.package]
-version = "0.0.4"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"

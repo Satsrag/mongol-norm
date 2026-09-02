@@ -257,6 +257,40 @@ impl Shaper {
     }
 }
 
+impl Shaper {
+    /// Every written unit this shaper's normalize table can encode, plus the structural
+    /// controls (`Mvs`, `Nirugu`, `Zwj`), sorted by name.
+    ///
+    /// These are exactly the names [`Shaper::normalize_written_units`] accepts; the Python
+    /// bindings use the list to validate their input with Python-formatted messages.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::NormalizeUnsupported`] — this locale has no bundled normalize table.
+    pub fn known_written_units(&self) -> Result<Vec<WrittenUnit>, Error> {
+        let table = self.table()?;
+        let mut units: Vec<WrittenUnit> = table.known_units.iter().copied().collect();
+        units.sort_by_key(|unit| unit.as_str());
+        Ok(units)
+    }
+
+    /// The HUD positioned inventory: every `(unit, position)` pair that
+    /// [`Shaper::normalize_positioned_written_units`] accepts for a letter record (letter
+    /// positions only — controls are not part of the inventory), sorted by unit name then
+    /// position.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::NormalizeUnsupported`] — this locale has no bundled normalize table.
+    pub fn positioned_written_units(&self) -> Result<Vec<(WrittenUnit, Position)>, Error> {
+        let table = self.table()?;
+        let mut records: Vec<(WrittenUnit, Position)> =
+            table.positioned_units.iter().copied().collect();
+        records.sort_by_key(|(unit, position)| (unit.as_str(), position.as_str()));
+        Ok(records)
+    }
+}
+
 fn strip_one_newline(text: &str) -> &str {
     text.strip_suffix("\r\n")
         .or_else(|| text.strip_suffix('\n'))

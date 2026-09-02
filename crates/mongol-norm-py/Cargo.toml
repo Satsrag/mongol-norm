@@ -1,0 +1,35 @@
+[package]
+name = "mongol-norm-py"
+version.workspace = true
+edition.workspace = true
+# PyO3 0.29 needs 1.83; the core crate keeps its own 1.82 MSRV.
+rust-version = "1.83"
+license.workspace = true
+repository.workspace = true
+description = "Python bindings for mongol-norm (published to PyPI as `mongol-norm`, not to crates.io)"
+publish = false
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+doc = false
+# No Rust tests here (the Python suite exercises the module); this also keeps
+# `cargo test --workspace` from linking a test harness against libpython.
+test = false
+doctest = false
+
+[features]
+default = ["extension-module"]
+# Leave the CPython symbols unresolved until the interpreter loads the module, so a
+# plain `cargo build --workspace` needs no libpython to link (maturin sets it too).
+extension-module = ["pyo3/extension-module"]
+# Exposes `_shaper_with_empty_normalize_table` for tests/test_shaper.py's fallback cases.
+# `maturin develop --features testing`; release wheels are built without it.
+testing = ["mongol-norm/testing"]
+
+[dependencies]
+mongol-norm = { path = "../mongol-norm" }
+pyo3 = { version = "0.29.2", features = ["abi3-py39"] }
+
+[build-dependencies]
+pyo3-build-config = "0.29.2"

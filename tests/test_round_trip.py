@@ -22,13 +22,16 @@ Test corpus = the three shape test suites:
 All cases that pass shape() must round-trip cleanly through normalize().
 所有 shape() 通过的用例都必须能干净地通过 normalize() 往返。
 """
-from os import remove
 import csv
 import unittest
 from pathlib import Path
 
 from mongol_norm import MongolianShaper
-from mongol_norm.shaper import _parse_written_units
+from mongol_norm._data import load_rules
+
+# Structural shape tokens (they split a word into letter chains).
+# 结构 shape token(把词切成字母 chain)。
+_STRUCTURAL_UNITS = ('Mvs', 'Nirugu', 'Zwj')
 
 _ALIAS_TO_CP = {
     'a': 'ᠠ', 'e': 'ᠡ', 'i': 'ᠢ', 'o': 'ᠣ',
@@ -272,18 +275,11 @@ class TestShapeCanonicity(unittest.TestCase, _RoundTripBase):
             "corpus shape-group coverage drifted",
         )
 
-        self.s._build_unit_enc()
-        known_units = {
-            unit
-            for (_position, written) in self.s._unit_enc
-            for unit in written
-        }
-        known_units.update(self.s._STRUCTURAL_CHARS)
         compact_failures = []
         for shape in representatives:
             compact = "".join(shape)
             try:
-                parsed = tuple(_parse_written_units(compact, known_units))
+                parsed = tuple(self.s.parse_written_units(compact))
             except ValueError as exc:
                 compact_failures.append((shape, compact, str(exc)))
                 continue
@@ -340,7 +336,7 @@ class TestShapeCanonicity(unittest.TestCase, _RoundTripBase):
         print(f"\nSHAPE-CANONICITY: {converged} / {total_groups} shape-groups "
               f"converge to one normalize")
         if divergences:
-            print(f"First 10 divergences:")
+            print("First 10 divergences:")
             for sh, by_norm in divergences[:10]:
                 print(f"  shape={list(sh)}")
                 for nm, examples in by_norm.items():
@@ -607,8 +603,9 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
     def test_particles_from_data(self):
         """
         Data-driven sweep using the FULL particle list from
-        mongfontbuilder (loaded as `particles_data[locale]` on the
-        shaper from `mongfontbuilder/data/particles.json`).
+        mongfontbuilder (the `particles` table of the bundled shaping-rules
+        JSON, `mongol_norm._data.load_rules("MNG")`, originally
+        `mongfontbuilder/data/particles.json`).
 
         47 MNG particle patterns include multi-letter chains like
         `mvs y i n`, `mvs d ue r`, `mvs ch ue` etc. For each particle
@@ -623,7 +620,7 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
         """
         mvs_char = chr(0x180E)
 
-        particles = sorted(self.s.particles_data.get('MNG', {}).keys())
+        particles = sorted(load_rules('MNG')['particles'].keys())
         failures = []
         checked = 0
         skipped_no_mvs = 0
@@ -660,8 +657,8 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
 class TestNormalizeFast(unittest.TestCase, _RoundTripBase):
     """
     Long chains must stay fast. An 18-unit single morpheme used to take
-    ~9s via the budget-ladder DFS; the lazy Viterbi path brings it to ~ms.
-    长 chain 必须快。18-unit 单语素曾经 ~9s,Viterbi 降到毫秒级。
+    ~9s via the budget-ladder DFS; the per-unit table path brings it to ~ms.
+    长 chain 必须快。18-unit 单语素曾经 ~9s,逐单元表路径降到毫秒级。
     """
 
     @classmethod
@@ -672,9 +669,8 @@ class TestNormalizeFast(unittest.TestCase, _RoundTripBase):
         import time
         chain = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L', 'G',
                  'A', 'J', 'I', 'G', 'O', 'L', 'G', 'O')
-        self.s._chain_canon_cache = {}  # cold
         t = time.time()
-        enc = self.s._compute_chain_canonical(chain)
+        enc = self.s.normalize_written_units(list(chain))
         elapsed = time.time() - t
         self.assertEqual(tuple(self.s.shape(enc)), chain,
                          "long-chain encoding must round-trip")
@@ -683,14 +679,13 @@ class TestNormalizeFast(unittest.TestCase, _RoundTripBase):
 
     def test_normalize_text_throughput(self):
         """A paragraph of long compound words normalizes well under the old
-        ~10-20s. Cold (no cache) must be < 5s, and each word round-trips.
-        长复合词段落必须远快于旧的 ~10-20s:冷启动 < 5s,且每词保形。"""
+        ~10-20s: < 5s on a fresh shaper, and each word round-trips.
+        长复合词段落必须远快于旧的 ~10-20s:新建 shaper < 5s,且每词保形。"""
         import time
         words = [
             'ᠦᠢᠯᠡᠳᠦᠯᠭᠡᠵᠢᠭᠦᠯᠬᠦ', 'ᠳᠡᠭᠡᠭᠰᠢᠯᠡᠭᠦᠯᠬᠦ',
             'ᠲᠡᠷᠭᠡᠯᠰᠢᠭᠦᠯᠬᠦ', 'ᠪᠦᠯᠬᠦᠮᠳᠡᠰᠦᠭᠡᠢ',
         ]
-        self.s._chain_canon_cache = {}
         t = time.time()
         for w in words:
             norm = self.s.normalize(w)
@@ -737,8 +732,8 @@ class TestPrefixStability(unittest.TestCase, _RoundTripBase):
         A = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L', 'G',
              'A', 'J', 'I', 'G', 'O', 'L', 'G', 'O')
         B = ('A', 'O', 'I', 'I', 'L', 'A', 'D', 'O', 'L')
-        encA = self.s._encode_chain_canonical(A)
-        encB = self.s._encode_chain_canonical(B)
+        encA = self.s.normalize_written_units(list(A))
+        encB = self.s.normalize_written_units(list(B))
         lettersA = _split_letters(encA)
         lettersB = _split_letters(encB)
         # shared region = all of B's letters except its last (the boundary)
@@ -764,14 +759,13 @@ class TestPrefixStability(unittest.TestCase, _RoundTripBase):
         # Only pure-letter chains: structural tokens (mvs/nirugu/zwj) split
         # words into chains, so feeding them as one chain is meaningless.
         # 只取纯字母 chain:结构 token 会切分 chain,整词直接喂无意义。
-        structural = ('Mvs', 'Nirugu', 'Zwj')
         shapes = {}
         for _, aliases in INLINE_CASES:
             for w in _aliases_to_words(aliases):
                 if w:
                     sh = tuple(self.s.shape(w))
-                    if not any(t in structural for t in sh):
-                        shapes[sh] = self.s._encode_chain_canonical(sh)
+                    if not any(t in _STRUCTURAL_UNITS for t in sh):
+                        shapes[sh] = self.s.normalize_written_units(list(sh))
         for fn in ('core-hud.tsv', 'eac-hud.tsv'):
             for _, aliases, _exp in _load_tsv(fn):
                 toks = aliases.split()
@@ -780,8 +774,8 @@ class TestPrefixStability(unittest.TestCase, _RoundTripBase):
                 for w in _aliases_to_words(aliases):
                     if w:
                         sh = tuple(self.s.shape(w))
-                        if not any(t in structural for t in sh):
-                            shapes[sh] = self.s._encode_chain_canonical(sh)
+                        if not any(t in _STRUCTURAL_UNITS for t in sh):
+                            shapes[sh] = self.s.normalize_written_units(list(sh))
         shapeset = set(shapes)
         pairs = viol = 0
         examples = []

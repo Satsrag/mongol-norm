@@ -78,7 +78,7 @@ def _shape_aliases(shaper, aliases: str) -> list:
 
 
 # Tokens mongfontbuilder emits from font glyph-name parsing that our
-# pure-Python shaper doesn't produce — strip them from expected output
+# shaper doesn't produce — strip them from expected output
 # so the comparison focuses on actual shape differences.
 #   < / >           — Left / Right join markers
 #   Fvs1..4         — explicit FVS rendering
@@ -207,7 +207,7 @@ class TestEacHud(unittest.TestCase):
             print(f"  Skipped (unknown tokens): {sorted(skipped_tokens)}")
         if failures:
             # Print just the first 30 to keep output bounded
-            print(f"\nFirst 30 failures:")
+            print("\nFirst 30 failures:")
             for f in failures[:30]:
                 print(f)
             print(f"\n... ({len(failures) - 30} more)" if len(failures) > 30 else "")

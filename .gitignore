@@ -30,3 +30,6 @@ sources/
 
 # Rust
 target/
+
+# Python extension built in-place by `maturin develop`
+*.so

@@ -108,7 +108,7 @@ impl NormalizeTable {
 
     /// Python's monkeypatched empty table (`_unit_enc = {}`, `_unit_enc_max_len = 1`): no
     /// encodings at all, so every chain falls back.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn empty(canonical_version: &'static str) -> NormalizeTable {
         let known_units: HashSet<WrittenUnit> =
             [WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]

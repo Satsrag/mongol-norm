@@ -1,14 +1,17 @@
 name: Test
 
-# Repo layout: a single self-contained package, mongol-norm/. The shaping +
-# normalize JSON is bundled in mongol_norm/data/ (no separate data package,
-# no runtime dependency). CI installs it locally (no PyPI yet) and runs the
-# test suite, which covers all shaping logic, the normalize round-trip /
-# canonicity / prefix-stability properties, the normalize-table export, and
-# the mongfontbuilder core-hud / eac-hud TSV regression sets.
-# The Rust twin lives in crates/mongol-norm/ (workspace root Cargo.toml); its
-# tables are generated from the same JSON by scripts/gen_rust_tables.py and
-# kept fresh by tests/test_rust_twin.py.
+# Repo layout: the shaping engine is the Rust crate crates/mongol-norm (workspace
+# root Cargo.toml); the PyPI package mongol-norm is its PyO3 binding
+# (crates/mongol-norm-py + mongol_norm/, built with maturin). The shaping +
+# normalize JSON in mongol_norm/data/ is the source of the generated Rust tables
+# (scripts/gen_rust_tables.py) and of the tooling; the runtime does not read it.
+#
+# The Python job builds the extension in place (maturin develop) on every
+# supported CPython and runs the unittest suite, which covers all shaping logic,
+# the normalize round-trip / canonicity / prefix-stability properties, the
+# normalize-table export, the mongfontbuilder core-hud / eac-hud TSV regression
+# sets and the binding layer. The Rust job checks the whole workspace on stable
+# and the core crate's MSRV / wasm32 / packaging guarantees.
 
 on:
   push:
@@ -16,63 +19,112 @@ on:
   pull_request:
     branches: [main]
 
+# No job needs more than read access to the repository.
+permissions:
+  contents: read
+
 jobs:
   test:
+    name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install package
+      - name: Install stable Rust (the binding crate needs 1.83+)
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        with:
+          toolchain: stable
+
+      # `maturin develop` refuses to run outside a virtual environment. Exporting
+      # VIRTUAL_ENV and PATH is what `source .venv/bin/activate` does, but it
+      # persists across the following steps.
+      - name: Create a virtual environment
         run: |
-          python -m pip install --upgrade pip
-          pip install .
+          python -m venv .venv
+          echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Build the extension in place
+        # Same version range as [build-system].requires in pyproject.toml. The
+        # `testing` feature exposes the fallback hook tests/test_shaper.py needs;
+        # release wheels are built without it (publish.yml).
+        run: |
+          python -m pip install 'maturin>=1.15,<2'
+          maturin develop --locked --features testing
 
       - name: Run unittest suite
+        # The test support module raises when the fallback hook is missing, so the
+        # hook-gated tests can never skip silently in CI.
+        env:
+          MONGOL_NORM_REQUIRE_TESTING_HOOK: "1"
         # Auto-discovers every tests/test_*.py so new test modules can't be
         # silently skipped. Covers:
         #   - hand-written shaper tests (shape / same_shape / normalize)
         #   - joiner-token semantics (nirugu / ZWJ in shape + normalize)
         #   - normalize round-trip + shape-canonicity + prefix-stability
-        #   - normalize-table export (compute == load)
+        #   - normalize-table export (compute == bundled)
         #   - 225 mongfontbuilder core-hud cases (100%)
         #   - 3513 mongfontbuilder eac-hud cases (100%, 5 UTN-xfail)
-        #   - generated Rust tables are fresh + crate/package versions agree (test_rust_twin)
+        #   - the binding layer: dict formats, error mapping, console script (test_bindings, test_cli)
+        #   - generated Rust tables are fresh + __version__ equals the workspace version (test_rust_twin)
+        run: python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Generated artifacts are fresh
+        # The bundled normalize table, the Rust tables and the compat goldens are
+        # generated from mongol_norm/data/*.json; each script's --check fails when
+        # the committed file differs from what it would generate now.
         run: |
-          python -m unittest discover -s tests -p 'test_*.py' -v
+          python scripts/gen_rust_tables.py --check
+          python scripts/gen_normalize_table.py --check
+          python scripts/gen_compat_goldens.py --check
 
   rust:
+    name: Rust
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
 
+      # No setup-python here: nothing links libpython (the binding crate's lib has
+      # test = false, and `extension-module` leaves the CPython symbols unresolved).
+      # Clippy's pyo3 build script only reads the interpreter config from the image's
+      # python3, and would fall back to the abi3 default config without one.
       - name: Install stable Rust (rustfmt, clippy, wasm32 target)
         uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
+          toolchain: stable
           components: rustfmt, clippy
           targets: wasm32-unknown-unknown
 
       - name: Format
         run: cargo fmt --all --check
 
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Clippy (whole workspace, all features)
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
-      - name: Test (stable)
+      - name: Test (stable, whole workspace)
         run: cargo test --workspace --locked
 
-      - name: Build the library for wasm32-unknown-unknown
+      # The remaining steps are core-crate only (-p mongol-norm): the binding crate
+      # needs Rust 1.83 and a Python interpreter, has no wasm32 story and is not
+      # published to crates.io.
+      - name: Build the core library for wasm32-unknown-unknown
         run: cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked
 
       - name: Rustdoc (broken intra-doc links are errors)
@@ -80,10 +132,10 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
 
-      - name: Test on the MSRV (1.82.0)
+      - name: Test the core crate on its MSRV (1.82.0)
         run: |
           rustup toolchain install 1.82.0 --profile minimal
-          cargo +1.82.0 test --workspace --locked
+          cargo +1.82.0 test -p mongol-norm --locked
 
-      - name: Package
+      - name: Package the core crate
         run: cargo package -p mongol-norm --locked
