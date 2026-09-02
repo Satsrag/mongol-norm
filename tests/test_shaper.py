@@ -15,6 +15,15 @@ must produce the identical canonical output.
 import unittest
 
 from mongol_norm import MongolianShaper, NormalizationFallbackError
+# The fallback tests need a shaper whose normalize table is empty (the
+# extension's `testing` hook, see tests/_support.py).
+# 回退测试需要一个 normalize 表为空的 shaper(扩展的 `testing` 钩子,见 tests/_support.py)。
+from tests._support import empty_table_shaper, needs_testing_hook
+
+# shape_detailed() reports structural tokens (MVS / Nirugu / ZWJ) with these
+# code points; the position tests below look at letters only.
+# shape_detailed() 用这些码位报告结构 token;位置测试只看字母。
+_STRUCTURAL_CPS = frozenset({"U+180E", "U+180A", "U+200D"})
 
 _ALIAS_TO_CP = {
     'a': '\u1820', 'e': '\u1821', 'i': '\u1822', 'o': '\u1823',
@@ -765,45 +774,50 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("g e r")), ["G", "A", "R"])
 
     # ══════════════════════════════════════════════════════════
-    # Position assignment
+    # Position assignment (observed through shape_detailed(); structural
+    # tokens are filtered out so only the letters' positions remain)
+    # 位置分配(通过 shape_detailed() 观察;过滤掉结构 token,只看字母)
     # ══════════════════════════════════════════════════════════
 
+    def _letter_positions(self, aliases):
+        return [
+            detail["position"]
+            for detail in self.s.shape_detailed(_mgl(aliases))
+            if detail["cp"] not in _STRUCTURAL_CPS
+        ]
+
     def test_position_single_isol(self):
-        tokens = self.s.tokenize(_mgl("n"))
-        self.s.assign_positions(tokens)
-        ltoks = [t for t in tokens if t.is_letter]
-        self.assertEqual(ltoks[0].position, "isol")
+        self.assertEqual(self._letter_positions("n"), ["isol"])
 
     def test_position_init_fina(self):
-        tokens = self.s.tokenize(_mgl("a b"))
-        self.s.assign_positions(tokens)
-        ltoks = [t for t in tokens if t.is_letter]
-        self.assertEqual(ltoks[0].position, "init")
-        self.assertEqual(ltoks[1].position, "fina")
+        self.assertEqual(self._letter_positions("a b"), ["init", "fina"])
 
     def test_position_init_medi_fina(self):
-        tokens = self.s.tokenize(_mgl("t a l"))
-        self.s.assign_positions(tokens)
-        ltoks = [t for t in tokens if t.is_letter]
-        self.assertEqual(ltoks[0].position, "init")
-        self.assertEqual(ltoks[1].position, "medi")
-        self.assertEqual(ltoks[2].position, "fina")
+        self.assertEqual(self._letter_positions("t a l"), ["init", "medi", "fina"])
 
     def test_position_mvs_breaks_chain(self):
         # t a l MVS a → [init,medi,fina] + [isol]
-        tokens = self.s.tokenize(_mgl("t a l mvs a"))
-        self.s.assign_positions(tokens)
-        ltoks = [t for t in tokens if t.is_letter]
-        positions = [t.position for t in ltoks]
-        self.assertEqual(positions, ["init", "medi", "fina", "isol"])
+        self.assertEqual(
+            self._letter_positions("t a l mvs a"),
+            ["init", "medi", "fina", "isol"],
+        )
 
     def test_position_double_mvs(self):
         # t a l MVS a MVS y i n → 3 segments
-        tokens = self.s.tokenize(_mgl("t a l mvs a mvs y i n"))
-        self.s.assign_positions(tokens)
-        ltoks = [t for t in tokens if t.is_letter]
-        positions = [t.position for t in ltoks]
-        self.assertEqual(positions, ["init", "medi", "fina", "isol", "init", "medi", "fina"])
+        self.assertEqual(
+            self._letter_positions("t a l mvs a mvs y i n"),
+            ["init", "medi", "fina", "isol", "init", "medi", "fina"],
+        )
+
+    def test_position_of_every_token_including_mvs(self):
+        # The MVS token itself is reported too (as an isolated token).
+        # MVS token 本身也会被报告(isol)。
+        details = self.s.shape_detailed(_mgl("t a l mvs a"))
+        self.assertEqual(
+            [(d["cp"], d["position"]) for d in details],
+            [("U+1832", "init"), ("U+1820", "medi"), ("U+182F", "fina"),
+             ("U+180E", "isol"), ("U+1820", "isol")],
+        )
 
     # ══════════════════════════════════════════════════════════
     # NNBSP → MVS normalization
@@ -985,18 +999,16 @@ class TestNormalize(unittest.TestCase):
     # 无关,FVS 杂讯是前缀稳定的代价。
     CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
 
+    @needs_testing_hook
     def test_non_strict_mode_preserves_input_when_canonicalization_falls_back(self):
         word = "ᠰᠠᠢᠨ"
-        shaper = MongolianShaper(locale="MNG")
-        shaper._build_unit_enc()
-        shaper._unit_enc.clear()
+        shaper = empty_table_shaper()
         self.assertEqual(shaper.normalize(word, strict=False), word)
 
+    @needs_testing_hook
     def test_default_mode_raises_when_canonicalization_falls_back(self):
         word = "ᠰᠠᠢᠨ"
-        shaper = MongolianShaper(locale="MNG")
-        shaper._build_unit_enc()
-        shaper._unit_enc.clear()
+        shaper = empty_table_shaper()
         with self.assertRaisesRegex(
                 NormalizationFallbackError,
                 "no canonical encoding for written units S\\+A\\+I\\+I\\+A") as raised:
@@ -1051,19 +1063,18 @@ class TestNormalizeText(unittest.TestCase):
     # TestNormalize for the rationale). All variants converge to one output.
     CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
 
+    @needs_testing_hook
     def test_default_mode_reports_a_fallback_inside_mixed_text(self):
         text = "Hello ᠰᠠᠢᠨ world"
-        shaper = MongolianShaper(locale="MNG")
-        shaper._build_unit_enc()
-        shaper._unit_enc.clear()
-        with self.assertRaises(NormalizationFallbackError):
+        shaper = empty_table_shaper()
+        with self.assertRaises(NormalizationFallbackError) as raised:
             shaper.normalize_text(text)
+        self.assertEqual(raised.exception.text, "ᠰᠠᠢᠨ")
 
+    @needs_testing_hook
     def test_non_strict_mode_preserves_a_fallback_inside_mixed_text(self):
         text = "Hello ᠰᠠᠢᠨ world"
-        shaper = MongolianShaper(locale="MNG")
-        shaper._build_unit_enc()
-        shaper._unit_enc.clear()
+        shaper = empty_table_shaper()
         self.assertEqual(shaper.normalize_text(text, strict=False), text)
 
     def test_single_word_matches_normalize(self):
@@ -1170,6 +1181,8 @@ class TestNNBSP(unittest.TestCase):
         cls.s = MongolianShaper(locale="MNG")
 
     # ── Tokenization: NNBSP survives, not silently dropped ─────────
+    # (observed through shape_detailed(), which reports one record per token)
+    # (通过 shape_detailed() 观察,它逐 token 报告)
 
     def test_nnbsp_survives_tokenization(self):
         # NNBSP between two Mongolian letters must not be dropped;
@@ -1177,19 +1190,17 @@ class TestNNBSP(unittest.TestCase):
         # NNBSP 在两个蒙古文字母之间不应被丢弃；
         # 在分词阶段被规范化为 MVS (U+180E)。
         text = "ᠰᠠᠢᠨ" + self.NNBSP + "ᠠ"
-        tokens = self.s.tokenize(text)
-        cps = [tok.cp for tok in tokens]
-        self.assertIn(0x180E, cps, "NNBSP must be normalized to MVS during tokenization")
-        self.assertNotIn(0x202F, cps, "NNBSP codepoint must not survive tokenization")
+        cps = [detail["cp"] for detail in self.s.shape_detailed(text)]
+        self.assertIn("U+180E", cps, "NNBSP must be normalized to MVS during tokenization")
+        self.assertNotIn("U+202F", cps, "NNBSP codepoint must not survive tokenization")
 
     def test_nnbsp_token_is_mvs_flag(self):
-        # NNBSP input must produce a token with is_mvs=True and cp==MVS
-        # NNBSP 输入必须产生 is_mvs=True 且 cp==MVS 的标记
+        # NNBSP input must produce exactly one MVS token (cp U+180E, alias "mvs")
+        # NNBSP 输入必须恰好产生一个 MVS 标记(cp U+180E,alias "mvs")
         text = "ᠰ" + self.NNBSP + "ᠠ"
-        tokens = self.s.tokenize(text)
-        mvs_toks = [t for t in tokens if t.cp == 0x180E]
+        mvs_toks = [d for d in self.s.shape_detailed(text) if d["cp"] == "U+180E"]
         self.assertEqual(len(mvs_toks), 1)
-        self.assertTrue(mvs_toks[0].is_mvs)
+        self.assertEqual(mvs_toks[0]["alias"], "mvs")
 
     # ── Shaping: NNBSP triggers same behavior as MVS ──────────────
 
@@ -1207,14 +1218,13 @@ class TestNNBSP(unittest.TestCase):
         stem = "ᠰᠠᠢᠨ"
         suffix = "ᠠ"
         text = stem + self.NNBSP + suffix
-        from mongol_norm import rules
-        tokens = self.s.tokenize(text)
-        self.s.assign_positions(tokens)
-        rules.run_rules(self.s._shaping_rules, tokens, self.s)
+        details = self.s.shape_detailed(text)
         # The suffix 'a' after NNBSP should get chachlag condition
-        a_tokens = [t for t in tokens if t.alias == "a" and t.condition == "chachlag"]
+        a_tokens = [d for d in details
+                    if d["alias"] == "a" and d["condition"] == "chachlag"]
         self.assertGreater(len(a_tokens), 0,
                            "NNBSP should trigger chachlag on following a/e")
+        self.assertEqual(a_tokens[-1]["written"], ["Aa"])
 
     # ── Normalization: NNBSP converted to MVS ───────────────────────
 

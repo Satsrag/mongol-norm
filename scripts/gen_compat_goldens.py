@@ -32,7 +32,6 @@ def _load_test_module(name):
 
 
 round_trip = _load_test_module("test_round_trip")
-phase_trace = _load_test_module("test_phase_trace_golden")
 canonical_golden = _load_test_module("test_canonical_golden")
 
 from mongol_norm import MongolianShaper  # noqa: E402
@@ -85,12 +84,12 @@ def build_phase_trace(shaper):
             "witness_rule": witness_rule,
             "input_cps": codepoints,
             "input_aliases": aliases,
-            "expected": phase_trace._trace(shaper, codepoints),
+            "expected": shaper.trace(text),
         })
     return {
         "schema": "mongol-norm-phase-trace/1",
         "locale": "MNG",
-        "rules": [rule.name for rule in shaper._shaping_rules],
+        "rules": shaper.rule_names(),
         "vectors": vectors,
     }
 

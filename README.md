@@ -344,7 +344,7 @@ The hand-written suite covers:
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI input, canonical control spelling, and parser errors |
 | `TestNNBSP` | NNBSP ↔ MVS equivalence (UTN model) |
 
-Current totals: **253 Python tests** and **255 Rust tests** (unit + property + 177 core-hud + 3512 eac-hud corpus rows, 1993 canonical + 15 phase-trace golden vectors, fuzz), all green on Python 3.9 – 3.14 and Rust stable / 1.82 (the core crate's MSRV; the binding crate needs 1.83).
+Current totals: **252 Python tests** and **255 Rust tests** (unit + property + 177 core-hud + 3512 eac-hud corpus rows, 1993 canonical + 15 phase-trace golden vectors, fuzz), all green on Python 3.9 – 3.14 and Rust stable / 1.82 (the core crate's MSRV; the binding crate needs 1.83).
 
 The Rust crate has its own suite (needs a repository checkout for the shared fixtures):
 
@@ -757,7 +757,7 @@ python -m unittest discover -s tests -p 'test_*.py'
 | `TestNormalizeWrittenUnitsCli` | inline/stdin/batch CLI输入、control标准拼写与解析错误 |
 | `TestNNBSP` | NNBSP ↔ MVS 等价性(UTN 模型) |
 
-当前总数: **253 个 Python 测试** 和 **255 个 Rust 测试**(单元 + 性质 + 177 条 core-hud + 3512 条 eac-hud 语料行、1993 个 canonical + 15 个 phase-trace golden 向量、fuzz), 在 Python 3.9 – 3.14 与 Rust stable / 1.82(核心 crate 的 MSRV;绑定 crate 需要 1.83)上全绿。
+当前总数: **252 个 Python 测试** 和 **255 个 Rust 测试**(单元 + 性质 + 177 条 core-hud + 3512 条 eac-hud 语料行、1993 个 canonical + 15 个 phase-trace golden 向量、fuzz), 在 Python 3.9 – 3.14 与 Rust stable / 1.82(核心 crate 的 MSRV;绑定 crate 需要 1.83)上全绿。
 
 Rust crate 有自己的测试套件（共享固件需要仓库 checkout）：
 

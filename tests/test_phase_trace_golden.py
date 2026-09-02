@@ -1,8 +1,10 @@
 """Golden traces for the ordered MNG shaping rules.
 
-The fixture freezes rule order and condition transitions at every phase.  It is
-intentionally independent of ``shape_detailed()`` so a refactor cannot make the
-producer and verifier share the same new tracing implementation.
+The fixture freezes rule order and condition transitions at every phase. It was
+produced by ``scripts/gen_compat_goldens.py`` from ``MongolianShaper.trace()``;
+the committed JSON is the independent oracle a refactor of the engine must keep
+reproducing exactly (the crate's ``tests/phase_trace_golden.rs`` checks the same
+file from the Rust side).
 """
 import json
 import unittest
@@ -12,38 +14,6 @@ from mongol_norm import MongolianShaper
 
 
 _GOLDEN = Path(__file__).parent / "golden" / "mng-phase-trace-v1.json"
-
-
-def _trace(shaper, codepoints):
-    text = "".join(chr(cp) for cp in codepoints)
-    tokens = shaper.tokenize(text)
-    shaper.assign_positions(tokens)
-
-    transitions = []
-    for rule in shaper._shaping_rules:
-        before = [token.condition for token in tokens]
-        rule.apply(tokens, shaper)
-        changes = []
-        for index, (old, token) in enumerate(zip(before, tokens)):
-            if old != token.condition:
-                changes.append({
-                    "token": index,
-                    "before": old,
-                    "after": token.condition,
-                })
-        if changes:
-            transitions.append({"rule": rule.name, "changes": changes})
-
-    for token in tokens:
-        shaper._resolve_token_written(token)
-
-    return {
-        "positions": [token.position for token in tokens],
-        "transitions": transitions,
-        "final_conditions": [token.condition for token in tokens],
-        "written_by_token": [list(token.written or ()) for token in tokens],
-        "shape": shaper.shape(text),
-    }
 
 
 class TestMNGPhaseTraceGolden(unittest.TestCase):
@@ -56,18 +26,33 @@ class TestMNGPhaseTraceGolden(unittest.TestCase):
     def test_schema_and_rule_order(self):
         self.assertEqual(self.golden["schema"], "mongol-norm-phase-trace/1")
         self.assertEqual(self.golden["locale"], "MNG")
-        self.assertEqual(
-            self.golden["rules"],
-            [rule.name for rule in self.shaper._shaping_rules],
-        )
+        self.assertEqual(self.golden["rules"], self.shaper.rule_names())
 
     def test_vectors_match_runtime(self):
         for vector in self.golden["vectors"]:
             with self.subTest(vector=vector["id"]):
+                text = "".join(chr(cp) for cp in vector["input_cps"])
+                self.assertEqual(self.shaper.trace(text), vector["expected"])
+
+    def test_written_by_token_agrees_with_shape_detailed(self):
+        for vector in self.golden["vectors"]:
+            text = "".join(chr(cp) for cp in vector["input_cps"])
+            expected = vector["expected"]
+            details = self.shaper.shape_detailed(text)
+            with self.subTest(vector=vector["id"]):
                 self.assertEqual(
-                    _trace(self.shaper, vector["input_cps"]),
-                    vector["expected"],
+                    [detail["written"] for detail in details],
+                    expected["written_by_token"],
                 )
+                self.assertEqual(
+                    [detail["position"] for detail in details],
+                    expected["positions"],
+                )
+                self.assertEqual(
+                    [detail["condition"] or None for detail in details],
+                    expected["final_conditions"],
+                )
+                self.assertEqual(self.shaper.shape(text), expected["shape"])
 
     def test_every_rule_has_a_transition_vector(self):
         exercised = {

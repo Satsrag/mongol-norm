@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """Public positioned written-unit normalization API tests."""
 
-import subprocess
-import sys
 import unittest
 
 from mongol_norm import MongolianShaper
+from mongol_norm._data import load_normalize_table
+from tests._support import run_cli
 
 
 class TestNormalizePositionedWrittenUnits(unittest.TestCase):
@@ -76,11 +76,14 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         )
 
     def test_o_is_the_only_singleton_init_that_adds_zwj(self):
-        self.shaper._build_unit_enc()
+        # The positioned inventory the API validates against is the bundled
+        # normalize table's `positioned_units` (docs/data-format.md).
         init_units = sorted({
-            unit for unit, position in self.shaper._positioned_units
-            if position == "init"
+            record["unit"]
+            for record in load_normalize_table("MNG")["positioned_units"]
+            if record["position"] == "init"
         })
+        self.assertIn("O", init_units)
 
         for unit in init_units:
             with self.subTest(unit=unit):
@@ -320,17 +323,7 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             self.shaper.normalize_positioned_written_units(positioned)
 
     def test_positioned_records_have_no_cli_subcommand(self):
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "from mongol_norm.shaper import main; main()",
-                "normalize-positioned-written-units",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-        )
+        result = run_cli("normalize-positioned-written-units")
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("invalid choice", result.stderr)

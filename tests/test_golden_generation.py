@@ -16,7 +16,8 @@ class TestCompatibilityGoldenGeneration(unittest.TestCase):
             cwd=str(_ROOT),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            universal_newlines=True,
+            encoding="utf-8",
+            timeout=300,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

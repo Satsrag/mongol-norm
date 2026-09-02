@@ -1,22 +1,28 @@
 """
-Tests for the exportable normalize table (the per-unit FVS-pinned spec that
-other-language ports consume as JSON).
+Tests for the exportable normalize table (the per-unit FVS-pinned spec that the
+Rust engine's generated tables and other-language ports consume as JSON).
 
 The selection battery lives in scripts/gen_normalize_table.py (build-time). It
-must serialize losslessly, the shaper must LOAD that serialized form, and the
-freshly-computed spec must match the bundled JSON the runtime loads.
-导出归一化表的测试:生成器在 scripts;序列化无损、shaper 能加载、且现算的
-spec 与随包 JSON 一致。
+must serialize losslessly, and the freshly-computed spec must match the bundled
+JSON (`mongol_norm/data/MNG.normalize.json`) — the file
+`scripts/gen_rust_tables.py` compiles into the engine
+(`tests/test_rust_twin.py` checks that step is fresh, and the canonical golden
+proves what the compiled table encodes).
+导出归一化表的测试:生成器在 scripts;序列化无损、且现算的 spec 与随包 JSON 一致
+(该 JSON 再由 gen_rust_tables.py 编译进 Rust 引擎)。
 """
 import json
+import subprocess
 import sys
 import unittest
 from pathlib import Path
 
-from mongol_norm.shaper import MongolianShaper
+from mongol_norm import MongolianShaper
+from mongol_norm._data import load_normalize_table, normalize_table_path
 
+ROOT = Path(__file__).resolve().parent.parent
 # The selection battery / spec generator lives in scripts/ (build-time only).
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(ROOT / "scripts"))
 import gen_normalize_table as gen  # noqa: E402
 
 
@@ -36,9 +42,11 @@ class TestNormalizeTableExport(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
+        cls.spec = gen.compute_normalize_tables(cls.s)  # runs the battery once
+        cls.bundled = load_normalize_table("MNG")
 
     def test_compute_returns_json_serializable_spec(self):
-        spec = gen.compute_normalize_tables(self.s)
+        spec = self.spec
         self.assertEqual(spec["locale"], "MNG")
         self.assertEqual(spec["canonical_version"], "mng-canonical/1")
         self.assertIn("schema", spec)
@@ -56,81 +64,61 @@ class TestNormalizeTableExport(unittest.TestCase):
 
     def test_shaper_exposes_loaded_canonical_version(self):
         self.assertEqual(self.s.canonical_version, "mng-canonical/1")
-
-    def test_loader_rejects_unexpected_canonical_version(self):
-        spec = gen.compute_normalize_tables(self.s)
-        spec["canonical_version"] = "mng-canonical/999"
-        loaded = MongolianShaper(locale="MNG")
-        with self.assertRaisesRegex(ValueError, "unsupported canonical version"):
-            loaded._load_normalize_tables(spec)
+        self.assertEqual(self.s.canonical_version, self.bundled["canonical_version"])
+        self.assertEqual(self.s.canonical_version, gen.CANONICAL_VERSION)
 
     def test_spec_matches_bundled_table(self):
-        """A freshly-computed spec matches the bundled table the shaper loads
-        (guards against a stale committed JSON)."""
-        self.s._build_unit_enc()  # loads mongol_norm/data/MNG.normalize.json
-        spec = gen.compute_normalize_tables(self.s)
-        self.assertEqual(_rebuild_unit_enc(spec), dict(self.s._unit_enc))
+        """A freshly-computed spec matches the bundled table (guards against a
+        stale committed JSON — the engine's tables are generated from it)."""
+        self.assertEqual(self.spec, self.bundled)
+
+    def test_bundled_table_is_byte_fresh(self):
+        """The committed file is exactly what the generator writes (`--check`)."""
+        self.assertEqual(
+            normalize_table_path("MNG").read_text(encoding="utf-8"),
+            gen.spec_text(self.spec),
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "gen_normalize_table.py"), "--check"],
+            cwd=str(ROOT),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=300,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("fresh:", result.stdout)
 
     def test_positioned_inventory_matches_hud_contract(self):
-        spec = gen.compute_normalize_tables(self.s)
         pairs = {
             (record["unit"], record["position"])
-            for record in spec["positioned_units"]
+            for record in self.spec["positioned_units"]
         }
         self.assertEqual(len(pairs), 95)
         self.assertIn(("F", "init"), pairs)
         self.assertIn(("I", "isol"), pairs)
         self.assertNotIn(("F", "isol"), pairs)
         self.assertNotIn(("Zwj", "control"), pairs)
+        self.assertEqual(
+            pairs,
+            {(record["unit"], record["position"])
+             for record in self.bundled["positioned_units"]},
+        )
 
-    def test_shaper_loads_spec_identically(self):
-        """A shaper populated from a fresh spec equals one loaded from the
-        bundled JSON."""
-        spec = gen.compute_normalize_tables(self.s)
-        loaded = MongolianShaper(locale="MNG")
-        loaded._load_normalize_tables(spec)
-
-        baseline = MongolianShaper(locale="MNG")
-        baseline._build_unit_enc()
-
-        self.assertEqual(dict(loaded._unit_enc), dict(baseline._unit_enc))
-        self.assertEqual(dict(loaded._unit_enc_fem),
-                         dict(baseline._unit_enc_fem))
-        self.assertEqual(loaded._unit_enc_max_len,
-                         baseline._unit_enc_max_len)
-        self.assertEqual(loaded._positioned_units,
-                         baseline._positioned_units)
-
-    def test_normalize_identical_when_loaded_from_spec(self):
-        """normalize() output is identical whether table is loaded or computed."""
-        spec = gen.compute_normalize_tables(self.s)
-        loaded = MongolianShaper(locale="MNG")
-        loaded._load_normalize_tables(spec)
-        baseline = MongolianShaper(locale="MNG")
-        samples = ["ᠰᠠᠢᠨ", "ᠡᠭᠦᠨ", "ᠮᠣᠩᠭᠣᠯ", "ᠨᠣᠮ", "ᠪᠠᠶᠠᠨ", "ᠲᠩᠷᠢ"]
-        for w in samples:
-            self.assertEqual(loaded.normalize(w), baseline.normalize(w),
-                             f"mismatch on {w!r}")
-
-    def test_loaded_shaper_handles_particles(self):
-        """
-        A shaper whose tables came from the spec (battery never ran, so the
-        candidates map was never built as a side effect) must still apply
-        particle substitution — which needs the candidates map. Regression:
-        the load path used to leave _candidates_map unset, crashing normalize
-        on particle words.
-        从 spec 加载的 shaper(电池没跑,candidates 未作为副作用构建)仍须能做
-        particle 替换。回归:加载路径曾遗漏 _candidates_map,particle 词崩溃。
-        """
-        spec = gen.compute_normalize_tables(self.s)
-        loaded = MongolianShaper(locale="MNG")
-        loaded._load_normalize_tables(spec)
-        self.assertFalse(hasattr(loaded, "_candidates_map"))
-        baseline = MongolianShaper(locale="MNG")
-        # particle / chachlag stressors that route through particle substitution
-        for w in ["ᠮᠣᠩᠭᠣᠯ ᠤᠨ", "ᠡᠭᠦᠨ ᠦ", "ᠨᠠᠮ ᠠ"]:
-            self.assertEqual(loaded.normalize_text(w),
-                             baseline.normalize_text(w), f"mismatch on {w!r}")
+    def test_pinned_entries_render_their_unit_in_the_engine(self):
+        """Every table entry is a (letter, FVS) that shapes to exactly its
+        written unit at its position — the property the battery selects for,
+        re-checked against the compiled engine with a neutral neighbour."""
+        probe = "ᠨ"  # n: a plain consonant on either side
+        for (position, written), (cp, fvs_cp) in _rebuild_unit_enc(self.spec).items():
+            with self.subTest(position=position, written=written):
+                letter = chr(cp) + (chr(fvs_cp) if fvs_cp is not None else "")
+                left = probe if position in ("medi", "fina") else ""
+                right = probe if position in ("init", "medi") else ""
+                details = self.s.shape_detailed(left + letter + right)
+                detail = details[1 if left else 0]
+                self.assertEqual(detail["position"], position)
+                self.assertEqual(tuple(detail["written"]), written)
 
 
 if __name__ == "__main__":
