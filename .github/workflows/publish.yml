@@ -2,12 +2,13 @@
 # lockstep with the crates.io publication (publish-crate.yml): the same GitHub Release
 # (tag vX.Y.Z) publishes both artifacts from the same commit.
 #
-# The package is a PyO3 extension (crates/mongol-norm-py) built with maturin, so a
-# release is a wheel matrix — Linux x86_64/aarch64 (manylinux2014 and musllinux_1_2),
-# macOS x86_64/arm64, Windows x64, all cp39-abi3 — plus an sdist. Every wheel that can
-# run on its build runner is smoke-tested there (install from dist/, import, shape a
-# word, run the console script) before anything is published; the sdist is built and
-# installed with pip the way a user without a wheel would.
+# The package is a PyO3 extension (python/: the binding crate, pyproject.toml and the
+# mongol_norm package) built with maturin from that directory, so a release is a wheel
+# matrix — Linux x86_64/aarch64 (manylinux2014 and musllinux_1_2), macOS x86_64/arm64,
+# Windows x64, all cp39-abi3 — plus an sdist. Every wheel that can run on its build
+# runner is smoke-tested there (install from python/dist/, import, shape a word, run
+# the console script) before anything is published; the sdist is built and installed
+# with pip the way a user without a wheel would.
 #
 # PyPI publication uses Trusted Publishing (GitHub OIDC) from the protected `pypi`
 # environment; no API token is stored in GitHub. One-time setup: docs/releasing.md.
@@ -75,23 +76,26 @@ jobs:
 
       # `maturin develop` refuses to run outside a virtual environment. Exporting
       # VIRTUAL_ENV and PATH is what `source .venv/bin/activate` does, but it persists
-      # across the following steps.
+      # across the following steps. Everything Python runs from python/.
       - name: Create a virtual environment
+        working-directory: python
         run: |
           python -m venv .venv
           echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Build the extension in place
+        working-directory: python
         run: |
           python -m pip install 'maturin>=1.15,<2'
           maturin develop --locked --features testing
 
       - name: Verify the runtime version agrees with the workspace version
         shell: bash
+        working-directory: python
         run: |
           set -euo pipefail
-          version=$(python -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("Cargo.toml").read_text())["workspace"]["package"]["version"])')
+          version=$(python -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("../Cargo.toml").read_text())["workspace"]["package"]["version"])')
           runtime_version=$(python -c 'import mongol_norm; print(mongol_norm.__version__)')
           test "$runtime_version" = "$version"
           echo "runtime and workspace versions agree: $version"
@@ -101,6 +105,7 @@ jobs:
         # hook-gated tests can never skip silently in CI.
         env:
           MONGOL_NORM_REQUIRE_TESTING_HOOK: "1"
+        working-directory: python
         run: python -m unittest discover -s tests -p 'test_*.py'
 
   linux:
@@ -127,11 +132,13 @@ jobs:
 
       # Builds inside the manylinux2014 container for the target (aarch64 is
       # cross-compiled). The explicit policy makes a wheel that would only satisfy a
-      # newer glibc fail the build instead of silently getting a newer tag.
+      # newer glibc fail the build instead of silently getting a newer tag. maturin runs
+      # in python/ (pyproject.toml lives there), so `--out dist` is python/dist.
       - name: Build the wheel
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           maturin-version: ${{ env.MATURIN_VERSION }}
+          working-directory: python
           target: ${{ matrix.target }}
           manylinux: '2014'
           args: --release --locked --out dist
@@ -144,7 +151,7 @@ jobs:
           PYTHONUTF8: '1'
         run: |
           set -euo pipefail
-          python -m pip install --no-index --find-links "$GITHUB_WORKSPACE/dist" mongol-norm
+          python -m pip install --no-index --find-links "$GITHUB_WORKSPACE/python/dist" mongol-norm
           python -c "import mongol_norm; print(mongol_norm.__version__); assert mongol_norm.MongolianShaper().shape('ᠰᠠᠢᠨ') == ['S', 'A', 'I', 'I', 'A']"
           python -c "import mongol_norm._native as n; assert not hasattr(n, '_shaper_with_empty_normalize_table'), 'testing hook shipped'"
           test "$(mongol-norm shape ᠰᠠᠢᠨ | tr -d '\r')" = 'S+A+I+I+A'
@@ -153,7 +160,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-linux-${{ matrix.target }}
-          path: dist/
+          path: python/dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -180,6 +187,7 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           maturin-version: ${{ env.MATURIN_VERSION }}
+          working-directory: python
           target: ${{ matrix.target }}
           manylinux: musllinux_1_2
           args: --release --locked --out dist
@@ -188,7 +196,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-musllinux-${{ matrix.target }}
-          path: dist/
+          path: python/dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -216,6 +224,7 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           maturin-version: ${{ env.MATURIN_VERSION }}
+          working-directory: python
           target: x64
           args: --release --locked --out dist
 
@@ -228,7 +237,7 @@ jobs:
           PYTHONUTF8: '1'
         run: |
           set -euo pipefail
-          python -m pip install --no-index --find-links "$GITHUB_WORKSPACE/dist" mongol-norm
+          python -m pip install --no-index --find-links "$GITHUB_WORKSPACE/python/dist" mongol-norm
           python -c "import mongol_norm; print(mongol_norm.__version__); assert mongol_norm.MongolianShaper().shape('ᠰᠠᠢᠨ') == ['S', 'A', 'I', 'I', 'A']"
           python -c "import mongol_norm._native as n; assert not hasattr(n, '_shaper_with_empty_normalize_table'), 'testing hook shipped'"
           test "$(mongol-norm shape ᠰᠠᠢᠨ | tr -d '\r')" = 'S+A+I+I+A'
@@ -237,7 +246,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-windows-x64
-          path: dist/
+          path: python/dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -275,6 +284,7 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           maturin-version: ${{ env.MATURIN_VERSION }}
+          working-directory: python
           target: ${{ matrix.target }}
           args: --release --locked --out dist
 
@@ -286,7 +296,7 @@ jobs:
           PYTHONUTF8: '1'
         run: |
           set -euo pipefail
-          python -m pip install --no-index --find-links "$GITHUB_WORKSPACE/dist" mongol-norm
+          python -m pip install --no-index --find-links "$GITHUB_WORKSPACE/python/dist" mongol-norm
           python -c "import mongol_norm; print(mongol_norm.__version__); assert mongol_norm.MongolianShaper().shape('ᠰᠠᠢᠨ') == ['S', 'A', 'I', 'I', 'A']"
           python -c "import mongol_norm._native as n; assert not hasattr(n, '_shaper_with_empty_normalize_table'), 'testing hook shipped'"
           test "$(mongol-norm shape ᠰᠠᠢᠨ | tr -d '\r')" = 'S+A+I+I+A'
@@ -295,7 +305,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-macos-${{ matrix.target }}
-          path: dist/
+          path: python/dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -323,6 +333,7 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           maturin-version: ${{ env.MATURIN_VERSION }}
+          working-directory: python
           command: sdist
           args: --out dist
 
@@ -333,14 +344,14 @@ jobs:
 
       # PyPI rejects an upload whose metadata declares a License-File the archive
       # does not contain (0.1.0's sdist failed exactly like that); twine does not
-      # check it, scripts/check_dist_metadata.py does.
+      # check it, python/scripts/check_dist_metadata.py does.
       - name: Validate the sdist metadata
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install 'twine>=6'
-          python -m twine check --strict dist/*
-          python scripts/check_dist_metadata.py --require LICENSE --require NOTICE dist/*
+          python -m twine check --strict python/dist/*
+          python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE python/dist/*
 
       # What `pip install mongol-norm` does on a platform without a wheel: pip fetches
       # maturin into an isolated build environment and compiles the extension with the
@@ -352,7 +363,7 @@ jobs:
           PYTHONUTF8: '1'
         run: |
           set -euo pipefail
-          python -m pip install "$GITHUB_WORKSPACE"/dist/*.tar.gz
+          python -m pip install "$GITHUB_WORKSPACE"/python/dist/*.tar.gz
           python -c "import mongol_norm; print(mongol_norm.__version__); assert mongol_norm.MongolianShaper().shape('ᠰᠠᠢᠨ') == ['S', 'A', 'I', 'I', 'A']"
           python -c "import mongol_norm._native as n; assert not hasattr(n, '_shaper_with_empty_normalize_table'), 'testing hook shipped'"
           test "$(mongol-norm shape ᠰᠠᠢᠨ | tr -d '\r')" = 'S+A+I+I+A'
@@ -361,7 +372,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-sdist
-          path: dist/
+          path: python/dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -379,7 +390,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: Check out the release commit (for scripts/check_dist_metadata.py)
+      - name: Check out the release commit (for python/scripts/check_dist_metadata.py)
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
@@ -405,14 +416,15 @@ jobs:
           test "$(find dist -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
 
       # Last gate before the upload: every archive's metadata must be consistent
-      # (PyPI's own License-File check, which twine does not perform).
+      # (PyPI's own License-File check, which twine does not perform). The artifacts
+      # were merged into dist/ at the repository root above.
       - name: Validate every distribution's metadata
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install 'twine>=6'
           python -m twine check --strict dist/*
-          python scripts/check_dist_metadata.py --require LICENSE --require NOTICE dist/*
+          python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE dist/*
 
       # Pinned release/v1 commit for supply-chain stability. Uploads everything in
       # dist/ with PEP 740 attestations, minted from the job's OIDC identity.

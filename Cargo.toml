@@ -1,10 +1,40 @@
+[package]
+name = "mongol-norm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shape-aware normalizer for Traditional Mongolian script: the UTN #57 v4 shaping engine and FVS-pinned canonical normalizer, pure Rust with zero dependencies."
+readme = "README.md"
+keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
+categories = ["text-processing", "internationalization"]
+# The corpus/golden tests read tests/{data,golden} at test time, so they are not packaged.
+include = ["src/**", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+
+[lib]
+name = "mongol_norm"
+
+[[bin]]
+name = "mongol-norm"
+path = "src/bin/mongol-norm.rs"
+
+[features]
+# Exposes `Shaper::with_empty_normalize_table` for the Python bindings' test-suite
+# (`python/`); never enable it in a published dependent.
+testing = []
+
+[dependencies]
+
+# The crate is the workspace root; the PyO3 binding crate (`python/`, published to PyPI
+# as `mongol-norm`, not to crates.io) is the only other member.
 [workspace]
 resolver = "2"
-members = ["crates/mongol-norm", "crates/mongol-norm-py"]
+members = ["python"]
 
 # The single version literal: both crates inherit it, maturin reads it for the Python
-# package (pyproject.toml has `dynamic = ["version"]`), and mongol_norm.__version__ reports
-# it at runtime (checked by tests/test_rust_twin.py).
+# package (python/pyproject.toml has `dynamic = ["version"]`), and mongol_norm.__version__
+# reports it at runtime (checked by python/tests/test_rust_twin.py).
 [workspace.package]
 version = "0.1.1"
 edition = "2021"

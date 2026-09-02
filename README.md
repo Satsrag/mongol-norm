@@ -364,7 +364,7 @@ python -m unittest tests.test_rust_twin   # generated tables fresh, package vers
 
 ### Project Structure
 
-```
+```text
 mongol-norm/                          # the repo = the package (Rust workspace + Python package)
 ├── .github/workflows/test.yml        # CI: Python 3.9-3.14 (maturin develop + unittest) + the Rust job on every push
 ├── pyproject.toml                    # maturin build backend; version is dynamic (read from Cargo.toml)
@@ -777,7 +777,7 @@ python -m unittest tests.test_rust_twin   # 生成表新鲜、包版本 == 工�
 
 ### 项目结构
 
-```
+```text
 mongol-norm/                          # 仓库 = 包(Rust 工作区 + Python 包)
 ├── .github/workflows/test.yml        # CI: 每次 push 跑 Python 3.9-3.14(maturin develop + unittest)+ Rust job
 ├── pyproject.toml                    # maturin 构建后端；版本为 dynamic（从 Cargo.toml 读取）

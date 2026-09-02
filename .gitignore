@@ -4,7 +4,8 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
-dist/
+# maturin / pip output at any depth (python/dist/)
+**/dist/
 build/
 .eggs/
 
