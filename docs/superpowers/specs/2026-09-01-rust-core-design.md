@@ -1,0 +1,462 @@
+# mongol-norm Rust core — design
+
+Date: 2026-09-01 · Status: implemented on branch `feat/rust-core` (2026-09-01); the plan's amendments banner records execution deviations
+
+> 中文摘要：在本仓库内做 **双实现**——运行时核心（shaping + normalization + 薄 CLI）用 Rust 重写为 crate `mongol-norm`（`crates/mongol-norm/`），
+> 代码生成脚本与其他开发脚本继续用 Python。Rust 版与 Python 版共用同一份 JSON 数据、语料和 golden 固件，要求**逐字节相同的输出**。
+> 数据以 Python 生成的静态 Rust 表（`src/generated/`）嵌入，零运行时依赖，`rust-version = 1.82`，可编译到 `wasm32`。
+
+## 1. Goal and non-goals
+
+**Goal.** A pure-Rust implementation of the mongol-norm runtime — the UTN #57 v4 Hudum shaping engine and the
+FVS-pinned canonical normalizer — living next to the Python package in this repository, producing
+**byte-identical output** to `mongol-norm` Python 0.0.4 for every value-producing operation, verified by the same corpus and
+golden fixtures. It exists so that Rust consumers (`zvvnmod-utn57` → `meco-rust`, including its WASM / iOS /
+Android / C targets) can drop the Python subprocess bridge.
+
+**Non-goals (explicitly out of scope for this spec).**
+
+- Porting the dev-only generators (`scripts/preprocess.py`, `scripts/gen_normalize_table.py`,
+  `scripts/gen_compat_goldens.py`) — they stay Python; the Rust crate consumes their output.
+- crates.io publication workflow (needs a trusted publisher configured on crates.io; follow-up).
+- PyO3 bindings; shaping rules / normalization for TOD, SIB, MCH (Python has none either);
+  migrating `zvvnmod-utn57` to the crate.
+
+## 2. Fidelity contract
+
+For every input, the Rust crate returns exactly what the Python implementation returns:
+
+| Python (0.0.4) | Rust | Contract |
+|---|---|---|
+| `shape(text)` | `Shaper::shape` | identical written-unit sequence (incl. `Mvs`/`Nirugu`/`Zwj` tokens) |
+| `same_shape(a, b)` | `Shaper::same_shape` | identical boolean |
+| `shape_detailed(text)` | `Shaper::shape_detailed` | identical per-token position / fvs / condition / written; `alias` is `None` for structural tokens where Python yields the strings `"mvs"`/`"nirugu"`/`"zwj"` (the `Alias` enum has no structural variants) |
+| per-rule condition transitions (`tests/test_phase_trace_golden.py::_trace`) | `Shaper::trace` | identical rule names, order and transitions |
+| `normalize(text, strict)` | `normalize` / `normalize_allow_fallback` | identical Unicode string; `NormalizationFallbackError` ⇔ `Error::NormalizationFallback` |
+| `normalize_text(text, strict)` | `normalize_text` / `normalize_text_allow_fallback` | identical |
+| `normalize_written_units(units)` | `normalize_written_units` | identical; `ValueError` ⇔ `Err(..)` |
+| `normalize_positioned_written_units(records)` | `normalize_positioned_written_units` | identical; this is the API `zvvnmod-utn57` calls |
+| `canonical_version` | `canonical_version()` | `"mng-canonical/1"` |
+| CLI subcommands | `mongol-norm` binary | identical stdout / exit codes for the tested behaviours |
+
+Python errors that only exist because of dynamic typing (`TypeError` for non-string items, non-sequence
+inputs, …) have no Rust counterpart: the type system rules them out. Tests that only assert those are not ported.
+
+The shared fixtures are the arbiter. If the Rust port and Python disagree, the Rust port is wrong — unless
+Python is shown to be wrong, in which case Python is fixed first, the goldens are regenerated
+(`scripts/gen_compat_goldens.py`), and both implementations must agree again.
+
+## 3. Repository layout
+
+```
+mongol-norm/
+├── Cargo.toml                       # [workspace] members = ["crates/mongol-norm"]; workspace.package: edition 2021, rust-version 1.82, license MIT
+├── Cargo.lock                       # committed
+├── crates/mongol-norm/
+│   ├── Cargo.toml                   # name = "mongol-norm", lib mongol_norm, [[bin]] mongol-norm; NO dependencies, NO dev-dependencies
+│   ├── README.md                    # crate-focused, short, English + 中文
+│   ├── LICENSE  NOTICE              # copies of the repo-root files (cargo package cannot reach ../..)
+│   ├── src/
+│   │   ├── lib.rs                   # #![forbid(unsafe_code)], crate docs, re-exports
+│   │   ├── error.rs                 # Error enum
+│   │   ├── unicode.rs               # code-point constants + classification predicates
+│   │   ├── token.rs                 # Token, tokenize, assign_positions
+│   │   ├── rules.rs                 # the 15 MNG rules, Rule table, run_rules
+│   │   ├── tables.rs                # Locale / Position / UnitPosition / Fvs + the table types the generated data is expressed in
+│   │   ├── shaper.rs                # Shaper: indexes, resolve_written, shape, same_shape, shape_detailed, trace
+│   │   ├── normalize.rs             # NormalizeTable, canonical_for_shape, unit_partition, velar-fem, normalize, normalize_text
+│   │   ├── written_units.rs         # normalize_written_units, normalize_positioned_written_units, parse_written_units
+│   │   ├── cli.rs                   # #[doc(hidden)] pub mod cli — the whole CLI as a testable function
+│   │   ├── bin/mongol-norm.rs       # 5-line shim: std::process::exit(mongol_norm::cli::main())
+│   │   └── generated/               # @generated by scripts/gen_rust_tables.py — never hand-edited
+│   │       ├── mod.rs
+│   │       ├── enums.rs             # WrittenUnit, Condition, Alias
+│   │       ├── mng.rs  tod.rs  sib.rs  mch.rs      # per-locale shaping tables
+│   │       └── mng_normalize.rs     # normalize table
+│   └── tests/                       # integration tests (§8); fixtures read from ../../tests/{data,golden}
+├── scripts/gen_rust_tables.py       # NEW (Python): JSON → src/generated/*.rs; `--check` verifies freshness
+├── tests/test_rust_twin.py          # NEW (Python unittest): generated tables are fresh; versions are in lockstep
+├── .github/workflows/test.yml       # + `rust` job
+└── docs/superpowers/specs/2026-09-01-rust-core-design.md   # this file
+```
+
+Nothing under `mongol_norm/`, `pyproject.toml`, `scripts/{preprocess,gen_normalize_table,gen_compat_goldens}.py`
+or the existing tests changes.
+
+**Versioning is lockstep.** The root `Cargo.toml` `[workspace.package]` `version` == `pyproject.toml`
+`version` == `mongol_norm.__version__` (currently `0.0.4`); `crates/mongol-norm/Cargo.toml` carries no
+version of its own but inherits it with `version.workspace = true`. `tests/test_rust_twin.py` asserts all
+three and that the crate manifest really inherits, and the existing "Verify package versions agree" step in
+`publish.yml` reads the same root manifest. One release tag `vX.Y.Z` means "this behaviour, in both
+languages".
+
+## 4. Data embedding: Python code generation into committed Rust tables
+
+`scripts/gen_rust_tables.py` reads `mongol_norm/data/{MNG,TOD,SIB,MCH}.json` and
+`mongol_norm/data/MNG.normalize.json` and writes `crates/mongol-norm/src/generated/*.rs`. It is deterministic
+(stable ordering, no timestamps) so `--check` can regenerate to memory and compare byte-for-byte.
+
+### 4.1 Generated enums (`enums.rs`)
+
+All three enums: `#[non_exhaustive]`, `#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]`,
+`pub const ALL: [Self; N]` (a fixed-size array, like the hand-written enums), `pub fn as_str(self) -> &'static str`, `impl FromStr` (exact, case-sensitive
+contract names), `impl Display` (= `as_str`).
+
+| enum | variants | source | naming |
+|---|---|---|---|
+| `WrittenUnit` | union of `written` units over all four locales (98) **plus** `Mvs`, `Nirugu`, `Zwj` (101) | `letters[].variants[].written` | names are already PascalCase identifiers (`A`, `Aa`, `Hx2`, …); generator asserts none collides with the three structural names; `is_structural()` helper |
+| `Condition` | union over locales (15) | `variants[].conditions` | `snake_case` → `PascalCase` (`chachlag_onset_gb` → `ChachlagOnsetGb`); `as_str()` returns the original snake_case name (the phase-trace golden compares these strings) |
+| `Alias` | union over locales (42) | `letters[].alias` | `a`→`A`, `k2`→`K2`, `oe`→`Oe`, `lvs`→`Lvs`, `sbm`→`Sbm`; `as_str()` returns the original lowercase alias |
+
+Variants are emitted in sorted (`str`) order of their contract names.
+
+### 4.2 Per-locale shaping tables (`mng.rs`, `tod.rs`, `sib.rs`, `mch.rs`)
+
+The table types are hand-written in `src/tables.rs` (everything under `src/generated/`, including `mod.rs`,
+is generated):
+
+```rust
+pub(crate) struct Letter  { pub cp: u32, pub alias: Alias, pub variants: &'static [Variant] }
+pub(crate) struct Variant { pub position: Position, pub fvs: Option<Fvs>, pub written: &'static [WrittenUnit],
+                            pub default: bool, pub conditions: &'static [Condition] }
+pub(crate) struct Categories { pub vowel: &'static [Alias], pub consonant: &'static [Alias],
+                               pub vowel_masculine: &'static [Alias], pub vowel_feminine: &'static [Alias], pub vowel_neuter: &'static [Alias] }
+pub(crate) enum ParticleSym { Mvs, Alias(Alias), Unknown /* a letter without an alias; never generated, never matches */ }
+pub(crate) struct Particle { pub key: &'static [ParticleSym], pub indices: &'static [usize] }
+pub(crate) struct LocaleData { pub letters: &'static [Letter], pub categories: Categories, pub particles: &'static [Particle] }
+```
+
+Each locale file exports `pub(crate) static DATA: LocaleData`. **Variant order within a letter is the JSON
+order** — `Shaper::condition_fvs` scans variants in that order and returns the first match, exactly like
+Python's `_get_condition_fvs` (dict insertion order). JSON fields not consumed by the runtime are dropped from
+the tables (so the build stays `dead_code`-clean): `name`, `positioned_written`, `archaic`, `unrecommended`,
+`schema_version` and `generated_from` (the last two are asserted by the generator and recorded in the file
+header comment). Every generated item carries `#[rustfmt::skip]` (an inner `#![rustfmt::skip]` is unstable);
+`use` lines are emitted one per line in ASCII order so `cargo fmt --check` is a no-op on generated files, and
+`lib.rs` declares `#[allow(clippy::all)] mod generated;`.
+
+Generator invariants (assert, fail loudly): `schema_version == 1`; every letter has an alias; `(cp, position,
+fvs)` unique per locale; exactly one `default` per `(cp, position)`; `written` non-empty, length ≤ 3; `fvs` ∈ 0..=4;
+every alias in `categories`/`particles` exists in that locale's letters (particle keys may also contain `mvs`);
+every condition name maps to a `Condition` variant.
+
+### 4.3 Normalize table (`mng_normalize.rs`)
+
+```rust
+pub struct UnitEntry { pub position: Position, pub units: &'static [WrittenUnit], pub cp: u32, pub fvs: Option<Fvs> }
+pub struct NormalizeData { pub canonical_version: &'static str, pub unit_enc_max_len: usize,
+                           pub unit_table: &'static [UnitEntry],          // 151 entries, "A+O+I" → [A, O, I]
+                           pub velar_fem: &'static [UnitEntry],           // 15
+                           pub velar_fem_units: &'static [WrittenUnit],   // [G, Gx]
+                           pub masc_to_fem: &'static [(u32, u32)],        // alias pairs resolved to code points via the MNG letters
+                           pub positioned_units: &'static [(WrittenUnit, Position)] }  // 95
+pub static DATA: NormalizeData;
+```
+
+Generator invariants: `schema == "mongol-normalize-table/1"`; `canonical_version == "mng-canonical/1"`;
+`constants` equal the crate's Unicode constants; `cp`/`fvs` parse as hex; `unit_enc_max_len` equals the longest
+key; every unit name resolves to a `WrittenUnit`.
+
+Only MNG has a normalize table; `Shaper::new(Locale::Tod | Sib | Mch)` carries `None`.
+
+### 4.4 Freshness
+
+`tests/test_rust_twin.py` (Python, auto-discovered by the existing `unittest discover`) runs
+`gen_rust_tables.py --check`; a stale or hand-edited generated file fails the Python suite (same pattern as
+`tests/test_golden_generation.py`). Every generated file starts with a `// @generated by
+scripts/gen_rust_tables.py -- DO NOT EDIT.` header, then one `// Source: <path> (sha256 <16 hex>)` line per
+source file; locale files (`mng.rs`, `tod.rs`, `sib.rs`, `mch.rs`) additionally add a
+`// generated_from: mongfontbuilder <version>` line, and the normalize file (`mng_normalize.rs`) additionally
+adds a `// canonical_version: <version>` line. `mod.rs` carries only the header.
+
+## 5. Public API
+
+```rust
+pub struct Shaper { /* locale, indexes, Option<NormalizeTable> */ }   // Send + Sync; no interior mutability
+impl Shaper {
+    pub fn new(locale: Locale) -> Shaper;                         // infallible, microseconds
+    pub fn locale(&self) -> Locale;
+    pub fn rule_names(&self) -> Vec<&'static str>;                // rule order, frozen by the phase-trace golden
+    pub fn canonical_version(&self) -> Option<&'static str>;      // Some("mng-canonical/1") for MNG, None otherwise
+    pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error>;
+    pub fn shape_str(&self, text: &str) -> Result<String, Error>;                 // "+"-joined
+    pub fn same_shape(&self, a: &str, b: &str) -> Result<bool, Error>;
+    pub fn shape_detailed(&self, text: &str) -> Result<Vec<TokenDetail>, Error>;
+    pub fn trace(&self, text: &str) -> Result<ShapeTrace, Error>;
+    pub fn normalize(&self, text: &str) -> Result<String, Error>;                 // strict (Python default)
+    pub fn normalize_allow_fallback(&self, text: &str) -> Result<String, Error>;  // Python strict=False
+    pub fn normalize_text(&self, text: &str) -> Result<String, Error>;
+    pub fn normalize_text_allow_fallback(&self, text: &str) -> Result<String, Error>;
+    pub fn normalize_written_units(&self, units: &[WrittenUnit]) -> Result<String, Error>;
+    pub fn normalize_positioned_written_units(&self, records: &[PositionedWrittenUnit]) -> Result<String, Error>;
+    pub fn parse_written_units(&self, text: &str) -> Result<Vec<WrittenUnit>, Error>;   // "B+Aa" or uniquely-segmentable compact "BZwj"
+}
+impl Default for Shaper { /* Locale::Mng */ }
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)] pub enum Locale { Mng, Tod, Sib, Mch }   // FromStr: "MNG" "TOD" "SIB" "MCH" (case-sensitive); as_str()
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)] pub enum Position { Isol, Init, Medi, Fina }               // joining topology; as_str() "isol"…
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)] pub enum UnitPosition { Isol, Init, Medi, Fina, Control }  // authoritative HUD inventory position; as_str() adds "control"
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)] pub enum Fvs { Fvs1, Fvs2, Fvs3, Fvs4 }                    // cp(): U+180B U+180C U+180D U+180F; index(): 1..=4; from_cp()
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)] pub struct PositionedWrittenUnit { pub unit: WrittenUnit, pub position: UnitPosition }
+
+pub struct TokenDetail { pub cp: char, pub alias: Option<Alias>, pub position: Position, pub fvs: Option<Fvs> /* first FVS, as Python */,
+                         pub condition: Option<Condition>, pub written: Vec<WrittenUnit> }
+pub struct ShapeTrace  { pub positions: Vec<Position>, pub transitions: Vec<RuleTransition>, pub final_conditions: Vec<Option<Condition>>,
+                         pub written_by_token: Vec<Vec<WrittenUnit>>, pub shape: Vec<WrittenUnit> }
+pub struct RuleTransition { pub rule: &'static str, pub changes: Vec<ConditionChange> }
+pub struct ConditionChange { pub token: usize, pub before: Option<Condition>, pub after: Option<Condition> }
+
+pub use generated::{WrittenUnit, Condition, Alias};
+pub fn is_mongolian_letter(c: char) -> bool;
+pub fn is_mongolian_word_char(c: char) -> bool;
+pub fn version() -> &'static str;   // CARGO_PKG_VERSION
+```
+
+Notes.
+
+- `shape()` output contains structural tokens as `WrittenUnit::{Mvs, Nirugu, Zwj}`, exactly as Python emits
+  `"Mvs"`/`"Nirugu"`/`"Zwj"` strings.
+- `trace()` is the Rust verifier for `tests/golden/mng-phase-trace-v1.json`: it applies the rule table one rule
+  at a time and records `(token, before, after)` condition changes per rule, then resolves written units. Its
+  `positions` / `final_conditions` / `written_by_token` cover **all** tokens including structural ones
+  (position `Isol`, condition `None`, written `[]`), mirroring the Python `_trace` helper.
+- The Python `MNGx`/`TODx`/`MCHx` locale aliases are not supported (undocumented, untested, and their rules never
+  fire in Python because `rule.locales` only contains the base name). `Locale::from_str("MNGx")` is an error.
+- `Shaper` drops Python's per-instance `_chain_canon_cache`: the per-unit table encoding is O(N) plus one
+  reshape verification per chain, which is already sub-millisecond in Rust, and dropping it keeps `Shaper`
+  free of interior mutability (`Send + Sync`, shareable behind `&`). Behaviour is unchanged (the cache was a
+  pure memo).
+
+## 6. Error handling
+
+```rust
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Error {
+    /// shape()/normalize() input contains a character outside letters + FVS/MVS/NNBSP/Nirugu/ZWJ. `index` is a char index.
+    NonMongolianChar { ch: char, index: usize },
+    /// Strict normalization found no canonical encoding for this written-unit shape (Python NormalizationFallbackError).
+    NormalizationFallback { text: String, written_units: Vec<WrittenUnit> },
+    /// The locale ships no normalize table (TOD/SIB/MCH). Python raised RuntimeError.
+    NormalizeUnsupported { locale: Locale },
+    /// parse_written_units: a name that is not a unit of this shaper's normalize table (nor Mvs/Nirugu/Zwj).
+    UnknownWrittenUnit { index: usize, unit: String },
+    /// normalize_written_units: a WrittenUnit that this shaper's normalize table does not know.
+    UnsupportedWrittenUnit { index: usize, unit: WrittenUnit },
+    /// normalize_written_units: the sequence has no canonical MNG encoding (or does not reshape exactly).
+    NoCanonicalEncoding,
+    /// positioned: explicit `Zwj` records are rejected.
+    ExplicitZwj,
+    /// positioned: `Mvs`/`Nirugu` must use `UnitPosition::Control`.
+    ControlRequiresControlPosition { index: usize, unit: WrittenUnit },
+    /// positioned: `(unit, position)` is not in the HUD inventory (letters with `Control` land here too).
+    UnsupportedPositionedUnit { index: usize, unit: WrittenUnit, position: UnitPosition },
+    /// positioned: record positions do not form a valid init…fina chain in the supplied joining context.
+    ChainPositionMismatch,
+    /// positioned: more than 1024 records.
+    TooManyRecords { max: usize },
+    /// parse_written_units: empty unit, whitespace, or ambiguous compact segmentation.
+    InvalidUnitSpec(String),
+    /// A contract name (`Locale`, `Position`, `UnitPosition`, `WrittenUnit`, `Condition`, `Alias`) failed to parse (`FromStr`).
+    UnknownName { kind: &'static str, name: String },
+}
+impl std::fmt::Display for Error { /* wording mirrors the Python messages so CLI stderr matches */ }
+impl std::error::Error for Error {}
+```
+
+`Display` strings that tests observe (mirror Python verbatim for printable ASCII; the offending character/name is
+escaped with `escape_debug`, which matches Python's `repr()` for control characters but spells quotes and
+non-printable non-ASCII differently): `normalization fallback: no canonical encoding
+for written units S+A+I+I+A`; `written_units[1] is unknown: 'Unknown'`; `written-unit sequence has no canonical
+MNG encoding`; `unsupported positioned control 'Zwj'`; `positioned_units[0] control 'Mvs' requires position
+'control'`; `unsupported positioned written unit 'F:isol'`; `positioned written-unit sequence has no canonical
+MNG encoding in the supplied context`; `positioned_units accepts at most 1024 records`; `compact written-unit
+sequence is ambiguous; separate units with '+'`; `written units cannot be empty or contain whitespace…`;
+`non-Mongolian character 'x' (U+0078) at index 3: …`.
+
+## 7. Internal architecture
+
+The port is a **rule-by-rule transliteration** of `mongol_norm/shaper.py` and `mongol_norm/rules.py`. Function
+names, rule names, rule order, guard order and every "verified against DraftNew-Regular.otf" carve-out are kept;
+the extensive Python comments explaining *why* are carried over (condensed) so the two implementations stay
+reviewable side by side.
+
+### 7.1 `unicode.rs`
+
+Constants `MVS = U+180E`, `NIRUGU = U+180A`, `ZWJ = U+200D`, `NNBSP = U+202F` and the FVS code points
+(Python's `ZWNJ_CP` is defined but never read, so it is not ported — ZWNJ is simply not a word character); `is_mongolian_letter(c)` = in `U+1800..=U+18AF` and not FVS/MVS/nirugu, not punctuation
+`U+1800..=U+1809`, not digits `U+1810..=U+1819` (so unassigned `U+181A..=U+181F` count as letters, as in
+Python: they produce no written units and vanish from the shape); `is_mongolian_word_char(c)` = letter ∪ FVS ∪
+{MVS, NNBSP, NIRUGU, ZWJ}; `check_word_chars(text)` → first offender as `Error::NonMongolianChar`.
+
+### 7.2 `token.rs`
+
+```rust
+pub(crate) enum TokenKind { Letter, Mvs, Nirugu, Zwj }   // nirugu and ZWJ are both `is_nirugu()` for the rules; kept apart so the shape emits the right token
+pub(crate) struct Token { kind, cp: u32, alias: Option<Alias>, fvs: Vec<Fvs> /* all trailing FVS in stream order */,
+                          position: Position /* default Isol */, condition: Option<Condition>, written: Option<&'static [WrittenUnit]> /* lazy memo; points into the generated tables */ }
+```
+
+`tokenize`: letter + all trailing FVS → `Letter`; `MVS`/`NNBSP` → `Mvs` (NNBSP normalised to MVS here, the
+earliest point); `NIRUGU` → `Nirugu`, `ZWJ` → `Zwj` (both extend the joining chain and answer `is_nirugu()`; the kind
+is kept so the shape emits `Nirugu` vs `Zwj`); everything else skipped. `assign_positions`: segments split at `Mvs`; letters **and**
+nirugu tokens count toward segment length; nirugu tokens keep `Isol` and get no position; letters get
+`isol`/`init`/`medi`/`fina` by index. `first_fvs()` mirrors Python's `fvs_cp`; `has_fvs()`.
+
+### 7.3 `rules.rs`
+
+`pub(crate) struct Rule { pub name: &'static str, pub apply: fn(&mut [Token], &Shaper) }`, `RULES_MNG` in this
+exact order (the phase-trace golden asserts it): `III.1.chachlag`, `III.2a.o_u_oe_ue.marked`,
+`III.2a.o_u_oe_ue.marked.GB.A`, `III.2a.o_u_oe_ue.marked.GB.B`, `III.2a.oe_ue.cluster.marked`, `III.2a.d.marked`,
+`III.2c.chachlag_onset`, `III.2e.n_t_d.onset_devsger`, `III.2f.h_g.harmony`, `III.2g.t.devsger`,
+`III.2g.sh.dotless`, `III.2g.g.dotless`, `III.3.particle`, `III.4.vowel_devsger`, `III.5.post_bowed`.
+`RULES_TOD/SIB/MCH` are empty. Semantics carried over exactly: first-writer-wins guards on every rule except
+`III.2g.g.dotless` and `III.5.post_bowed` (which override, `post_bowed` still deferring to `marked`);
+`III.4`/`III.5` call `resolve_written` on the *previous* token mid-pipeline (memoised on the token, exactly as
+Python — the memo is never invalidated); `III.3` builds MVS-headed alias segments, retries without the leading
+`mvs`, skips segments with any FVS or whose first letter is not `init`/`isol`, and only tags
+`a e i u ue d y`.
+
+Context helpers used by rules (`shaper.rs`): `prev_letter`, `next_letter` (skip non-letters), `prev_tok`,
+`next_tok`, `prev_adjacent_letter`, `next_adjacent_letter` (nirugu transparent, MVS blocks), `is_vowel`,
+`is_consonant`, `is_masc/fem/neut_vowel`, `written_ends_with`, and `masc_marker_reaches_g_h` (forward
+preprocessing.A/B/C scan + backward G/H/J/K scan with the `fina + mvs + isol a` trigger), all transliterated.
+
+### 7.4 `shaper.rs`
+
+`Shaper::new` builds from the generated `LocaleData`: `cp → &Letter`, `cp ↔ Alias`, `(cp, Position, Option<Fvs>)
+→ &Variant`, `(cp, Position) → default &Variant`, category sets (`HashSet<Alias>` or bitsets), particle lookup by
+exact `ParticleSym` sequence, plus the `NormalizeTable` for MNG. `resolve_written(tok)`: (1) first FVS in stream
+order whose variant exists, (2) else the condition's variant (`condition_fvs` scans variants in table order),
+(3) else the default variant; structural tokens resolve to `[]`. `shape` = `check_word_chars` → `tokenize` →
+`assign_positions` → `run_rules` → resolve all → flatten (structural tokens as `Mvs`/`Nirugu`/`Zwj`).
+`shape_detailed` and `trace` share the same pipeline steps.
+
+### 7.5 `normalize.rs`
+
+`NormalizeTable` built from `mng_normalize::DATA`: `HashMap<(Position, UnitKey), (u32, Option<Fvs>)>` where
+`UnitKey` is a fixed-capacity key (`len: u8, units: [WrittenUnit; 3]`) so lookups never allocate; the same for
+`velar_fem` (the generator asserts `unit_enc_max_len <= 3` so the fixed key always fits); `known_units:
+HashSet<WrittenUnit>` (units of all table keys ∪ structural);
+`positioned_units: HashSet<(WrittenUnit, Position)>`.
+
+Algorithms transliterated from Python with the same names: `canonical_for_shape` (parts split at structural
+tokens, encoded right-to-left with `suffix_text`/`suffix_target`; post-MVS chains take their standalone
+canonical, `('Aa',)` after MVS is bare `a`; full-context verification by reshaping), `unit_encode_chain`
+(joined_left/right from adjacent joiner tokens, verification), `unit_partition` (single unit preferred, else
+longest multi-unit entry up to `unit_enc_max_len`), `apply_velar_fem` (forward coupling only),
+`slot_position`, `letter_position`. `normalize(text)`: empty → empty; empty shape → `""`; else canonical, then
+the safety net (`Err(NormalizationFallback)` in strict mode, input echoed back otherwise). `normalize_text`:
+segment by `is_mongolian_word_char`, normalize Mongolian runs (a run whose shape is empty is dropped, as in
+Python), copy everything else verbatim.
+
+### 7.6 `written_units.rs`
+
+`normalize_written_units`: empty → `""`; requires the table (`NormalizeUnsupported` otherwise); every unit
+must be `known_units` (`UnsupportedWrittenUnit{index}`); `canonical_for_shape` must be non-empty and reshape to
+exactly the request (`NoCanonicalEncoding`). `normalize_positioned_written_units`: `len > 1024` →
+`TooManyRecords`; any `Zwj` → `ExplicitZwj`; empty → `""`; requires the table; `Mvs`/`Nirugu` need `Control`
+(`ControlRequiresControlPosition`), other `(unit, position)` must be in `positioned_units`
+(`UnsupportedPositionedUnit`); then the chain/ZWJ padding logic exactly as Python (singleton `O:init` → `O Zwj`;
+singleton `medi`/`fina` get ZWJ where not already joined; multi-record chains validate each record's expected
+`slot_position` in the padded chain, else `ChainPositionMismatch`), and delegate to `normalize_written_units`.
+`parse_written_units`: strip one trailing `\r\n`/`\n`/`\r`; empty → `[]`; whitespace → `InvalidUnitSpec`; `+`
+present → split (empty part → `InvalidUnitSpec`) and `FromStr` each (`UnknownWrittenUnit{index}`); otherwise
+unique-segmentation DP over the vocabulary (known unit names sorted by `(-len, name)`, parse counts capped at 2):
+0 parses → `UnknownWrittenUnit{0, text}`, >1 → `InvalidUnitSpec("compact … ambiguous …")`.
+
+### 7.7 `cli.rs` and `bin/mongol-norm.rs`
+
+`pub fn main() -> i32` / `pub fn run(args: &[String], stdin: &mut dyn Read, stdout: &mut dyn Write, stderr: &mut dyn
+Write) -> i32`, hand-rolled argument parsing (no clap; same style as `meco`). Global `--locale LOCALE` (before
+the subcommand), `-h/--help`, `-V/--version`. Subcommands: `shape`, `normalize [--allow-fallback]`,
+`normalize-text [--allow-fallback]`, `normalize-written-units`, each with positional `TEXT` (`-` = stdin; absent
++ no `-i` = stdin), `-i FILE`, `-o FILE`, `--batch`; `same TEXT1 TEXT2` prints `true`/`false` and exits 0/1.
+Output gets a trailing newline when missing (Python `_write_output`); batch mode processes line by line,
+prefixes errors with `line N: `, preserves the trailing newline of the input. Any `Error` → `error: {Display}`
+on stderr, exit 2; usage errors → exit 2 with a usage line. This module is `#[doc(hidden)] pub` only so the
+crate's unit tests can drive it with a table-less shaper (§8.3).
+
+## 8. Testing
+
+### 8.1 Shared fixtures
+
+Rust integration tests read `tests/data/core-hud.tsv`, `tests/data/eac-hud.tsv`,
+`tests/golden/mng-canonical-v1.jsonl`, `tests/golden/mng-phase-trace-v1.json` via
+`concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/…")`. They are never copied. (Consequence: the published
+crate tarball does not contain the corpus tests; `cargo test` needs the repository checkout. Documented in the
+crate README.) The two JSON fixtures are read by a small dependency-free JSON reader in
+`crates/mongol-norm/tests/common/json.rs` (~150 lines: objects, arrays, strings with escapes, numbers,
+literals) — keeping the crate at zero dependencies including dev-dependencies, in the spirit of
+`meco-rust`'s dependency-free fixtures.
+
+`tests/common/mod.rs` ports the Python test helpers: the alias → code point map (`_mgl`), `aliases_to_words`
+(`space` = word boundary), `shape_aliases` (words joined with `Mvs`), `normalize_expected` (`_`/`-`/`Mvs` →
+`Mvs`, `Ni` → `Nirugu`, drop `<` `>` `Fvs1..4` `Nnbsp`), TSV loading (`#` comments, ≥3 columns),
+`split_letters`, `INLINE_CASES`, `PARTICLE_CASES`, `PARTICLE_EQUIVALENCE_GROUPS`, and the 5-case
+`UTN_XFAIL` set.
+
+### 8.2 Ported behavioural tests (one Rust file per Python module)
+
+| Rust test file | Python source | what |
+|---|---|---|
+| `shaper.rs` | `test_shaper.py` `TestShape`, `TestSameShape`, the tokenization/shape half of `TestNNBSP` | every hand-written shaping case (sain variants, the 5 phases step by step, UTN-vs-EAC divergences, positions, NNBSP) — 87 tests |
+| `normalize.rs` | `test_shaper.py` `TestNormalize`, `TestNormalizeText`, the normalize half of `TestNNBSP` | normalize / normalize_text / NNBSP behaviour (the fallback cases are in-crate unit tests, §8.3) |
+| `json.rs` | — | unit test of the harness's JSON reader, in its own binary |
+| `joiners.rs` | `test_joiners.py` | nirugu/ZWJ shape tokens and round trips |
+| `written_units.rs` | `test_written_units_api.py` (API classes) | unit sequences, controls, rejections |
+| `positioned.rs` | `test_positioned_written_units_api.py` | inventory, borrowed forms, ZWJ completion, fail-closed records, 1024 cap |
+| `core_hud.rs` | `test_core_hud.py` | all 177 rows (the README's "225 cases" counts differently); also asserts `trace().shape == shape()` per word |
+| `eac_hud.rs` | `test_eac_hud.py` | all 3512 rows, the same 5 UTN-xfail ids skipped, `Zwj` dropped from the actual shape like the Python test, prints the pass summary |
+| `round_trip.rs` | `test_round_trip.py` | inline / core / eac round trips; shape-canonicity (1993 shape groups, compact parsing of every group, written-unit API == normalize); particle uniformity (incl. the data-driven sweep over the 47 particles); prefix stability (18-unit A/B pair; real-corpus pairs ≥ 99 %); long-chain speed (< 200 ms, < 5 s) |
+| `canonical_golden.rs` | `test_canonical_golden.py` | manifest metadata; every current corpus shape group is in the fixture; frozen cardinality; canonical code points byte-for-byte |
+| `phase_trace_golden.rs` | `test_phase_trace_golden.py` | schema + rule order; every vector's trace matches; every rule has a witness vector |
+| `cli.rs` | `test_written_units_api.py::TestNormalizeWrittenUnitsCli`, `test_cli.py` (non-fallback parts) | spawns `env!("CARGO_BIN_EXE_mongol-norm")`: inline / stdin / file / batch I/O, compact vs `+` units, control spellings, parser errors, `same` exit codes, missing subcommand |
+| `fuzz.rs` | — (new, mirrors `meco-rust`) | deterministic xorshift, 20 000 random strings over letters + FVS + MVS + NNBSP + nirugu + ZWJ + a few non-Mongolian chars; `shape`/`normalize*`/`normalize_text*`/`shape_detailed`/`trace` never panic; every `Ok(normalize)` reshapes to the input's shape and is idempotent |
+
+Not ported: `test_normalize_table.py` and `test_golden_generation.py` (they test the Python generators),
+and pure-`TypeError` assertions.
+
+### 8.3 In-crate unit tests
+
+`#[cfg(test)]` constructor `Shaper::with_empty_normalize_table(locale)` (private) reproduces Python's
+monkeypatched empty table, since no reachable MNG input misses the real table. Unit tests cover: strict
+`normalize` → `NormalizationFallback { text, written_units }` with the exact `Display` text; `normalize_allow_fallback`
+echoes the input; the same inside `normalize_text`; the CLI paths from `test_cli.py` (`normalize`,
+`normalize-text`, `--batch` with `line N:` prefixes, `--allow-fallback`) driven through `cli::run` with that
+shaper. Also `parse_written_units` edge cases and `Locale`/enum `FromStr` round trips.
+
+### 8.4 Python side
+
+`tests/test_rust_twin.py`: `gen_rust_tables.py --check` passes; Cargo/pyproject/`__version__` agree.
+
+### 8.5 CI
+
+`.github/workflows/test.yml` gains a `rust` job: `actions/checkout@v5`; `dtolnay/rust-toolchain` (SHA-pinned as in
+`meco-rust`) stable with `rustfmt`, `clippy` and target `wasm32-unknown-unknown`; `cargo fmt --all --check`;
+`cargo clippy --workspace --all-targets --locked -- -D warnings`; `cargo test --workspace --locked`;
+`cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked`; `cargo doc -p mongol-norm
+--no-deps --locked` under `RUSTDOCFLAGS: -D warnings`; then `rustup toolchain install 1.82.0 --profile minimal`
+and `cargo +1.82.0 test --workspace --locked` (MSRV); and finally `cargo package -p mongol-norm --locked`. The
+job carries `timeout-minutes: 20`. The Python job is unchanged and now also runs `test_rust_twin.py` through
+discovery. `publish.yml`'s version check additionally reads the root `Cargo.toml` `[workspace.package]`
+`version` — the crate manifest inherits it via `version.workspace = true`, which `tests/test_rust_twin.py`
+asserts.
+
+## 9. Documentation
+
+- Root `README.md`: a "Rust" subsection in both the English and 中文 halves (install `mongol-norm = "0.0.4"`,
+  a 10-line usage sample, pointer to the crate README, note on the dual implementation and lockstep versions).
+- `crates/mongol-norm/README.md`: short, bilingual; API sample; "tests need the repo checkout"; how the tables
+  are generated.
+- `lib.rs` crate docs: the why/what/how summary (condensed from `shaper.py`'s module docstring) and the
+  pointer to this spec; every public item documented (`#![deny(missing_docs)]`).
+- `docs/data-format.md`: one paragraph under "Getting the JSON" describing the Rust consumer
+  (`scripts/gen_rust_tables.py` → `src/generated`).
+- `docs/releasing.md`: lockstep versioning; crates.io publication marked as a follow-up.
+
+## 10. Follow-ups (not in this spec)
+
+crates.io trusted-publishing workflow (`release`-triggered, mirroring `publish.yml`); migrating
+`zvvnmod-utn57`'s command bridge to a direct dependency on this crate; optional cargo features to drop TOD/SIB/MCH
+tables from wasm builds; PyO3 bindings.

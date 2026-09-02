@@ -45,6 +45,14 @@ jobs:
                   f"package version {package_version!r}"
               )
           print(f"package versions agree: {package_version}")
+          workspace = tomllib.loads(pathlib.Path("Cargo.toml").read_text())
+          crate_version = workspace["workspace"]["package"]["version"]
+          if crate_version != package_version:
+              raise SystemExit(
+                  f"crate version {crate_version!r} does not match "
+                  f"package version {package_version!r}"
+              )
+          print(f"crate version agrees: {crate_version}")
           PY
 
       - name: Verify release tag matches package version

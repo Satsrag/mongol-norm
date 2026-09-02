@@ -6,6 +6,9 @@ name: Test
 # test suite, which covers all shaping logic, the normalize round-trip /
 # canonicity / prefix-stability properties, the normalize-table export, and
 # the mongfontbuilder core-hud / eac-hud TSV regression sets.
+# The Rust twin lives in crates/mongol-norm/ (workspace root Cargo.toml); its
+# tables are generated from the same JSON by scripts/gen_rust_tables.py and
+# kept fresh by tests/test_rust_twin.py.
 
 on:
   push:
@@ -43,5 +46,44 @@ jobs:
         #   - normalize-table export (compute == load)
         #   - 225 mongfontbuilder core-hud cases (100%)
         #   - 3513 mongfontbuilder eac-hud cases (100%, 5 UTN-xfail)
+        #   - generated Rust tables are fresh + crate/package versions agree (test_rust_twin)
         run: |
           python -m unittest discover -s tests -p 'test_*.py' -v
+
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install stable Rust (rustfmt, clippy, wasm32 target)
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test (stable)
+        run: cargo test --workspace --locked
+
+      - name: Build the library for wasm32-unknown-unknown
+        run: cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked
+
+      - name: Rustdoc (broken intra-doc links are errors)
+        run: cargo doc -p mongol-norm --no-deps --locked
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+      - name: Test on the MSRV (1.82.0)
+        run: |
+          rustup toolchain install 1.82.0 --profile minimal
+          cargo +1.82.0 test --workspace --locked
+
+      - name: Package
+        run: cargo package -p mongol-norm --locked

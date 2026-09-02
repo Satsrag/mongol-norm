@@ -111,6 +111,19 @@ boundary. For example, `AAaBZwj` segments as `A+Aa+B+Zwj`, then undergoes the
 same exact-shape encodability validation as sequence input. Unit names cannot be
 empty or contain surrounding whitespace.
 
+### Rust
+
+The Rust crate in [`crates/mongol-norm/`](../crates/mongol-norm/) does not read the JSON at
+runtime. `scripts/gen_rust_tables.py` turns these files into static Rust tables
+(`crates/mongol-norm/src/generated/*.rs`: the `WrittenUnit` / `Condition` / `Alias` enums, the
+per-locale shaping tables and the MNG normalize table), and `tests/test_rust_twin.py` fails the
+Python suite whenever the committed tables are stale:
+
+```sh
+python scripts/gen_rust_tables.py          # regenerate after changing the JSON
+python scripts/gen_rust_tables.py --check  # what CI runs
+```
+
 ### Any other language
 
 Grab the raw files directly:
@@ -365,6 +378,14 @@ dependency, it uses this package's own shaper):
 ```sh
 python scripts/gen_normalize_table.py        # all locales
 python scripts/gen_normalize_table.py MNG    # specific
+```
+
+Rust tables (after any JSON change — regenerate them, then run
+`cargo test --workspace`):
+
+```sh
+python scripts/gen_rust_tables.py            # regenerate crates/mongol-norm/src/generated/
+python scripts/gen_rust_tables.py --check    # CI freshness check
 ```
 
 Compatibility fixtures (after an intentional shaping or canonical change):
