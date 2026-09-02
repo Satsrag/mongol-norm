@@ -161,8 +161,9 @@ impl Shaper {
     /// Python's monkeypatched empty normalize table (`tests/test_shaper.py`,
     /// `tests/test_cli.py`): every chain falls back. No reachable MNG input misses the real
     /// table, so the fallback paths are only testable this way.
-    #[cfg(test)]
-    pub(crate) fn with_empty_normalize_table(locale: Locale) -> Shaper {
+    #[cfg(any(test, feature = "testing"))]
+    #[doc(hidden)]
+    pub fn with_empty_normalize_table(locale: Locale) -> Shaper {
         let mut shaper = Shaper::new(locale);
         let version = shaper
             .normalize

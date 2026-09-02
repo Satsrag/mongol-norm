@@ -19,4 +19,9 @@ name = "mongol_norm"
 name = "mongol-norm"
 path = "src/bin/mongol-norm.rs"
 
+[features]
+# Exposes `Shaper::with_empty_normalize_table` for the Python bindings' test-suite
+# (`crates/mongol-norm-py`); never enable it in a published dependent.
+testing = []
+
 [dependencies]

@@ -1,21 +1,26 @@
 [build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
 
 [project]
 name = "mongol-norm"
-version = "0.0.4"
-description = "Shape-aware normalizer for Traditional Mongolian script. Implements the UTN #57 v4 shaping pipeline in pure Python."
+# Single source of truth: [workspace.package].version in ./Cargo.toml (maturin reads it
+# through crates/mongol-norm-py/Cargo.toml); mongol_norm.__version__ is read from the
+# extension module at import time.
+dynamic = ["version"]
+description = "Shape-aware normalizer for Traditional Mongolian script. Implements the UTN #57 v4 shaping pipeline — Rust core with Python bindings."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
     "Topic :: Text Processing :: Linguistic",
 ]
-# No runtime dependencies — the shaping/normalize JSON is bundled in
-# mongol_norm/data/ (see scripts/ to regenerate it).
+# No runtime dependencies — the engine and its tables are compiled into the
+# mongol_norm._native extension (crates/mongol-norm). mongol_norm/data/*.json
+# ships for tooling (docs/data-format.md); the runtime does not read it.
 dependencies = []
 
 [project.optional-dependencies]
@@ -29,8 +34,16 @@ mongol-norm = "mongol_norm.shaper:main"
 [project.urls]
 Homepage = "https://github.com/Satsrag/mongol-norm"
 
-[tool.setuptools.packages.find]
-include = ["mongol_norm*"]
-
-[tool.setuptools.package-data]
-mongol_norm = ["data/*.json"]
+[tool.maturin]
+manifest-path = "crates/mongol-norm-py/Cargo.toml"
+module-name = "mongol_norm._native"
+features = ["pyo3/extension-module"]
+# Keep the sdist self-testable: the generator scripts, the test-suite and its
+# fixtures, and the docs they cite (the old setuptools MANIFEST.in did the same).
+include = [
+    { path = "scripts/*.py", format = "sdist" },
+    { path = "tests/*.py", format = "sdist" },
+    { path = "tests/data/*.tsv", format = "sdist" },
+    { path = "tests/golden/*", format = "sdist" },
+    { path = "docs/*.md", format = "sdist" },
+]
