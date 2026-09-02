@@ -351,7 +351,8 @@ jobs:
           set -euo pipefail
           python -m pip install 'twine>=6'
           python -m twine check --strict python/dist/*
-          python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE python/dist/*
+          python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE \
+            --description-contains pypi/pyversions python/dist/*
 
       # What `pip install mongol-norm` does on a platform without a wheel: pip fetches
       # maturin into an isolated build environment and compiles the extension with the
@@ -424,7 +425,8 @@ jobs:
           set -euo pipefail
           python -m pip install 'twine>=6'
           python -m twine check --strict dist/*
-          python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE dist/*
+          python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE \
+            --description-contains pypi/pyversions dist/*
 
       # Pinned release/v1 commit for supply-chain stability. Uploads everything in
       # dist/ with PEP 740 attestations, minted from the job's OIDC identity.

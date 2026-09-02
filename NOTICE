@@ -8,10 +8,10 @@ Their notices are reproduced below as required by their licenses.
 mongfontbuilder
 ================================================================================
 
-The shaping rules in `mongol_norm/rules.py` are ported from mongfontbuilder's
-OpenType shaping pipeline, and the bundled data in `mongol_norm/data/*.json`
-is generated from mongfontbuilder. mongfontbuilder is distributed under the
-MIT License:
+The shaping rules in `src/rules.rs` are ported from mongfontbuilder's OpenType
+shaping pipeline, and the data they run on (`python/mongol_norm/data/*.json`,
+compiled into `src/generated/`) is generated from mongfontbuilder.
+mongfontbuilder is distributed under the MIT License:
 
     MIT License
 

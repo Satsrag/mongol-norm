@@ -225,7 +225,7 @@ def main() -> int:
         "-o", "--output-dir",
         type=Path,
         default=Path(__file__).resolve().parent.parent / "mongol_norm" / "data",
-        help="Output directory (default: ../mongol_norm/data/).",
+        help="Output directory (default: python/mongol_norm/data/).",
     )
     args = parser.parse_args()
 

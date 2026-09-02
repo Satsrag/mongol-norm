@@ -7,7 +7,13 @@ with "License-File X does not exist in distribution file …" — and ``twine ch
 does not (mongol-norm 0.1.0's sdist got through twine and was then refused by
 PyPI). Run it on everything in ``python/dist/`` before publishing:
 
-    python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE python/dist/*
+    python python/scripts/check_dist_metadata.py --require LICENSE --require NOTICE \
+        --description-contains pypi/pyversions python/dist/*
+
+``--description-contains`` guards the other half of the metadata: which readme became
+the PyPI long description. maturin re-roots ``pyproject.toml`` at the sdist root next to
+the crate's own ``README.md``, so a rename of ``python/README.pypi.md`` would silently
+publish the Rust crate's README as the package page.
 
 Exit status 0 when every archive is consistent, 1 otherwise (with one line per
 problem on stderr).
@@ -48,14 +54,21 @@ def _metadata_and_members(path):
     raise ValueError("not a .whl or .tar.gz")
 
 
-def check(path, required):
+def check(path, required, description_contains=()):
     """Return a list of problems (empty when the archive is consistent)."""
     problems = []
     try:
         text, members, prefix = _metadata_and_members(path)
     except (OSError, ValueError, zipfile.BadZipFile, tarfile.TarError) as error:
         return [f"{path.name}: cannot read: {error}"]
-    headers = email.parser.Parser().parsestr(text, headersonly=True)
+    headers = email.parser.Parser().parsestr(text)
+    description = headers.get_payload() or headers.get("Description") or ""
+    for marker in description_contains:
+        if marker not in description:
+            problems.append(
+                f"{path.name}: the long description does not contain {marker!r} "
+                "— wrong readme file?"
+            )
     declared = headers.get_all("License-File") or []
     for name in declared:
         if f"{prefix}{name}" not in members:
@@ -78,10 +91,20 @@ def main(argv=None):
         metavar="NAME",
         help="a License-File every archive must declare (repeatable)",
     )
+    parser.add_argument(
+        "--description-contains",
+        action="append",
+        default=[],
+        metavar="TEXT",
+        help=(
+            "text the long description must contain (repeatable) -- pins which readme "
+            "became the PyPI page, which nothing else checks"
+        ),
+    )
     args = parser.parse_args(argv)
     problems = []
     for path in args.dist:
-        problems.extend(check(path, args.require))
+        problems.extend(check(path, args.require, args.description_contains))
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)
     return 1 if problems else 0

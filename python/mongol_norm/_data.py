@@ -1,7 +1,9 @@
 """
 Bundled shaping data for mongol-norm (internal).
 
-The JSON in `mongol_norm/data/` is the runtime data the shaper consumes:
+The JSON in `mongol_norm/data/` is the source the engine's static tables are
+generated from (`python/scripts/gen_rust_tables.py` -> `src/generated/`). The
+runtime never reads it; it ships for tooling and other-language ports:
 
   * `<LOCALE>.json`            — flat, language-agnostic shaping rules,
                                  generated from mongfontbuilder + UTN #57.
@@ -9,9 +11,9 @@ The JSON in `mongol_norm/data/` is the runtime data the shaper consumes:
                                  written-unit) FVS-pinned encodings),
                                  generated from this package's own shaper.
 
-Both are produced by the repository's dev-only scripts (`python/scripts/`) and committed here, so
-the runtime needs no extra dependency and other-language ports can read the raw
-files directly (see docs/data-format.md).
+Both are produced by the repository's dev-only scripts (`python/scripts/`) and
+committed here, so other-language ports can read the raw files directly
+(see docs/data-format.md).
 
 These loaders are internal — import `MongolianShaper`, not this module.
 """
@@ -23,9 +25,9 @@ from typing import Any, Dict
 SCHEMA_VERSION = 1
 SUPPORTED_LOCALES = ("MNG", "MNGx", "TOD", "TODx", "SIB", "MCH", "MCHx")
 
-# Plain filesystem path (not importlib.resources) so the package runs on
-# Python 3.7+; wheel/sdist installs unpack to a real directory anyway.
-# 用普通文件路径而非 importlib.resources,兼容 Python 3.7+。
+# Plain filesystem path (not importlib.resources): wheel/sdist installs unpack
+# to a real directory anyway.
+# 用普通文件路径而非 importlib.resources。
 _DATA = Path(__file__).parent / "data"
 
 
