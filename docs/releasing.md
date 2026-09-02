@@ -1,10 +1,26 @@
 # Releasing mongol-norm
 
-PyPI publication is handled by `.github/workflows/publish.yml` using
-[PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/). No PyPI API
-token is stored in GitHub.
+One GitHub Release (tag `vX.Y.Z`) publishes two artifacts from the same commit:
 
-## One-time setup
+- the PyPI package `mongol-norm` — wheels and an sdist, `.github/workflows/publish.yml`;
+- the crate `mongol-norm` on crates.io — `.github/workflows/publish-crate.yml`.
+
+Both use Trusted Publishing (GitHub OIDC) from a protected GitHub environment; no PyPI or
+crates.io token is stored in GitHub.
+
+## The version
+
+The version literal lives in exactly one place: `[workspace.package] version` in the root
+`Cargo.toml`. Everything else derives from it — the core crate and the binding crate use
+`version.workspace = true`, maturin reads it through `crates/mongol-norm-py/Cargo.toml`
+(`pyproject.toml` declares `dynamic = ["version"]`), and `mongol_norm.__version__` is read
+from the extension module at import time. `tests/test_rust_twin.py` and both publish
+workflows check that the runtime, the crate and (on a release) the tag agree with it.
+
+To bump it: edit the literal in `Cargo.toml`, run `cargo update -w` so `Cargo.lock`
+records the new workspace version, run the suites, commit.
+
+## One-time setup (PyPI)
 
 A maintainer of the `mongol-norm` PyPI project must add a trusted publisher with
 these exact values:
@@ -21,35 +37,74 @@ Create a GitHub environment named `pypi` as well. Required reviewers may be
 configured on that environment if every publication should require manual
 approval.
 
-## Verify without publishing
+## Build wheels without publishing
 
-Run **Build and publish to PyPI** from the Actions tab with
-`workflow_dispatch`. A manual run executes the tests, builds the wheel and
-source distribution, checks their metadata, smoke-tests the wheel, and uploads
-both files as a workflow artifact. It never runs the publish job.
+Run **Build and publish to PyPI** from the Actions tab (**Run workflow**, on any branch).
+A manual `workflow_dispatch` run executes the verification job (in-place build + Python
+suite), builds the whole wheel matrix and the sdist, smoke-tests every natively runnable
+wheel and uploads each `dist/` as a workflow artifact (`dist-linux-x86_64`,
+`dist-musllinux-aarch64`, `dist-macos-aarch64`, `dist-sdist`, …). It never runs the
+publish job.
+
+Use it to get a CI-built wheel for a platform you cannot build on — for example, download
+`dist-macos-aarch64` from the run's Summary page and `pip install` the wheel it contains
+in a fresh virtual environment — and to rehearse a release before tagging.
 
 ## Publish a release
 
-1. Update the version in `pyproject.toml` and `mongol_norm/__init__.py` in the
+1. Bump `[workspace.package] version` in `Cargo.toml` (see above) and commit: this is the
    release commit.
 2. Merge the tested release commit to `main`.
-3. Create and publish a GitHub Release whose tag is exactly `vX.Y.Z`, matching
-   the package version. A draft release does not publish to PyPI.
-4. The workflow rebuilds and tests from the tagged commit. If the tag and
-   package version differ, it stops before publication.
-5. The `publish` job enters the protected `pypi` environment and exchanges its
-   GitHub OIDC identity for a short-lived PyPI credential.
+3. Create and publish a GitHub Release whose tag is exactly `vX.Y.Z`, matching the
+   workspace version. A draft release does not publish.
+4. `publish.yml` runs from the tagged commit:
+   - `verify` checks that the tag equals `v` + the workspace version and that the commit
+     is an ancestor of `main`, builds the extension in place (`maturin develop`), checks
+     `mongol_norm.__version__` against the workspace version, and runs the Python suite;
+   - the wheel jobs build the matrix below and smoke-test every wheel that can run on
+     its build runner (`pip install --no-index --find-links dist mongol-norm`, import,
+     shape `ᠰᠠᠢᠨ`, `mongol-norm shape ᠰᠠᠢᠨ`);
+   - `sdist` builds the source distribution and installs it with pip, compiling the
+     extension the way a user without a wheel would.
+
+   If any of these fails, nothing is published.
+5. The `publish` job enters the protected `pypi` environment, downloads all
+   distributions into one `dist/`, checks that the set is complete (7 wheels + 1 sdist),
+   and exchanges its GitHub OIDC identity for a short-lived PyPI credential
+   (`pypa/gh-action-pypi-publish`, which also attaches PEP 740 attestations).
+6. `publish-crate.yml` runs in parallel from the same release (see below).
 
 Do not upload the same version twice: PyPI release files are immutable. If a
-publication fails after any file reaches PyPI, increment the package version
-before retrying.
+publication fails after any file reaches PyPI, increment the version before retrying.
+
+### The wheel matrix
+
+All wheels are `cp39-abi3`: one wheel per platform serves every CPython ≥ 3.9. Builds
+use `PyO3/maturin-action` with `--release --locked`; `MATURIN_VERSION` in `publish.yml`
+pins the maturin release used for the wheels and must stay inside `[build-system] requires`
+in `pyproject.toml`, which governs the sdist builds.
+
+| Distribution | Runner | Build | Smoke-tested on the runner |
+| --- | --- | --- | --- |
+| manylinux2014 x86_64 | `ubuntu-latest`, `manylinux2014_x86_64` container | native | yes |
+| manylinux2014 aarch64 | `ubuntu-latest`, `manylinux2014-cross:aarch64` container | cross | no |
+| musllinux_1_2 x86_64 | `ubuntu-latest`, `rust-musl-cross` container | cross (musl) | no (glibc host) |
+| musllinux_1_2 aarch64 | `ubuntu-latest`, `rust-musl-cross` container | cross | no |
+| macOS x86_64 | `macos-latest` (Apple silicon) | cross | no |
+| macOS arm64 | `macos-latest` | native | yes |
+| Windows x64 | `windows-latest` | native | yes |
+| sdist | `ubuntu-latest` | `maturin sdist` | installed with pip (compiles) |
+
+Platforms outside this matrix (and `pip install --no-binary mongol-norm`) build from the
+sdist, which needs a Rust toolchain ≥ 1.83 on the machine; pip fetches maturin itself
+(`[build-system] requires` in `pyproject.toml`). The sdist carries the workspace, the
+generator scripts, the test-suite with its fixtures and the docs, so it is self-testable.
 
 ## The Rust crate
 
-`crates/mongol-norm` is versioned in lockstep with the Python package: `[workspace.package]
-version` in the root `Cargo.toml` must equal `pyproject.toml` and `mongol_norm.__version__`
-(`tests/test_rust_twin.py` and the publish workflows check this). Update all three in the release
-commit.
+`crates/mongol-norm` is versioned in lockstep with the Python package through the single
+workspace literal described above; `publish-crate.yml` verifies that lockstep and the
+tag the same way `publish.yml` does.
 
 crates.io publication is handled by `.github/workflows/publish-crate.yml` using
 [crates.io Trusted Publishing](https://crates.io/docs/trusted-publishing): the same `vX.Y.Z`
@@ -76,7 +131,8 @@ approval, mirroring the `pypi` environment.
 ### Verify without publishing (crate)
 
 Run **Publish crate to crates.io** from the Actions tab with `workflow_dispatch`. A manual run
-verifies the lockstep versions, runs the Rust test suite, packages the crate, checks the
+verifies the lockstep versions, runs the core crate's test suite (`cargo test -p mongol-norm
+--locked`), packages the crate, checks the
 crates.io registry state and uploads the `.crate` file as a workflow artifact. It never runs the
 publish job.
 

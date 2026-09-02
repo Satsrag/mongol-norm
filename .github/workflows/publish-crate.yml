@@ -22,6 +22,7 @@ jobs:
   verify:
     name: Verify and package the crate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     outputs:
@@ -29,7 +30,7 @@ jobs:
 
     steps:
       - name: Check out the release commit
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -94,7 +95,7 @@ jobs:
           esac
 
       - name: Save the packaged crate
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: crate-package
           path: target/package/*.crate
@@ -106,6 +107,7 @@ jobs:
     if: github.event_name == 'release' && github.repository == 'Satsrag/mongol-norm' && needs.verify.outputs.publish == 'true'
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: crates-io
       url: https://crates.io/crates/mongol-norm
@@ -115,7 +117,7 @@ jobs:
 
     steps:
       - name: Check out the release commit
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
           persist-credentials: false

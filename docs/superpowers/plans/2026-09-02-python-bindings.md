@@ -19,7 +19,33 @@ Spec: `docs/superpowers/specs/2026-09-02-python-bindings-design.md`. Branch
 >   CI-built wheels are unaffected. Consequence for Task 5: the release-wheel smoke
 >   test on this Mac uses a CI-built wheel (publish.yml gains `workflow_dispatch` for
 >   build-only runs), not a locally built one; the debug wheel (`maturin develop`) is
->   fine because its indirect-symbol count happens to be even.
+>   fine because its indirect-symbol count happens to be even. Follow-up from the CI
+>   review: the misalignment is introduced by Apple's `strip`, which Cargo's release
+>   profile runs by default (`strip = "debuginfo"`); `CARGO_PROFILE_RELEASE_STRIP=none`
+>   gives an aligned, loadable release wheel locally, and the `macos` job in
+>   `publish.yml` sets it as a hedge (≈70 KB per wheel).
+> - Task 1 follow-ups: the binding crate got `default = ["extension-module"]` plus a
+>   `build.rs` adding the extension-module link args (plain `cargo build --workspace`
+>   links on macOS without libpython), `[lib] test = false, doctest = false` (no
+>   libpython test harness in `cargo test --workspace`), a path-only dependency on the
+>   core crate (no second version literal), and `mongol_norm/shaper.py` a `__main__`
+>   guard so `python -m mongol_norm.shaper` keeps working. `publish-crate.yml` now
+>   checks crate == workspace version (pyproject is dynamic) and tests `-p mongol-norm`
+>   only (the binding crate needs Rust 1.83).
+> - Task 2 (commit 5407f66): 252 Python tests (was 225 at `main`), 0 skipped;
+>   `gen_normalize_table.py` gained `--check`; `tests/_support.py` holds the shared
+>   `run_cli` helper and the testing-hook guard (`MONGOL_NORM_REQUIRE_TESTING_HOOK`
+>   makes a missing hook an error — CI sets it). Dropped tests → Rust coverage:
+>   `test_cli` strict-fallback ×4 → `cli.rs::tests::{strict_fallback_prints_error_and_exits_nonzero,
+>   strict_normalize_text_reports_the_failing_word, strict_batch_reports_the_failing_line,
+>   allow_fallback_returns_uncovered_input}`; `test_written_units_api` synthetic-vocabulary
+>   ambiguity → `written_units.rs::tests::ambiguous_compact_units_require_plus_separators`
+>   (unreachable with the real 41-unit vocabulary, brute-forced); `test_normalize_table`
+>   loader ×4 → `gen_rust_tables.py` version check + `tables.rs::tests::generated_tables_have_the_expected_shape`
+>   + `test_rust_twin::test_generated_tables_are_fresh` + `tests/round_trip.rs::particles_from_data`.
+> - Task 3: `manylinux: '2014'` (explicit, fails instead of silently up-tagging) instead
+>   of `auto`; `--locked` in the wheel args; `workflow_dispatch` build-only mode; the
+>   smoke steps also assert the testing hook did not ship.
 
 ## Working environment
 
