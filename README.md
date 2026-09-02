@@ -283,7 +283,7 @@ Published on [crates.io](https://crates.io/crates/mongol-norm) (API docs on
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.0"
+mongol-norm = "0.1.1"
 ```
 
 ```rust
@@ -696,7 +696,7 @@ mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.0"
+mongol-norm = "0.1.1"
 ```
 
 ```rust

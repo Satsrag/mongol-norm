@@ -16,7 +16,7 @@ normalizer with **zero dependencies**, verified against the shared corpus and go
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.0"
+mongol-norm = "0.1.1"
 ```
 
 (The crate is developed in this repository; a git dependency works too.)
@@ -103,7 +103,7 @@ mongol-norm normalize --batch -i words.txt -o canonical.txt   # one word per lin
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.0"
+mongol-norm = "0.1.1"
 ```
 
 （crate 在本仓库中开发，git 依赖亦可。）

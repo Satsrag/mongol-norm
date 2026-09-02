@@ -41,6 +41,11 @@ features = ["pyo3/extension-module"]
 # Keep the sdist self-testable: the generator scripts, the test-suite and its
 # fixtures, and the docs they cite (the old setuptools MANIFEST.in did the same).
 include = [
+    # maturin's sdist only picks up license files next to the crate manifest; the
+    # metadata (License-File: LICENSE / NOTICE) points at the project root, and PyPI
+    # rejects an sdist whose declared license files are missing. Ship them explicitly.
+    { path = "LICENSE", format = "sdist" },
+    { path = "NOTICE", format = "sdist" },
     { path = "scripts/*.py", format = "sdist" },
     { path = "tests/*.py", format = "sdist" },
     { path = "tests/data/*.tsv", format = "sdist" },

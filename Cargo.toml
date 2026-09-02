@@ -6,7 +6,7 @@ members = ["crates/mongol-norm", "crates/mongol-norm-py"]
 # package (pyproject.toml has `dynamic = ["version"]`), and mongol_norm.__version__ reports
 # it at runtime (checked by tests/test_rust_twin.py).
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"
