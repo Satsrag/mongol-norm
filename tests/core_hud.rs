@@ -2,8 +2,8 @@
 //! (port of `python/tests/test_core_hud.py`).
 //!
 //! Like `tests/eac_hud.rs`, the expectations are the standard's written units, so they are
-//! compared against `shape_raw`: 29 of these 177 rows spell `Dd`, `H` or `Hx`, which the public
-//! `shape` folds into `O A` / `A A` / `N N`.
+//! compared against `shape_raw`: for 30 of these 177 rows the public `shape` unifies a duplicate
+//! encoding and answers differently.
 
 mod common;
 

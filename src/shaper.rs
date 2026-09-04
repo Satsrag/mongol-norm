@@ -404,11 +404,15 @@ impl Shaper {
     /// Shape `text` into its written-unit sequence. Structural characters appear verbatim as
     /// [`WrittenUnit::Mvs`], [`WrittenUnit::Nirugu`] and [`WrittenUnit::Zwj`].
     ///
-    /// Four written units render as exactly the same ink as a sequence of other units and never
-    /// appear here: `Dd` (both positions), medial `H` and medial `Hx` come out as `O A`, `A A`
-    /// and `N N`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ
-    /// are one word and shape identically. The standard's own unit sequence, which keeps them,
-    /// is [`Shaper::shape_raw`].
+    /// Nine written units render as exactly the same ink as a sequence of other units, and each
+    /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
+    /// medial `Hx` and initial `Cr` come out as `O A`, `A A`, `N N` and `O O`. The other four
+    /// contract, because their expansion ends in `Aa`, which is itself a duplicate: a chain-final
+    /// `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa` becomes `B2` and `I Aa`
+    /// becomes `G`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ
+    /// are one word and shape identically. The standard's own unit sequence, which keeps all
+    /// nine apart, is [`Shaper::shape_raw`]. The README's "Duplicate encodings" section has the
+    /// evidence and the termination argument.
     ///
     /// Errors with [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS,
     /// NNBSP, nirugu and ZWJ — use [`Shaper::normalize_text`] for mixed-script text.
@@ -416,9 +420,9 @@ impl Shaper {
         Ok(collapse(&self.shape_raw(text)?))
     }
 
-    /// The engine's written-unit sequence before duplicate encodings are folded out — the
+    /// The engine's written-unit sequence before duplicate encodings are unified — the
     /// sequence UTN #57 / GB/T 25914-2023 describe, and the one their EAC conformance vectors
-    /// are checked against. `Dd`, medial `H` and medial `Hx` can appear here.
+    /// are checked against. All nine duplicates can appear here.
     ///
     /// Not part of the public contract: it exists so the conformance suites and the table
     /// generator can compare against the standard verbatim. Everything user-facing goes through

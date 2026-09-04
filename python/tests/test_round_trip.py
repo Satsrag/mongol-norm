@@ -271,8 +271,8 @@ class TestShapeCanonicity(unittest.TestCase, _RoundTripBase):
 
         self.assertEqual(
             len(representatives),
-            # 1993 before the collapse merged two pairs of same-word shape groups.
-            1991,
+            # 1993 before the collapse merged four pairs of same-word shape groups.
+            1989,
             "corpus shape-group coverage drifted",
         )
 

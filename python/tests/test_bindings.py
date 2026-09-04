@@ -104,7 +104,7 @@ class TestShapeDetailed(unittest.TestCase):
                         {"cp", "alias", "position", "fvs", "condition", "written"},
                     )
                 # shape_detailed reports each token's own written units, so the
-                # concatenation is the RAW sequence — shape() folds the four duplicate
+                # concatenation is the RAW sequence — shape() unifies the nine duplicate
                 # encodings, which is a whole-word rewrite no single token can carry.
                 # shape_detailed 报告每个 token 自身的书写单元,故拼接结果是原始序列。
                 self.assertEqual(

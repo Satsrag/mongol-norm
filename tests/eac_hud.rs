@@ -3,9 +3,9 @@
 //! exactly as mongfontbuilder marks them `xfail`; their UTN-correct shaping is pinned in
 //! `tests/shaper.rs`.
 //!
-//! The standard keeps the four duplicate written units — for 369 of these rows the public
-//! `shape` folds a `Dd`, medial `H` or medial `Hx` into `O A` / `A A` / `N N` — so this suite
-//! compares against `shape_raw`, the engine's own sequence, and not the collapsed public shape.
+//! The standard keeps all nine duplicate written units, whereas the public `shape` unifies each
+//! with the sequence it renders as — a different answer for 375 of these rows — so this suite
+//! compares against `shape_raw`, the engine's own sequence, and not the unified public shape.
 
 mod common;
 

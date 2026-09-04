@@ -76,18 +76,18 @@ fn fixture_covers_every_current_corpus_shape_group() {
 #[test]
 fn fixture_has_frozen_unique_cardinality() {
     let (_, vectors) = load();
-    // 1993 before the duplicate encodings were folded out of `shape`: two of those raw groups
-    // were the same visible word spelled two ways (`Nirugu H Nirugu` = `Nirugu A A Nirugu`, and
-    // `A Dd` = `A O A`), so they merged.
-    assert_eq!(vectors.len(), 1991);
+    // 1993 before the duplicate encodings were unified in `shape`: four of those raw groups were
+    // the same visible word spelled two ways (`Nirugu H Nirugu` = `Nirugu A A Nirugu`,
+    // `A Dd` = `A O A`, `A Aa` = `A`, and `H A D A Aa` = `H A D Aa`), so they merged.
+    assert_eq!(vectors.len(), 1989);
     let ids: Vec<String> = vectors
         .iter()
         .map(|v| v.index("id").as_str().to_owned())
         .collect();
-    let expected: Vec<String> = (1..=1991).map(|i| format!("shape-{i:04}")).collect();
+    let expected: Vec<String> = (1..=1989).map(|i| format!("shape-{i:04}")).collect();
     assert_eq!(ids, expected);
     let shapes: HashSet<Vec<String>> = vectors.iter().map(|v| v.index("shape").strings()).collect();
-    assert_eq!(shapes.len(), 1991);
+    assert_eq!(shapes.len(), 1989);
 }
 
 #[test]
@@ -119,8 +119,8 @@ fn canonical_codepoints_are_frozen() {
 }
 
 /// `Dd` is a duplicate encoding in both the positions it has, so it can never reach a public
-/// shape. `H` and `Hx` are duplicates only medially and legitimately appear at the chain ends —
-/// the raw-vs-public split for those is checked case by case in `tests/shaper.rs`.
+/// shape. The other eight are duplicates only at particular positions and legitimately appear
+/// elsewhere — those are checked case by case in `tests/shaper.rs::every_duplicate_pair_unifies`.
 #[test]
 fn no_public_shape_contains_a_duplicate_encoding() {
     let (_, vectors) = load();

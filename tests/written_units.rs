@@ -52,6 +52,35 @@ fn test_shape_output_is_accepted_directly() {
     );
 }
 
+/// Duplicate encodings are still *accepted* as input and unified before encoding, so written-unit
+/// data captured from an older `shape()` keeps working — in both directions, expanding and
+/// contracting.
+#[test]
+fn duplicate_encodings_are_accepted_as_input_and_unified() {
+    use WrittenUnit::{Aa, Cr, Dd, Nirugu, Zwj, A, B, B2, G, I, O};
+    let shaper = shaper();
+    for (spelled, unified) in [
+        (vec![Zwj, Dd], vec![Zwj, O, A]),
+        (vec![Cr, Nirugu], vec![O, O, Nirugu]),
+        (vec![A, Aa], vec![A]),
+        (vec![B, A, Aa], vec![B, Aa]),
+        (vec![Nirugu, O, Aa], vec![Nirugu, B2]),
+        (vec![Nirugu, I, Aa], vec![Nirugu, G]),
+    ] {
+        let text = shaper
+            .normalize_written_units(&spelled)
+            .unwrap_or_else(|e| panic!("{:?} failed to encode: {e}", unit_names(&spelled)));
+        assert_eq!(
+            shaper.normalize_written_units(&unified).unwrap(),
+            text,
+            "{:?} and {:?} must encode alike",
+            unit_names(&spelled),
+            unit_names(&unified)
+        );
+        assert_eq!(shaper.shape(&text).unwrap(), unified);
+    }
+}
+
 #[test]
 fn test_existing_velar_feminine_refinement_is_reused() {
     let shaper = shaper();

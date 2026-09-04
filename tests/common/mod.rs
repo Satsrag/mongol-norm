@@ -98,12 +98,12 @@ pub fn aliases_to_words(aliases: &str) -> Vec<String> {
 }
 
 /// Python `_shape_aliases_raw`: shape each word independently with `Shaper::shape_raw` — the
-/// engine's own written units, with the four duplicate encodings still in — joined with `Mvs`.
+/// engine's own written units, with all nine duplicate encodings still in — joined with `Mvs`.
 ///
 /// Raw because this is what the GB/T 25914-2023 and mongfontbuilder conformance vectors describe:
-/// they spell ᠠᠷᠭᠠᠯ `A A R Hx A L`, and the collapse changes the answer for 369 of the 3512 EAC
-/// rows and 29 of the 177 core rows. Those two suites test the engine against the standard; every
-/// other test uses the public [`Shaper::shape`], which folds the duplicates out.
+/// they spell ᠠᠷᠭᠠᠯ `A A R Hx A L`, and unifying the duplicates changes the answer for 375 of the
+/// 3512 EAC rows and 30 of the 177 core rows. Those two suites test the engine against the
+/// standard; every other test uses the public [`Shaper::shape`].
 pub fn shape_aliases_raw(shaper: &Shaper, aliases: &str) -> Vec<WrittenUnit> {
     let mut out = Vec::new();
     for (i, word) in aliases_to_words(aliases).iter().enumerate() {

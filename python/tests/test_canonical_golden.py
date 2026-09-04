@@ -74,16 +74,17 @@ class TestMNGCanonicalGolden(unittest.TestCase):
         self.assertEqual(golden_shapes, corpus_shapes)
 
     def test_fixture_has_frozen_unique_cardinality(self):
-        # 1993 before the duplicate encodings were folded out of `shape`: two of those raw
+        # 1993 before the duplicate encodings were unified in `shape`: four of those raw
         # groups were the same visible word spelled two ways (`Nirugu H Nirugu` =
-        # `Nirugu A A Nirugu`, and `A Dd` = `A O A`), so they merged.
-        self.assertEqual(len(self.vectors), 1991)
+        # `Nirugu A A Nirugu`, `A Dd` = `A O A`, `A Aa` = `A`, and `H A D A Aa` =
+        # `H A D Aa`), so they merged.
+        self.assertEqual(len(self.vectors), 1989)
         self.assertEqual(
             [vector["id"] for vector in self.vectors],
-            ["shape-{:04d}".format(index) for index in range(1, 1992)],
+            ["shape-{:04d}".format(index) for index in range(1, 1990)],
         )
         self.assertEqual(len({tuple(vector["shape"])
-                              for vector in self.vectors}), 1991)
+                              for vector in self.vectors}), 1989)
 
     def test_canonical_codepoints_are_frozen(self):
         for vector in self.vectors:

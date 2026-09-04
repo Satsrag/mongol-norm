@@ -966,39 +966,65 @@ class TestShape(unittest.TestCase):
 class TestDuplicateEncodings(unittest.TestCase):
     """
     The other side of every `_shape_raw` assertion in TestShape: what the public
-    shape() says about the four written units that render as exactly the same ink as
-    a sequence of other units.
-    TestShape 中每个 `_shape_raw` 断言的另一面:公开的 shape() 如何处理那四个
+    shape() says about the nine written units that render as exactly the same ink as a
+    sequence of other units.
+    TestShape 中每个 `_shape_raw` 断言的另一面:公开的 shape() 如何处理那九个
     与另一串单元墨迹完全相同的书写单元。
     """
+
+    # (what the engine calls it, spelling A, spelling B) — the two spellings render the
+    # same ink, so the public shape must be one sequence and normalize one text.
+    PAIRS = [
+        ("Dd:fina = O A",  "ᠠᠷᠠᠳ",       "ᠠᠷᠠᠤᠠ"),
+        ("Dd:medi = O A",  "ᠣᠳᠪᠣ",       "ᠠ᠋ᠣᠣᠠᠪᠣ᠋"),
+        ("H:medi  = A A",  "ᠪᠠᠭᠰᠢ",      "ᠪᠠᠠᠠᠰᠢ"),
+        ("Hx:medi = N N",  "ᠠᠷᠭᠠᠯ",      "ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ"),
+        ("Cr:init = O O",  "ᡂ᠊",         "ᠤ᠋ᠤ᠊"),
+        ("A:isol  = A Aa", "ᠡ",          "ᠡᠠ᠋"),
+        ("Aa:fina = A Aa", "ᠪᠠ",         "ᠪᠠᠠ᠋"),
+        ("B2:fina = O Aa", "᠊ᠪ᠋",        "᠊ᠤᠠ᠋"),
+        ("G:fina  = I Aa", "᠊ᠭ",         "᠊ᠢᠠ᠋"),
+    ]
 
     @classmethod
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    def test_the_four_duplicates_are_folded_out(self):
-        # `Dd` in both the positions it has, medial `H` and medial `Hx`.
-        self.assertEqual(self.s.shape(_mgl("o d")), ["A", "O", "O", "A"])          # Dd:fina  ᠣᠳ
-        self.assertEqual(self.s.shape(_mgl("o d b o")),
-                         ["A", "O", "O", "A", "B", "O"])                           # Dd:medi
-        self.assertEqual(self.s.shape(_mgl("b a g sh i")),
-                         ["B", "A", "A", "A", "S", "I"])                           # H:medi   ᠪᠠᠭᠰᠢ
-        self.assertEqual(self.s.shape(_mgl("a r g a l")),
-                         ["A", "A", "R", "N", "N", "A", "L"])                      # Hx:medi  ᠠᠷᠭᠠᠯ
+    def test_every_duplicate_pair_unifies(self):
+        for name, a, b in self.PAIRS:
+            with self.subTest(pair=name):
+                self.assertEqual(self.s.shape(a), self.s.shape(b))
+                self.assertTrue(self.s.same_shape(a, b))
+                self.assertEqual(self.s.normalize(a), self.s.normalize(b))
+                # The engine still tells the two apart — that is what the conformance
+                # suites check, and it is why `_shape_raw` exists.
+                self.assertNotEqual(self.s._shape_raw(a), self.s._shape_raw(b))
 
-    def test_initial_and_final_h_and_hx_are_distinct_ink_and_stay(self):
+    def test_expanded_duplicates(self):
+        # The single unit becomes the pair.
+        self.assertEqual(self.s.shape("ᠠᠷᠠᠳ"), ["A", "A", "R", "A", "O", "A"])   # Dd:fina
+        self.assertEqual(self.s.shape("ᠣᠳᠪᠣ"), ["A", "O", "O", "A", "B", "O"])   # Dd:medi
+        self.assertEqual(self.s.shape("ᠪᠠᠭᠰᠢ"), ["B", "A", "A", "A", "S", "I"])  # H:medi
+        self.assertEqual(self.s.shape("ᠠᠷᠭᠠᠯ"),
+                         ["A", "A", "R", "N", "N", "A", "L"])                     # Hx:medi
+        self.assertEqual(self.s.shape("ᡂ᠊"), ["O", "O", "Nirugu"])               # Cr:init
+
+    def test_contracted_duplicates(self):
+        # The pair becomes the single unit, because expanding these never terminates:
+        # their expansion ends in `Aa`, which is itself a duplicate.
+        # 这四个不能展开——展开式以 `Aa` 结尾,而 `Aa:fina` 本身就是重复编码,永不收敛。
+        self.assertEqual(self.s.shape("ᠡᠠ᠋"), ["A"])                # A:isol
+        self.assertEqual(self.s.shape("ᠪᠠᠠ᠋"), ["B", "Aa"])         # Aa:fina
+        self.assertEqual(self.s.shape("᠊ᠤᠠ᠋"), ["Nirugu", "B2"])    # B2:fina
+        self.assertEqual(self.s.shape("᠊ᠢᠠ᠋"), ["Nirugu", "G"])     # G:fina
+
+    def test_forms_outside_a_verified_pair_are_left_alone(self):
         self.assertEqual(self.s.shape(_mgl("h o d a")), ["H", "O", "D", "A"])      # H:init
         self.assertEqual(self.s.shape(_mgl("a i g")), ["A", "A", "I", "I", "H"])   # H:fina
         self.assertEqual(self.s.shape(_mgl("n g mvs a")),
-                         ["N", "Hx", "Mvs", "Aa"])                                 # Hx:fina
-
-    def test_arad_and_araua_are_one_word(self):
-        # The bug this fixes: ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are the same visible word.
-        arad, araua = _mgl("a r a d"), _mgl("a r a u a")
-        self.assertEqual(self.s.shape(arad), ["A", "A", "R", "A", "O", "A"])
-        self.assertEqual(self.s.shape(arad), self.s.shape(araua))
-        self.assertTrue(self.s.same_shape(arad, araua))
-        self.assertEqual(self.s.normalize(arad), self.s.normalize(araua))
+                         ["N", "Hx", "Mvs", "Aa"])                     # Hx:fina, Aa:isol
+        self.assertEqual(self.s.shape("ᡂ"), ["Cr"])       # Cr:isol, not the verified init
+        self.assertEqual(self.s.shape(_mgl("a")), ["A", "A"])  # a lone `A` chain is canonical
 
     def test_dd_never_reaches_a_public_shape(self):
         # `Dd` is a duplicate in every position it has, so it can never appear.
@@ -1006,6 +1032,28 @@ class TestDuplicateEncodings(unittest.TestCase):
             with self.subTest(aliases=aliases):
                 self.assertNotIn("Dd", self.s.shape(_mgl(aliases)))
                 self.assertIn("Dd", self.s._shape_raw(_mgl(aliases)))
+
+    def test_expansion_and_contraction_compose(self):
+        # ᠲᠡᠳ᠌ᠡ᠋ shapes `T A Dd Aa`; the `Dd` expands to `O A`, then `A Aa` contracts to
+        # `Aa` and `O Aa` contracts to `B2`. The only corpus word where the two
+        # directions meet — the composite follows from the three pairs plus idempotence.
+        word = _mgl("t e d fvs2 e fvs1")
+        self.assertEqual(self.s._shape_raw(word), ["T", "A", "Dd", "Aa"])
+        self.assertEqual(self.s.shape(word), ["T", "A", "B2"])
+        # Nothing oscillates: re-encoding the public shape and reshaping is a fixed point.
+        units = self.s.shape(word)
+        self.assertEqual(self.s.shape(self.s.normalize_written_units(units)), units)
+
+    def test_collapse_is_a_fixed_point_for_every_corpus_shape(self):
+        # Idempotence where it matters: the public shape of a real word, fed back through
+        # the written-unit encoder, reshapes to itself.
+        from tests.test_canonical_golden import _all_corpus_words
+        for word in dict.fromkeys(_all_corpus_words()):
+            units = self.s.shape(word)
+            self.assertEqual(
+                self.s.shape(self.s.normalize_written_units(units)), units,
+                f"collapse is not a fixed point for {word!r}",
+            )
 
 
 class TestSameShape(unittest.TestCase):

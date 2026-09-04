@@ -62,11 +62,11 @@ def _shape_aliases_raw(shaper, aliases: str) -> list:
     Shape an alias string against the RAW written units, treating `space` as a word
     boundary.
 
-    The EAC vectors are the standard's own written-unit sequence, which keeps the four
-    duplicate encodings — it spells ᠠᠷᠭᠠᠯ `A A R Hx A L`, and for 369 of these rows the
-    public `shape()` folds a `Dd`, medial `H` or medial `Hx` into `O A` / `A A` / `N N` —
-    so this suite compares against `_shape_raw()`, not `shape()`.
-    EAC 向量用的是国标自己的书写单元序列(保留四个重复编码),故此处比对 `_shape_raw()`。
+    The EAC vectors are the standard's own written-unit sequence, which keeps all nine
+    duplicate encodings — it spells ᠠᠷᠭᠠᠯ `A A R Hx A L`, and for 375 of these rows the
+    public `shape()` unifies a duplicate and answers differently — so this suite compares
+    against `_shape_raw()`, not `shape()`.
+    EAC 向量用的是国标自己的书写单元序列(保留全部九个重复编码),故此处比对 `_shape_raw()`。
     """
     tokens = aliases.split()
     words = [[]]

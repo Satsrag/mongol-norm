@@ -69,11 +69,10 @@ def _shape_aliases_raw(shaper, aliases: str) -> list:
     splitting the input on `space`, shaping each word independently, and
     joining the results with `Mvs` between them.
 
-    The expected column is the standard's own written-unit sequence, which keeps the
-    four duplicate encodings — 29 of these 177 rows spell `Dd`, `H` or `Hx` — so this
-    suite compares against `_shape_raw()`, not the public `shape()`, which folds them
-    into `O A` / `A A` / `N N`.
-    期望列是国标自己的书写单元序列(保留四个重复编码),故此处比对 `_shape_raw()`。
+    The expected column is the standard's own written-unit sequence, which keeps all nine
+    duplicate encodings — for 30 of these 177 rows the public `shape()` unifies one and
+    answers differently — so this suite compares against `_shape_raw()`.
+    期望列是国标自己的书写单元序列(保留全部九个重复编码),故此处比对 `_shape_raw()`。
     """
     tokens = aliases.split()
     # Split into words on `space`

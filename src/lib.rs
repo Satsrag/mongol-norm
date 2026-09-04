@@ -14,7 +14,7 @@
 //! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.
 //!
 //! * [`Shaper::shape`] — text → written-unit sequence (`Mvs` / `Nirugu` / `Zwj` appear verbatim),
-//!   with the four duplicate encodings folded out (see [`Shaper::shape_raw`])
+//!   with the nine duplicate encodings unified (see [`Shaper::shape_raw`])
 //! * [`Shaper::same_shape`] — do two encodings render identically?
 //! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
 //! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —

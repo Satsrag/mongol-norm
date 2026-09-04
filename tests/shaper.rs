@@ -838,37 +838,84 @@ fn test_mori() {
     assert_shape(&mgl("m o r i"), &["M", "O", "R", "I"]);
 }
 
-// ── Duplicate encodings folded out of the public shape ──
+// ── Duplicate encodings unified in the public shape ──
 
-/// The other side of every `assert_shape_raw` above: what the public `shape` says about the four
-/// units that render as the same ink as a sequence of others.
+/// Every pair `src/duplicates.rs` unifies, checked from the outside: the two spellings shape
+/// alike, `same_shape` says so, and `normalize` gives them one canonical text.
+const DUPLICATE_PAIRS: &[(&str, &str, &str)] = &[
+    // (what the engine calls it, spelling A, spelling B)
+    ("Dd:fina  = O A", "a r a d", "a r a u a"), // ᠠᠷᠠᠳ  / ᠠᠷᠠᠤᠠ
+    ("Dd:medi  = O A", "o d b o", "a fvs1 o o a b o fvs1"), // ᠣᠳᠪᠣ / ᠠ᠋ᠣᠣᠠᠪᠣ᠋
+    ("H:medi   = A A", "b a g sh i", "b a a a sh i"), // ᠪᠠᠭᠰᠢ / ᠪᠠᠠᠠᠰᠢ
+    (
+        "Hx:medi  = N N",
+        "a r g a l",
+        "a fvs1 a r n fvs1 n fvs1 a l",
+    ), // ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ
+    ("Cr:init  = O O", "cr nirugu", "u fvs1 u nirugu"), // ᡂ᠊    / ᠤ᠋ᠤ᠊
+    ("A:isol   = A Aa", "e", "e a fvs1"),       // ᠡ     / ᠡᠠ᠋
+    ("Aa:fina  = A Aa", "b a", "b a a fvs1"),   // ᠪᠠ    / ᠪᠠᠠ᠋
+    ("B2:fina  = O Aa", "nirugu b fvs1", "nirugu u a fvs1"), // ᠊ᠪ᠋ / ᠊ᠤᠠ᠋
+    ("G:fina   = I Aa", "nirugu g", "nirugu i a fvs1"), // ᠊ᠭ    / ᠊ᠢᠠ᠋
+];
+
 #[test]
-fn duplicates_are_folded_out_of_the_public_shape() {
-    // `Dd` in both the positions it has, medial `H` and medial `Hx`.
-    assert_shape(&mgl("o d"), &["A", "O", "O", "A"]); // Dd:fina   ᠣᠳ
-    assert_shape(&mgl("o d b o"), &["A", "O", "O", "A", "B", "O"]); // Dd:medi
-    assert_shape(&mgl("b a g sh i"), &["B", "A", "A", "A", "S", "I"]); // H:medi    ᠪᠠᠭᠰᠢ
-    assert_shape(&mgl("a r g a l"), &["A", "A", "R", "N", "N", "A", "L"]); // Hx:medi   ᠠᠷᠭᠠᠯ
+fn every_duplicate_pair_unifies() {
+    let shaper = shaper();
+    for (name, a, b) in DUPLICATE_PAIRS {
+        let (a, b) = (mgl(a), mgl(b));
+        assert_eq!(
+            shape(&a),
+            shape(&b),
+            "{name}: shapes differ for {} / {}",
+            common::hex(&a),
+            common::hex(&b)
+        );
+        assert!(
+            shaper.same_shape(&a, &b).unwrap(),
+            "{name}: same_shape false"
+        );
+        assert_eq!(
+            shaper.normalize(&a).unwrap(),
+            shaper.normalize(&b).unwrap(),
+            "{name}: two canonical texts"
+        );
+        // The engine still tells the two apart — that is what the conformance suites check.
+        assert_ne!(
+            shape_raw(&a),
+            shape_raw(&b),
+            "{name}: not a duplicate at all"
+        );
+    }
+}
 
-    // Initial and final `H` / `Hx` are distinct ink and stay.
+/// What the public shape actually is for each of the nine, and which forms are left alone.
+#[test]
+fn duplicates_are_unified_in_the_public_shape() {
+    // Expanded: the single unit becomes the pair.
+    assert_shape(&mgl("a r a d"), &["A", "A", "R", "A", "O", "A"]); // Dd:fina
+    assert_shape(&mgl("o d b o"), &["A", "O", "O", "A", "B", "O"]); // Dd:medi
+    assert_shape(&mgl("b a g sh i"), &["B", "A", "A", "A", "S", "I"]); // H:medi
+    assert_shape(&mgl("a r g a l"), &["A", "A", "R", "N", "N", "A", "L"]); // Hx:medi
+    assert_shape(&mgl("cr nirugu"), &["O", "O", "Nirugu"]); // Cr:init
+
+    // Contracted: the pair becomes the single unit, because expanding these never terminates
+    // (their expansion ends in `Aa`, which is itself a duplicate).
+    assert_shape(&mgl("e a fvs1"), &["A"]); // A:isol
+    assert_shape(&mgl("b a a fvs1"), &["B", "Aa"]); // Aa:fina
+    assert_shape(&mgl("nirugu u a fvs1"), &["Nirugu", "B2"]); // B2:fina
+    assert_shape(&mgl("nirugu i a fvs1"), &["Nirugu", "G"]); // G:fina
+
+    // Left alone: initial and final `H` / `Hx` are distinct ink, and so are the forms whose
+    // position was never part of a verified pair.
     assert_shape(&mgl("h o d a"), &["H", "O", "D", "A"]); // H:init
     assert_shape(&mgl("a i g"), &["A", "A", "I", "I", "H"]); // H:fina
-    assert_shape(&mgl("a g a"), &["A", "A", "N", "N", "A"]); // Hx:medi collapses …
-    assert_shape(&mgl("n g mvs a"), &["N", "Hx", "Mvs", "Aa"]); // … but Hx:fina does not
+    assert_shape(&mgl("n g mvs a"), &["N", "Hx", "Mvs", "Aa"]); // Hx:fina, and `Aa:isol`
+    assert_shape(&mgl("cr"), &["Cr"]); // `Cr:isol`, not the verified `Cr:init`
+    assert_shape(&mgl("a"), &["A", "A"]); // a lone `A` chain is already canonical
 
-    // The bug this fixes: ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one visible word and now shape identically.
-    assert_shape(&mgl("a r a d"), &["A", "A", "R", "A", "O", "A"]);
-    assert_eq!(shape(&mgl("a r a d")), shape(&mgl("a r a u a")));
-    assert!(shaper()
-        .same_shape(&mgl("a r a d"), &mgl("a r a u a"))
-        .unwrap());
-    assert_eq!(
-        shaper().normalize(&mgl("a r a d")).unwrap(),
-        shaper().normalize(&mgl("a r a u a")).unwrap()
-    );
-
-    // `Dd` is a duplicate in every position it has, so it can never reach a public shape at all
-    // (the corpus-wide form of this is `no_public_shape_contains_a_duplicate_encoding` in
+    // `Dd` is a duplicate in every position it has, so it can never reach a public shape (the
+    // corpus-wide form of this is `no_public_shape_contains_a_duplicate_encoding` in
     // `tests/canonical_golden.rs`).
     for aliases in ["o d", "o d b o", "t a l mvs ue d", "a r a d", "d a d h u"] {
         let units = shape(&mgl(aliases));
@@ -878,6 +925,21 @@ fn duplicates_are_folded_out_of_the_public_shape() {
         );
         assert!(shape_raw(&mgl(aliases)).iter().any(|unit| unit == "Dd"));
     }
+}
+
+/// Expansion and contraction meet in one real corpus word: ᠲᠡᠳ᠌ᠡ᠋ shapes `T A Dd Aa`, the `Dd`
+/// expands to `O A`, then `A Aa` contracts to `Aa` and `O Aa` contracts to `B2`. The composite
+/// is forced by the three pairs above plus idempotence; it is pinned here because it is the only
+/// place in the corpus where the two directions compose.
+#[test]
+fn expansion_and_contraction_compose() {
+    assert_shape_raw(&mgl("t e d fvs2 e fvs1"), &["T", "A", "Dd", "Aa"]);
+    assert_shape(&mgl("t e d fvs2 e fvs1"), &["T", "A", "B2"]);
+    // Nothing oscillates: re-encoding the public shape and reshaping it is a fixed point.
+    let shaper = shaper();
+    let units = shaper.shape(&mgl("t e d fvs2 e fvs1")).unwrap();
+    let text = shaper.normalize_written_units(&units).unwrap();
+    assert_eq!(shaper.shape(&text).unwrap(), units);
 }
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
