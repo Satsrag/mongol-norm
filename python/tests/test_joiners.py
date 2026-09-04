@@ -20,8 +20,10 @@ ZWJ = '‍'
 O = 'ᠣ'      # o
 U = 'ᠤ'      # u
 OE = 'ᠥ'     # oe
+A = 'ᠠ'      # a
 D = 'ᠳ'      # d
 J = 'ᠵ'      # j
+FVS2 = '᠌'
 FVS3 = '᠍'
 
 
@@ -41,7 +43,8 @@ class TestJoinerTokensInShape(_Base):
                          ['Nirugu', 'Nirugu', 'O', 'Nirugu'])
 
     def test_zwj_is_a_shape_token(self):
-        self.assertEqual(self.s.shape(ZWJ + D), ['Zwj', 'Dd'])
+        # `d` joined onward by the ZWJ renders `Dd`, which the public shape spells `O A`.
+        self.assertEqual(self.s.shape(ZWJ + D), ['Zwj', 'O', 'A'])
 
     def test_nirugu_vs_zwj_shapes_differ(self):
         # visible stem vs invisible joiner — must NOT be conflated
@@ -75,11 +78,14 @@ class TestJoinerNormalize(_Base):
         self.assertEqual(self._round_trips(text), text)
 
     def test_zwj_preserved(self):
-        self.assertEqual(self._round_trips(ZWJ + D), ZWJ + D)
+        # The ZWJ survives normalize verbatim, and the shape round-trips. The word itself
+        # is no longer a fixed point: its shape is `Zwj O A`, so the canonical spelling is
+        # the `O`+`A` pair, not the single `d` that renders the same ink as `Dd`.
+        self.assertEqual(self._round_trips(ZWJ + D), ZWJ + O + A + FVS2)
 
     def test_single_sided_nirugu_round_trips(self):
         for text in (NIRUGU + J,          # joined-left J  -> fina form
-                     NIRUGU + D,          # joined-left Dd
+                     NIRUGU + D,          # joined-left Dd (shape `Nirugu O A`)
                      U + '᠋' + NIRUGU):  # u+fvs1 joined-right (EAC MVS20-1)
             self._round_trips(text)
 

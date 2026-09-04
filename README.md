@@ -42,6 +42,11 @@ same upstream corpora on every push, on Rust stable and the MSRV, and on CPython
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 cases excluded as UTN ↔ EAC xfail, matching mongfontbuilder's own `pytest.mark.xfail` set |
 | Hand-written unit tests | — | **100%** | shape / same_shape / joiner tokens (nirugu, ZWJ) |
 
+Both TSV suites are the standard's *own* written-unit sequences, so they are checked against
+`shape_raw` — the engine's output before the four duplicate encodings are folded out (see
+[Duplicate encodings](#duplicate-encodings)). For 369 of the 3512 EAC rows and 29 of the 177 core
+rows the public `shape` differs from what the standard spells.
+
 #### ✅ Normalization — corpus-scoped guarantees, machine-checked
 
 For written-unit shapes covered by the bundled normalization table, `normalize` / `normalize_text` /
@@ -51,8 +56,8 @@ corpus encoding:
 | Property | Result |
 |---|---|
 | Round-trip — `shape(normalize(x)) == shape(x)` | **3757 / 3757** corpus encodings (100%) |
-| Shape-canonicity — same shape ⟹ same Unicode output | **1993 / 1993** shape groups (100%) |
-| Prefix-stability — word and word+suffix share their prefix encoding | **2237 / 2237** real corpus pairs (100%) |
+| Shape-canonicity — same shape ⟹ same Unicode output | **1991 / 1991** shape groups (100%) |
+| Prefix-stability — word and word+suffix share their prefix encoding | **2241 / 2241** real corpus pairs (100%) |
 
 Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping
 rules but have no normalizer yet. The guarantees above cover the checked corpus and any input whose
@@ -77,7 +82,7 @@ or, by hand:
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.1"
+mongol-norm = "0.2.0"
 ```
 
 The CLI installs as a standalone binary:
@@ -121,7 +126,13 @@ fn main() -> Result<(), Error> {
         PositionedWrittenUnit::new(WrittenUnit::Aa, UnitPosition::Fina),
     ];
     assert_eq!(shaper.normalize_positioned_written_units(&records)?, "ᠪᠠ᠋");
-    assert_eq!(shaper.canonical_version(), Some("mng-canonical/1"));
+    assert_eq!(shaper.canonical_version(), Some("mng-canonical/2"));
+
+    // The public shape omits the four duplicate encodings, so ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ — one visible
+    // word spelled two ways — are one shape and one canonical text
+    assert_eq!(shaper.shape_str("ᠠᠷᠠᠳ")?, "A+A+R+A+O+A");
+    assert!(shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")?);
+    assert_eq!(shaper.normalize("ᠠᠷᠠᠳ")?, shaper.normalize("ᠠᠷᠠᠤᠠ")?);
     Ok(())
 }
 ```
@@ -260,6 +271,39 @@ does with a font file, but using only the rule data from
 4. **Devsger** — I after a vowel (vowel_devsger) gets double-tooth form: `I → I+I`
 5. **Post-bowed** — Vowel forms change after bowed consonants (G, B, K, P, F)
 
+#### Duplicate encodings
+
+`shape` promises to be a fingerprint of the *visible* word — "same shape ⟹ same normalize" is this
+crate's whole reason to exist. Four written units break that promise: they render as exactly the
+same ink as a sequence of other units, so two spellings of one word shaped differently.
+
+| Unit | Public shape | Same ink as |
+|---|---|---|
+| `Dd` (medial and final — the only positions it has) | `O A` | `O:medi` + `A:medi` / `A:fina` |
+| `H` medial | `A A` | `A:medi` + `A:medi` |
+| `Hx` medial | `N N` | `N:medi` + `N:medi` |
+
+The pairs were compared by rendering them in Noto Sans Mongolian 3.002 — the UTN #57 reference
+build — and diffing the pixels: identical advance, differences only at the anti-aliasing level
+(58 of 34128 px, max Δ34, for `Dd:medi`). The other five units ZVVNMOD spells with two glyphs
+(`Cr:init`, `B2:fina`, `G:fina`, `A:isol`, `Aa:fina`) are **not** duplicates — they render at a
+different width, and two of them would expand into themselves.
+
+So `shape` folds all four out, and none of them ever appears in its output. `same_shape`,
+`normalize` and the written-unit encoders all see the collapsed sequence; `normalize_written_units`
+still *accepts* the duplicates as input and folds them, so existing caller data keeps working.
+`ᠠᠷᠠᠳ` and `ᠠᠷᠠᠤᠠ` are one visible word, and now one shape and one canonical text.
+
+UTN #57 and GB/T 25914-2023 keep all four as distinct written units — their EAC vectors spell
+`ᠠᠷᠭᠠᠯ` as `A A R Hx A L` — and the engine still produces them. The standard's own sequence stays
+reachable through `Shaper::shape_raw` (Python: `MongolianShaper._shape_raw`), which is what the
+conformance suites compare against. It is **not part of the public contract**: it is `#[doc(hidden)]`
+and may change to fold further duplicates without a major bump.
+
+`shape_detailed` and `trace`'s `written_by_token` report each token's own units, so they are raw
+too — the collapse is a whole-word rewrite that no single token can carry. `trace`'s `shape` field
+is the public, collapsed sequence.
+
 #### Normalization strategy
 
 Within the normalization table's supported written-unit domain, `normalize` is a **pure function of
@@ -294,10 +338,15 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/1`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/2`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
+
+**`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Folding the
+duplicate encodings out of `shape` changed the canonical text of every word containing one — 282
+of the 1993 corpus shape groups, two of which merged with another group. Rebuild any stored
+normalized key.
 
 ### Repository layout
 
@@ -351,7 +400,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 |---|---|
 | `tests/data/core-hud.tsv` | 177 rows — mongfontbuilder's curated regression set (225 cases) |
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
-| `tests/golden/mng-canonical-v1.jsonl` | 1993 canonical vectors |
+| `tests/golden/mng-canonical-v1.jsonl` | 1991 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
 
 Because the corpus and golden tests read that directory, `cargo test` needs a repository checkout —
@@ -474,6 +523,9 @@ crate 就是引擎，位于仓库根目录。`python/` 下是它的一层薄 PyO
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 个 UTN ↔ EAC 分歧 case 跳过（跟 mongfontbuilder 自己的 `pytest.mark.xfail` 列表一致） |
 | 手写单元测试 | — | **100%** | shape / same_shape / joiner token（nirugu、ZWJ） |
 
+两套 TSV 用的都是国标**自己**的书写单元序列，因此对照 `shape_raw` 检查——即引擎折叠四个重复编码之前的输出
+（见[重复编码](#重复编码)）。3512 行 EAC 中有 369 行、177 行 core 中有 29 行，公开 `shape` 与国标的拼法不同。
+
 #### ✅ Normalization（规范化）— 语料域保证，机器验证
 
 对于内置规范化表覆盖的 written-unit shape，`normalize` / `normalize_text` /
@@ -482,8 +534,8 @@ crate 就是引擎，位于仓库根目录。`python/` 下是它的一层薄 PyO
 | 性质 | 结果 |
 |---|---|
 | 往返 —— `shape(normalize(x)) == shape(x)` | **3757 / 3757** 语料编码（100%） |
-| 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1993 / 1993** shape 组（100%） |
-| 前缀稳定 —— 词与词+后缀共享前缀编码 | **2237 / 2237** 真实语料词对（100%） |
+| 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1991 / 1991** shape 组（100%） |
+| 前缀稳定 —— 词与词+后缀共享前缀编码 | **2241 / 2241** 真实语料词对（100%） |
 
 范围说明：规范化目前只实现了 MNG（Hudum）—— Todo / 锡伯文 / 满文已加载 shaping 规则，尚无规范化。上述保证
 覆盖已检查语料及内置表可编码的 written-unit chain。语料外 chain 若未被覆盖，默认 fail closed，返回
@@ -504,7 +556,7 @@ cargo add mongol-norm
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.1"
+mongol-norm = "0.2.0"
 ```
 
 命令行工具装成独立二进制：
@@ -549,7 +601,13 @@ fn main() -> Result<(), Error> {
         PositionedWrittenUnit::new(WrittenUnit::Aa, UnitPosition::Fina),
     ];
     assert_eq!(shaper.normalize_positioned_written_units(&records)?, "ᠪᠠ᠋");
-    assert_eq!(shaper.canonical_version(), Some("mng-canonical/1"));
+    assert_eq!(shaper.canonical_version(), Some("mng-canonical/2"));
+
+    // 公开 shape 不含四个重复编码，所以 ᠠᠷᠠᠳ 与 ᠠᠷᠠᠤᠠ ——同一个可见词的两种拼法——
+    // 是同一个 shape、同一个 canonical 文本
+    assert_eq!(shaper.shape_str("ᠠᠷᠠᠳ")?, "A+A+R+A+O+A");
+    assert!(shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")?);
+    assert_eq!(shaper.normalize("ᠠᠷᠠᠳ")?, shaper.normalize("ᠠᠷᠠᠤᠠ")?);
     Ok(())
 }
 ```
@@ -679,6 +737,34 @@ mongol-norm 使用完整的 UTN #57 v4 shaping 过程（5 步条件映射）对�
 | 4 | Devsger | 元音后的 i 获得双齿形态：`I → I+I`（vowel_devsger） |
 | 5 | Post-bowed | 弓形辅音（G/B/K/P/F）后的元音形态变化 |
 
+#### 重复编码
+
+`shape` 承诺是**可见**词的指纹——“同 shape ⟹ 同 normalize”正是这个 crate 存在的理由。有四个书写单元
+打破了这个承诺：它们与另一串单元渲染出完全相同的墨迹，导致同一个词的两种拼法 shape 不同。
+
+| 单元 | 公开 shape | 与之墨迹相同 |
+|---|---|---|
+| `Dd`（词中与词末——它仅有的两个位置） | `O A` | `O:medi` + `A:medi` / `A:fina` |
+| 词中 `H` | `A A` | `A:medi` + `A:medi` |
+| 词中 `Hx` | `N N` | `N:medi` + `N:medi` |
+
+判定方法是用 Noto Sans Mongolian 3.002（UTN #57 参考构建）渲染后逐像素比对：advance 完全相同，差异只在
+反锯齿层面（`Dd:medi` 为 34128 像素中的 58 个，最大 Δ34）。ZVVNMOD 里另外五个用两个字形拼写的单元
+（`Cr:init`、`B2:fina`、`G:fina`、`A:isol`、`Aa:fina`）**不是**重复编码——它们的宽度不同，且其中两个会展开成
+自身。
+
+因此 `shape` 把这四个全部折叠掉，输出中永远不会出现。`same_shape`、`normalize` 和书写单元编码器看到的都是
+折叠后的序列；`normalize_written_units` 仍然**接受**重复编码作为输入并折叠它们，调用方已有的数据继续可用。
+`ᠠᠷᠠᠳ` 与 `ᠠᠷᠠᠤᠠ` 是同一个可见词，现在也是同一个 shape、同一个 canonical 文本。
+
+UTN #57 与 GB/T 25914-2023 把这四个保留为不同的书写单元——其 EAC 向量把 `ᠠᠷᠭᠠᠯ` 拼作 `A A R Hx A L`——
+引擎也仍然产出它们。国标自己的序列通过 `Shaper::shape_raw`（Python：`MongolianShaper._shape_raw`）依然可达，
+一致性套件比对的就是它。它**不属于公开契约**：标了 `#[doc(hidden)]`，将来可能在不升 major 的情况下折叠更多
+重复编码。
+
+`shape_detailed` 与 `trace` 的 `written_by_token` 报告的是每个 token 自身的单元，因此也是原始序列——折叠是
+整词级的改写，单个 token 承载不了。`trace` 的 `shape` 字段则是公开的折叠序列。
+
 #### 规范化策略
 
 在规范化表支持的 written-unit 域内，`normalize` 是 **shape 的纯函数**：任意两个 shape 相同的编码，
@@ -707,9 +793,13 @@ normalize 输出相同，且往返成立 —— `shape(normalize(x)) == shape(x)
 > 注意：受支持输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符，这正是
 > “同 shape ⟹ 同 Unicode”和前缀稳定在表内成立的原因。
 
-当前精确 canonical 选择策略冻结为 **`mng-canonical/1`**。可通过 `Shaper::canonical_version`（Python：
+当前精确 canonical 选择策略冻结为 **`mng-canonical/2`**。可通过 `Shaper::canonical_version`（Python：
 `shaper.canonical_version`）读取，并写入 `MNG.normalize.json`。持久化规范化搜索键/索引键的应用应同时保存
 该版本；未来版本若发生变化，应重建这些键。
+
+**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 把重复编码折叠出 `shape` 之后，
+凡含有这四个单元之一的词，canonical 文本都变了——1993 个语料 shape 组里有 282 个，其中 2 个与别的组合并。
+已存储的规范化键必须重建。
 
 ### 仓库结构
 
@@ -762,7 +852,7 @@ shaping 与 normalize 规则是扁平、语言无关的 JSON，位于 `python/mo
 |---|---|
 | `tests/data/core-hud.tsv` | 177 行 —— mongfontbuilder 的精选回归集（225 个 case） |
 | `tests/data/eac-hud.tsv` | 3512 行 —— GB/T 25914-2023（3513 个 case，5 个 UTN-xfail） |
-| `tests/golden/mng-canonical-v1.jsonl` | 1993 个 canonical 向量 |
+| `tests/golden/mng-canonical-v1.jsonl` | 1991 个 canonical 向量 |
 | `tests/golden/mng-phase-trace-v1.json` | 15 个 phase-trace 向量 |
 
 因为语料与 golden 测试读取这个目录，`cargo test` 需要仓库 checkout —— 发布的 crate 不包含固件。

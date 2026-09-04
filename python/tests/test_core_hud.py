@@ -48,7 +48,7 @@ _ALIAS_TO_CP = {
     # NB: `space` is a *word boundary* in mongfontbuilder's test format.
     # We handle it by SPLITTING the input on `space`, shaping each word
     # independently, and concatenating outputs with `Mvs` between them.
-    # See `_shape_aliases` below. (Hence no mapping for `space` here —
+    # See `_shape_aliases_raw` below. (Hence no mapping for `space` here —
     # it should never reach `_aliases_to_text`.)
 }
 
@@ -58,15 +58,22 @@ def _aliases_to_text(aliases: str) -> str:
     return ''.join(_ALIAS_TO_CP[a] for a in aliases.split())
 
 
-def _shape_aliases(shaper, aliases: str) -> list:
+def _shape_aliases_raw(shaper, aliases: str) -> list:
     """
-    Shape an alias string, treating `space` as a word boundary.
+    Shape an alias string against the RAW written units, treating `space` as a
+    word boundary.
 
     mongfontbuilder's `space` (U+0020) is a hard word break — it produces
     a wide-MVS-shaped glyph but does NOT participate in particle-dict
     matching or marker propagation across the boundary. We model this by
     splitting the input on `space`, shaping each word independently, and
     joining the results with `Mvs` between them.
+
+    The expected column is the standard's own written-unit sequence, which keeps the
+    four duplicate encodings — 29 of these 177 rows spell `Dd`, `H` or `Hx` — so this
+    suite compares against `_shape_raw()`, not the public `shape()`, which folds them
+    into `O A` / `A A` / `N N`.
+    期望列是国标自己的书写单元序列(保留四个重复编码),故此处比对 `_shape_raw()`。
     """
     tokens = aliases.split()
     # Split into words on `space`
@@ -83,7 +90,7 @@ def _shape_aliases(shaper, aliases: str) -> list:
         if not word_tokens:
             continue
         text = ''.join(_ALIAS_TO_CP[a] for a in word_tokens)
-        out.extend(shaper.shape(text))
+        out.extend(shaper._shape_raw(text))
     return out
 
 
@@ -135,7 +142,7 @@ class TestCoreHud(unittest.TestCase):
         failures = []
         for index, aliases, expected in self.rows:
             with self.subTest(index=index, input=aliases):
-                actual = _shape_aliases(self.s, aliases)
+                actual = _shape_aliases_raw(self.s, aliases)
                 expected_norm = _normalize_expected(expected)
                 if actual != expected_norm:
                     failures.append(

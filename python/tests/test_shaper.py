@@ -184,8 +184,14 @@ class TestShape(unittest.TestCase):
         # ᠣᠳᠣ (odu) — o init + d medi (between vowels) + u fina
         # d.medi gets onset → "D", not the devsger default "Dd".
         self.assertEqual(self.s.shape(_mgl("o d u")), ["A", "O", "D", "U"])
-        # d.fina (no following vowel) keeps its devsger default "Dd"
-        self.assertEqual(self.s.shape(_mgl("o d")), ["A", "O", "Dd"])
+        # d.fina (no following vowel) keeps its devsger default "Dd".
+        # Raw: the rule tests below pin WHICH UTN #57 rule fired, and for `Dd` and medial
+        # `H` / `Hx` the only evidence is the engine's own unit — the public shape() folds
+        # all three into `O A` / `A A` / `N N` (see TestDuplicateEncodings at the end of
+        # this module, and `_shape_raw`'s docstring).
+        # 原始序列:这些规则测试考察的是"哪条规则触发",而 `Dd`/词中 `H`/词中 `Hx` 只在
+        # 引擎自身的单元里可见,公开的 shape() 会把它们折叠掉。
+        self.assertEqual(self.s._shape_raw(_mgl("o d")), ["A", "O", "Dd"])
 
     # 2-4  n/j/w before MVS + isolated a/e → chachlag_onset
     def test_step2_chachlag_onset_n(self):
@@ -251,12 +257,13 @@ class TestShape(unittest.TestCase):
         # ᠪᠠᠨ - n.fina after vowel → devsger "A"
         self.assertEqual(self.s.shape(_mgl("b a n"))[2], "A")
 
-        # ᠳᠠᠳᠭ᠎ᠠ - d.medi after vowel and before consonant g → devsger "Dd"
-        out = self.s.shape(_mgl("d a d g mvs a"))
+        # ᠳᠠᠳᠭ᠎ᠠ - d.medi after vowel and before consonant g → devsger "Dd" (raw: `Dd` is
+        # `O A` in the public shape, which would also shift the indices below)
+        out = self.s._shape_raw(_mgl("d a d g mvs a"))
         self.assertEqual(out[2], "Dd")  # d.medi devsger
 
         # ᠠᠲᠳ - t.medi after vowel a and before consonant d → devsger "T"; d.fina default → devsger "Dd"
-        out = self.s.shape(_mgl("a t d"))
+        out = self.s._shape_raw(_mgl("a t d"))
         self.assertEqual(out[2], "T")   # t.medi devsger
         self.assertEqual(out[3], "Dd")  # d.fina devsger (default)
 
@@ -315,13 +322,14 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("a i g")), ["A", "A", "I", "I", "H"])
         # ᠣᠯᠢᠭ - marker threads through l + i → "H"
         self.assertEqual(self.s.shape(_mgl("o l i g")), ["A", "O", "L", "I", "H"])
+        # The medial cases below are raw: `H:medi` is `A A` in the public shape.
         # ᠠᠢᠭᠷ - g.medi (r follows); g/h being last is NOT required
-        self.assertEqual(self.s.shape(_mgl("a i g r")), ["A", "A", "I", "I", "H", "R"])
+        self.assertEqual(self.s._shape_raw(_mgl("a i g r")), ["A", "A", "I", "I", "H", "R"])
         # ᠠᠯᠢᠭᠷ - marker through l + i, then g.medi with r after
-        self.assertEqual(self.s.shape(_mgl("a l i g r")), ["A", "A", "L", "I", "H", "R"])
+        self.assertEqual(self.s._shape_raw(_mgl("a l i g r")), ["A", "A", "L", "I", "H", "R"])
         # ᠠᠢᠭᠷᠡ - even a fem e *after* g doesn't block (e blocks only when
         #          it sits between masc source and g/h, not downstream)
-        self.assertEqual(self.s.shape(_mgl("a i g r e")), ["A", "A", "I", "I", "H", "R", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("a i g r e")), ["A", "A", "I", "I", "H", "R", "A"])
 
     # 2-8d  i + g/h with marker BLOCKED or NOT REACHING → pattern 6 → feminine
     def test_step2_g_i_marker_blocked(self):
@@ -340,7 +348,8 @@ class TestShape(unittest.TestCase):
         # ᠠᠢᠬᠷ - h.medi, prev=i, marker reaches → masc_devsger "H"
         # (Without pattern 5 firing, h.medi would default to "G" — so this
         # test genuinely proves the rule fired.)
-        self.assertEqual(self.s.shape(_mgl("a i h r")), ["A", "A", "I", "I", "H", "R"])
+        # Raw: `H:medi` is `A A` in the public shape, which cannot tell H from a vowel pair.
+        self.assertEqual(self.s._shape_raw(_mgl("a i h r")), ["A", "A", "I", "I", "H", "R"])
         # ᠠᠢᠬ - h.fina, prev=i, marker reaches → masc_devsger "H" (same as default)
         self.assertEqual(self.s.shape(_mgl("a i h")), ["A", "A", "I", "I", "H"])
 
@@ -481,10 +490,11 @@ class TestShape(unittest.TestCase):
     # Rule (2):  s/d + g.fina + MVS + chachlag a.isol  → dotless "H"
     #            (override target: iii2c chachlag_onset "Hx")
     def test_step2_g_dotless(self):
-        # Rule 1 — g.medi + masc vowel:
-        self.assertEqual(self.s.shape(_mgl("s g a")), ["S", "H", "A"])
-        self.assertEqual(self.s.shape(_mgl("d g a")), ["T", "H", "A"])
-        self.assertEqual(self.s.shape(_mgl("a s g a")), ["A", "A", "S", "H", "A"])
+        # Rule 1 — g.medi + masc vowel (raw: the dotless "H" is medial, so the public
+        # shape folds it to `A A`):
+        self.assertEqual(self.s._shape_raw(_mgl("s g a")), ["S", "H", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("d g a")), ["T", "H", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("a s g a")), ["A", "A", "S", "H", "A"])
         # Rule 2 — g.fina + MVS + chachlag a:
         self.assertEqual(self.s.shape(_mgl("s g mvs a")), ["S", "H", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("d g mvs a")), ["T", "H", "Mvs", "Aa"])
@@ -496,7 +506,7 @@ class TestShape(unittest.TestCase):
         # Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire
         self.assertEqual(self.s.shape(_mgl("s g")), ["S", "G"])
         # Negative: prev letter must be s or d
-        self.assertEqual(self.s.shape(_mgl("a g a")), ["A", "A", "Hx", "A"])         # iii2f masc_onset
+        self.assertEqual(self.s._shape_raw(_mgl("a g a")), ["A", "A", "Hx", "A"])    # iii2f masc_onset (`Hx:medi`)
         self.assertEqual(self.s.shape(_mgl("n g mvs a")), ["N", "Hx", "Mvs", "Aa"])  # iii2c chachlag_onset
 
     # ══════════════════════════════════════════════════════════
@@ -587,8 +597,9 @@ class TestShape(unittest.TestCase):
 
     def test_step3_particle_ued(self):
         # tal + MVS + ue+d — ue.init particle "O", d.fina devsger "Dd"
+        # (raw: the public shape is `T A L Mvs O O A`)
         self.assertEqual(
-            self.s.shape(_mgl("t a l mvs ue d")),
+            self.s._shape_raw(_mgl("t a l mvs ue d")),
             ["T", "A", "L", "Mvs", "O", "Dd"],
         )
 
@@ -602,8 +613,9 @@ class TestShape(unittest.TestCase):
     # 3-1f  TARGET = d
     def test_step3_particle_dagan(self):
         # tal + MVS + dagan — d at idx 1 → particle (masc vowel harmony)
+        # (raw: `Hx:medi` is `N N` in the public shape)
         self.assertEqual(
-            self.s.shape(_mgl("t a l mvs d a g a n")),
+            self.s._shape_raw(_mgl("t a l mvs d a g a n")),
             ["T", "A", "L", "Mvs", "D", "A", "Hx", "A", "A"],
         )
 
@@ -949,6 +961,51 @@ class TestShape(unittest.TestCase):
             self.s.shape(_mgl("m o r i")),
             ["M", "O", "R", "I"],
         )
+
+
+class TestDuplicateEncodings(unittest.TestCase):
+    """
+    The other side of every `_shape_raw` assertion in TestShape: what the public
+    shape() says about the four written units that render as exactly the same ink as
+    a sequence of other units.
+    TestShape 中每个 `_shape_raw` 断言的另一面:公开的 shape() 如何处理那四个
+    与另一串单元墨迹完全相同的书写单元。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.s = MongolianShaper(locale="MNG")
+
+    def test_the_four_duplicates_are_folded_out(self):
+        # `Dd` in both the positions it has, medial `H` and medial `Hx`.
+        self.assertEqual(self.s.shape(_mgl("o d")), ["A", "O", "O", "A"])          # Dd:fina  ᠣᠳ
+        self.assertEqual(self.s.shape(_mgl("o d b o")),
+                         ["A", "O", "O", "A", "B", "O"])                           # Dd:medi
+        self.assertEqual(self.s.shape(_mgl("b a g sh i")),
+                         ["B", "A", "A", "A", "S", "I"])                           # H:medi   ᠪᠠᠭᠰᠢ
+        self.assertEqual(self.s.shape(_mgl("a r g a l")),
+                         ["A", "A", "R", "N", "N", "A", "L"])                      # Hx:medi  ᠠᠷᠭᠠᠯ
+
+    def test_initial_and_final_h_and_hx_are_distinct_ink_and_stay(self):
+        self.assertEqual(self.s.shape(_mgl("h o d a")), ["H", "O", "D", "A"])      # H:init
+        self.assertEqual(self.s.shape(_mgl("a i g")), ["A", "A", "I", "I", "H"])   # H:fina
+        self.assertEqual(self.s.shape(_mgl("n g mvs a")),
+                         ["N", "Hx", "Mvs", "Aa"])                                 # Hx:fina
+
+    def test_arad_and_araua_are_one_word(self):
+        # The bug this fixes: ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are the same visible word.
+        arad, araua = _mgl("a r a d"), _mgl("a r a u a")
+        self.assertEqual(self.s.shape(arad), ["A", "A", "R", "A", "O", "A"])
+        self.assertEqual(self.s.shape(arad), self.s.shape(araua))
+        self.assertTrue(self.s.same_shape(arad, araua))
+        self.assertEqual(self.s.normalize(arad), self.s.normalize(araua))
+
+    def test_dd_never_reaches_a_public_shape(self):
+        # `Dd` is a duplicate in every position it has, so it can never appear.
+        for aliases in ("o d", "o d b o", "t a l mvs ue d", "a r a d", "d a d h u"):
+            with self.subTest(aliases=aliases):
+                self.assertNotIn("Dd", self.s.shape(_mgl(aliases)))
+                self.assertIn("Dd", self.s._shape_raw(_mgl(aliases)))
 
 
 class TestSameShape(unittest.TestCase):

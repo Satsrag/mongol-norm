@@ -31,6 +31,32 @@ fn assert_shape(text: &str, expected: &[&str]) {
     );
 }
 
+/// `shape_raw()` as contract names.
+///
+/// The rule tests below pin *which UTN #57 rule fired*, and the only evidence for that is the
+/// written unit the engine assigned. For `Dd` and medial `H` / `Hx` that evidence survives only
+/// in the raw sequence — the public `shape` folds all three into `O A` / `A A` / `N N`, exactly
+/// as `tests/eac_hud.rs` and `tests/core_hud.rs` do for the standard's own vectors. The public
+/// shape of the same words is pinned in `duplicates_are_folded_out_of_the_public_shape`.
+#[track_caller]
+fn shape_raw(text: &str) -> Vec<String> {
+    unit_names(
+        &shaper()
+            .shape_raw(text)
+            .unwrap_or_else(|e| panic!("shape_raw({text:?}) failed: {e}")),
+    )
+}
+
+#[track_caller]
+fn assert_shape_raw(text: &str, expected: &[&str]) {
+    assert_eq!(
+        shape_raw(text),
+        expected,
+        "shape_raw of {text:?} ({})",
+        common::hex(text)
+    );
+}
+
 #[track_caller]
 fn details(text: &str) -> Vec<TokenDetail> {
     shaper()
@@ -187,8 +213,8 @@ fn test_step2_d_medi_intervocalic_onset() {
     // d.medi between vowels is NOT covered by d.marked (init-only); iii2e takes it instead
     // and assigns `onset` -> "D" (tooth form).
     assert_shape(&mgl("o d u"), &["A", "O", "D", "U"]);
-    // d.fina (no following vowel) keeps its devsger default "Dd".
-    assert_shape(&mgl("o d"), &["A", "O", "Dd"]);
+    // d.fina (no following vowel) keeps its devsger default "Dd" (public shape: `A O O A`).
+    assert_shape_raw(&mgl("o d"), &["A", "O", "Dd"]);
 }
 
 #[test]
@@ -234,9 +260,9 @@ fn test_step2_n_onset() {
     assert_eq!(out[3], "D"); // d.medi onset (before vowel)
     assert_eq!(out[2], "A"); // n.medi devsger (next is consonant d)
     assert_eq!(shape(&mgl("b a n"))[2], "A"); // n.fina after vowel -> devsger
-    let out = shape(&mgl("d a d g mvs a"));
+    let out = shape_raw(&mgl("d a d g mvs a"));
     assert_eq!(out[2], "Dd"); // d.medi after vowel, before consonant g -> devsger
-    let out = shape(&mgl("a t d"));
+    let out = shape_raw(&mgl("a t d"));
     assert_eq!(out[2], "T"); // t.medi after vowel a, before consonant d -> devsger
     assert_eq!(out[3], "Dd"); // d.fina devsger (default)
 }
@@ -288,9 +314,11 @@ fn test_step2_g_i_with_marker_masc() {
     // MASC is preserved. All values verified against DraftNew-Regular.otf via hb-shape.
     assert_shape(&mgl("a i g"), &["A", "A", "I", "I", "H"]); // g.fina, prev=i, masc a reaches g
     assert_shape(&mgl("o l i g"), &["A", "O", "L", "I", "H"]); // marker threads through l + i
-    assert_shape(&mgl("a i g r"), &["A", "A", "I", "I", "H", "R"]); // g.medi; last position not required
-    assert_shape(&mgl("a l i g r"), &["A", "A", "L", "I", "H", "R"]); // marker through l+i, then g.medi
-    assert_shape(&mgl("a i g r e"), &["A", "A", "I", "I", "H", "R", "A"]); // fem e *after* g doesn't block
+
+    // The medial cases below are raw: `H:medi` is `A A` in the public shape.
+    assert_shape_raw(&mgl("a i g r"), &["A", "A", "I", "I", "H", "R"]); // g.medi; last position not required
+    assert_shape_raw(&mgl("a l i g r"), &["A", "A", "L", "I", "H", "R"]); // marker through l+i, then g.medi
+    assert_shape_raw(&mgl("a i g r e"), &["A", "A", "I", "I", "H", "R", "A"]); // fem e *after* g doesn't block
 }
 
 #[test]
@@ -305,7 +333,8 @@ fn test_step2_h_i_with_marker_masc() {
     // Same scenario as g, but with h: h.fina default already equals masc_devsger "H", so
     // h.fina alone can't distinguish "rule fired" from "fell to default" — h.medi is the
     // only observable position (default "G" vs masc_devsger "H").
-    assert_shape(&mgl("a i h r"), &["A", "A", "I", "I", "H", "R"]); // h.medi, marker reaches -> H
+    // Raw: `H:medi` is `A A` in the public shape, which cannot tell H from a plain vowel pair.
+    assert_shape_raw(&mgl("a i h r"), &["A", "A", "I", "I", "H", "R"]); // h.medi, marker reaches -> H
     assert_shape(&mgl("a i h"), &["A", "A", "I", "I", "H"]); // h.fina, marker reaches (same as default)
 }
 
@@ -413,9 +442,10 @@ fn test_step2_g_dotless() {
     // whatever condition iii2f.h_g.harmony or iii2c.chachlag_onset set earlier (the OpenType
     // class-membership trick).
     // Rule 1: s/d + g.medi + masc vowel -> dotless "H" (overrides masculine_onset "Hx").
-    assert_shape(&mgl("s g a"), &["S", "H", "A"]);
-    assert_shape(&mgl("d g a"), &["T", "H", "A"]);
-    assert_shape(&mgl("a s g a"), &["A", "A", "S", "H", "A"]);
+    // Raw: the dotless "H" is medial here, and the public shape folds `H:medi` to `A A`.
+    assert_shape_raw(&mgl("s g a"), &["S", "H", "A"]);
+    assert_shape_raw(&mgl("d g a"), &["T", "H", "A"]);
+    assert_shape_raw(&mgl("a s g a"), &["A", "A", "S", "H", "A"]);
     // Rule 2: s/d + g.fina + MVS + chachlag a.isol -> dotless "H" (overrides chachlag_onset
     // "Hx").
     assert_shape(&mgl("s g mvs a"), &["S", "H", "Mvs", "Aa"]);
@@ -428,7 +458,7 @@ fn test_step2_g_dotless() {
     // Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire.
     assert_shape(&mgl("s g"), &["S", "G"]);
     // Negative: prev letter must be s or d.
-    assert_shape(&mgl("a g a"), &["A", "A", "Hx", "A"]); // iii2f masc_onset
+    assert_shape_raw(&mgl("a g a"), &["A", "A", "Hx", "A"]); // iii2f masc_onset (`Hx:medi`)
     assert_shape(&mgl("n g mvs a"), &["N", "Hx", "Mvs", "Aa"]); // iii2c chachlag_onset
 }
 
@@ -509,8 +539,8 @@ fn test_step3_particle_uen() {
 
 #[test]
 fn test_step3_particle_ued() {
-    // tal + MVS + ue+d -- ue.init particle "O", d.fina devsger "Dd"
-    assert_shape(&mgl("t a l mvs ue d"), &["T", "A", "L", "Mvs", "O", "Dd"]);
+    // tal + MVS + ue+d -- ue.init particle "O", d.fina devsger "Dd" (public shape: `... O O A`)
+    assert_shape_raw(&mgl("t a l mvs ue d"), &["T", "A", "L", "Mvs", "O", "Dd"]);
 }
 
 #[test]
@@ -524,8 +554,9 @@ fn test_step3_particle_duer() {
 
 #[test]
 fn test_step3_particle_dagan() {
-    // tal + MVS + dagan -- d at idx 1 -> particle (masc vowel harmony)
-    assert_shape(
+    // tal + MVS + dagan -- d at idx 1 -> particle (masc vowel harmony). Raw: `Hx:medi` is
+    // `N N` in the public shape.
+    assert_shape_raw(
         &mgl("t a l mvs d a g a n"),
         &["T", "A", "L", "Mvs", "D", "A", "Hx", "A", "A"],
     );
@@ -805,6 +836,48 @@ fn test_oron() {
 fn test_mori() {
     // mori (m o r i)
     assert_shape(&mgl("m o r i"), &["M", "O", "R", "I"]);
+}
+
+// ── Duplicate encodings folded out of the public shape ──
+
+/// The other side of every `assert_shape_raw` above: what the public `shape` says about the four
+/// units that render as the same ink as a sequence of others.
+#[test]
+fn duplicates_are_folded_out_of_the_public_shape() {
+    // `Dd` in both the positions it has, medial `H` and medial `Hx`.
+    assert_shape(&mgl("o d"), &["A", "O", "O", "A"]); // Dd:fina   ᠣᠳ
+    assert_shape(&mgl("o d b o"), &["A", "O", "O", "A", "B", "O"]); // Dd:medi
+    assert_shape(&mgl("b a g sh i"), &["B", "A", "A", "A", "S", "I"]); // H:medi    ᠪᠠᠭᠰᠢ
+    assert_shape(&mgl("a r g a l"), &["A", "A", "R", "N", "N", "A", "L"]); // Hx:medi   ᠠᠷᠭᠠᠯ
+
+    // Initial and final `H` / `Hx` are distinct ink and stay.
+    assert_shape(&mgl("h o d a"), &["H", "O", "D", "A"]); // H:init
+    assert_shape(&mgl("a i g"), &["A", "A", "I", "I", "H"]); // H:fina
+    assert_shape(&mgl("a g a"), &["A", "A", "N", "N", "A"]); // Hx:medi collapses …
+    assert_shape(&mgl("n g mvs a"), &["N", "Hx", "Mvs", "Aa"]); // … but Hx:fina does not
+
+    // The bug this fixes: ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one visible word and now shape identically.
+    assert_shape(&mgl("a r a d"), &["A", "A", "R", "A", "O", "A"]);
+    assert_eq!(shape(&mgl("a r a d")), shape(&mgl("a r a u a")));
+    assert!(shaper()
+        .same_shape(&mgl("a r a d"), &mgl("a r a u a"))
+        .unwrap());
+    assert_eq!(
+        shaper().normalize(&mgl("a r a d")).unwrap(),
+        shaper().normalize(&mgl("a r a u a")).unwrap()
+    );
+
+    // `Dd` is a duplicate in every position it has, so it can never reach a public shape at all
+    // (the corpus-wide form of this is `no_public_shape_contains_a_duplicate_encoding` in
+    // `tests/canonical_golden.rs`).
+    for aliases in ["o d", "o d b o", "t a l mvs ue d", "a r a d", "d a d h u"] {
+        let units = shape(&mgl(aliases));
+        assert!(
+            !units.iter().any(|unit| unit == "Dd"),
+            "{aliases}: Dd leaked into the public shape {units:?}"
+        );
+        assert!(shape_raw(&mgl(aliases)).iter().any(|unit| unit == "Dd"));
+    }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════════════════

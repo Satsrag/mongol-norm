@@ -448,8 +448,11 @@ fn ab_shared_prefix_identical() {
 
 /// Prefix stability over real corpus pairs: wherever shape(B) is a shape-prefix of shape(A), the
 /// shared region (all of B's letters except the boundary one) encodes identically. This is exact
-/// today — all 2237 pairs hold — and both the pair count and the violation count are pinned, so a
+/// today — all 2241 pairs hold — and both the pair count and the violation count are pinned, so a
 /// regression shows up as a failure rather than as a slightly lower percentage.
+///
+/// 2237 pairs before the duplicate encodings were folded out of `shape`: collapsing lengthens the
+/// shapes that contained one, so more of their prefixes land on another corpus shape.
 #[test]
 fn corpus_real_pair_stability() {
     let shaper = shaper();
@@ -496,7 +499,7 @@ fn corpus_real_pair_stability() {
         pairs - violations,
         rate * 100.0
     );
-    assert_eq!(pairs, 2237, "corpus prefix-pair coverage drifted");
+    assert_eq!(pairs, 2241, "corpus prefix-pair coverage drifted");
     let report: Vec<String> = examples
         .iter()
         .map(|(a, b, full, prefix)| {
@@ -526,7 +529,7 @@ fn public_written_unit_api_covers_all_shape_groups() {
     }
     assert_eq!(
         representatives.len(),
-        1993,
+        1991, // 1993 before the collapse merged two pairs of same-word shape groups
         "corpus shape-group coverage drifted"
     );
     let mut failures = Vec::new();

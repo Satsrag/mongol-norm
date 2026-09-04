@@ -88,11 +88,35 @@ class MongolianShaper:
         Shape *text* into its written-unit sequence.
         将 *text* 处理为书写单元序列。
 
+        Four written units render as exactly the same ink as a sequence of other
+        units and never appear here: ``Dd`` (both positions), medial ``H`` and
+        medial ``Hx`` come out as ``O A``, ``A A`` and ``N N``. That is what makes
+        ``shape`` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one word
+        and shape identically. The standard's own unit sequence, which keeps them,
+        is the non-public :meth:`_shape_raw`.
+        四个书写单元与另一串单元的墨迹完全相同,故不会出现在此:``Dd``(两个位置)、
+        词中 ``H``、词中 ``Hx`` 分别输出为 ``O A``、``A A``、``N N``。
+
         Raises ValueError on characters outside the Mongolian word alphabet
         (letters, FVS, MVS, NNBSP, Nirugu, ZWJ); use :meth:`normalize_text`
         for mixed-script input.
         """
         return self._native.shape(text)
+
+    def _shape_raw(self, text):
+        """
+        The engine's own written-unit sequence, before the four duplicate encodings are
+        folded out — the sequence UTN #57 / GB/T 25914-2023 describe, in which ``Dd``,
+        medial ``H`` and medial ``Hx`` still appear.
+        引擎自身的书写单元序列(未折叠重复编码),即 UTN #57 / GB/T 25914-2023 所描述的序列。
+
+        NOT part of the public contract (hence the leading underscore, mirroring the Rust
+        crate's ``#[doc(hidden)] Shaper::shape_raw``): it exists so the conformance suites
+        can compare against the standard verbatim. Everything user-facing — :meth:`shape`,
+        :meth:`same_shape`, :meth:`normalize`, the written-unit encoders — sees the
+        collapsed sequence, and may change to omit further duplicates without notice.
+        """
+        return self._native.shape_raw(text)
 
     def shape_str(self, text):
         """``"+".join(shape(text))``."""

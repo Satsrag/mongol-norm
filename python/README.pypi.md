@@ -99,6 +99,24 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")   # → True
 the Mongolian word alphabet (letters, FVS, MVS, NNBSP, nirugu, ZWJ). Use `normalize_text()` for
 mixed-script input.
 
+**The public shape omits four duplicate encodings.** `Dd` (in both the positions it has), medial
+`H` and medial `Hx` render as exactly the same ink as `O A`, `A A` and `N N`, so `shape()` returns
+those instead and none of the four ever appears in its output. That is what makes `shape()` a
+fingerprint of the *visible* word:
+
+```python
+shaper.shape("ᠠᠷᠠᠳ")                  # → ['A', 'A', 'R', 'A', 'O', 'A']
+shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")     # → True  (one word, two spellings)
+```
+
+UTN #57 and GB/T 25914-2023 keep all four as distinct written units — their EAC vectors spell ᠠᠷᠭᠠᠯ
+as `A A R Hx A L` — and the engine still produces them. The standard's own sequence is
+`shaper._shape_raw(text)`, which exists for the conformance suites and is **not part of the public
+contract** (hence the leading underscore); it may change to fold further duplicates without a major
+bump. `shape_detailed()` and `trace()['written_by_token']` report each token's own units and are
+therefore raw as well — the collapse is a whole-word rewrite no single token can carry;
+`trace()['shape']` is the public, collapsed sequence.
+
 `shape_detailed(text)` returns one dict per token — code point, locale alias, joining position, FVS
 selector, the shaping condition that selected the variant, and the written units it renders to:
 
@@ -152,13 +170,18 @@ shaper.normalize(word, strict=False)   # keep the input if it is uncovered
 ```
 
 `canonical_version` is the frozen name of the exact selection policy, currently
-`'mng-canonical/1'` (it raises `RuntimeError` for a locale with no normalize table). Applications
+`'mng-canonical/2'` (it raises `RuntimeError` for a locale with no normalize table). Applications
 that persist normalized search or index keys should store this version alongside them and rebuild
 those keys if a future release changes it.
 
 ```python
-shaper.canonical_version   # → 'mng-canonical/1'
+shaper.canonical_version   # → 'mng-canonical/2'
 ```
+
+**`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Folding the four
+duplicate encodings out of `shape` changed the canonical text of every word containing one — 282
+of the 1993 corpus shape groups, two of which merged with another group. Rebuild any stored
+normalized key.
 
 #### Written-unit input
 
@@ -386,6 +409,21 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")   # → True
 `shape()` 与 `normalize()` 处理**单个词**，遇到蒙古文词字母表（字母、FVS、MVS、NNBSP、nirugu、ZWJ）之外
 的字符抛 `ValueError`。混合文字请用 `normalize_text()`。
 
+**公开 shape 不含四个重复编码。** `Dd`（它仅有的两个位置）、词中 `H`、词中 `Hx` 与 `O A`、`A A`、`N N` 渲染出
+完全相同的墨迹，因此 `shape()` 返回后者，这四个永远不会出现在输出里。这正是 `shape()` 能作为**可见**词指纹的
+原因：
+
+```python
+shaper.shape("ᠠᠷᠠᠳ")                  # → ['A', 'A', 'R', 'A', 'O', 'A']
+shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")     # → True（同一个词的两种拼法）
+```
+
+UTN #57 与 GB/T 25914-2023 把这四个保留为不同的书写单元——其 EAC 向量把 ᠠᠷᠭᠠᠯ 拼作 `A A R Hx A L`——
+引擎也仍然产出它们。国标自己的序列是 `shaper._shape_raw(text)`，它为一致性套件而存在，**不属于公开契约**
+（故带前导下划线），将来可能在不升 major 的情况下折叠更多重复编码。`shape_detailed()` 与
+`trace()['written_by_token']` 报告的是每个 token 自身的单元，因此同样是原始序列——折叠是整词级改写，单个
+token 承载不了；`trace()['shape']` 则是公开的折叠序列。
+
 `shape_detailed(text)` 逐 token 返回一个 dict——码位、locale alias、连接位置、FVS 选择符、选中该变体的
 shaping condition，以及它渲染出的书写单元：
 
@@ -435,12 +473,16 @@ except NormalizationFallbackError as exc:
 shaper.normalize(word, strict=False)   # 未覆盖时原样返回
 ```
 
-`canonical_version` 是冻结的精确选择策略名，当前为 `'mng-canonical/1'`（没有规范化表的 locale 会抛
+`canonical_version` 是冻结的精确选择策略名，当前为 `'mng-canonical/2'`（没有规范化表的 locale 会抛
 `RuntimeError`）。持久化规范化搜索键 / 索引键的应用应同时保存该版本；未来版本若发生变化，应重建这些键。
 
 ```python
-shaper.canonical_version   # → 'mng-canonical/1'
+shaper.canonical_version   # → 'mng-canonical/2'
 ```
+
+**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 把四个重复编码折叠出 `shape` 之后，
+凡含有其中之一的词，canonical 文本都变了——1993 个语料 shape 组里有 282 个，其中 2 个与别的组合并。已存储的
+规范化键必须重建。
 
 #### 书写单元输入
 

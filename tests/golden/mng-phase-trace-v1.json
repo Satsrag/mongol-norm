@@ -740,7 +740,8 @@
         ],
         "shape": [
           "S",
-          "H",
+          "A",
+          "A",
           "A"
         ],
         "transitions": [

@@ -18,9 +18,10 @@ fn test_shape_outputs_pascal_case_controls() {
         unit_names(&shaper.shape("\u{180A}\u{1823}").unwrap()),
         ["Nirugu", "U"]
     );
+    // `Dd` is folded out of the public shape: ZWJ + `d` is `Zwj O A`.
     assert_eq!(
         unit_names(&shaper.shape("\u{200D}\u{1833}").unwrap()),
-        ["Zwj", "Dd"]
+        ["Zwj", "O", "A"]
     );
 }
 

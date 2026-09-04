@@ -58,7 +58,10 @@ shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 
 The input must be an ordered `Sequence[str]` using the same unit vocabulary
 returned by `shape()`. Every written-unit name is PascalCase; structural controls
-are `Mvs`, `Nirugu`, and `Zwj`. Old lowercase and all-uppercase control aliases
+are `Mvs`, `Nirugu`, and `Zwj`. The four duplicate encodings (`Dd`, medial `H`,
+medial `Hx` — see the normalize algorithm below) are still *accepted* here and
+folded before encoding, so data captured from an older `shape()` keeps working;
+they simply never come back out of `shape()`. Old lowercase and all-uppercase control aliases
 are rejected. Positions are inferred from order
 and structural context—the API does not accept explicit position records and
 never infers or inserts a structural control. In particular, output contains ZWJ
@@ -315,7 +318,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 ```json
 {
   "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/1",
+  "canonical_version": "mng-canonical/2",
   "locale": "MNG",
   "unit_enc_max_len": 3,
   "positioned_units": [
@@ -352,6 +355,15 @@ tbl = load_normalize_table("MNG")   # -> dict
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
 1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
+1a. **Fold the duplicate encodings.** Four written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Replace, using the same chain positions as step 1:
+
+   | Unit | Position | Replace with |
+   |---|---|---|
+   | `Dd` | `medi`, `fina` (its only positions) | `O A` |
+   | `H` | `medi` | `A A` |
+   | `Hx` | `medi` | `N N` |
+
+   Initial and final `H`/`Hx` are distinct ink and stay. The replacements are never themselves duplicates, so one pass suffices. UTN #57 and GB/T 25914-2023 keep all four as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-fold sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs).
 2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
 4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, fail closed (raise), or return the input unchanged only when the caller opted in (`strict=False` / `--allow-fallback`); never mis-encode.

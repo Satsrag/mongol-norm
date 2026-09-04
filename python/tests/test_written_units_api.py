@@ -216,7 +216,8 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
     def test_shape_outputs_pascal_case_controls(self):
         self.assertEqual(self.shaper.shape("\u180E"), ["Mvs"])
         self.assertEqual(self.shaper.shape("\u180A\u1823"), ["Nirugu", "U"])
-        self.assertEqual(self.shaper.shape("\u200D\u1833"), ["Zwj", "Dd"])
+        # `Dd` is folded out of the public shape: ZWJ + `d` is `Zwj O A`.
+        self.assertEqual(self.shaper.shape("\u200D\u1833"), ["Zwj", "O", "A"])
 
     def test_does_not_insert_unrequested_zwj(self):
         # O has connected-position encodings but no isolated encoding. The API

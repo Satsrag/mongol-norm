@@ -47,7 +47,7 @@ class TestNormalizeTableExport(unittest.TestCase):
     def test_compute_returns_json_serializable_spec(self):
         spec = self.spec
         self.assertEqual(spec["locale"], "MNG")
-        self.assertEqual(spec["canonical_version"], "mng-canonical/1")
+        self.assertEqual(spec["canonical_version"], "mng-canonical/2")
         self.assertIn("schema", spec)
         for key in ("unit_table", "positioned_units",
                     "velar_fem", "velar_fem_units", "masc_to_fem",
@@ -62,7 +62,7 @@ class TestNormalizeTableExport(unittest.TestCase):
         json.dumps(spec)
 
     def test_shaper_exposes_loaded_canonical_version(self):
-        self.assertEqual(self.s.canonical_version, "mng-canonical/1")
+        self.assertEqual(self.s.canonical_version, "mng-canonical/2")
         self.assertEqual(self.s.canonical_version, self.bundled["canonical_version"])
         self.assertEqual(self.s.canonical_version, gen.CANONICAL_VERSION)
 
