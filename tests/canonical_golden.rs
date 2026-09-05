@@ -76,18 +76,17 @@ fn fixture_covers_every_current_corpus_shape_group() {
 #[test]
 fn fixture_has_frozen_unique_cardinality() {
     let (_, vectors) = load();
-    // 1993 before the duplicate encodings were unified in `shape`: four of those raw groups were
-    // the same visible word spelled two ways (`Nirugu H Nirugu` = `Nirugu A A Nirugu`,
-    // `A Dd` = `A O A`, `A Aa` = `A`, and `H A D A Aa` = `H A D Aa`), so they merged.
-    assert_eq!(vectors.len(), 1989);
+    // 1993 raw groups: three verified pairs merge. H A D A Aa and H A D Aa remain
+    // distinct: D is not a bowl, so deleting that A would lose a tooth.
+    assert_eq!(vectors.len(), 1990);
     let ids: Vec<String> = vectors
         .iter()
         .map(|v| v.index("id").as_str().to_owned())
         .collect();
-    let expected: Vec<String> = (1..=1989).map(|i| format!("shape-{i:04}")).collect();
+    let expected: Vec<String> = (1..=1990).map(|i| format!("shape-{i:04}")).collect();
     assert_eq!(ids, expected);
     let shapes: HashSet<Vec<String>> = vectors.iter().map(|v| v.index("shape").strings()).collect();
-    assert_eq!(shapes.len(), 1989);
+    assert_eq!(shapes.len(), 1990);
 }
 
 #[test]

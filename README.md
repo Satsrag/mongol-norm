@@ -56,8 +56,8 @@ corpus encoding:
 | Property | Result |
 |---|---|
 | Round-trip — `shape(normalize(x)) == shape(x)` | **3757 / 3757** corpus encodings (100%) |
-| Shape-canonicity — same shape ⟹ same Unicode output | **1989 / 1989** shape groups (100%) |
-| Prefix-stability — word and word+suffix share their prefix encoding | **2237 / 2237** real corpus pairs (100%) |
+| Shape-canonicity — same shape ⟹ same Unicode output | **1990 / 1990** shape groups (100%) |
+| Prefix-stability — word and word+suffix share their prefix encoding | **2240 / 2240** real corpus pairs (100%) |
 
 Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping
 rules but have no normalizer yet. The guarantees above cover the checked corpus and any input whose
@@ -287,15 +287,14 @@ Five are unified by **expanding** the single unit into the pair:
 | `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
 | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 
-The other four **cannot** be expanded. Their expansion ends in `Aa`, and `Aa:fina` is itself a
-duplicate, so expanding again never reaches a fixed point — `Aa:fina → A Aa → A A Aa → …`. They are
-unified in the opposite direction instead, by **contracting** the pair into the single unit, which
-makes the canonical form the shorter one:
+Four other forms unify by **contraction**, choosing the shorter canonical form only in the
+verified position and context. `Aa:fina` has a tooth immediately after a bowl and no tooth
+elsewhere; repeated insertion/deletion of `A` would not preserve the ink:
 
 | pair | public shape | witness pair |
 |---|---|---|
 | `A Aa` spanning a whole chain | `A:isol`  | ᠡ / ᠡᠠ᠋ |
-| `A Aa` ending a longer chain  | `Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+| `bowl A:medi Aa:fina` | `bowl Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
 | `O Aa` ending a chain         | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
 | `I Aa` ending a chain         | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
 
@@ -306,19 +305,26 @@ makes the unit final. Forms outside a verified pair are left alone — initial a
 distinct ink, a lone `Cr` chain is `Cr:isol` rather than the verified `Cr:init`, and a lone `A`
 chain is already canonical.
 
-**Termination.** Expansion emits only `O`, `A` and `N`, contraction only `A`, `Aa`, `B2` and `G`,
-and none of those is an expansion target, so no rule can resurrect one. Neither direction can turn
-an `init` or `fina` unit into the `medi` that `H`/`Hx` need. So one expansion pass removes every
-expansion target for good, and contraction then runs to a fixed point — which is forced rather than
-chosen, since `A A Aa` contracts to `A Aa`, which is itself contractible. Each contraction round
-removes one unit, so a chain of *n* units takes at most *n* rounds. `collapse(collapse(x)) ==
-collapse(x)` is checked by exhaustion over every sequence of up to four units on this alphabet
-(54 241 inputs) and over every corpus word.
+**Context.** The complete Hudum bowl set is **B, P, F, G, Gx, K, K2**, not every consonant.
+Sources: the [Hudum written-unit ligated variants](https://mongfontbuilder.pages.dev/hudum/),
+[required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts)
+(`BAa`, `PAa`, `FAa`, `GAa`, `GxAa`, `KAa`, `K2Aa`), and `src/rules.rs`'s post-bowed classes.
+The bowl must immediately precede the medial `A` in the same chain: `B A Aa → B Aa`, but
+`N A Aa`, `A A Aa`, and `B A A Aa` stay unchanged. Joiner padding is not a bowl and does not
+let this rule cross structural tokens. The independent whole-chain `A:init Aa:fina → A:isol`
+rule is unchanged.
 
-The two directions compose on exactly one corpus word: ᠲᠡᠳ᠌ᠡ᠋ shapes `T A Dd Aa`, whose `Dd`
-expands to `O A`, after which `A Aa` contracts to `Aa` and `O Aa` contracts to `B2`, giving
-`T A B2`. That composite follows from the three witnessed pairs plus idempotence; it is pinned as a
-test rather than left to chance.
+**Termination and idempotence.** Expand once, then inspect the final pair once. Expansion emits
+no expansion targets, and contraction cannot expose an initial/final `H`/`Hx` as medial.
+Every contraction ends the chain: `A`, `B2`, and `G` do not end in `Aa`; a contracted `Aa` is
+preceded by a bowl, not `A`/`O`/`I`, so it cannot contract again. Idempotence follows from these
+guards, not from forcing the text to a fixed point. The 20-unit alphabet (all bowls, expansion
+targets and structural tokens included) is exhausted through length four: **168 421 inputs**.
+Corpus written-unit re-encoding also reshapes to itself.
+
+Expansion does not license a non-bowl contraction: ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) becomes
+`T A O A Aa`, **not** `T A B2`, because `O` is not a bowl. The expansion of `B H Aa` likewise
+leaves `B A A Aa`. Both interactions are regression-tested.
 
 Everything user-facing sees the unified sequence: `same_shape`, `normalize` and the written-unit
 encoders. `normalize_written_units` still *accepts* the duplicates as input and unifies them, so
@@ -375,8 +381,10 @@ The exact canonical selection policy is frozen as **`mng-canonical/2`**. It is a
 version alongside them and rebuild those keys if a future release changes it.
 
 **`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
-duplicate encodings changed the canonical text of every word containing one — 288 of the 1993
-corpus shape groups, four of which merged with another group. Rebuild any stored normalized key.
+duplicate encodings changes canonical text: comparing current output against the base branch's
+1993 `mng-canonical/1` golden representatives finds **287** changed texts; three verified pairs
+merge into **1990** groups. Rebuild any stored normalized key. The context correction also
+invalidates pre-fix PR #26 output; this is not a new release or a claim that old test suites were rerun.
 
 ### Repository layout
 
@@ -430,7 +438,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 |---|---|
 | `tests/data/core-hud.tsv` | 177 rows — mongfontbuilder's curated regression set (225 cases) |
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
-| `tests/golden/mng-canonical-v1.jsonl` | 1989 canonical vectors |
+| `tests/golden/mng-canonical-v1.jsonl` | 1990 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
 
 Because the corpus and golden tests read that directory, `cargo test` needs a repository checkout —
@@ -564,8 +572,8 @@ crate 就是引擎，位于仓库根目录。`python/` 下是它的一层薄 PyO
 | 性质 | 结果 |
 |---|---|
 | 往返 —— `shape(normalize(x)) == shape(x)` | **3757 / 3757** 语料编码（100%） |
-| 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1989 / 1989** shape 组（100%） |
-| 前缀稳定 —— 词与词+后缀共享前缀编码 | **2237 / 2237** 真实语料词对（100%） |
+| 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1990 / 1990** shape 组（100%） |
+| 前缀稳定 —— 词与词+后缀共享前缀编码 | **2240 / 2240** 真实语料词对（100%） |
 
 范围说明：规范化目前只实现了 MNG（Hudum）—— Todo / 锡伯文 / 满文已加载 shaping 规则，尚无规范化。上述保证
 覆盖已检查语料及内置表可编码的 written-unit chain。语料外 chain 若未被覆盖，默认 fail closed，返回
@@ -782,14 +790,13 @@ mongol-norm 使用完整的 UTN #57 v4 shaping 过程（5 步条件映射）对�
 | `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
 | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 
-另外四个**不能**展开：它们的展开式以 `Aa` 结尾，而 `Aa:fina` 本身就是重复编码，再展开永远收敛不了——
-`Aa:fina → A Aa → A A Aa → …`。这四个改用反方向统一，即把单元对**收缩**成单个单元，于是较短的那个成为
-canonical 形式：
+另外四种形态采用**收缩**，仅在验证过的位置和上下文中选择较短的 canonical 形式。
+`Aa:fina` 紧邻 bowl 时有齿，非 bowl 时无齿；反复插入或删除 `A` 并不保持墨迹：
 
 | 单元对 | 公开 shape | 见证词对 |
 |---|---|---|
 | 独占整条 chain 的 `A Aa` | `A:isol`  | ᠡ / ᠡᠠ᠋ |
-| 位于较长 chain 末尾的 `A Aa` | `Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+| `bowl A:medi Aa:fina` | `bowl Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
 | 位于 chain 末尾的 `O Aa` | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
 | 位于 chain 末尾的 `I Aa` | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
 
@@ -798,14 +805,22 @@ canonical 形式：
 未被见证的形态一律不动——词首/词末的 `H`/`Hx` 是不同的墨迹，单独一个 `Cr` 的 chain 是 `Cr:isol` 而非被见证的
 `Cr:init`，单独一个 `A` 的 chain 本就是 canonical。
 
-**收敛性。** 展开只产出 `O`、`A`、`N`，收缩只产出 `A`、`Aa`、`B2`、`G`，都不是展开的目标，故没有规则能让目标
-复活；两个方向都不会把 `init`/`fina` 单元变成 `H`/`Hx` 所需的 `medi`。因此一趟展开即可永久消除所有展开目标，
-随后收缩跑到不动点——这不是选择而是必然：`A A Aa` 收缩成 `A Aa`，后者仍可收缩。每轮收缩减少一个单元，故 *n*
-个单元的 chain 至多 *n* 轮。`collapse(collapse(x)) == collapse(x)` 已在该字母表上长度 ≤ 4 的全部序列
-（54 241 个输入）以及全部语料词上穷举验证。
+**上下文。** Hudum 的完整 bowl 集合是 **B、P、F、G、Gx、K、K2**。来源为
+[Hudum 书写单元连写变体表](https://mongfontbuilder.pages.dev/hudum/)、
+[上游 required ligatures 数据](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts)
+中的 `BAa/PAa/FAa/GAa/GxAa/KAa/K2Aa`，以及本项目 `src/rules.rs` 的 post-bowed 类。
+bowl 必须在同一 chain 内紧邻 `A:medi`：`B A Aa → B Aa`，但 `N A Aa`、`A A Aa`、
+`B A A Aa` 均保留。Joiner 补位不是 bowl，规则不能跨结构单元。独立整链规则
+`A:init Aa:fina → A:isol` 不变。
 
-两个方向在语料中恰好有一个词发生复合：ᠲᠡᠳ᠌ᠡ᠋ 的 shape 是 `T A Dd Aa`，`Dd` 展开为 `O A` 后，`A Aa` 收缩成
-`Aa`、`O Aa` 再收缩成 `B2`，最终得 `T A B2`。该复合结论由三条见证规则加幂等性推出，已固化为测试。
+**终止与幂等性。** 一次展开后只检查一次尾部单元对。展开不产生新的展开目标；收缩也不会让
+词首/词末 `H`/`Hx` 变成词中。所有收缩都位于链尾：结果 `A/B2/G` 不以 `Aa` 结尾，而收缩得到的
+`Aa` 前面是 bowl、不是 `A/O/I`，不能再收缩。幂等性来自正确上下文，不是强制跑到不动点。
+20 单元字母表（含全部 bowl、展开目标和结构单元）上长度 ≤ 4 的 **168 421 个输入**均已穷举验证，
+全部语料的书写单元再编码也可还原形状。
+
+展开不能授权非 bowl 收缩：ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) 应为 `T A O A Aa`，**不是** `T A B2`，
+因为 `O` 不是 bowl；`B H Aa` 展开后同样保留 `B A A Aa`。两种交互均有回归测试。
 
 面向用户的一切都看到统一后的序列：`same_shape`、`normalize` 和书写单元编码器。
 `normalize_written_units` 仍然**接受**重复编码作为输入并统一它们，调用方已有的数据继续可用。
@@ -851,9 +866,10 @@ normalize 输出相同，且往返成立 —— `shape(normalize(x)) == shape(x)
 `shaper.canonical_version`）读取，并写入 `MNG.normalize.json`。持久化规范化搜索键/索引键的应用应同时保存
 该版本；未来版本若发生变化，应重建这些键。
 
-**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 统一九个重复编码之后，凡含有其中
-之一的词，canonical 文本都变了——1993 个语料 shape 组里有 288 个，其中 4 个与别的组合并。已存储的规范化键
-必须重建。
+**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 当前输出与 base 分支
+1993 个 `mng-canonical/1` golden 代表词比较，**287** 个 canonical 文本改变；三对验证过的重复组
+合并成 **1990** 组。已存储的规范化键必须重建，上下文修复前 PR #26 的输出也受影响。
+这是 fixture 对比实测，不表示重新运行过旧测试，也不是新版本发布。
 
 ### 仓库结构
 
@@ -906,7 +922,7 @@ shaping 与 normalize 规则是扁平、语言无关的 JSON，位于 `python/mo
 |---|---|
 | `tests/data/core-hud.tsv` | 177 行 —— mongfontbuilder 的精选回归集（225 个 case） |
 | `tests/data/eac-hud.tsv` | 3512 行 —— GB/T 25914-2023（3513 个 case，5 个 UTN-xfail） |
-| `tests/golden/mng-canonical-v1.jsonl` | 1989 个 canonical 向量 |
+| `tests/golden/mng-canonical-v1.jsonl` | 1990 个 canonical 向量 |
 | `tests/golden/mng-phase-trace-v1.json` | 15 个 phase-trace 向量 |
 
 因为语料与 golden 测试读取这个目录，`cargo test` 需要仓库 checkout —— 发布的 crate 不包含固件。

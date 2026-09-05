@@ -102,11 +102,14 @@ mixed-script input.
 **The public shape unifies nine duplicate encodings** — written units that render as exactly the
 same ink as a sequence of other units. Five are unified by expanding the unit into the pair: `Dd`
 (in both the positions it has), medial `H`, medial `Hx` and initial `Cr` come out as `O A`, `A A`,
-`N N` and `O O`. The other four cannot be expanded — their expansion ends in `Aa`, which is itself
-a duplicate, so it would never terminate — and are unified the other way, by contracting the pair
-into the unit: a chain-final `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa`
-becomes `B2`, and `I Aa` becomes `G`. That is what makes `shape()` a fingerprint of the *visible*
-word:
+`N N` and `O O`. Four other forms use context-gated contraction: chain-final `A Aa` becomes `Aa`
+only immediately after a Hudum bowl (`B P F G Gx K K2`), or `A` when it occupies the whole
+unpadded chain. Final `O Aa` becomes `B2`, and final `I Aa` becomes `G`.
+`Aa:fina` has a tooth after a bowl and no tooth elsewhere: `B A Aa → B Aa`, but `N A Aa` and
+`B A A Aa` stay intact. Expand once, then inspect the tail once, not to an unconditional fixed
+point. In particular `Dd Aa → O A Aa`, not `B2`. See the
+[Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and project README for sources.
+That is what makes `shape()` a fingerprint of the *visible* word:
 
 ```python
 shaper.shape("ᠠᠷᠠᠳ")                  # → ['A', 'A', 'R', 'A', 'O', 'A']
@@ -188,8 +191,9 @@ shaper.canonical_version   # → 'mng-canonical/2'
 ```
 
 **`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
-duplicate encodings changed the canonical text of every word containing one — 288 of the 1993
-corpus shape groups, four of which merged with another group. Rebuild any stored normalized key.
+duplicate encodings changes canonical text: current output differs from 287 of the 1993 base
+`mng-canonical/1` golden representatives; three verified pairs merge into 1990 groups. Rebuild
+stored normalized keys, including output from PR #26 before its bowl-context correction.
 
 #### Written-unit input
 
@@ -418,10 +422,13 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")   # → True
 的字符抛 `ValueError`。混合文字请用 `normalize_text()`。
 
 **公开 shape 统一了九个重复编码**——即与另一串单元渲染出完全相同墨迹的书写单元。其中五个靠展开统一：
-`Dd`（它仅有的两个位置）、词中 `H`、词中 `Hx`、词首 `Cr` 分别输出为 `O A`、`A A`、`N N`、`O O`。另四个不能
-展开——它们的展开式以 `Aa` 结尾，而 `Aa` 本身就是重复编码，永不收敛——改用反方向统一，把单元对收缩成单个单元：
-chain 末尾的 `A Aa` 变成 `Aa`（独占整条 chain 时变成 `A`），`O Aa` 变成 `B2`，`I Aa` 变成 `G`。这正是
-`shape()` 能作为**可见**词指纹的原因：
+`Dd`（它仅有的两个位置）、词中 `H`、词中 `Hx`、词首 `Cr` 分别输出为 `O A`、`A A`、`N N`、`O O`。
+另四种形态按上下文收缩：链尾 `A Aa` 仅紧邻 Hudum bowl（`B P F G Gx K K2`）时变成 `Aa`；
+独占无补位整链时仍变成 `A`。链尾 `O Aa` 变成 `B2`，`I Aa` 变成 `G`。
+`Aa:fina` 紧邻 bowl 时有齿、否则无齿，因此 `B A Aa → B Aa`，但 `N A Aa` 和 `B A A Aa` 保留。
+一次展开后只检查一次尾部，不做无条件不动点重写；`Dd Aa → O A Aa`，不能再变成 `B2`。
+来源见 [Hudum 连写变体表](https://mongfontbuilder.pages.dev/hudum/) 和项目 README。
+这正是 `shape()` 能作为**可见**词指纹的原因：
 
 ```python
 shaper.shape("ᠠᠷᠠᠳ")                  # → ['A', 'A', 'R', 'A', 'O', 'A']
@@ -494,9 +501,9 @@ shaper.normalize(word, strict=False)   # 未覆盖时原样返回
 shaper.canonical_version   # → 'mng-canonical/2'
 ```
 
-**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 统一九个重复编码之后，凡含有其中
-之一的词，canonical 文本都变了——1993 个语料 shape 组里有 288 个，其中 4 个与别的组合并。已存储的规范化键
-必须重建。
+**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 当前输出与 base 的
+1993 个 `mng-canonical/1` golden 代表词比较，287 个文本改变；三对验证过的重复组合并成 1990 组。
+已存储的规范化键必须重建，包括 PR #26 修复 bowl 上下文之前的输出。
 
 #### 书写单元输入
 

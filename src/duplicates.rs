@@ -12,7 +12,7 @@
 //! own output, which is what the standard's vectors describe, remains available as
 //! [`Shaper::shape_raw`](crate::Shaper::shape_raw).
 //!
-//! # Two directions, because expansion does not always terminate
+//! # Two context-safe canonical directions
 //!
 //! Five of the nine unify by **expansion** — the single unit becomes the pair:
 //!
@@ -24,18 +24,18 @@
 //! | `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ |
 //! | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 //!
-//! The other four cannot be expanded, because their expansion ends in `Aa`, and `Aa:fina` is
-//! itself a duplicate — `Aa:fina → A Aa → A A Aa → …` never reaches a fixed point. They unify by
-//! **contraction** instead, so the canonical form is the shorter one:
+//! Four other forms unify by **contraction**, choosing the shorter canonical form only in
+//! the verified context. In particular Aa:fina has a tooth immediately after a bowl, but
+//! no tooth elsewhere: inserting/removing A repeatedly does not preserve the ink.
 //!
 //! | pair | contracts to | witness |
 //! |---|---|---|
 //! | `A Aa` spanning a whole chain | `A:isol`  | ᠡ / ᠡᠠ᠋ |
-//! | `A Aa` ending a longer chain   | `Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+//! | `bowl A:medi Aa:fina` | `bowl Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
 //! | `O Aa` ending a chain          | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
 //! | `I Aa` ending a chain          | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
 //!
-//! # Why one expansion pass and then contraction to a fixed point
+//! # One expansion pass and at most one tail contraction
 //!
 //! Expansion emits only `O`, `A` and `N`, and contraction emits only `A`, `Aa`, `B2` and `G` —
 //! none of which is an expansion target — so no rule can resurrect one. Expansion only ever
@@ -44,9 +44,16 @@
 //! into the unit at the pair's own end, so it likewise never creates a `medi`. One expansion pass
 //! therefore removes every expansion target for good.
 //!
-//! Contraction must then run to a fixed point, and that is forced, not chosen: `collapse` has to
-//! be idempotent, and `A A Aa` contracts to `A Aa`, which is itself contractible. Each round
-//! removes one unit, so a chain of `n` units takes at most `n` rounds.
+//! The Hudum bowls are B, P, F, G, Gx, K, K2: see the Hudum written-unit ligated variants
+//! at <https://mongfontbuilder.pages.dev/hudum/>, mongfontbuilder data/ligatures.ts
+//! (required BAa/PAa/FAa/GAa/GxAa/KAa/K2Aa), and this crate's rules::iii5_post_bowed_at.
+//! Other scripts' ligatures are not evidence for additional Hudum bowls.
+//!
+//! All contractions require a chain-ending pair. A:isol, B2:fina and G:fina do not end in
+//! Aa; the context-gated Aa result is immediately preceded by a bowl, not A/O/I. Thus no
+//! result admits another contraction, and no expansion target is created. Idempotence follows
+//! from those guards, not from repeated deletion: B A A Aa and N A Aa stay unchanged.
+//! Dd Aa expands to O A Aa, whose A is not after a bowl, so it must not become B2.
 
 use crate::generated::enums::WrittenUnit;
 use crate::normalize::{is_joiner, slot_position};
@@ -73,16 +80,36 @@ fn expansion(unit: WrittenUnit, position: Position) -> Option<&'static [WrittenU
 ///
 /// `result` is the position the merged unit would occupy in the shortened chain, which is what
 /// decides both *whether* the pair is the verified duplicate and *which* unit it becomes: `A Aa`
-/// is `A` when it makes up a whole chain (`A:isol`) and `Aa` when something precedes it
-/// (`Aa:fina`). `B2` and `G` are only duplicates at `fina` — `B2` has no other position at all,
+/// is `A` when it makes up a whole chain (`A:isol`) and `Aa` only when a bowl immediately
+/// precedes the A in the same chain (`Aa:fina`). `B2` and `G` are only duplicates at `fina`,
 /// and `G:isol`/`G:init`/`G:medi` are distinct ink.
-fn contraction(first: WrittenUnit, second: WrittenUnit, result: Position) -> Option<WrittenUnit> {
+fn contraction(
+    first: WrittenUnit,
+    second: WrittenUnit,
+    result: Position,
+    preceding: Option<WrittenUnit>,
+) -> Option<WrittenUnit> {
     if second != WrittenUnit::Aa {
         return None;
     }
     match (first, result) {
         (WrittenUnit::A, Position::Isol) => Some(WrittenUnit::A),
-        (WrittenUnit::A, Position::Fina) => Some(WrittenUnit::Aa),
+        (WrittenUnit::A, Position::Fina)
+            if matches!(
+                preceding,
+                Some(
+                    WrittenUnit::B
+                        | WrittenUnit::P
+                        | WrittenUnit::F
+                        | WrittenUnit::G
+                        | WrittenUnit::Gx
+                        | WrittenUnit::K
+                        | WrittenUnit::K2
+                )
+            ) =>
+        {
+            Some(WrittenUnit::Aa)
+        }
         (WrittenUnit::O, Position::Fina) => Some(WrittenUnit::B2),
         (WrittenUnit::I, Position::Fina) => Some(WrittenUnit::G),
         _ => None,
@@ -93,9 +120,8 @@ fn contraction(first: WrittenUnit, second: WrittenUnit, result: Position) -> Opt
 ///
 /// Positions are the ones `normalize` itself uses: slots within each chain between structural
 /// units, with a nirugu or ZWJ neighbour padding the chain the way it pads the rendering, so a
-/// unit joined across a ZWJ counts as medial exactly as the shaper rendered it. Idempotent — see
-/// the module comment for why one expansion pass followed by contraction to a fixed point
-/// reaches one.
+/// unit joined across a ZWJ counts as medial exactly as the shaper rendered it. Joiner padding
+/// supplies a position, never a bowl. Idempotent after one expansion pass and one tail check.
 pub(crate) fn collapse(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
     let mut out = Vec::with_capacity(shape.len() + 2);
     let mut start = 0;
@@ -130,17 +156,18 @@ fn collapse_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> V
         }
     }
 
-    // Each round removes one unit, so this terminates in at most `units.len()` rounds.
-    while let Some((index, merged)) = (0..units.len().saturating_sub(1)).find_map(|index| {
-        contraction(
+    // Every contraction requires the pair to end the chain. Inspect that pair once;
+    // a newly merged Aa must not be fed back to consume another A.
+    if let Some(index) = units.len().checked_sub(2) {
+        if let Some(merged) = contraction(
             units[index],
             units[index + 1],
             position(index, units.len() - 1),
-        )
-        .map(|merged| (index, merged))
-    }) {
-        units[index] = merged;
-        units.remove(index + 1);
+            index.checked_sub(1).map(|previous| units[previous]),
+        ) {
+            units[index] = merged;
+            units.pop();
+        }
     }
     units
 }
@@ -207,21 +234,33 @@ mod tests {
     }
 
     #[test]
-    fn contraction_runs_to_a_fixed_point() {
-        // `A A Aa` → `A Aa` → `A`: forced by idempotence, since `A Aa` is itself contractible.
-        assert_eq!(collapse(&[A, A, Aa]), [A]);
-        assert_eq!(collapse(&[B, A, A, Aa]), [B, Aa]);
-        // An expansion whose tail meets an `Aa` keeps contracting.
-        assert_eq!(collapse(&[B, O, Dd, Aa]), [B, O, B2]);
+    fn final_a_aa_requires_an_immediately_preceding_bowl() {
+        use WrittenUnit::{Gx, F, K, K2, P};
+        for bowl in [B, P, F, G, Gx, K, K2] {
+            assert_eq!(collapse(&[bowl, A, Aa]), [bowl, Aa]);
+            assert_eq!(collapse(&[N, bowl, A, Aa]), [N, bowl, Aa]);
+            assert_eq!(collapse(&[bowl, A, A, Aa]), [bowl, A, A, Aa]);
+        }
+        for non_bowl in [A, N, O, I, B2, D, R] {
+            assert_eq!(collapse(&[non_bowl, A, Aa]), [non_bowl, A, Aa]);
+        }
+        assert_eq!(collapse(&[B, Zwj, A, Aa]), [B, Zwj, A, Aa]);
+        assert_eq!(collapse(&[Nirugu, A, Aa]), [Nirugu, A, Aa]);
+        assert_eq!(collapse(&[B, A, Aa, Zwj]), [B, A, Aa, Zwj]);
+        // Expansion must not manufacture permission to swallow a tooth.
+        assert_eq!(collapse(&[B, H, Aa]), [B, A, A, Aa]);
+        assert_eq!(collapse(&[B, O, Dd, Aa]), [B, O, O, A, Aa]);
     }
 
     /// Termination and idempotence by exhaustion: every sequence of up to four units over the
-    /// whole alphabet the rules touch, structural tokens included — 54 241 inputs. Expansion and
+    /// whole alphabet the rules touch, structural tokens included — 168 421 inputs. Expansion and
     /// contraction cannot fight each other into an oscillation or a runaway.
     #[test]
     fn collapse_is_idempotent_over_every_short_sequence() {
-        const ALPHABET: [WrittenUnit; 15] =
-            [A, Aa, O, I, N, B, B2, G, Dd, H, Hx, Cr, Nirugu, Zwj, Mvs];
+        use WrittenUnit::{Gx, F, K, K2, P};
+        const ALPHABET: [WrittenUnit; 20] = [
+            A, Aa, O, I, N, B, P, F, Gx, K, K2, B2, G, Dd, H, Hx, Cr, Nirugu, Zwj, Mvs,
+        ];
         for length in 0..=4u32 {
             for index in 0..ALPHABET.len().pow(length) {
                 let mut rest = index;

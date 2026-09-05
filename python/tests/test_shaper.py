@@ -1010,13 +1010,30 @@ class TestDuplicateEncodings(unittest.TestCase):
         self.assertEqual(self.s.shape("ᡂ᠊"), ["O", "O", "Nirugu"])               # Cr:init
 
     def test_contracted_duplicates(self):
-        # The pair becomes the single unit, because expanding these never terminates:
-        # their expansion ends in `Aa`, which is itself a duplicate.
-        # 这四个不能展开——展开式以 `Aa` 结尾,而 `Aa:fina` 本身就是重复编码,永不收敛。
+        # Choose the shorter form only in its verified position and bowl context.
         self.assertEqual(self.s.shape("ᠡᠠ᠋"), ["A"])                # A:isol
         self.assertEqual(self.s.shape("ᠪᠠᠠ᠋"), ["B", "Aa"])         # Aa:fina
         self.assertEqual(self.s.shape("᠊ᠤᠠ᠋"), ["Nirugu", "B2"])    # B2:fina
         self.assertEqual(self.s.shape("᠊ᠢᠠ᠋"), ["Nirugu", "G"])     # G:fina
+
+    def test_aa_contraction_requires_immediate_bowl(self):
+        for bowl in ("B", "P", "F", "G", "Gx", "K", "K2"):
+            for units, expected in (
+                ([bowl, "A", "Aa"], [bowl, "Aa"]),
+                ([bowl, "A", "A", "Aa"], [bowl, "A", "A", "Aa"]),
+                ([bowl, "H", "Aa"], [bowl, "A", "A", "Aa"]),
+            ):
+                with self.subTest(units=units):
+                    text = self.s.normalize_written_units(units)
+                    self.assertEqual(self.s.shape(text), expected)
+                    self.assertEqual(self.s.normalize(text), text)
+        for aliases, expected in (
+            ("n a a fvs1", ["N", "A", "Aa"]),
+            ("b a a a fvs1", ["B", "A", "A", "Aa"]),
+        ):
+            with self.subTest(aliases=aliases):
+                self.assertEqual(self.s.shape(_mgl(aliases)), expected)
+        self.assertFalse(self.s.same_shape(_mgl("b a"), _mgl("b a a a fvs1")))
 
     def test_forms_outside_a_verified_pair_are_left_alone(self):
         self.assertEqual(self.s.shape(_mgl("h o d a")), ["H", "O", "D", "A"])      # H:init
@@ -1033,13 +1050,11 @@ class TestDuplicateEncodings(unittest.TestCase):
                 self.assertNotIn("Dd", self.s.shape(_mgl(aliases)))
                 self.assertIn("Dd", self.s._shape_raw(_mgl(aliases)))
 
-    def test_expansion_and_contraction_compose(self):
-        # ᠲᠡᠳ᠌ᠡ᠋ shapes `T A Dd Aa`; the `Dd` expands to `O A`, then `A Aa` contracts to
-        # `Aa` and `O Aa` contracts to `B2`. The only corpus word where the two
-        # directions meet — the composite follows from the three pairs plus idempotence.
+    def test_expansion_does_not_license_a_non_bowl_contraction(self):
+        # Dd expands to O A; O is not a bowl, so A Aa must remain intact.
         word = _mgl("t e d fvs2 e fvs1")
         self.assertEqual(self.s._shape_raw(word), ["T", "A", "Dd", "Aa"])
-        self.assertEqual(self.s.shape(word), ["T", "A", "B2"])
+        self.assertEqual(self.s.shape(word), ["T", "A", "O", "A", "Aa"])
         # Nothing oscillates: re-encoding the public shape and reshaping is a fixed point.
         units = self.s.shape(word)
         self.assertEqual(self.s.shape(self.s.normalize_written_units(units)), units)

@@ -366,16 +366,18 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
    | `Hx` | `medi` | `N N` |
    | `Cr` | `init` | `O O` |
 
-   Then **contract**, repeatedly until nothing matches. The remaining four duplicates cannot be expanded — their expansion ends in `Aa`, which is itself a duplicate, so `Aa:fina → A Aa → A A Aa → …` never terminates — so the canonical form is the *shorter* one. Match an adjacent pair and replace it with one unit, where *position* is the position the merged unit takes in the shortened chain:
+   Then inspect the final adjacent pair **once** and contract only in its verified context. The shorter form is canonical; this is not an unconditional fixed-point rewrite. Here *position* is the position the merged unit takes in the shortened chain:
 
    | pair | merged position | replace with |
    |---|---|---|
    | `A Aa` | `isol` | `A` |
-   | `A Aa` | `fina` | `Aa` |
+   | `A Aa`, immediately preceded by a bowl in the same chain | `fina` | `Aa` |
    | `O Aa` | `fina` | `B2` |
    | `I Aa` | `fina` | `G` |
 
-   Initial and final `H`/`Hx`, a lone `Cr` chain (`Cr:isol`) and a lone `A` chain are distinct ink and stay. One expansion pass suffices — neither direction emits an expansion target, and neither can turn an `init`/`fina` unit into a `medi` — and each contraction round removes one unit, so a chain of *n* units takes at most *n* rounds. The result is idempotent, which is what forces contraction to run to a fixed point: `A A Aa` contracts to `A Aa`, which is itself contractible.
+   The complete Hudum bowl set is `B P F G Gx K K2`, from the [Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and [upstream required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts), also reflected in `src/rules.rs`'s post-bowed classes. `Aa:fina` has a tooth immediately after a bowl, but no tooth otherwise. Thus `B A Aa → B Aa`, while `N A Aa`, `A A Aa`, and `B A A Aa` remain intact. Joiner padding supplies position, not a bowl; never match across structural tokens. The independent whole-chain `A:init Aa:fina → A:isol` rule stays.
+
+   Initial/final `H`/`Hx`, a lone `Cr:isol`, and a lone `A` are unchanged. One expansion pass suffices: neither direction emits expansion targets or exposes initial/final `H`/`Hx` as medial. All contractions end the chain; `A/B2/G` cannot contract again, and a contracted `Aa` follows a bowl rather than `A/O/I`. This proves idempotence without repeated deletion. In particular `Dd Aa → O A Aa` cannot then contract: `O` is not a bowl. See the 168 421-input exhaustion and context regressions in `src/duplicates.rs`.
 
    UTN #57 and GB/T 25914-2023 keep all nine as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-unification sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs).
 2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
