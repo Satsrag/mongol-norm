@@ -318,7 +318,7 @@ impl Shaper {
         })
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/1"` for MNG; `None`
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/2"` for MNG; `None`
     /// for locales without a normalize table). Persist it next to stored normalized keys.
     pub fn canonical_version(&self) -> Option<&'static str> {
         self.normalize.as_ref().map(|table| table.canonical_version)
@@ -617,7 +617,7 @@ mod tests {
         );
         assert_eq!(
             Shaper::new(Locale::Mng).canonical_version(),
-            Some("mng-canonical/1")
+            Some("mng-canonical/2")
         );
     }
 

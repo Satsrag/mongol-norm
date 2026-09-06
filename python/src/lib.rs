@@ -100,6 +100,16 @@ impl PyShaper {
             .map_err(to_py)
     }
 
+    /// The engine's own written units, before the nine duplicate encodings are unified.
+    /// Not part of the public contract (mirrors the core crate's `#[doc(hidden)] shape_raw`);
+    /// it exists so the conformance suites can compare against GB/T 25914-2023 verbatim.
+    fn shape_raw(&self, text: &str) -> PyResult<Names> {
+        self.inner
+            .shape_raw(text)
+            .map(|units| names(&units))
+            .map_err(to_py)
+    }
+
     fn shape_str(&self, text: &str) -> PyResult<String> {
         self.inner.shape_str(text).map_err(to_py)
     }

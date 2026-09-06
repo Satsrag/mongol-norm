@@ -413,7 +413,7 @@ mod tests {
         );
         let variants: usize = mng::DATA.letters.iter().map(|l| l.variants.len()).sum();
         assert_eq!(variants, 216);
-        assert_eq!(mng_normalize::DATA.canonical_version, "mng-canonical/1");
+        assert_eq!(mng_normalize::DATA.canonical_version, "mng-canonical/2");
         assert_eq!(mng_normalize::DATA.unit_enc_max_len, 3);
         assert_eq!(mng_normalize::DATA.unit_table.len(), 151);
         assert_eq!(mng_normalize::DATA.velar_fem.len(), 15);

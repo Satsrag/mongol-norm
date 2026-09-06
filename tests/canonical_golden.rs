@@ -58,7 +58,7 @@ fn fixture_metadata() {
     assert_eq!(manifest.index("locale").as_str(), "MNG");
     assert_eq!(
         manifest.index("canonical_version").as_str(),
-        "mng-canonical/1"
+        "mng-canonical/2"
     );
     assert_eq!(
         Shaper::new(Locale::Mng).canonical_version(),
@@ -76,15 +76,17 @@ fn fixture_covers_every_current_corpus_shape_group() {
 #[test]
 fn fixture_has_frozen_unique_cardinality() {
     let (_, vectors) = load();
-    assert_eq!(vectors.len(), 1993);
+    // 1993 raw groups: three verified pairs merge. H A D A Aa and H A D Aa remain
+    // distinct: D is not a bowed written unit, so deleting that A would lose a tooth.
+    assert_eq!(vectors.len(), 1990);
     let ids: Vec<String> = vectors
         .iter()
         .map(|v| v.index("id").as_str().to_owned())
         .collect();
-    let expected: Vec<String> = (1..=1993).map(|i| format!("shape-{i:04}")).collect();
+    let expected: Vec<String> = (1..=1990).map(|i| format!("shape-{i:04}")).collect();
     assert_eq!(ids, expected);
     let shapes: HashSet<Vec<String>> = vectors.iter().map(|v| v.index("shape").strings()).collect();
-    assert_eq!(shapes.len(), 1993);
+    assert_eq!(shapes.len(), 1990);
 }
 
 #[test]
@@ -112,6 +114,22 @@ fn canonical_codepoints_are_frozen() {
             .map(Json::as_u64)
             .collect();
         assert_eq!(normalized, expected, "{id}: normalized code points");
+    }
+}
+
+/// `Dd` is a duplicate encoding in both the positions it has, so it can never reach a public
+/// shape. The other eight are duplicates only at particular positions and legitimately appear
+/// elsewhere — those are checked case by case in `tests/shaper.rs::every_duplicate_pair_unifies`.
+#[test]
+fn no_public_shape_contains_a_duplicate_encoding() {
+    let (_, vectors) = load();
+    for vector in &vectors {
+        let shape = vector.index("shape").strings();
+        assert!(
+            !shape.iter().any(|unit| unit == "Dd"),
+            "{}: Dd in the public shape {shape:?}",
+            vector.index("id").as_str()
+        );
     }
 }
 
