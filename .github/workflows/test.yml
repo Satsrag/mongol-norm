@@ -1,10 +1,12 @@
 name: Test
 
-# Repo layout: the shaping engine is the Rust crate crates/mongol-norm (workspace
-# root Cargo.toml); the PyPI package mongol-norm is its PyO3 binding
-# (crates/mongol-norm-py + mongol_norm/, built with maturin). The shaping +
-# normalize JSON in mongol_norm/data/ is the source of the generated Rust tables
-# (scripts/gen_rust_tables.py) and of the tooling; the runtime does not read it.
+# Repo layout: the shaping engine is the Rust crate at the repository root (Cargo.toml,
+# src/, tests/ with the shared fixtures); the PyPI package mongol-norm is its PyO3
+# binding under python/ (the binding crate + mongol_norm/, built with maturin; the
+# Python test-suite and the generator scripts live there too). The shaping +
+# normalize JSON in python/mongol_norm/data/ is the source of the generated Rust
+# tables (python/scripts/gen_rust_tables.py) and of the tooling; the runtime does
+# not read it.
 #
 # The Python job builds the extension in place (maturin develop) on every
 # supported CPython and runs the unittest suite, which covers all shaping logic,
@@ -50,8 +52,10 @@ jobs:
 
       # `maturin develop` refuses to run outside a virtual environment. Exporting
       # VIRTUAL_ENV and PATH is what `source .venv/bin/activate` does, but it
-      # persists across the following steps.
+      # persists across the following steps. Everything Python runs from python/
+      # (pyproject.toml, the binding crate, the package and the test-suite).
       - name: Create a virtual environment
+        working-directory: python
         run: |
           python -m venv .venv
           echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
@@ -59,8 +63,9 @@ jobs:
 
       - name: Build the extension in place
         # Same version range as [build-system].requires in pyproject.toml. The
-        # `testing` feature exposes the fallback hook tests/test_shaper.py needs;
-        # release wheels are built without it (publish.yml).
+        # `testing` feature exposes the fallback hook python/tests/test_shaper.py
+        # needs; release wheels are built without it (publish.yml).
+        working-directory: python
         run: |
           python -m pip install 'maturin>=1.15,<2'
           maturin develop --locked --features testing
@@ -70,7 +75,8 @@ jobs:
         # hook-gated tests can never skip silently in CI.
         env:
           MONGOL_NORM_REQUIRE_TESTING_HOOK: "1"
-        # Auto-discovers every tests/test_*.py so new test modules can't be
+        working-directory: python
+        # Auto-discovers every python/tests/test_*.py so new test modules can't be
         # silently skipped. Covers:
         #   - hand-written shaper tests (shape / same_shape / normalize)
         #   - joiner-token semantics (nirugu / ZWJ in shape + normalize)
@@ -84,12 +90,13 @@ jobs:
 
       - name: Generated artifacts are fresh
         # The bundled normalize table, the Rust tables and the compat goldens are
-        # generated from mongol_norm/data/*.json; each script's --check fails when
-        # the committed file differs from what it would generate now.
+        # generated from python/mongol_norm/data/*.json; each script's --check fails
+        # when the committed file differs from what it would generate now. The
+        # scripts locate the repository from their own path; run them from the root.
         run: |
-          python scripts/gen_rust_tables.py --check
-          python scripts/gen_normalize_table.py --check
-          python scripts/gen_compat_goldens.py --check
+          python python/scripts/gen_rust_tables.py --check
+          python python/scripts/gen_normalize_table.py --check
+          python python/scripts/gen_compat_goldens.py --check
 
   rust:
     name: Rust

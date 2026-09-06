@@ -11,14 +11,15 @@ crates.io token is stored in GitHub.
 ## The version
 
 The version literal lives in exactly one place: `[workspace.package] version` in the root
-`Cargo.toml`. Everything else derives from it — the core crate and the binding crate use
-`version.workspace = true`, maturin reads it through `crates/mongol-norm-py/Cargo.toml`
-(`pyproject.toml` declares `dynamic = ["version"]`), and `mongol_norm.__version__` is read
-from the extension module at import time. `tests/test_rust_twin.py` and both publish
-workflows check that the runtime, the crate and (on a release) the tag agree with it.
+`Cargo.toml`. Everything else derives from it — the engine crate (the root package) and
+the binding crate use `version.workspace = true`, maturin reads it through
+`python/Cargo.toml` (`python/pyproject.toml` declares `dynamic = ["version"]`), and
+`mongol_norm.__version__` is read from the extension module at import time.
+`python/tests/test_rust_twin.py` and both publish workflows check that the runtime, the
+crate and (on a release) the tag agree with it.
 
-To bump it: edit the literal in `Cargo.toml`, run `cargo update -w` so `Cargo.lock`
-records the new workspace version, run the suites, commit.
+To bump it: edit the literal in the root `Cargo.toml`, run `cargo update -w` so
+`Cargo.lock` records the new workspace version, run the suites, commit.
 
 ## One-time setup (PyPI)
 
@@ -42,9 +43,10 @@ approval.
 Run **Build and publish to PyPI** from the Actions tab (**Run workflow**, on any branch).
 A manual `workflow_dispatch` run executes the verification job (in-place build + Python
 suite), builds the whole wheel matrix and the sdist, smoke-tests every natively runnable
-wheel and uploads each `dist/` as a workflow artifact (`dist-linux-x86_64`,
-`dist-musllinux-aarch64`, `dist-macos-aarch64`, `dist-sdist`, …). It never runs the
-publish job.
+wheel and uploads each `python/dist/` as a workflow artifact (`dist-linux-x86_64`,
+`dist-musllinux-aarch64`, `dist-macos-aarch64`, `dist-sdist`, …). Everything Python runs
+with `working-directory: python`, where `pyproject.toml` lives, so `--out dist` is
+`python/dist`. It never runs the publish job.
 
 Use it to get a CI-built wheel for a platform you cannot build on — for example, download
 `dist-macos-aarch64` from the run's Summary page and `pip install` the wheel it contains
@@ -59,16 +61,18 @@ in a fresh virtual environment — and to rehearse a release before tagging.
    workspace version. A draft release does not publish.
 4. `publish.yml` runs from the tagged commit:
    - `verify` checks that the tag equals `v` + the workspace version and that the commit
-     is an ancestor of `main`, builds the extension in place (`maturin develop`), checks
-     `mongol_norm.__version__` against the workspace version, and runs the Python suite;
+     is an ancestor of `main`, builds the extension in place from `python/` (`maturin
+     develop`), checks `mongol_norm.__version__` against the workspace version, and runs
+     the Python suite;
    - the wheel jobs build the matrix below and smoke-test every wheel that can run on
-     its build runner (`pip install --no-index --find-links dist mongol-norm`, import,
-     shape `ᠰᠠᠢᠨ`, `mongol-norm shape ᠰᠠᠢᠨ`);
+     its build runner (`pip install --no-index --find-links python/dist mongol-norm`,
+     import, shape `ᠰᠠᠢᠨ`, `mongol-norm shape ᠰᠠᠢᠨ`);
    - `sdist` builds the source distribution, validates its metadata (`twine check
-     --strict` plus `scripts/check_dist_metadata.py`, which verifies that every
+     --strict` plus `python/scripts/check_dist_metadata.py`, which verifies that every
      declared `License-File` is inside the archive — PyPI rejects the upload otherwise,
-     and twine does not check it) and installs it with pip, compiling the extension the
-     way a user without a wheel would.
+     and twine does not check it — and that the long description really came from
+     `python/README.pypi.md`) and installs it with pip, compiling the extension the way
+     a user without a wheel would.
 
    If any of these fails, nothing is published.
 5. The `publish` job enters the protected `pypi` environment, downloads all
@@ -83,9 +87,10 @@ publication fails after any file reaches PyPI, increment the version before retr
 ### The wheel matrix
 
 All wheels are `cp39-abi3`: one wheel per platform serves every CPython ≥ 3.9. Builds
-use `PyO3/maturin-action` with `--release --locked`; `MATURIN_VERSION` in `publish.yml`
-pins the maturin release used for the wheels and must stay inside `[build-system] requires`
-in `pyproject.toml`, which governs the sdist builds.
+use `PyO3/maturin-action` (with `working-directory: python`) and `--release --locked`;
+`MATURIN_VERSION` in `publish.yml` pins the maturin release used for the wheels and must
+stay inside `[build-system] requires` in `python/pyproject.toml`, which governs the sdist
+builds.
 
 | Distribution | Runner | Build | Smoke-tested on the runner |
 | --- | --- | --- | --- |
@@ -100,14 +105,27 @@ in `pyproject.toml`, which governs the sdist builds.
 
 Platforms outside this matrix (and `pip install --no-binary mongol-norm`) build from the
 sdist, which needs a Rust toolchain ≥ 1.83 on the machine; pip fetches maturin itself
-(`[build-system] requires` in `pyproject.toml`). The sdist carries the workspace, the
-generator scripts, the test-suite with its fixtures and the docs, so it is self-testable.
+(`[build-system] requires` in `python/pyproject.toml`).
+
+Because the binding crate depends on the workspace-root engine crate, maturin roots the
+sdist at the workspace root. It carries exactly what pip needs to build the package: the
+root `Cargo.toml` + `Cargo.lock` + `src/` + `LICENSE`/`NOTICE`/`README.md`, the binding
+crate as `python/` (with its own `LICENSE`/`NOTICE`/`README.pypi.md`), and — re-rooted to
+the archive root — `pyproject.toml` (rewritten to `manifest-path = "python/Cargo.toml"`),
+`README.pypi.md` and `mongol_norm/`. `python/tests` and `python/scripts` are dropped by
+`[tool.maturin] exclude`: the suite and the generators need the repository checkout and
+its shared fixtures under `tests/`, so the sdist is buildable but not self-testable.
+
+The PyPI long description comes from `python/README.pypi.md`, deliberately *not* named
+`README.md`: the re-rooted `pyproject.toml` sits next to the crate's own `README.md` in
+the sdist, and with the same name a wheel built from the sdist would carry the crate
+README instead.
 
 ## The Rust crate
 
-`crates/mongol-norm` is versioned in lockstep with the Python package through the single
-workspace literal described above; `publish-crate.yml` verifies that lockstep and the
-tag the same way `publish.yml` does.
+The engine crate (the repository root package, `mongol-norm`) is versioned in lockstep
+with the Python package through the single workspace literal described above;
+`publish-crate.yml` verifies that lockstep and the tag the same way `publish.yml` does.
 
 crates.io publication is handled by `.github/workflows/publish-crate.yml` using
 [crates.io Trusted Publishing](https://crates.io/docs/trusted-publishing): the same `vX.Y.Z`
@@ -134,7 +152,7 @@ approval, mirroring the `pypi` environment.
 ### Verify without publishing (crate)
 
 Run **Publish crate to crates.io** from the Actions tab with `workflow_dispatch`. A manual run
-verifies the lockstep versions, runs the core crate's test suite (`cargo test -p mongol-norm
+verifies the lockstep versions, runs the engine crate's test suite (`cargo test -p mongol-norm
 --locked`), packages the crate, checks the
 crates.io registry state and uploads the `.crate` file as a workflow artifact. It never runs the
 publish job.

@@ -4,6 +4,12 @@
 Task 1 (binding crate, packaging, wrapper) implemented and verified in commit
 `5f39721`. Plan: `docs/superpowers/plans/2026-09-02-python-bindings.md`.
 
+> **Layout note (2026-09-02, after 0.1.1):** the repository was reorganised Rust-first —
+> the engine crate moved from `crates/mongol-norm/` to the repository root and everything
+> Python to `python/`; paths below are updated to that layout, and the sdist no longer
+> ships the test-suite, the generator scripts or the docs. See
+> `docs/superpowers/plans/2026-09-02-rust-first-layout.md`.
+
 Supersedes the "dual implementation" arrangement of
 `2026-09-01-rust-core-design.md`: the pure-Python runtime is removed; the Rust crate
 is the only engine.
@@ -16,7 +22,7 @@ User directive (verbatim): "这里 python 代码去掉吧 然后 pypi里直接 �
 
 1. Delete the pure-Python shaping/normalizing implementation.
 2. Publish `mongol-norm` on PyPI as a package whose engine is the Rust crate
-   `crates/mongol-norm`, keeping the public Python API intact.
+   at the repository root, keeping the public Python API intact.
 3. Keep every Python script the project still needs: the Rust-table generator, the
    upstream preprocessing, the normalize-table and golden generators, and the tests.
 4. `pip install mongol-norm` must work like any native Python package on every
@@ -35,24 +41,26 @@ User directive (verbatim): "这里 python 代码去掉吧 然后 pypi里直接 �
 ## Architecture
 
 ```
-Cargo.toml                    workspace: crates/mongol-norm, crates/mongol-norm-py
+Cargo.toml                    the engine (root package) + workspace member "python"
                               [workspace.package].version = 0.1.0  (single source of truth)
-crates/mongol-norm/           the engine (zero deps, MSRV 1.82, crates.io "mongol-norm")
-crates/mongol-norm-py/        pyo3 0.29 (abi3-py39) cdylib → mongol_norm/_native.abi3.so
+src/                          the engine (zero deps, MSRV 1.82, crates.io "mongol-norm")
+tests/                        its integration tests + the shared data/ and golden/ fixtures
+python/Cargo.toml, src/lib.rs pyo3 0.29 (abi3-py39) cdylib → mongol_norm/_native.abi3.so
                               rust-version 1.83, publish = false, feature `testing`
-mongol_norm/__init__.py       MongolianShaper, NormalizationFallbackError, __version__
-mongol_norm/_api.py           the public API: wraps _native, keeps pre-0.1 fidelity
-mongol_norm/shaper.py         compat shim (re-exports + `main` console-script entry)
-mongol_norm/_data.py          JSON loaders (tooling only; the runtime never reads JSON)
-mongol_norm/data/*.json       shipped in the wheel for tooling (docs/data-format.md)
-pyproject.toml                maturin backend, dynamic version, requires-python >= 3.9
-scripts/gen_rust_tables.py    JSON → crates/mongol-norm/src/generated (unchanged)
-scripts/preprocess.py         upstream mongfontbuilder → JSON (unchanged)
-scripts/gen_normalize_table.py  battery over the bindings' shape_detailed (ported)
-scripts/gen_compat_goldens.py   goldens from the bindings' trace()/normalize (ported)
+python/mongol_norm/__init__.py  MongolianShaper, NormalizationFallbackError, __version__
+python/mongol_norm/_api.py    the public API: wraps _native, keeps pre-0.1 fidelity
+python/mongol_norm/shaper.py  compat shim (re-exports + `main` console-script entry)
+python/mongol_norm/_data.py   JSON loaders (tooling only; the runtime never reads JSON)
+python/mongol_norm/data/*.json  shipped in the wheel for tooling (docs/data-format.md)
+python/pyproject.toml         maturin backend, dynamic version, requires-python >= 3.9
+                              readme = "README.pypi.md"
+python/scripts/gen_rust_tables.py  JSON → src/generated (unchanged)
+python/scripts/preprocess.py       upstream mongfontbuilder → JSON (unchanged)
+python/scripts/gen_normalize_table.py  battery over the bindings' shape_detailed (ported)
+python/scripts/gen_compat_goldens.py   goldens from the bindings' trace()/normalize (ported)
 ```
 
-### Binding crate (`crates/mongol-norm-py`)
+### Binding crate (`python/`, package `mongol-norm-py`)
 
 - `#[pyclass(name = "Shaper", frozen)]` wrapping `mongol_norm::Shaper`; frozen because
   the shaper is immutable and `Send + Sync`, so it needs no GIL-side mutability.
@@ -76,7 +84,7 @@ scripts/gen_compat_goldens.py   goldens from the bindings' trace()/normalize (po
 - Core-crate additions: feature `testing` (exposes `Shaper::with_empty_normalize_table`),
   `Shaper::known_written_units`, `Shaper::positioned_written_units`, `cli::run_args`.
 
-### Python layer (`mongol_norm/_api.py`)
+### Python layer (`python/mongol_norm/_api.py`)
 
 Same class/exception names, signatures, defaults, return shapes and error messages as
 the deleted implementation (docstrings kept, bilingual). Additions: `trace(text)`
@@ -92,7 +100,7 @@ property that raises `RuntimeError` for locales without a table, as before.
 - `MongolianShaper("XX")` raises `ValueError("unknown locale 'XX'")` instead of
   `FileNotFoundError`.
 - The CLI is the Rust CLI; its intentional differences from the argparse CLI are
-  listed at the top of `crates/mongol-norm/src/cli.rs` (help text layout, error
+  listed at the top of `src/cli.rs` (help text layout, error
   prefixes).
 - `mongol_norm.rules`, `MongolianShaper.tokenize/assign_positions` and the other
   private internals no longer exist; `mongol_norm.shaper` only re-exports.
@@ -102,26 +110,28 @@ property that raises `RuntimeError` for locales without a table, as before.
 
 One literal: `[workspace.package].version` in the root `Cargo.toml`. maturin reads it
 through the binding crate (`version.workspace = true`); `mongol_norm.__version__` is
-`_native.version()` at import time; `pyproject.toml` declares `dynamic = ["version"]`.
-`tests/test_rust_twin.py` asserts `mongol_norm.__version__` equals the workspace
-version; the release workflows check the tag against the same literal.
+`_native.version()` at import time; `python/pyproject.toml` declares
+`dynamic = ["version"]`. `python/tests/test_rust_twin.py` asserts
+`mongol_norm.__version__` equals the workspace version; the release workflows check the
+tag against the same literal.
 
 ### Packaging and distribution
 
 - Wheels: `cp39-abi3` (one wheel per platform for all Python ≥ 3.9) for
   Linux x86_64 + aarch64 (manylinux2014 and musllinux_1_2), macOS x86_64 + arm64,
-  Windows x64; plus an sdist that carries the workspace, scripts, tests and docs so it
-  is buildable and self-testable with a Rust ≥ 1.83 toolchain.
+  Windows x64; plus an sdist that carries the workspace and the Python package so it is
+  buildable with a Rust ≥ 1.83 toolchain (not self-testable: `python/tests` and
+  `python/scripts` are excluded — they need the checkout's shared fixtures).
 - The wheel ships `mongol_norm/data/*.json` (tooling data) and the `LICENSE`/`NOTICE`.
 - `publish.yml`: on GitHub release, build the matrix with `PyO3/maturin-action`,
-  smoke-test each natively runnable wheel (`pip install` from `dist/`, import, shape
+  smoke-test each natively runnable wheel (`pip install` from `python/dist/`, import, shape
   a word, run the console script), then publish all files through the existing PyPI
   trusted publisher (environment `pypi`, `pypa/gh-action-pypi-publish`). The crate's
   `publish-crate.yml` is unchanged; one release tag publishes both.
 - `test.yml`: Python matrix 3.9–3.14 builds the extension with `maturin develop
-  --features testing` before running the unittest suite; the Rust job now builds and
-  clippies the whole workspace (Python present on the runner), keeps MSRV 1.82 /
-  wasm32 / `cargo package` for the core crate only.
+  --features testing` (from `python/`) before running the unittest suite; the Rust job
+  now builds and clippies the whole workspace (Python present on the runner), keeps
+  MSRV 1.82 / wasm32 / `cargo package` for the engine crate only.
 
 ### Tests and generators
 
@@ -130,11 +140,11 @@ version; the release workflows check the tag against the same literal.
   encoders, synthetic vocabularies, swapped normalize tables) are dropped in favour
   of the Rust unit tests that already cover them; each dropped test is named in the
   plan with its Rust counterpart.
-- Goldens (`tests/golden/*`) and `mongol_norm/data/MNG.normalize.json` are regenerated
-  by the ported scripts and must remain byte-identical (`--check` in CI); the upstream
-  HUD TSVs remain the independent oracle.
-- New `tests/test_bindings.py` pins the wrapper layer: dict formats, error mapping and
-  messages, version lockstep, shim re-exports, console-script behaviour.
+- Goldens (`tests/golden/*`) and `python/mongol_norm/data/MNG.normalize.json` are
+  regenerated by the ported scripts and must remain byte-identical (`--check` in CI); the
+  upstream HUD TSVs remain the independent oracle.
+- New `python/tests/test_bindings.py` pins the wrapper layer: dict formats, error mapping
+  and messages, version lockstep, shim re-exports, console-script behaviour.
 
 ## Verification
 

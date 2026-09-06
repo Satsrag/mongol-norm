@@ -2,11 +2,11 @@
 
 Flat, language-agnostic data for Traditional Mongolian shaping + normalization.
 
-mongol-norm bundles pre-processed JSON in [`mongol_norm/data/`](../mongol_norm/data/) that encodes the **letter × position × FVS → written-unit** mapping plus vowel-harmony categories, shaping conditions, the MVS particle dictionary, and the normalize table — everything a UTN #57 shaper/normalizer needs, minus the algorithm itself.
+mongol-norm bundles pre-processed JSON in [`python/mongol_norm/data/`](../python/mongol_norm/data/) that encodes the **letter × position × FVS → written-unit** mapping plus vowel-harmony categories, shaping conditions, the MVS particle dictionary, and the normalize table — everything a UTN #57 shaper/normalizer needs, minus the algorithm itself.
 
 **Audience:** anyone implementing a Mongolian shaper or normalizer in any language (JS, Dart, Java, C, PHP, …; Rust and Python are covered by the crate and its bindings). The JSON has no language-specific structure — it is generated once (see [Regenerating](#regenerating)) and committed; there is no separate data package to install.
 
-**How mongol-norm itself uses it:** the runtime — the Rust crate [`crates/mongol-norm/`](../crates/mongol-norm/), which the Python package wraps — does not read this JSON. `scripts/gen_rust_tables.py` compiles it into static Rust tables (`crates/mongol-norm/src/generated/`); the JSON is the input of that generator and of the other tooling (`scripts/gen_normalize_table.py` writes `MNG.normalize.json`, the tests read the files through `mongol_norm._data`). The wheel still ships the files for that tooling.
+**How mongol-norm itself uses it:** the runtime — the Rust crate at the repository root ([`src/`](../src/)), which the Python package wraps — does not read this JSON. `python/scripts/gen_rust_tables.py` compiles it into static Rust tables (`src/generated/`); the JSON is the input of that generator and of the other tooling (`python/scripts/gen_normalize_table.py` writes `MNG.normalize.json`, the tests read the files through `mongol_norm._data`). The wheel still ships the files for that tooling.
 
 The rules are derived from:
 - [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) — Unicode technical note defining the shaping algorithm.
@@ -14,10 +14,10 @@ The rules are derived from:
 
 ---
 
-## What's in `mongol_norm/data/`
+## What's in `python/mongol_norm/data/`
 
 ```
-mongol_norm/data/
+python/mongol_norm/data/
 ├── MNG.json            — Hudum (Traditional Mongolian) shape rules
 ├── MNG.normalize.json  — Hudum normalize table (see below)
 ├── TOD.json            — Todo
@@ -116,15 +116,15 @@ empty or contain surrounding whitespace.
 
 ### Rust (the engine)
 
-The Rust crate in [`crates/mongol-norm/`](../crates/mongol-norm/) — the engine the Python
-package runs — does not read the JSON at runtime. `scripts/gen_rust_tables.py` turns these
-files into static Rust tables (`crates/mongol-norm/src/generated/*.rs`: the `WrittenUnit` /
+The Rust crate at the repository root ([`src/`](../src/)) — the engine the Python
+package runs — does not read the JSON at runtime. `python/scripts/gen_rust_tables.py` turns these
+files into static Rust tables (`src/generated/*.rs`: the `WrittenUnit` /
 `Condition` / `Alias` enums, the per-locale shaping tables and the MNG normalize table), and
-`tests/test_rust_twin.py` fails the Python suite whenever the committed tables are stale:
+`python/tests/test_rust_twin.py` fails the Python suite whenever the committed tables are stale:
 
 ```sh
-python scripts/gen_rust_tables.py          # regenerate after changing the JSON
-python scripts/gen_rust_tables.py --check  # what CI runs
+python python/scripts/gen_rust_tables.py          # regenerate after changing the JSON
+python python/scripts/gen_rust_tables.py --check  # what CI runs
 ```
 
 ### Any other language
@@ -132,7 +132,7 @@ python scripts/gen_rust_tables.py --check  # what CI runs
 Grab the raw files directly:
 
 - From the wheel/sdist on PyPI (`mongol_norm/data/`), or
-- From the repo: [`mongol_norm/data/*.json`](../mongol_norm/data/)
+- From the repo: [`python/mongol_norm/data/*.json`](../python/mongol_norm/data/)
 
 Bundle the file with your package. Parse with any JSON library.
 
@@ -268,7 +268,7 @@ Other locales may expose a different subset.
 This document is **data only**. For the algorithm, see:
 
 - **Spec:** [UTN #57 v4, section 3 ("Shaping")](https://www.unicode.org/notes/tn57/tn57-4.html) — the 5-step Mongolian-specific shaping phase.
-- **Reference implementation:** [`crates/mongol-norm/src/`](../crates/mongol-norm/src/) — dependency-free Rust: `token.rs` (tokenization, structural positions), `rules.rs` (the five phases, one function per rule), `shaper.rs` (variant resolution; `shape` / `same_shape` / `shape_detailed` / `trace`), `normalize.rs` (the normalize algorithm), `written_units.rs` (the written-unit input APIs). The Python package calls exactly this code through `crates/mongol-norm-py`.
+- **Reference implementation:** [`src/`](../src/) — dependency-free Rust: `token.rs` (tokenization, structural positions), `rules.rs` (the five phases, one function per rule), `shaper.rs` (variant resolution; `shape` / `same_shape` / `shape_detailed` / `trace`), `normalize.rs` (the normalize algorithm), `written_units.rs` (the written-unit input APIs). The Python package calls exactly this code through the binding crate in `python/`.
 
 The 5 steps summarized:
 
@@ -295,15 +295,15 @@ condition_to_fvs      (cp, position, condition) -> fvs
 reverse_map           (position, tuple(written)) -> (cp, fvs)
 ```
 
-The reference implementation builds them in two steps: `scripts/gen_rust_tables.py` derives the flat tables from the JSON at generation time, and `crates/mongol-norm/src/shaper.rs` indexes them when a `Shaper` is created — read both to see exactly how.
+The reference implementation builds them in two steps: `python/scripts/gen_rust_tables.py` derives the flat tables from the JSON at generation time, and `src/shaper.rs` indexes them when a `Shaper` is created — read both to see exactly how.
 
 ---
 
 ## Normalize table (`MNG.normalize.json`)
 
-Alongside the shape rules, `mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
+Alongside the shape rules, `python/mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
 
-It exists so other languages can implement mongol-norm's `normalize` for covered written-unit chains (same supported shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. mongol-norm's own engine consumes this exact file too, compiled into `crates/mongol-norm/src/generated/mng_normalize.rs` by `scripts/gen_rust_tables.py`. An uncovered chain is outside this table contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False` (the Rust API: `Error::NormalizationFallback`, or `normalize_allow_fallback`).
+It exists so other languages can implement mongol-norm's `normalize` for covered written-unit chains (same supported shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. mongol-norm's own engine consumes this exact file too, compiled into `src/generated/mng_normalize.rs` by `python/scripts/gen_rust_tables.py`. An uncovered chain is outside this table contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False` (the Rust API: `Error::NormalizationFallback`, or `normalize_allow_fallback`).
 
 ```python
 from mongol_norm._data import load_normalize_table
@@ -356,52 +356,54 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
 4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, fail closed (raise), or return the input unchanged only when the caller opted in (`strict=False` / `--allow-fallback`); never mis-encode.
 
-Full reference: [`crates/mongol-norm/src/normalize.rs`](../crates/mongol-norm/src/normalize.rs) — `canonical_for_shape`, `unit_encode_chain`, `unit_partition`, `apply_velar_fem`.
+Full reference: [`src/normalize.rs`](../src/normalize.rs) — `canonical_for_shape`, `unit_encode_chain`, `unit_partition`, `apply_velar_fem`.
 
 ---
 
 ## Regenerating
 
-The JSON in `mongol_norm/data/` is generated and committed. Run these from the
-repository root, in a virtualenv where the extension is built (`pip install maturin &&
-maturin develop --features testing`, see the README), after the relevant upstream/code
-change.
+The JSON in `python/mongol_norm/data/` is generated and committed. The scripts live in
+`python/scripts/` but locate the repository from their own path, so run them **from the
+repository root**, in a virtualenv where the extension is built (`cd python && pip install
+'maturin>=1.15,<2' && maturin develop --locked --features testing`, see the README), after
+the relevant upstream/code change.
 
 Shape rules (when bumping `mongfontbuilder`):
 
 ```sh
-pip install 'mongfontbuilder>=0.10.6'   # the [preprocess] extra
-python scripts/preprocess.py           # all locales
-python scripts/preprocess.py MNG TOD   # specific
+pip install 'mongfontbuilder>=0.10.6'          # the [preprocess] extra
+python python/scripts/preprocess.py            # all locales
+python python/scripts/preprocess.py MNG TOD    # specific
 ```
 
-The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `mongol_norm/data/`.
+The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `python/mongol_norm/data/`.
 
 Normalize table (after a change to shaping or the selection battery — no extra
 dependency, it drives the package's own shaper, i.e. the compiled engine, so rebuild the
 extension first when the shaping rules changed):
 
 ```sh
-python scripts/gen_normalize_table.py        # all locales
-python scripts/gen_normalize_table.py MNG    # specific
+python python/scripts/gen_normalize_table.py        # all locales
+python python/scripts/gen_normalize_table.py MNG    # specific
 ```
 
 Rust tables (after any JSON change — regenerate them, rebuild the extension with
-`maturin develop --features testing`, then run `cargo test --workspace`). Mind the loop:
-the engine's tables come from the JSON and the normalize table comes from the engine, so a
-shape-rule change is `gen_rust_tables.py` → `maturin develop` → `gen_normalize_table.py` →
-`gen_rust_tables.py` again (the normalize table is compiled in too) → `maturin develop`:
+`maturin develop --locked --features testing` from `python/`, then run `cargo test
+--workspace` from the root). Mind the loop: the engine's tables come from the JSON and the
+normalize table comes from the engine, so a shape-rule change is `gen_rust_tables.py` →
+`maturin develop` → `gen_normalize_table.py` → `gen_rust_tables.py` again (the normalize
+table is compiled in too) → `maturin develop`:
 
 ```sh
-python scripts/gen_rust_tables.py            # regenerate crates/mongol-norm/src/generated/
-python scripts/gen_rust_tables.py --check    # CI freshness check
+python python/scripts/gen_rust_tables.py            # regenerate src/generated/
+python python/scripts/gen_rust_tables.py --check    # CI freshness check
 ```
 
-Compatibility fixtures (after an intentional shaping or canonical change):
+Compatibility fixtures (`tests/golden/`, after an intentional shaping or canonical change):
 
 ```sh
-python scripts/gen_compat_goldens.py          # regenerate both fixtures
-python scripts/gen_compat_goldens.py --check  # CI freshness check
+python python/scripts/gen_compat_goldens.py          # regenerate both fixtures
+python python/scripts/gen_compat_goldens.py --check  # CI freshness check
 ```
 
 Commit the regenerated JSONs along with a changelog note referencing the source version.

@@ -1,5 +1,6 @@
-# Publish crates/mongol-norm to crates.io — the Rust half of a release, in lockstep with the
-# PyPI publication (publish.yml): the same GitHub Release (tag vX.Y.Z) publishes both artifacts.
+# Publish the mongol-norm crate (the repository's root package) to crates.io — the Rust half
+# of a release, in lockstep with the PyPI publication (publish.yml): the same GitHub Release
+# (tag vX.Y.Z) publishes both artifacts.
 #
 # crates.io publication uses Trusted Publishing (GitHub OIDC) from the protected `crates-io`
 # environment; no long-lived registry token is stored in GitHub. One-time setup: docs/releasing.md.
