@@ -103,9 +103,9 @@ mixed-script input.
 same ink as a sequence of other units. Five are unified by expanding the unit into the pair: `Dd`
 (in both the positions it has), medial `H`, medial `Hx` and initial `Cr` come out as `O A`, `A A`,
 `N N` and `O O`. Four other forms use context-gated contraction: chain-final `A Aa` becomes `Aa`
-only immediately after a Hudum bowl (`B P F G Gx K K2`), or `A` when it occupies the whole
+only immediately after a Hudum bowed written unit (`B P F G Gx K K2`), or `A` when it occupies the whole
 unpadded chain. Final `O Aa` becomes `B2`, and final `I Aa` becomes `G`.
-`Aa:fina` has a tooth after a bowl and no tooth elsewhere: `B A Aa → B Aa`, but `N A Aa` and
+`Aa:fina` has a tooth after a bowed written unit and no tooth elsewhere: `B A Aa → B Aa`, but `N A Aa` and
 `B A A Aa` stay intact. Expand once, then inspect the tail once, not to an unconditional fixed
 point. In particular `Dd Aa → O A Aa`, not `B2`. See the
 [Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and project README for sources.
@@ -193,7 +193,7 @@ shaper.canonical_version   # → 'mng-canonical/2'
 **`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
 duplicate encodings changes canonical text: current output differs from 287 of the 1993 base
 `mng-canonical/1` golden representatives; three verified pairs merge into 1990 groups. Rebuild
-stored normalized keys, including output from PR #26 before its bowl-context correction.
+stored normalized keys, including output from PR #26 before its bowed written unit-context correction.
 
 #### Written-unit input
 
@@ -423,9 +423,9 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")   # → True
 
 **公开 shape 统一了九个重复编码**——即与另一串单元渲染出完全相同墨迹的书写单元。其中五个靠展开统一：
 `Dd`（它仅有的两个位置）、词中 `H`、词中 `Hx`、词首 `Cr` 分别输出为 `O A`、`A A`、`N N`、`O O`。
-另四种形态按上下文收缩：链尾 `A Aa` 仅紧邻 Hudum bowl（`B P F G Gx K K2`）时变成 `Aa`；
+另四种形态按上下文收缩：链尾 `A Aa` 仅紧邻 Hudum 圆头书写单位（`B P F G Gx K K2`）时变成 `Aa`；
 独占无补位整链时仍变成 `A`。链尾 `O Aa` 变成 `B2`，`I Aa` 变成 `G`。
-`Aa:fina` 紧邻 bowl 时有齿、否则无齿，因此 `B A Aa → B Aa`，但 `N A Aa` 和 `B A A Aa` 保留。
+`Aa:fina` 紧邻圆头书写单位时有齿、否则无齿，因此 `B A Aa → B Aa`，但 `N A Aa` 和 `B A A Aa` 保留。
 一次展开后只检查一次尾部，不做无条件不动点重写；`Dd Aa → O A Aa`，不能再变成 `B2`。
 来源见 [Hudum 连写变体表](https://mongfontbuilder.pages.dev/hudum/) 和项目 README。
 这正是 `shape()` 能作为**可见**词指纹的原因：
@@ -503,7 +503,7 @@ shaper.canonical_version   # → 'mng-canonical/2'
 
 **`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 当前输出与 base 的
 1993 个 `mng-canonical/1` golden 代表词比较，287 个文本改变；三对验证过的重复组合并成 1990 组。
-已存储的规范化键必须重建，包括 PR #26 修复 bowl 上下文之前的输出。
+已存储的规范化键必须重建，包括 PR #26 修复圆头书写单位上下文之前的输出。
 
 #### 书写单元输入
 

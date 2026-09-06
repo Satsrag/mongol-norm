@@ -75,7 +75,7 @@ class TestMNGCanonicalGolden(unittest.TestCase):
 
     def test_fixture_has_frozen_unique_cardinality(self):
         # 1993 raw groups minus three verified pairs. H A D A Aa and H A D Aa
-        # remain distinct: D is not a bowl, so deleting A would lose a tooth.
+        # remain distinct: D is not a bowed written unit, so deleting A would lose a tooth.
         self.assertEqual(len(self.vectors), 1990)
         self.assertEqual(
             [vector["id"] for vector in self.vectors],

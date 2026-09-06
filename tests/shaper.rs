@@ -899,7 +899,7 @@ fn duplicates_are_unified_in_the_public_shape() {
     assert_shape(&mgl("a r g a l"), &["A", "A", "R", "N", "N", "A", "L"]); // Hx:medi
     assert_shape(&mgl("cr nirugu"), &["O", "O", "Nirugu"]); // Cr:init
 
-    // Contracted: choose the shorter form only in the verified position and bowl context.
+    // Contracted: choose the shorter form only in the verified position and bowed written unit context.
     assert_shape(&mgl("e a fvs1"), &["A"]); // A:isol
     assert_shape(&mgl("b a a fvs1"), &["B", "Aa"]); // Aa:fina
     assert_shape(&mgl("nirugu u a fvs1"), &["Nirugu", "B2"]); // B2:fina
@@ -927,7 +927,7 @@ fn duplicates_are_unified_in_the_public_shape() {
 }
 
 #[test]
-fn aa_contraction_keeps_non_bowl_and_repeated_teeth_distinct() {
+fn aa_contraction_keeps_non_bowed_unit_and_repeated_teeth_distinct() {
     assert_shape(&mgl("n a a fvs1"), &["N", "A", "Aa"]);
     assert_shape(&mgl("b a a a fvs1"), &["B", "A", "A", "Aa"]);
     assert!(!shaper()
@@ -935,9 +935,9 @@ fn aa_contraction_keeps_non_bowl_and_repeated_teeth_distinct() {
         .unwrap());
 }
 
-/// Dd expands to O A, but O is not a bowl: the resulting A Aa must remain intact.
+/// Dd expands to O A, but O is not a bowed written unit: the resulting A Aa must remain intact.
 #[test]
-fn expansion_does_not_license_a_non_bowl_contraction() {
+fn expansion_does_not_license_a_non_bowed_unit_contraction() {
     assert_shape_raw(&mgl("t e d fvs2 e fvs1"), &["T", "A", "Dd", "Aa"]);
     assert_shape(&mgl("t e d fvs2 e fvs1"), &["T", "A", "O", "A", "Aa"]);
     // Nothing oscillates: re-encoding the public shape and reshaping it is a fixed point.

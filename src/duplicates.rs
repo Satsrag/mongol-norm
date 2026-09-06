@@ -25,13 +25,13 @@
 //! | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 //!
 //! Four other forms unify by **contraction**, choosing the shorter canonical form only in
-//! the verified context. In particular Aa:fina has a tooth immediately after a bowl, but
+//! the verified context. In particular Aa:fina has a tooth immediately after a bowed written unit, but
 //! no tooth elsewhere: inserting/removing A repeatedly does not preserve the ink.
 //!
 //! | pair | contracts to | witness |
 //! |---|---|---|
 //! | `A Aa` spanning a whole chain | `A:isol`  | ᠡ / ᠡᠠ᠋ |
-//! | `bowl A:medi Aa:fina` | `bowl Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+//! | `bowed written unit A:medi Aa:fina` | `bowed written unit Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
 //! | `O Aa` ending a chain          | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
 //! | `I Aa` ending a chain          | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
 //!
@@ -44,16 +44,16 @@
 //! into the unit at the pair's own end, so it likewise never creates a `medi`. One expansion pass
 //! therefore removes every expansion target for good.
 //!
-//! The Hudum bowls are B, P, F, G, Gx, K, K2: see the Hudum written-unit ligated variants
+//! The Hudum bowed written units are B, P, F, G, Gx, K, K2: see the Hudum written-unit ligated variants
 //! at <https://mongfontbuilder.pages.dev/hudum/>, mongfontbuilder data/ligatures.ts
 //! (required BAa/PAa/FAa/GAa/GxAa/KAa/K2Aa), and this crate's rules::iii5_post_bowed_at.
-//! Other scripts' ligatures are not evidence for additional Hudum bowls.
+//! Other scripts' ligatures are not evidence for additional Hudum bowed written units.
 //!
 //! All contractions require a chain-ending pair. A:isol, B2:fina and G:fina do not end in
-//! Aa; the context-gated Aa result is immediately preceded by a bowl, not A/O/I. Thus no
+//! Aa; the context-gated Aa result is immediately preceded by a bowed written unit, not A/O/I. Thus no
 //! result admits another contraction, and no expansion target is created. Idempotence follows
 //! from those guards, not from repeated deletion: B A A Aa and N A Aa stay unchanged.
-//! Dd Aa expands to O A Aa, whose A is not after a bowl, so it must not become B2.
+//! Dd Aa expands to O A Aa, whose A is not after a bowed written unit, so it must not become B2.
 
 use crate::generated::enums::WrittenUnit;
 use crate::normalize::{is_joiner, slot_position};
@@ -80,7 +80,7 @@ fn expansion(unit: WrittenUnit, position: Position) -> Option<&'static [WrittenU
 ///
 /// `result` is the position the merged unit would occupy in the shortened chain, which is what
 /// decides both *whether* the pair is the verified duplicate and *which* unit it becomes: `A Aa`
-/// is `A` when it makes up a whole chain (`A:isol`) and `Aa` only when a bowl immediately
+/// is `A` when it makes up a whole chain (`A:isol`) and `Aa` only when a bowed written unit immediately
 /// precedes the A in the same chain (`Aa:fina`). `B2` and `G` are only duplicates at `fina`,
 /// and `G:isol`/`G:init`/`G:medi` are distinct ink.
 fn contraction(
@@ -121,7 +121,7 @@ fn contraction(
 /// Positions are the ones `normalize` itself uses: slots within each chain between structural
 /// units, with a nirugu or ZWJ neighbour padding the chain the way it pads the rendering, so a
 /// unit joined across a ZWJ counts as medial exactly as the shaper rendered it. Joiner padding
-/// supplies a position, never a bowl. Idempotent after one expansion pass and one tail check.
+/// supplies a position, never a bowed written unit. Idempotent after one expansion pass and one tail check.
 pub(crate) fn collapse(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
     let mut out = Vec::with_capacity(shape.len() + 2);
     let mut start = 0;
@@ -234,15 +234,15 @@ mod tests {
     }
 
     #[test]
-    fn final_a_aa_requires_an_immediately_preceding_bowl() {
+    fn final_a_aa_requires_an_immediately_preceding_bowed_unit() {
         use WrittenUnit::{Gx, F, K, K2, P};
-        for bowl in [B, P, F, G, Gx, K, K2] {
-            assert_eq!(collapse(&[bowl, A, Aa]), [bowl, Aa]);
-            assert_eq!(collapse(&[N, bowl, A, Aa]), [N, bowl, Aa]);
-            assert_eq!(collapse(&[bowl, A, A, Aa]), [bowl, A, A, Aa]);
+        for bowed_unit in [B, P, F, G, Gx, K, K2] {
+            assert_eq!(collapse(&[bowed_unit, A, Aa]), [bowed_unit, Aa]);
+            assert_eq!(collapse(&[N, bowed_unit, A, Aa]), [N, bowed_unit, Aa]);
+            assert_eq!(collapse(&[bowed_unit, A, A, Aa]), [bowed_unit, A, A, Aa]);
         }
-        for non_bowl in [A, N, O, I, B2, D, R] {
-            assert_eq!(collapse(&[non_bowl, A, Aa]), [non_bowl, A, Aa]);
+        for non_bowed_unit in [A, N, O, I, B2, D, R] {
+            assert_eq!(collapse(&[non_bowed_unit, A, Aa]), [non_bowed_unit, A, Aa]);
         }
         assert_eq!(collapse(&[B, Zwj, A, Aa]), [B, Zwj, A, Aa]);
         assert_eq!(collapse(&[Nirugu, A, Aa]), [Nirugu, A, Aa]);

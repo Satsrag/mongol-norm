@@ -288,13 +288,13 @@ Five are unified by **expanding** the single unit into the pair:
 | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 
 Four other forms unify by **contraction**, choosing the shorter canonical form only in the
-verified position and context. `Aa:fina` has a tooth immediately after a bowl and no tooth
+verified position and context. `Aa:fina` has a tooth immediately after a bowed written unit and no tooth
 elsewhere; repeated insertion/deletion of `A` would not preserve the ink:
 
 | pair | public shape | witness pair |
 |---|---|---|
 | `A Aa` spanning a whole chain | `A:isol`  | ᠡ / ᠡᠠ᠋ |
-| `bowl A:medi Aa:fina` | `bowl Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+| `bowed written unit A:medi Aa:fina` | `bowed written unit Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
 | `O Aa` ending a chain         | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
 | `I Aa` ending a chain         | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
 
@@ -305,25 +305,27 @@ makes the unit final. Forms outside a verified pair are left alone — initial a
 distinct ink, a lone `Cr` chain is `Cr:isol` rather than the verified `Cr:init`, and a lone `A`
 chain is already canonical.
 
-**Context.** The complete Hudum bowl set is **B, P, F, G, Gx, K, K2**, not every consonant.
+**Terminology.** UTN #57 uses **bowed written units** (圆头书写单位) and names the corresponding lookup **Post-bowed**; see [UTN #57 revision 4](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf).
+
+**Context.** The complete Hudum bowed written unit set is **B, P, F, G, Gx, K, K2**, not every consonant.
 Sources: the [Hudum written-unit ligated variants](https://mongfontbuilder.pages.dev/hudum/),
 [required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts)
 (`BAa`, `PAa`, `FAa`, `GAa`, `GxAa`, `KAa`, `K2Aa`), and `src/rules.rs`'s post-bowed classes.
-The bowl must immediately precede the medial `A` in the same chain: `B A Aa → B Aa`, but
-`N A Aa`, `A A Aa`, and `B A A Aa` stay unchanged. Joiner padding is not a bowl and does not
+The bowed written unit must immediately precede the medial `A` in the same chain: `B A Aa → B Aa`, but
+`N A Aa`, `A A Aa`, and `B A A Aa` stay unchanged. Joiner padding is not a bowed written unit and does not
 let this rule cross structural tokens. The independent whole-chain `A:init Aa:fina → A:isol`
 rule is unchanged.
 
 **Termination and idempotence.** Expand once, then inspect the final pair once. Expansion emits
 no expansion targets, and contraction cannot expose an initial/final `H`/`Hx` as medial.
 Every contraction ends the chain: `A`, `B2`, and `G` do not end in `Aa`; a contracted `Aa` is
-preceded by a bowl, not `A`/`O`/`I`, so it cannot contract again. Idempotence follows from these
-guards, not from forcing the text to a fixed point. The 20-unit alphabet (all bowls, expansion
+preceded by a bowed written unit, not `A`/`O`/`I`, so it cannot contract again. Idempotence follows from these
+guards, not from forcing the text to a fixed point. The 20-unit alphabet (all bowed written units, expansion
 targets and structural tokens included) is exhausted through length four: **168 421 inputs**.
 Corpus written-unit re-encoding also reshapes to itself.
 
-Expansion does not license a non-bowl contraction: ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) becomes
-`T A O A Aa`, **not** `T A B2`, because `O` is not a bowl. The expansion of `B H Aa` likewise
+Expansion does not license a non-bowed written unit contraction: ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) becomes
+`T A O A Aa`, **not** `T A B2`, because `O` is not a bowed written unit. The expansion of `B H Aa` likewise
 leaves `B A A Aa`. Both interactions are regression-tested.
 
 Everything user-facing sees the unified sequence: `same_shape`, `normalize` and the written-unit
@@ -791,12 +793,12 @@ mongol-norm 使用完整的 UTN #57 v4 shaping 过程（5 步条件映射）对�
 | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 
 另外四种形态采用**收缩**，仅在验证过的位置和上下文中选择较短的 canonical 形式。
-`Aa:fina` 紧邻 bowl 时有齿，非 bowl 时无齿；反复插入或删除 `A` 并不保持墨迹：
+`Aa:fina` 紧邻圆头书写单位时有齿，非圆头书写单位之后无齿；反复插入或删除 `A` 并不保持墨迹：
 
 | 单元对 | 公开 shape | 见证词对 |
 |---|---|---|
 | 独占整条 chain 的 `A Aa` | `A:isol`  | ᠡ / ᠡᠠ᠋ |
-| `bowl A:medi Aa:fina` | `bowl Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+| `bowed written unit A:medi Aa:fina` | `bowed written unit Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
 | 位于 chain 末尾的 `O Aa` | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
 | 位于 chain 末尾的 `I Aa` | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
 
@@ -805,22 +807,24 @@ mongol-norm 使用完整的 UTN #57 v4 shaping 过程（5 步条件映射）对�
 未被见证的形态一律不动——词首/词末的 `H`/`Hx` 是不同的墨迹，单独一个 `Cr` 的 chain 是 `Cr:isol` 而非被见证的
 `Cr:init`，单独一个 `A` 的 chain 本就是 canonical。
 
-**上下文。** Hudum 的完整 bowl 集合是 **B、P、F、G、Gx、K、K2**。来源为
+**术语。** UTN #57 使用 **bowed written units（圆头书写单位）**，并将相应 lookup 称为 **Post-bowed**；参见 [UTN #57 第 4 修订版](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf)。
+
+**上下文。** Hudum 的完整圆头书写单位集合是 **B、P、F、G、Gx、K、K2**。来源为
 [Hudum 书写单元连写变体表](https://mongfontbuilder.pages.dev/hudum/)、
 [上游 required ligatures 数据](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts)
 中的 `BAa/PAa/FAa/GAa/GxAa/KAa/K2Aa`，以及本项目 `src/rules.rs` 的 post-bowed 类。
-bowl 必须在同一 chain 内紧邻 `A:medi`：`B A Aa → B Aa`，但 `N A Aa`、`A A Aa`、
-`B A A Aa` 均保留。Joiner 补位不是 bowl，规则不能跨结构单元。独立整链规则
+圆头书写单位必须在同一 chain 内紧邻 `A:medi`：`B A Aa → B Aa`，但 `N A Aa`、`A A Aa`、
+`B A A Aa` 均保留。Joiner 补位不是圆头书写单位，规则不能跨结构单元。独立整链规则
 `A:init Aa:fina → A:isol` 不变。
 
 **终止与幂等性。** 一次展开后只检查一次尾部单元对。展开不产生新的展开目标；收缩也不会让
 词首/词末 `H`/`Hx` 变成词中。所有收缩都位于链尾：结果 `A/B2/G` 不以 `Aa` 结尾，而收缩得到的
-`Aa` 前面是 bowl、不是 `A/O/I`，不能再收缩。幂等性来自正确上下文，不是强制跑到不动点。
-20 单元字母表（含全部 bowl、展开目标和结构单元）上长度 ≤ 4 的 **168 421 个输入**均已穷举验证，
+`Aa` 前面是圆头书写单位、不是 `A/O/I`，不能再收缩。幂等性来自正确上下文，不是强制跑到不动点。
+20 单元字母表（含全部圆头书写单位、展开目标和结构单元）上长度 ≤ 4 的 **168 421 个输入**均已穷举验证，
 全部语料的书写单元再编码也可还原形状。
 
-展开不能授权非 bowl 收缩：ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) 应为 `T A O A Aa`，**不是** `T A B2`，
-因为 `O` 不是 bowl；`B H Aa` 展开后同样保留 `B A A Aa`。两种交互均有回归测试。
+展开不能授权非圆头书写单位收缩：ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) 应为 `T A O A Aa`，**不是** `T A B2`，
+因为 `O` 不是圆头书写单位；`B H Aa` 展开后同样保留 `B A A Aa`。两种交互均有回归测试。
 
 面向用户的一切都看到统一后的序列：`same_shape`、`normalize` 和书写单元编码器。
 `normalize_written_units` 仍然**接受**重复编码作为输入并统一它们，调用方已有的数据继续可用。

@@ -77,7 +77,7 @@ fn fixture_covers_every_current_corpus_shape_group() {
 fn fixture_has_frozen_unique_cardinality() {
     let (_, vectors) = load();
     // 1993 raw groups: three verified pairs merge. H A D A Aa and H A D Aa remain
-    // distinct: D is not a bowl, so deleting that A would lose a tooth.
+    // distinct: D is not a bowed written unit, so deleting that A would lose a tooth.
     assert_eq!(vectors.len(), 1990);
     let ids: Vec<String> = vectors
         .iter()

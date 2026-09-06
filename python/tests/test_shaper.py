@@ -1010,18 +1010,18 @@ class TestDuplicateEncodings(unittest.TestCase):
         self.assertEqual(self.s.shape("ᡂ᠊"), ["O", "O", "Nirugu"])               # Cr:init
 
     def test_contracted_duplicates(self):
-        # Choose the shorter form only in its verified position and bowl context.
+        # Choose the shorter form only in its verified position and bowed written unit context.
         self.assertEqual(self.s.shape("ᠡᠠ᠋"), ["A"])                # A:isol
         self.assertEqual(self.s.shape("ᠪᠠᠠ᠋"), ["B", "Aa"])         # Aa:fina
         self.assertEqual(self.s.shape("᠊ᠤᠠ᠋"), ["Nirugu", "B2"])    # B2:fina
         self.assertEqual(self.s.shape("᠊ᠢᠠ᠋"), ["Nirugu", "G"])     # G:fina
 
-    def test_aa_contraction_requires_immediate_bowl(self):
-        for bowl in ("B", "P", "F", "G", "Gx", "K", "K2"):
+    def test_aa_contraction_requires_immediate_bowed_unit(self):
+        for bowed_unit in ("B", "P", "F", "G", "Gx", "K", "K2"):
             for units, expected in (
-                ([bowl, "A", "Aa"], [bowl, "Aa"]),
-                ([bowl, "A", "A", "Aa"], [bowl, "A", "A", "Aa"]),
-                ([bowl, "H", "Aa"], [bowl, "A", "A", "Aa"]),
+                ([bowed_unit, "A", "Aa"], [bowed_unit, "Aa"]),
+                ([bowed_unit, "A", "A", "Aa"], [bowed_unit, "A", "A", "Aa"]),
+                ([bowed_unit, "H", "Aa"], [bowed_unit, "A", "A", "Aa"]),
             ):
                 with self.subTest(units=units):
                     text = self.s.normalize_written_units(units)
@@ -1050,8 +1050,8 @@ class TestDuplicateEncodings(unittest.TestCase):
                 self.assertNotIn("Dd", self.s.shape(_mgl(aliases)))
                 self.assertIn("Dd", self.s._shape_raw(_mgl(aliases)))
 
-    def test_expansion_does_not_license_a_non_bowl_contraction(self):
-        # Dd expands to O A; O is not a bowl, so A Aa must remain intact.
+    def test_expansion_does_not_license_a_non_bowed_unit_contraction(self):
+        # Dd expands to O A; O is not a bowed written unit, so A Aa must remain intact.
         word = _mgl("t e d fvs2 e fvs1")
         self.assertEqual(self.s._shape_raw(word), ["T", "A", "Dd", "Aa"])
         self.assertEqual(self.s.shape(word), ["T", "A", "O", "A", "Aa"])
