@@ -42,6 +42,11 @@ same upstream corpora on every push, on Rust stable and the MSRV, and on CPython
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 cases excluded as UTN ↔ EAC xfail, matching mongfontbuilder's own `pytest.mark.xfail` set |
 | Hand-written unit tests | — | **100%** | shape / same_shape / joiner tokens (nirugu, ZWJ) |
 
+Both TSV suites are the standard's *own* written-unit sequences, so they are checked against
+`shape_raw` — the engine's output before the nine duplicate encodings are unified (see
+[Duplicate encodings](#duplicate-encodings)). For 375 of the 3512 EAC rows and 30 of the 177 core
+rows the public `shape` differs from what the standard spells.
+
 #### ✅ Normalization — corpus-scoped guarantees, machine-checked
 
 For written-unit shapes covered by the bundled normalization table, `normalize` / `normalize_text` /
@@ -51,8 +56,8 @@ corpus encoding:
 | Property | Result |
 |---|---|
 | Round-trip — `shape(normalize(x)) == shape(x)` | **3757 / 3757** corpus encodings (100%) |
-| Shape-canonicity — same shape ⟹ same Unicode output | **1993 / 1993** shape groups (100%) |
-| Prefix-stability — word and word+suffix share their prefix encoding | **2237 / 2237** real corpus pairs (100%) |
+| Shape-canonicity — same shape ⟹ same Unicode output | **1990 / 1990** shape groups (100%) |
+| Prefix-stability — word and word+suffix share their prefix encoding | **2240 / 2240** real corpus pairs (100%) |
 
 Scope note: normalization is implemented for MNG (Hudum) only — Todo / Sibe / Manchu load shaping
 rules but have no normalizer yet. The guarantees above cover the checked corpus and any input whose
@@ -77,7 +82,7 @@ or, by hand:
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.1"
+mongol-norm = "0.2.0"
 ```
 
 The CLI installs as a standalone binary:
@@ -121,7 +126,13 @@ fn main() -> Result<(), Error> {
         PositionedWrittenUnit::new(WrittenUnit::Aa, UnitPosition::Fina),
     ];
     assert_eq!(shaper.normalize_positioned_written_units(&records)?, "ᠪᠠ᠋");
-    assert_eq!(shaper.canonical_version(), Some("mng-canonical/1"));
+    assert_eq!(shaper.canonical_version(), Some("mng-canonical/2"));
+
+    // The public shape unifies the nine duplicate encodings, so ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ — one visible
+    // word spelled two ways — are one shape and one canonical text
+    assert_eq!(shaper.shape_str("ᠠᠷᠠᠳ")?, "A+A+R+A+O+A");
+    assert!(shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")?);
+    assert_eq!(shaper.normalize("ᠠᠷᠠᠳ")?, shaper.normalize("ᠠᠷᠠᠤᠠ")?);
     Ok(())
 }
 ```
@@ -260,6 +271,78 @@ does with a font file, but using only the rule data from
 4. **Devsger** — I after a vowel (vowel_devsger) gets double-tooth form: `I → I+I`
 5. **Post-bowed** — Vowel forms change after bowed consonants (G, B, K, P, F)
 
+#### Duplicate encodings
+
+`shape` promises to be a fingerprint of the *visible* word — "same shape ⟹ same `normalize`" is
+this crate's whole reason to exist. Nine written units break that promise: they render as exactly
+the same ink as a sequence of other units, so two spellings of one word shaped differently.
+
+Five are unified by **expanding** the single unit into the pair:
+
+| duplicate | public shape | witness pair |
+|---|---|---|
+| `Dd:medi` | `O:medi A:medi` | ᠣᠳᠪᠣ / ᠠ᠋ᠣᠣᠠᠪᠣ᠋ |
+| `Dd:fina` | `O:medi A:fina` | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
+| `H:medi`  | `A:medi A:medi` | ᠪᠠᠭᠰᠢ / ᠪᠠᠠᠠᠰᠢ |
+| `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
+| `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
+
+Four other forms unify by **contraction**, choosing the shorter canonical form only in the
+verified position and context. `Aa:fina` has a tooth immediately after a bowed written unit and no tooth
+elsewhere; repeated insertion/deletion of `A` would not preserve the ink:
+
+| pair | public shape | witness pair |
+|---|---|---|
+| `A Aa` spanning a whole chain | `A:isol`  | ᠡ / ᠡᠠ᠋ |
+| `bowed written unit A:medi Aa:fina` | `bowed written unit Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+| `O Aa` ending a chain         | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
+| `I Aa` ending a chain         | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
+
+Position is part of every rule, and it is the *chain* position `normalize` already uses — slots
+between structural units, with a nirugu or ZWJ neighbour padding the chain the way it pads the
+rendering. That is why the `B2` and `G` witnesses are written with a leading nirugu: it is what
+makes the unit final. Forms outside a verified pair are left alone — initial and final `H`/`Hx` are
+distinct ink, a lone `Cr` chain is `Cr:isol` rather than the verified `Cr:init`, and a lone `A`
+chain is already canonical.
+
+**Terminology.** UTN #57 uses **bowed written units** (圆头书写单位) and names the corresponding lookup **Post-bowed**; see [UTN #57 revision 4](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf).
+
+**Context.** The complete Hudum bowed written unit set is **B, P, F, G, Gx, K, K2**, not every consonant.
+Sources: the [Hudum written-unit ligated variants](https://mongfontbuilder.pages.dev/hudum/),
+[required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts)
+(`BAa`, `PAa`, `FAa`, `GAa`, `GxAa`, `KAa`, `K2Aa`), and `src/rules.rs`'s post-bowed classes.
+The bowed written unit must immediately precede the medial `A` in the same chain: `B A Aa → B Aa`, but
+`N A Aa`, `A A Aa`, and `B A A Aa` stay unchanged. Joiner padding is not a bowed written unit and does not
+let this rule cross structural tokens. The independent whole-chain `A:init Aa:fina → A:isol`
+rule is unchanged.
+
+**Termination and idempotence.** Expand once, then inspect the final pair once. Expansion emits
+no expansion targets, and contraction cannot expose an initial/final `H`/`Hx` as medial.
+Every contraction ends the chain: `A`, `B2`, and `G` do not end in `Aa`; a contracted `Aa` is
+preceded by a bowed written unit, not `A`/`O`/`I`, so it cannot contract again. Idempotence follows from these
+guards, not from forcing the text to a fixed point. The 20-unit alphabet (all bowed written units, expansion
+targets and structural tokens included) is exhausted through length four: **168 421 inputs**.
+Corpus written-unit re-encoding also reshapes to itself.
+
+Expansion does not license a non-bowed written unit contraction: ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) becomes
+`T A O A Aa`, **not** `T A B2`, because `O` is not a bowed written unit. The expansion of `B H Aa` likewise
+leaves `B A A Aa`. Both interactions are regression-tested.
+
+Everything user-facing sees the unified sequence: `same_shape`, `normalize` and the written-unit
+encoders. `normalize_written_units` still *accepts* the duplicates as input and unifies them, so
+existing caller data keeps working. ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one visible word, and now one shape and one
+canonical text.
+
+UTN #57 and GB/T 25914-2023 keep all nine as distinct written units — their EAC vectors spell
+ᠠᠷᠭᠠᠯ as `A A R Hx A L` — and the engine still produces them. The standard's own sequence stays
+reachable through `Shaper::shape_raw` (Python: `MongolianShaper._shape_raw`), which is what the
+conformance suites compare against. It is **not part of the public contract**: it is
+`#[doc(hidden)]` and may change to unify further duplicates without a major bump.
+
+`shape_detailed` and `trace`'s `written_by_token` report each token's own units, so they are raw
+too — unification is a whole-word rewrite that no single token can carry. `trace`'s `shape` field
+is the public, unified sequence.
+
 #### Normalization strategy
 
 Within the normalization table's supported written-unit domain, `normalize` is a **pure function of
@@ -294,10 +377,16 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/1`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/2`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
+
+**`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
+duplicate encodings changes canonical text: comparing current output against the base branch's
+1993 `mng-canonical/1` golden representatives finds **287** changed texts; three verified pairs
+merge into **1990** groups. Rebuild any stored normalized key. The context correction also
+invalidates pre-fix PR #26 output; this is not a new release or a claim that old test suites were rerun.
 
 ### Repository layout
 
@@ -351,7 +440,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 |---|---|
 | `tests/data/core-hud.tsv` | 177 rows — mongfontbuilder's curated regression set (225 cases) |
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
-| `tests/golden/mng-canonical-v1.jsonl` | 1993 canonical vectors |
+| `tests/golden/mng-canonical-v1.jsonl` | 1990 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
 
 Because the corpus and golden tests read that directory, `cargo test` needs a repository checkout —
@@ -474,6 +563,9 @@ crate 就是引擎，位于仓库根目录。`python/` 下是它的一层薄 PyO
 | `mongfontbuilder/eac-hud.tsv` (GB/T 25914-2023) | 3513 | **100%** | 5 个 UTN ↔ EAC 分歧 case 跳过（跟 mongfontbuilder 自己的 `pytest.mark.xfail` 列表一致） |
 | 手写单元测试 | — | **100%** | shape / same_shape / joiner token（nirugu、ZWJ） |
 
+两套 TSV 用的都是国标**自己**的书写单元序列，因此对照 `shape_raw` 检查——即引擎统一九个重复编码之前的输出
+（见[重复编码](#重复编码)）。3512 行 EAC 中有 375 行、177 行 core 中有 30 行，公开 `shape` 与国标的拼法不同。
+
 #### ✅ Normalization（规范化）— 语料域保证，机器验证
 
 对于内置规范化表覆盖的 written-unit shape，`normalize` / `normalize_text` /
@@ -482,8 +574,8 @@ crate 就是引擎，位于仓库根目录。`python/` 下是它的一层薄 PyO
 | 性质 | 结果 |
 |---|---|
 | 往返 —— `shape(normalize(x)) == shape(x)` | **3757 / 3757** 语料编码（100%） |
-| 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1993 / 1993** shape 组（100%） |
-| 前缀稳定 —— 词与词+后缀共享前缀编码 | **2237 / 2237** 真实语料词对（100%） |
+| 同形同码 —— shape 相同 ⟹ 输出 Unicode 相同 | **1990 / 1990** shape 组（100%） |
+| 前缀稳定 —— 词与词+后缀共享前缀编码 | **2240 / 2240** 真实语料词对（100%） |
 
 范围说明：规范化目前只实现了 MNG（Hudum）—— Todo / 锡伯文 / 满文已加载 shaping 规则，尚无规范化。上述保证
 覆盖已检查语料及内置表可编码的 written-unit chain。语料外 chain 若未被覆盖，默认 fail closed，返回
@@ -504,7 +596,7 @@ cargo add mongol-norm
 
 ```toml
 [dependencies]
-mongol-norm = "0.1.1"
+mongol-norm = "0.2.0"
 ```
 
 命令行工具装成独立二进制：
@@ -549,7 +641,13 @@ fn main() -> Result<(), Error> {
         PositionedWrittenUnit::new(WrittenUnit::Aa, UnitPosition::Fina),
     ];
     assert_eq!(shaper.normalize_positioned_written_units(&records)?, "ᠪᠠ᠋");
-    assert_eq!(shaper.canonical_version(), Some("mng-canonical/1"));
+    assert_eq!(shaper.canonical_version(), Some("mng-canonical/2"));
+
+    // 公开 shape 统一了九个重复编码，所以 ᠠᠷᠠᠳ 与 ᠠᠷᠠᠤᠠ ——同一个可见词的两种拼法——
+    // 是同一个 shape、同一个 canonical 文本
+    assert_eq!(shaper.shape_str("ᠠᠷᠠᠳ")?, "A+A+R+A+O+A");
+    assert!(shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")?);
+    assert_eq!(shaper.normalize("ᠠᠷᠠᠳ")?, shaper.normalize("ᠠᠷᠠᠤᠠ")?);
     Ok(())
 }
 ```
@@ -679,6 +777,67 @@ mongol-norm 使用完整的 UTN #57 v4 shaping 过程（5 步条件映射）对�
 | 4 | Devsger | 元音后的 i 获得双齿形态：`I → I+I`（vowel_devsger） |
 | 5 | Post-bowed | 弓形辅音（G/B/K/P/F）后的元音形态变化 |
 
+#### 重复编码
+
+`shape` 承诺是**可见**词的指纹——“同 shape ⟹ 同 `normalize`”正是这个 crate 存在的理由。有九个书写单元
+打破了这个承诺：它们与另一串单元渲染出完全相同的墨迹，导致同一个词的两种拼法 shape 不同。
+
+其中五个通过**展开**（单个单元 → 单元对）统一：
+
+| 重复编码 | 公开 shape | 见证词对 |
+|---|---|---|
+| `Dd:medi` | `O:medi A:medi` | ᠣᠳᠪᠣ / ᠠ᠋ᠣᠣᠠᠪᠣ᠋ |
+| `Dd:fina` | `O:medi A:fina` | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
+| `H:medi`  | `A:medi A:medi` | ᠪᠠᠭᠰᠢ / ᠪᠠᠠᠠᠰᠢ |
+| `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
+| `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
+
+另外四种形态采用**收缩**，仅在验证过的位置和上下文中选择较短的 canonical 形式。
+`Aa:fina` 紧邻圆头书写单位时有齿，非圆头书写单位之后无齿；反复插入或删除 `A` 并不保持墨迹：
+
+| 单元对 | 公开 shape | 见证词对 |
+|---|---|---|
+| 独占整条 chain 的 `A Aa` | `A:isol`  | ᠡ / ᠡᠠ᠋ |
+| `bowed written unit A:medi Aa:fina` | `bowed written unit Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
+| 位于 chain 末尾的 `O Aa` | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
+| 位于 chain 末尾的 `I Aa` | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
+
+每条规则都带位置条件，用的是 `normalize` 本来就在用的 **chain 位置**——以结构单元切分的槽位，nirugu 或 ZWJ
+邻居像它影响渲染那样为 chain 补位。这就是 `B2` 与 `G` 的见证词要带前导 nirugu 的原因：正是它让该单元成为词末。
+未被见证的形态一律不动——词首/词末的 `H`/`Hx` 是不同的墨迹，单独一个 `Cr` 的 chain 是 `Cr:isol` 而非被见证的
+`Cr:init`，单独一个 `A` 的 chain 本就是 canonical。
+
+**术语。** UTN #57 使用 **bowed written units（圆头书写单位）**，并将相应 lookup 称为 **Post-bowed**；参见 [UTN #57 第 4 修订版](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf)。
+
+**上下文。** Hudum 的完整圆头书写单位集合是 **B、P、F、G、Gx、K、K2**。来源为
+[Hudum 书写单元连写变体表](https://mongfontbuilder.pages.dev/hudum/)、
+[上游 required ligatures 数据](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts)
+中的 `BAa/PAa/FAa/GAa/GxAa/KAa/K2Aa`，以及本项目 `src/rules.rs` 的 post-bowed 类。
+圆头书写单位必须在同一 chain 内紧邻 `A:medi`：`B A Aa → B Aa`，但 `N A Aa`、`A A Aa`、
+`B A A Aa` 均保留。Joiner 补位不是圆头书写单位，规则不能跨结构单元。独立整链规则
+`A:init Aa:fina → A:isol` 不变。
+
+**终止与幂等性。** 一次展开后只检查一次尾部单元对。展开不产生新的展开目标；收缩也不会让
+词首/词末 `H`/`Hx` 变成词中。所有收缩都位于链尾：结果 `A/B2/G` 不以 `Aa` 结尾，而收缩得到的
+`Aa` 前面是圆头书写单位、不是 `A/O/I`，不能再收缩。幂等性来自正确上下文，不是强制跑到不动点。
+20 单元字母表（含全部圆头书写单位、展开目标和结构单元）上长度 ≤ 4 的 **168 421 个输入**均已穷举验证，
+全部语料的书写单元再编码也可还原形状。
+
+展开不能授权非圆头书写单位收缩：ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) 应为 `T A O A Aa`，**不是** `T A B2`，
+因为 `O` 不是圆头书写单位；`B H Aa` 展开后同样保留 `B A A Aa`。两种交互均有回归测试。
+
+面向用户的一切都看到统一后的序列：`same_shape`、`normalize` 和书写单元编码器。
+`normalize_written_units` 仍然**接受**重复编码作为输入并统一它们，调用方已有的数据继续可用。
+ᠠᠷᠠᠳ 与 ᠠᠷᠠᠤᠠ 是同一个可见词，现在也是同一个 shape、同一个 canonical 文本。
+
+UTN #57 与 GB/T 25914-2023 把这九个保留为不同的书写单元——其 EAC 向量把 ᠠᠷᠭᠠᠯ 拼作 `A A R Hx A L`——
+引擎也仍然产出它们。国标自己的序列通过 `Shaper::shape_raw`（Python：`MongolianShaper._shape_raw`）依然可达，
+一致性套件比对的就是它。它**不属于公开契约**：标了 `#[doc(hidden)]`，将来可能在不升 major 的情况下统一更多
+重复编码。
+
+`shape_detailed` 与 `trace` 的 `written_by_token` 报告的是每个 token 自身的单元，因此也是原始序列——统一是
+整词级的改写，单个 token 承载不了。`trace` 的 `shape` 字段则是公开的统一序列。
+
 #### 规范化策略
 
 在规范化表支持的 written-unit 域内，`normalize` 是 **shape 的纯函数**：任意两个 shape 相同的编码，
@@ -707,9 +866,14 @@ normalize 输出相同，且往返成立 —— `shape(normalize(x)) == shape(x)
 > 注意：受支持输出是 **FVS 钉死**而非 bare —— 每个单元都带着把字形固定住、不受上下文影响的选择符，这正是
 > “同 shape ⟹ 同 Unicode”和前缀稳定在表内成立的原因。
 
-当前精确 canonical 选择策略冻结为 **`mng-canonical/1`**。可通过 `Shaper::canonical_version`（Python：
+当前精确 canonical 选择策略冻结为 **`mng-canonical/2`**。可通过 `Shaper::canonical_version`（Python：
 `shaper.canonical_version`）读取，并写入 `MNG.normalize.json`。持久化规范化搜索键/索引键的应用应同时保存
 该版本；未来版本若发生变化，应重建这些键。
+
+**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 当前输出与 base 分支
+1993 个 `mng-canonical/1` golden 代表词比较，**287** 个 canonical 文本改变；三对验证过的重复组
+合并成 **1990** 组。已存储的规范化键必须重建，上下文修复前 PR #26 的输出也受影响。
+这是 fixture 对比实测，不表示重新运行过旧测试，也不是新版本发布。
 
 ### 仓库结构
 
@@ -762,7 +926,7 @@ shaping 与 normalize 规则是扁平、语言无关的 JSON，位于 `python/mo
 |---|---|
 | `tests/data/core-hud.tsv` | 177 行 —— mongfontbuilder 的精选回归集（225 个 case） |
 | `tests/data/eac-hud.tsv` | 3512 行 —— GB/T 25914-2023（3513 个 case，5 个 UTN-xfail） |
-| `tests/golden/mng-canonical-v1.jsonl` | 1993 个 canonical 向量 |
+| `tests/golden/mng-canonical-v1.jsonl` | 1990 个 canonical 向量 |
 | `tests/golden/mng-phase-trace-v1.json` | 15 个 phase-trace 向量 |
 
 因为语料与 golden 测试读取这个目录，`cargo test` 需要仓库 checkout —— 发布的 crate 不包含固件。

@@ -53,12 +53,21 @@ _ALIAS_TO_CP = {
     'fvs3': '᠍', 'fvs4': '᠏', 'nnbsp': ' ',
     'nirugu': '᠊',  # Mongolian Nirugu (joining marker)
     'zwj': '‍',     # Zero Width Joiner
-    # `space` is handled separately as a word boundary; see _shape_aliases.
+    # `space` is handled separately as a word boundary; see _shape_aliases_raw.
 }
 
 
-def _shape_aliases(shaper, aliases: str) -> list:
-    """Shape an alias string, treating `space` as a word boundary."""
+def _shape_aliases_raw(shaper, aliases: str) -> list:
+    """
+    Shape an alias string against the RAW written units, treating `space` as a word
+    boundary.
+
+    The EAC vectors are the standard's own written-unit sequence, which keeps all nine
+    duplicate encodings — it spells ᠠᠷᠭᠠᠯ `A A R Hx A L`, and for 375 of these rows the
+    public `shape()` unifies a duplicate and answers differently — so this suite compares
+    against `_shape_raw()`, not `shape()`.
+    EAC 向量用的是国标自己的书写单元序列(保留全部九个重复编码),故此处比对 `_shape_raw()`。
+    """
     tokens = aliases.split()
     words = [[]]
     for t in tokens:
@@ -73,7 +82,7 @@ def _shape_aliases(shaper, aliases: str) -> list:
         if not word_tokens:
             continue
         text = ''.join(_ALIAS_TO_CP[a] for a in word_tokens)
-        out.extend(shaper.shape(text))
+        out.extend(shaper._shape_raw(text))
     return out
 
 
@@ -184,7 +193,7 @@ class TestEacHud(unittest.TestCase):
                 utn_xfailed += 1
                 continue
             try:
-                actual = _shape_aliases(self.s, aliases)
+                actual = _shape_aliases_raw(self.s, aliases)
             except KeyError as e:
                 failures.append(f"{index:12}  input={aliases!r}  PARSE ERROR: {e}")
                 continue

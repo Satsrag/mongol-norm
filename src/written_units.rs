@@ -1,6 +1,7 @@
 //! Written-unit input APIs — a port of `normalize_written_units`,
 //! `normalize_positioned_written_units` and `_parse_written_units` from `mongol_norm/shaper.py`.
 
+use crate::duplicates::collapse;
 use crate::generated::enums::WrittenUnit;
 use crate::normalize::{is_joiner, slot_position};
 use crate::shaper::Shaper;
@@ -69,7 +70,11 @@ impl Shaper {
                 return Err(Error::UnsupportedWrittenUnit { index, unit: *unit });
             }
         }
-        let canonical = self.canonical_for_shape(units)?;
+        // Duplicate encodings are accepted on input — `Dd`, medial `H`/`Hx` are real units in
+        // the standard and in callers' data — and folded before encoding, so they get the same
+        // canonical text as the sequence they render identically to.
+        let units = collapse(units);
+        let canonical = self.canonical_for_shape(&units)?;
         if canonical.is_empty() || self.shape(&canonical)? != units {
             return Err(Error::NoCanonicalEncoding);
         }

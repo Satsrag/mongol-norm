@@ -216,7 +216,27 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
     def test_shape_outputs_pascal_case_controls(self):
         self.assertEqual(self.shaper.shape("\u180E"), ["Mvs"])
         self.assertEqual(self.shaper.shape("\u180A\u1823"), ["Nirugu", "U"])
-        self.assertEqual(self.shaper.shape("\u200D\u1833"), ["Zwj", "Dd"])
+        # `Dd` is folded out of the public shape: ZWJ + `d` is `Zwj O A`.
+        self.assertEqual(self.shaper.shape("\u200D\u1833"), ["Zwj", "O", "A"])
+
+    def test_duplicate_encodings_are_accepted_as_input_and_unified(self):
+        # Duplicate encodings are still accepted as input and unified before encoding,
+        # so written-unit data captured from an older shape() keeps working — in both
+        # directions, expanding and contracting.
+        # 重复编码仍可作为输入并在编码前统一,旧 shape() 采集的数据继续可用。
+        cases = [
+            (["Zwj", "Dd"], ["Zwj", "O", "A"]),
+            (["Cr", "Nirugu"], ["O", "O", "Nirugu"]),
+            (["A", "Aa"], ["A"]),
+            (["B", "A", "Aa"], ["B", "Aa"]),
+            (["Nirugu", "O", "Aa"], ["Nirugu", "B2"]),
+            (["Nirugu", "I", "Aa"], ["Nirugu", "G"]),
+        ]
+        for spelled, unified in cases:
+            with self.subTest(spelled=spelled):
+                text = self.shaper.normalize_written_units(spelled)
+                self.assertEqual(self.shaper.normalize_written_units(unified), text)
+                self.assertEqual(self.shaper.shape(text), unified)
 
     def test_does_not_insert_unrequested_zwj(self):
         # O has connected-position encodings but no isolated encoding. The API

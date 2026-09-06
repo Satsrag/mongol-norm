@@ -38,7 +38,7 @@ STRUCTURAL_UNITS = ("Mvs", "Nirugu", "Zwj")
 POSITIONS = ("isol", "init", "medi", "fina")
 SCHEMA_VERSION = 1
 NORMALIZE_SCHEMA = "mongol-normalize-table/1"
-CANONICAL_VERSION = "mng-canonical/1"
+CANONICAL_VERSION = "mng-canonical/2"
 MAX_UNIT_KEY_LEN = 3  # src/normalize.rs::UnitKey capacity
 # Must equal the code points hard-coded in src/unicode.rs (MVS, NIRUGU, ZWJ) and
 # src/tables.rs (Fvs::cp).

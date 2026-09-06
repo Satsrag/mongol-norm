@@ -63,7 +63,7 @@ class TestMNGCanonicalGolden(unittest.TestCase):
     def test_fixture_metadata(self):
         self.assertEqual(self.golden["schema"], "mongol-norm-canonical-golden/1")
         self.assertEqual(self.golden["locale"], "MNG")
-        self.assertEqual(self.golden["canonical_version"], "mng-canonical/1")
+        self.assertEqual(self.golden["canonical_version"], "mng-canonical/2")
         self.assertEqual(self.shaper.canonical_version,
                          self.golden["canonical_version"])
 
@@ -74,13 +74,15 @@ class TestMNGCanonicalGolden(unittest.TestCase):
         self.assertEqual(golden_shapes, corpus_shapes)
 
     def test_fixture_has_frozen_unique_cardinality(self):
-        self.assertEqual(len(self.vectors), 1993)
+        # 1993 raw groups minus three verified pairs. H A D A Aa and H A D Aa
+        # remain distinct: D is not a bowed written unit, so deleting A would lose a tooth.
+        self.assertEqual(len(self.vectors), 1990)
         self.assertEqual(
             [vector["id"] for vector in self.vectors],
-            ["shape-{:04d}".format(index) for index in range(1, 1994)],
+            ["shape-{:04d}".format(index) for index in range(1, 1991)],
         )
         self.assertEqual(len({tuple(vector["shape"])
-                              for vector in self.vectors}), 1993)
+                              for vector in self.vectors}), 1990)
 
     def test_canonical_codepoints_are_frozen(self):
         for vector in self.vectors:

@@ -58,7 +58,10 @@ shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 
 The input must be an ordered `Sequence[str]` using the same unit vocabulary
 returned by `shape()`. Every written-unit name is PascalCase; structural controls
-are `Mvs`, `Nirugu`, and `Zwj`. Old lowercase and all-uppercase control aliases
+are `Mvs`, `Nirugu`, and `Zwj`. The nine duplicate encodings (see the normalize
+algorithm below) are still *accepted* here and unified before encoding, so data
+captured from an older `shape()` keeps working; they simply never come back out of
+`shape()`. Old lowercase and all-uppercase control aliases
 are rejected. Positions are inferred from order
 and structural context—the API does not accept explicit position records and
 never infers or inserts a structural control. In particular, output contains ZWJ
@@ -315,7 +318,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 ```json
 {
   "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/1",
+  "canonical_version": "mng-canonical/2",
   "locale": "MNG",
   "unit_enc_max_len": 3,
   "positioned_units": [
@@ -352,6 +355,31 @@ tbl = load_normalize_table("MNG")   # -> dict
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
 1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
+1a. **Unify the duplicate encodings.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
+
+   First **expand**, in one left-to-right pass over each chain:
+
+   | unit | position | replace with |
+   |---|---|---|
+   | `Dd` | `medi`, `fina` (its only positions) | `O A` |
+   | `H`  | `medi` | `A A` |
+   | `Hx` | `medi` | `N N` |
+   | `Cr` | `init` | `O O` |
+
+   Then inspect the final adjacent pair **once** and contract only in its verified context. The shorter form is canonical; this is not an unconditional fixed-point rewrite. Here *position* is the position the merged unit takes in the shortened chain:
+
+   | pair | merged position | replace with |
+   |---|---|---|
+   | `A Aa` | `isol` | `A` |
+   | `A Aa`, immediately preceded by a bowed written unit in the same chain | `fina` | `Aa` |
+   | `O Aa` | `fina` | `B2` |
+   | `I Aa` | `fina` | `G` |
+
+   The complete Hudum bowed written unit set is `B P F G Gx K K2`, from the [Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and [upstream required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts), also reflected in `src/rules.rs`'s post-bowed classes. `Aa:fina` has a tooth immediately after a bowed written unit, but no tooth otherwise. Thus `B A Aa → B Aa`, while `N A Aa`, `A A Aa`, and `B A A Aa` remain intact. Joiner padding supplies position, not a bowed written unit; never match across structural tokens. The independent whole-chain `A:init Aa:fina → A:isol` rule stays.
+
+   Initial/final `H`/`Hx`, a lone `Cr:isol`, and a lone `A` are unchanged. One expansion pass suffices: neither direction emits expansion targets or exposes initial/final `H`/`Hx` as medial. All contractions end the chain; `A/B2/G` cannot contract again, and a contracted `Aa` follows a bowed written unit rather than `A/O/I`. This proves idempotence without repeated deletion. In particular `Dd Aa → O A Aa` cannot then contract: `O` is not a bowed written unit. See the 168 421-input exhaustion and context regressions in `src/duplicates.rs`.
+
+   UTN #57 and GB/T 25914-2023 keep all nine as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-unification sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs).
 2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
 4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, fail closed (raise), or return the input unchanged only when the caller opted in (`strict=False` / `--allow-fallback`); never mis-encode.

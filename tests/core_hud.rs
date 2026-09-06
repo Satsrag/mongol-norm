@@ -1,10 +1,14 @@
 //! Data-driven regression test against mongfontbuilder's `core-hud.tsv`
 //! (port of `python/tests/test_core_hud.py`).
+//!
+//! Like `tests/eac_hud.rs`, the expectations are the standard's written units, so they are
+//! compared against `shape_raw`: for 30 of these 177 rows the public `shape` unifies a duplicate
+//! encoding and answers differently.
 
 mod common;
 
 use common::{
-    aliases_to_words, hex, load_tsv, normalize_expected, row_hex, shape_aliases, unit_names,
+    aliases_to_words, hex, load_tsv, normalize_expected, row_hex, shape_aliases_raw, unit_names,
 };
 use mongol_norm::{Locale, Shaper};
 
@@ -28,7 +32,7 @@ fn core_hud_all() {
                 hex(&word)
             );
         }
-        let actual = unit_names(&shape_aliases(&shaper, aliases));
+        let actual = unit_names(&shape_aliases_raw(&shaper, aliases));
         // `normalize_expected` is the eac superset; core-hud's expected column only ever uses
         // the `_` / `-` MVS spellings today, so the extra `Ni`/artifact arms are a no-op here.
         let expected = normalize_expected(expected);

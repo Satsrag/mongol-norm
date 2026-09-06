@@ -10,9 +10,11 @@ const ZWJ: &str = "\u{200D}";
 const O: &str = "\u{1823}";
 const U: &str = "\u{1824}";
 const OE: &str = "\u{1825}";
+const A: &str = "\u{1820}";
 const D: &str = "\u{1833}";
 const J: &str = "\u{1835}";
 const FVS1: &str = "\u{180B}";
+const FVS2: &str = "\u{180C}";
 const FVS3: &str = "\u{180D}";
 
 fn shaper() -> Shaper {
@@ -52,7 +54,8 @@ fn test_nirugu_run_count_preserved() {
 
 #[test]
 fn test_zwj_is_a_shape_token() {
-    assert_eq!(shape(&format!("{ZWJ}{D}")), ["Zwj", "Dd"]);
+    // `d` joined onward by the ZWJ renders `Dd`, which the public shape spells `O A`.
+    assert_eq!(shape(&format!("{ZWJ}{D}")), ["Zwj", "O", "A"]);
 }
 
 #[test]
@@ -104,15 +107,19 @@ fn test_nirugu_count_preserved() {
 
 #[test]
 fn test_zwj_preserved() {
+    // The ZWJ survives normalize verbatim, and the shape round-trips. The word itself is no
+    // longer a fixed point: its shape is `Zwj O A`, so the canonical spelling is the `O`+`A`
+    // pair, not the single `d` that renders the same ink as `Dd`.
     let text = format!("{ZWJ}{D}");
-    assert_eq!(round_trips(&text), text);
+    let norm = round_trips(&text);
+    assert_eq!(norm, format!("{ZWJ}{O}{A}{FVS2}"));
 }
 
 #[test]
 fn test_single_sided_nirugu_round_trips() {
     for text in [
         format!("{NIRUGU}{J}"),       // joined-left J -> fina form
-        format!("{NIRUGU}{D}"),       // joined-left Dd
+        format!("{NIRUGU}{D}"),       // joined-left Dd (public shape `Nirugu O A`)
         format!("{U}{FVS1}{NIRUGU}"), // u+fvs1 joined-right (EAC MVS20-1)
     ] {
         round_trips(&text);

@@ -99,6 +99,36 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")   # → True
 the Mongolian word alphabet (letters, FVS, MVS, NNBSP, nirugu, ZWJ). Use `normalize_text()` for
 mixed-script input.
 
+**The public shape unifies nine duplicate encodings** — written units that render as exactly the
+same ink as a sequence of other units. Five are unified by expanding the unit into the pair: `Dd`
+(in both the positions it has), medial `H`, medial `Hx` and initial `Cr` come out as `O A`, `A A`,
+`N N` and `O O`. Four other forms use context-gated contraction: chain-final `A Aa` becomes `Aa`
+only immediately after a Hudum bowed written unit (`B P F G Gx K K2`), or `A` when it occupies the whole
+unpadded chain. Final `O Aa` becomes `B2`, and final `I Aa` becomes `G`.
+`Aa:fina` has a tooth after a bowed written unit and no tooth elsewhere: `B A Aa → B Aa`, but `N A Aa` and
+`B A A Aa` stay intact. Expand once, then inspect the tail once, not to an unconditional fixed
+point. In particular `Dd Aa → O A Aa`, not `B2`. See the
+[Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and project README for sources.
+That is what makes `shape()` a fingerprint of the *visible* word:
+
+```python
+shaper.shape("ᠠᠷᠠᠳ")                  # → ['A', 'A', 'R', 'A', 'O', 'A']
+shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")     # → True  (one word, two spellings)
+shaper.shape("ᠪᠠᠠ᠋")                  # → ['B', 'Aa']
+shaper.same_shape("ᠪᠠ", "ᠪᠠᠠ᠋")        # → True
+```
+
+The full rule table, the witness pairs and the termination argument are in the project README's
+"Duplicate encodings" section.
+
+UTN #57 and GB/T 25914-2023 keep all nine as distinct written units — their EAC vectors spell ᠠᠷᠭᠠᠯ
+as `A A R Hx A L` — and the engine still produces them. The standard's own sequence is
+`shaper._shape_raw(text)`, which exists for the conformance suites and is **not part of the public
+contract** (hence the leading underscore); it may change to fold further duplicates without a major
+bump. `shape_detailed()` and `trace()['written_by_token']` report each token's own units and are
+therefore raw as well — unification is a whole-word rewrite no single token can carry;
+`trace()['shape']` is the public, unified sequence.
+
 `shape_detailed(text)` returns one dict per token — code point, locale alias, joining position, FVS
 selector, the shaping condition that selected the variant, and the written units it renders to:
 
@@ -152,13 +182,18 @@ shaper.normalize(word, strict=False)   # keep the input if it is uncovered
 ```
 
 `canonical_version` is the frozen name of the exact selection policy, currently
-`'mng-canonical/1'` (it raises `RuntimeError` for a locale with no normalize table). Applications
+`'mng-canonical/2'` (it raises `RuntimeError` for a locale with no normalize table). Applications
 that persist normalized search or index keys should store this version alongside them and rebuild
 those keys if a future release changes it.
 
 ```python
-shaper.canonical_version   # → 'mng-canonical/1'
+shaper.canonical_version   # → 'mng-canonical/2'
 ```
+
+**`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
+duplicate encodings changes canonical text: current output differs from 287 of the 1993 base
+`mng-canonical/1` golden representatives; three verified pairs merge into 1990 groups. Rebuild
+stored normalized keys, including output from PR #26 before its bowed written unit-context correction.
 
 #### Written-unit input
 
@@ -386,6 +421,30 @@ shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")   # → True
 `shape()` 与 `normalize()` 处理**单个词**，遇到蒙古文词字母表（字母、FVS、MVS、NNBSP、nirugu、ZWJ）之外
 的字符抛 `ValueError`。混合文字请用 `normalize_text()`。
 
+**公开 shape 统一了九个重复编码**——即与另一串单元渲染出完全相同墨迹的书写单元。其中五个靠展开统一：
+`Dd`（它仅有的两个位置）、词中 `H`、词中 `Hx`、词首 `Cr` 分别输出为 `O A`、`A A`、`N N`、`O O`。
+另四种形态按上下文收缩：链尾 `A Aa` 仅紧邻 Hudum 圆头书写单位（`B P F G Gx K K2`）时变成 `Aa`；
+独占无补位整链时仍变成 `A`。链尾 `O Aa` 变成 `B2`，`I Aa` 变成 `G`。
+`Aa:fina` 紧邻圆头书写单位时有齿、否则无齿，因此 `B A Aa → B Aa`，但 `N A Aa` 和 `B A A Aa` 保留。
+一次展开后只检查一次尾部，不做无条件不动点重写；`Dd Aa → O A Aa`，不能再变成 `B2`。
+来源见 [Hudum 连写变体表](https://mongfontbuilder.pages.dev/hudum/) 和项目 README。
+这正是 `shape()` 能作为**可见**词指纹的原因：
+
+```python
+shaper.shape("ᠠᠷᠠᠳ")                  # → ['A', 'A', 'R', 'A', 'O', 'A']
+shaper.same_shape("ᠠᠷᠠᠳ", "ᠠᠷᠠᠤᠠ")     # → True（同一个词的两种拼法）
+shaper.shape("ᠪᠠᠠ᠋")                  # → ['B', 'Aa']
+shaper.same_shape("ᠪᠠ", "ᠪᠠᠠ᠋")        # → True
+```
+
+完整规则表、见证词对与收敛性论证见项目 README 的“重复编码”一节。
+
+UTN #57 与 GB/T 25914-2023 把这九个保留为不同的书写单元——其 EAC 向量把 ᠠᠷᠭᠠᠯ 拼作 `A A R Hx A L`——
+引擎也仍然产出它们。国标自己的序列是 `shaper._shape_raw(text)`，它为一致性套件而存在，**不属于公开契约**
+（故带前导下划线），将来可能在不升 major 的情况下统一更多重复编码。`shape_detailed()` 与
+`trace()['written_by_token']` 报告的是每个 token 自身的单元，因此同样是原始序列——统一是整词级改写，单个
+token 承载不了；`trace()['shape']` 则是公开的统一序列。
+
 `shape_detailed(text)` 逐 token 返回一个 dict——码位、locale alias、连接位置、FVS 选择符、选中该变体的
 shaping condition，以及它渲染出的书写单元：
 
@@ -435,12 +494,16 @@ except NormalizationFallbackError as exc:
 shaper.normalize(word, strict=False)   # 未覆盖时原样返回
 ```
 
-`canonical_version` 是冻结的精确选择策略名，当前为 `'mng-canonical/1'`（没有规范化表的 locale 会抛
+`canonical_version` 是冻结的精确选择策略名，当前为 `'mng-canonical/2'`（没有规范化表的 locale 会抛
 `RuntimeError`）。持久化规范化搜索键 / 索引键的应用应同时保存该版本；未来版本若发生变化，应重建这些键。
 
 ```python
-shaper.canonical_version   # → 'mng-canonical/1'
+shaper.canonical_version   # → 'mng-canonical/2'
 ```
+
+**`mng-canonical/2`（0.2.0）会使 `mng-canonical/1` 下存储的键失效。** 当前输出与 base 的
+1993 个 `mng-canonical/1` golden 代表词比较，287 个文本改变；三对验证过的重复组合并成 1990 组。
+已存储的规范化键必须重建，包括 PR #26 修复圆头书写单位上下文之前的输出。
 
 #### 书写单元输入
 

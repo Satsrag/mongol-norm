@@ -2,6 +2,7 @@
 //! public shaping entry points (`shape`, `same_shape`, `shape_detailed`, `trace`).
 use std::collections::{HashMap, HashSet};
 
+use crate::duplicates::collapse;
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::generated::mng_normalize;
 use crate::generated::{mch, mng, sib, tod};
@@ -168,7 +169,7 @@ impl Shaper {
         let version = shaper
             .normalize
             .as_ref()
-            .map_or("mng-canonical/1", |table| table.canonical_version);
+            .map_or("mng-canonical/2", |table| table.canonical_version);
         shaper.normalize = Some(NormalizeTable::empty(version));
         shaper
     }
@@ -403,9 +404,31 @@ impl Shaper {
     /// Shape `text` into its written-unit sequence. Structural characters appear verbatim as
     /// [`WrittenUnit::Mvs`], [`WrittenUnit::Nirugu`] and [`WrittenUnit::Zwj`].
     ///
+    /// Nine written units render as exactly the same ink as a sequence of other units, and each
+    /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
+    /// medial `Hx` and initial `Cr` come out as `O A`, `A A`, `N N` and `O O`. The other four
+    /// contract, because their expansion ends in `Aa`, which is itself a duplicate: a chain-final
+    /// `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa` becomes `B2` and `I Aa`
+    /// becomes `G`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ
+    /// are one word and shape identically. The standard's own unit sequence, which keeps all
+    /// nine apart, is [`Shaper::shape_raw`]. The README's "Duplicate encodings" section has the
+    /// evidence and the termination argument.
+    ///
     /// Errors with [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS,
     /// NNBSP, nirugu and ZWJ — use [`Shaper::normalize_text`] for mixed-script text.
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
+        Ok(collapse(&self.shape_raw(text)?))
+    }
+
+    /// The engine's written-unit sequence before duplicate encodings are unified — the
+    /// sequence UTN #57 / GB/T 25914-2023 describe, and the one their EAC conformance vectors
+    /// are checked against. All nine duplicates can appear here.
+    ///
+    /// Not part of the public contract: it exists so the conformance suites and the table
+    /// generator can compare against the standard verbatim. Everything user-facing goes through
+    /// [`Shaper::shape`].
+    #[doc(hidden)]
+    pub fn shape_raw(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
         Ok(flatten(&self.run_pipeline(text)?))
     }
 
@@ -486,7 +509,7 @@ impl Shaper {
                         .unwrap_or_default()
                 })
                 .collect(),
-            shape: flatten(&tokens),
+            shape: collapse(&flatten(&tokens)),
         })
     }
 }
@@ -600,9 +623,15 @@ mod tests {
             shaper.shape("\u{180A}\u{1823}").unwrap(),
             vec![WrittenUnit::Nirugu, WrittenUnit::U]
         );
+        // The engine keeps `Dd`; the public shape folds it, and a ZWJ-joined final `Dd` is the
+        // final duplicate: `O A`.
+        assert_eq!(
+            shaper.shape_raw("\u{200D}\u{1833}").unwrap(),
+            vec![WrittenUnit::Zwj, WrittenUnit::Dd]
+        );
         assert_eq!(
             shaper.shape("\u{200D}\u{1833}").unwrap(),
-            vec![WrittenUnit::Zwj, WrittenUnit::Dd]
+            vec![WrittenUnit::Zwj, WrittenUnit::O, WrittenUnit::A]
         );
         assert_eq!(shaper.shape("").unwrap(), Vec::<WrittenUnit>::new());
         assert_eq!(shaper.shape_str("\u{1820}").unwrap(), "A+A");

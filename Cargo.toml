@@ -36,7 +36,7 @@ members = ["python"]
 # package (python/pyproject.toml has `dynamic = ["version"]`), and mongol_norm.__version__
 # reports it at runtime (checked by python/tests/test_rust_twin.py).
 [workspace.package]
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"
