@@ -3,7 +3,7 @@
 
 use crate::duplicates::collapse;
 use crate::generated::enums::WrittenUnit;
-use crate::normalize::{is_joiner, slot_position};
+use crate::normalize::{is_joiner, slot_position, NormalizeTable};
 use crate::shaper::Shaper;
 use crate::tables::{Position, UnitPosition};
 use crate::Error;
@@ -83,8 +83,11 @@ impl Shaper {
 
     /// Encode explicit HUD-position records as canonical Unicode (the API `zvvnmod-utn57`
     /// uses). A complete multi-record chain runs `init…fina`; an incomplete edge gets an implicit
-    /// ZWJ; a single `init` record is encoded bare except `O:init`, which takes a trailing ZWJ;
-    /// single `medi` / `fina` records get the joining context their position needs. `Mvs` and
+    /// ZWJ; a single `init` record is encoded bare where that bare letter reads back as the same
+    /// record — every consonant, whose isolated form is its initial unit — and takes a trailing
+    /// ZWJ where it would not: `A` and `I`, which the inventory also carries at `isol`, and `O`,
+    /// which has no bare spelling; single `medi` / `fina` records get the joining context their
+    /// position needs. `Mvs` and
     /// `Nirugu` require `Control`; explicit `Zwj` is rejected; at most
     /// [`MAX_POSITIONED_RECORDS`] records.
     ///
@@ -182,9 +185,13 @@ impl Shaper {
             if body.len() == 1 {
                 let (unit, position) = body[0];
                 // `records.len()`, not `body.len()`: the trailing ZWJ is for a request that is
-                // NOTHING but `O:init`. `[Nirugu:control, O:init]` also has a one-unit body, but
-                // the nirugu already supplies the joining context — it must not get the ZWJ.
-                if records.len() == 1 && unit == WrittenUnit::O && position == Position::Init {
+                // NOTHING but the `init` record. `[Nirugu:control, O:init]` also has a one-unit
+                // body, but the nirugu already supplies the joining context — it must not get the
+                // ZWJ.
+                if records.len() == 1
+                    && position == Position::Init
+                    && self.lone_init_needs_zwj(table, unit)
+                {
                     written.extend([unit, WrittenUnit::Zwj]);
                     continue;
                 }
@@ -221,6 +228,20 @@ impl Shaper {
             }
         }
         self.normalize_written_units(&written)
+    }
+
+    /// Does a request that is nothing but `unit` at `init` need a trailing ZWJ to read back as
+    /// `init`?
+    ///
+    /// Bare, a lone letter is an isolated chain. That is still the `init` record wherever the
+    /// isolated form *is* the initial written unit — an isolated consonant borrows it (`B`, `Ch`,
+    /// `D`, …) — so those stay bare. Two kinds of letter would read back as something else and
+    /// take the joiner (Satsrag/meco-rust#45): one the inventory also carries at `isol` under the
+    /// same bare spelling (`A`, `I`), and one with no bare spelling of its own (`O`, whose bare
+    /// letter is `U:isol`).
+    fn lone_init_needs_zwj(&self, table: &NormalizeTable, unit: WrittenUnit) -> bool {
+        table.positioned_units.contains(&(unit, Position::Isol))
+            || self.normalize_written_units(&[unit]).is_err()
     }
 
     /// Parse the CLI's written-unit spelling: explicit `+`-separated names (`B+Aa`) or a

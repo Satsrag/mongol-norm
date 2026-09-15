@@ -82,7 +82,7 @@ or, by hand:
 
 ```toml
 [dependencies]
-mongol-norm = "0.2.0"
+mongol-norm = "0.2.1"
 ```
 
 The CLI installs as a standalone binary:
@@ -596,7 +596,7 @@ cargo add mongol-norm
 
 ```toml
 [dependencies]
-mongol-norm = "0.2.0"
+mongol-norm = "0.2.1"
 ```
 
 命令行工具装成独立二进制：

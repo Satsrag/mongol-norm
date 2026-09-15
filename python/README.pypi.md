@@ -228,9 +228,9 @@ shaper.normalize_positioned_written_units([
 shaper.normalize_positioned_written_units([{"unit": "F", "position": "init"}])
 # → 'ᠹ' (bare U+1839, no ZWJ); F:isol is unsupported
 
-# O:init reuses the O+A canonical prefix, then adds the required trailing ZWJ
-shaper.normalize_positioned_written_units([{"unit": "O", "position": "init"}])
-# → U+1824 U+180B U+200D
+# A lone A:init takes a trailing ZWJ: bare, it would read back as A:isol
+shaper.normalize_positioned_written_units([{"unit": "A", "position": "init"}])
+# → U+1820 U+180B U+200D
 ```
 
 `normalize_positioned_written_units()` accepts an ordered sequence of exact built-in
@@ -239,8 +239,10 @@ in the authoritative HUD inventory, not a Unicode letter's joining topology. It 
 `normalize_written_units()` rather than a second encoding table. A complete multi-record chain
 starts with `init` and ends with `fina`. An incomplete left or right edge gets an implicit `Zwj`;
 for example `B:medi, O:medi, G:fina` is normalized as `Zwj, B, O, G`. A single `init` record is
-normally normalized without ZWJ, so `F:init` becomes bare U+1839. The sole exception is `O:init`: it
-reuses the U+1824 U+180B prefix selected by canonical `O:init, A:fina`, then adds U+200D. A single
+normalized without ZWJ when its bare letter reads back as that record: an isolated consonant borrows
+its initial written unit, so `F:init` becomes bare U+1839. It takes a trailing ZWJ when the bare
+letter would read back as another record: `A:init` and `I:init`, whose bare spelling is `A:isol` /
+`I:isol`, and `O:init`, which has no bare spelling. A single
 `medi` gets ZWJ on both sides and a single `fina` gets ZWJ on the left. `F:isol` is absent from the
 source inventory and fails closed. `Mvs` and `Nirugu` use `control`; explicit `Zwj` input is
 rejected. A wrong outer/record/field type raises `TypeError`; wrong keys, unit, position, chain
@@ -536,17 +538,18 @@ shaper.normalize_positioned_written_units([
 shaper.normalize_positioned_written_units([{"unit": "F", "position": "init"}])
 # → 'ᠹ'（裸 U+1839，不含 ZWJ）；F:isol 不受支持
 
-# O:init 复用 O+A canonical 前缀，再添加所需的尾部 ZWJ
-shaper.normalize_positioned_written_units([{"unit": "O", "position": "init"}])
-# → U+1824 U+180B U+200D
+# 单个 A:init 补尾部 ZWJ：裸写会读回成 A:isol
+shaper.normalize_positioned_written_units([{"unit": "A", "position": "init"}])
+# → U+1820 U+180B U+200D
 ```
 
 `normalize_positioned_written_units()` 接受由严格内建 `{"unit": str, "position": str}` dict record 组成
 的有序序列。这里的 `position` 表示权威 HUD inventory 中的 written-unit position，不是 Unicode 字母在当前
 序列中的 joining topology。它直接复用 `normalize_written_units()`，不再维护第二套编码表。完整复合链必须
 以 `init` 开头、以 `fina` 结束；左端或右端不完整时自动补 `Zwj`，例如 `B:medi, O:medi, G:fina` 会按
-`Zwj, B, O, G` 规范化。单个 `init` 通常不补 ZWJ，因此 `F:init` 输出裸 U+1839；唯一特例 `O:init` 复用
-canonical `O:init, A:fina` 选出的 U+1824 U+180B 前缀，再添加 U+200D。单个 `medi` 前后补 ZWJ，单个 `fina`
+`Zwj, B, O, G` 规范化。单个 `init` 在裸字母能读回同一 record 时不补 ZWJ：辅音的孤立形借用其 init 书写单元，因此
+`F:init` 输出裸 U+1839。裸字母会读回成别的 record 时补尾部 ZWJ：`A:init` 与 `I:init` 的裸拼法就是
+`A:isol` / `I:isol`，`O:init` 则没有裸拼法。单个 `medi` 前后补 ZWJ，单个 `fina`
 只在左侧补 ZWJ。inventory 中不存在的 `F:isol` 会 fail closed。`Mvs` 与 `Nirugu` 使用 `control`，显式
 `Zwj` 输入被拒绝。外层 / record / 字段类型错误抛 `TypeError`；keys、unit、position、复合链位置、exact
 encoding 错误以及超过 1024 条 record 均抛 `ValueError`。本 API 暂不提供 CLI 子命令。

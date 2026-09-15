@@ -32,15 +32,43 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             ])
 
 
-    def test_i_isol_and_init_use_the_plain_i_canonical(self):
-        expected = self.shaper.normalize_written_units(["I"])
-        for position in ("isol", "init"):
-            with self.subTest(position=position):
+    def test_i_isol_uses_the_plain_i_canonical(self):
+        result = self.shaper.normalize_positioned_written_units([
+            {"unit": "I", "position": "isol"},
+        ])
+
+        self.assertEqual(result, self.shaper.normalize_written_units(["I"]))
+        self.assertNotIn("\u200d", result)
+
+    def test_a_and_i_init_take_a_trailing_zwj(self):
+        # A and I are the letters the HUD inventory also carries at isol, under the
+        # same bare spelling: written bare, a lone A:init / I:init would read back as
+        # A:isol / I:isol, so it takes the ZWJ that keeps it initial.
+        for unit, expected in (
+            ("A", (0x1820, 0x180B, 0x200D)),
+            ("I", (0x1822, 0x180B, 0x200D)),
+        ):
+            with self.subTest(unit=unit):
+                result = self.shaper.normalize_positioned_written_units([
+                    {"unit": unit, "position": "init"},
+                ])
+                self.assertEqual(tuple(map(ord, result)), expected)
+                self.assertEqual(
+                    result, self.shaper.normalize_written_units([unit, "Zwj"])
+                )
+                self.assertEqual(self.shaper.shape(result), [unit, "Zwj"])
+
+    def test_isolated_consonants_stay_bare_at_init(self):
+        # The isolated form of a consonant is its initial written unit, so the bare
+        # letter already reads back as init: Ch, and D too, although its isolated
+        # glyph differs in ink from its joined initial one.
+        for unit, letter in (("Ch", "\u1834"), ("D", "\u1833")):
+            with self.subTest(unit=unit):
                 self.assertEqual(
                     self.shaper.normalize_positioned_written_units([
-                        {"unit": "I", "position": position},
+                        {"unit": unit, "position": "init"},
                     ]),
-                    expected,
+                    letter,
                 )
 
     def test_isolated_consonant_borrows_its_initial_written_unit(self):
@@ -75,22 +103,29 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             (0x1824, 0x180B, 0x200D),
         )
 
-    def test_o_is_the_only_singleton_init_that_adds_zwj(self):
+    def test_every_singleton_init_reads_back_as_init(self):
         # The positioned inventory the API validates against is the bundled
-        # normalize table's `positioned_units` (docs/data-format.md).
-        init_units = sorted({
-            record["unit"]
-            for record in load_normalize_table("MNG")["positioned_units"]
-            if record["position"] == "init"
-        })
-        self.assertIn("O", init_units)
+        # normalize table's `positioned_units` (docs/data-format.md). Joined on the
+        # right a one-unit chain is init; bare it is isol, which is still the init
+        # record only where the inventory has no separate isol for the letter.
+        inventory = load_normalize_table("MNG")["positioned_units"]
+        isolated = {r["unit"] for r in inventory if r["position"] == "isol"}
+        init_units = sorted({r["unit"] for r in inventory if r["position"] == "init"})
+        self.assertEqual(len(init_units), 28)
 
+        joined = []
         for unit in init_units:
             with self.subTest(unit=unit):
                 result = self.shaper.normalize_positioned_written_units([
                     {"unit": unit, "position": "init"},
                 ])
-                self.assertEqual(result.count("\u200d"), int(unit == "O"))
+                shape = self.shaper.shape(result)
+                if shape == [unit, "Zwj"]:
+                    joined.append(unit)
+                else:
+                    self.assertEqual(shape, [unit])
+                    self.assertNotIn(unit, isolated)
+        self.assertEqual(joined, ["A", "I", "O"])
 
     def test_snapshots_an_accepted_sequence_once(self):
         class ChangingList(list):
