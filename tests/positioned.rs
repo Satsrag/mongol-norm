@@ -1,6 +1,8 @@
 //! Positioned written-unit API — port of `python/tests/test_positioned_written_units_api.py`.
 
-use mongol_norm::{Error, Locale, PositionedWrittenUnit, Shaper, UnitPosition, WrittenUnit};
+use mongol_norm::{
+    Error, Locale, Position, PositionedWrittenUnit, Shaper, UnitPosition, WrittenUnit,
+};
 
 const ZWJ: char = '\u{200D}';
 
@@ -49,14 +51,50 @@ fn test_rejects_unsupported_f_isol_pair() {
 }
 
 #[test]
-fn test_i_isol_and_init_use_the_plain_i_canonical() {
+fn test_i_isol_uses_the_plain_i_canonical() {
     let shaper = shaper();
-    let expected = plain(&shaper, &[WrittenUnit::I]);
-    for position in [UnitPosition::Isol, UnitPosition::Init] {
+    let result = positioned(&shaper, &[rec(WrittenUnit::I, UnitPosition::Isol)]).unwrap();
+    assert_eq!(result, plain(&shaper, &[WrittenUnit::I]));
+    assert!(!result.contains(ZWJ));
+}
+
+/// `A` and `I` are the letters the HUD inventory also carries at `isol`, under the same bare
+/// spelling. Written bare, a lone `A:init` / `I:init` would read back as `A:isol` / `I:isol` — a
+/// different record and a different glyph — so it takes the trailing ZWJ that keeps it initial,
+/// exactly the spelling `normalize_written_units` gives `[unit, Zwj]` (Satsrag/meco-rust#45).
+#[test]
+fn test_a_and_i_init_take_a_trailing_zwj() {
+    let shaper = shaper();
+    for (unit, expected) in [
+        (WrittenUnit::A, [0x1820, 0x180B, 0x200D]),
+        (WrittenUnit::I, [0x1822, 0x180B, 0x200D]),
+    ] {
+        let result = positioned(&shaper, &[rec(unit, UnitPosition::Init)]).unwrap();
         assert_eq!(
-            positioned(&shaper, &[rec(WrittenUnit::I, position)]).unwrap(),
+            result.chars().map(|c| c as u32).collect::<Vec<_>>(),
             expected,
-            "{position}"
+            "{unit}"
+        );
+        assert_eq!(result, plain(&shaper, &[unit, WrittenUnit::Zwj]), "{unit}");
+        assert_eq!(
+            shaper.shape(&result).unwrap(),
+            [unit, WrittenUnit::Zwj],
+            "{unit}"
+        );
+    }
+}
+
+/// The isolated form of a consonant is its initial written unit, so the bare letter already
+/// reads back as `init` and must not take a ZWJ — `Ch`, and `D` too, although its isolated glyph
+/// differs in ink from its joined initial one.
+#[test]
+fn test_isolated_consonants_stay_bare_at_init() {
+    let shaper = shaper();
+    for (unit, expected) in [(WrittenUnit::Ch, "\u{1834}"), (WrittenUnit::D, "\u{1833}")] {
+        assert_eq!(
+            positioned(&shaper, &[rec(unit, UnitPosition::Init)]).unwrap(),
+            expected,
+            "{unit}"
         );
     }
 }
@@ -118,27 +156,65 @@ fn test_nirugu_then_o_init_gets_no_trailing_zwj() {
     );
 }
 
+/// With a nirugu in front the joining context already exists, so a lone `A:init` / `I:init`
+/// after it takes no ZWJ either — the same reason as for `O:init` above.
 #[test]
-fn test_o_is_the_only_singleton_init_that_adds_zwj() {
+fn test_nirugu_then_a_or_i_init_gets_no_trailing_zwj() {
     let shaper = shaper();
+    for unit in [WrittenUnit::A, WrittenUnit::I] {
+        let records = [
+            rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            rec(unit, UnitPosition::Init),
+        ];
+        let result = positioned(&shaper, &records).unwrap();
+        assert_eq!(
+            result,
+            plain(&shaper, &[WrittenUnit::Nirugu, unit]),
+            "{unit}"
+        );
+        assert!(
+            !result.contains(ZWJ),
+            "{unit}: {result:?} must not contain U+200D"
+        );
+    }
+}
+
+/// Every lone `init` record must read back as `init`. Joined on the right, a one-unit chain is
+/// `init`. Bare, it is `isol` — which is still the `init` record wherever the inventory has no
+/// separate `isol` for the letter and borrows the initial unit (every consonant). So the trailing
+/// ZWJ belongs to exactly the letters whose bare spelling is another record: `A` and `I`, which
+/// the inventory also carries at `isol`, and `O`, which has no bare spelling of its own.
+#[test]
+fn test_every_singleton_init_reads_back_as_init() {
+    let shaper = shaper();
+    let inventory = shaper.positioned_written_units().unwrap();
+    let mut joined = Vec::new();
     let mut accepted = 0;
     for unit in WrittenUnit::ALL {
-        match positioned(&shaper, &[rec(unit, UnitPosition::Init)]) {
-            Ok(result) => {
-                accepted += 1;
-                assert_eq!(
-                    result.matches(ZWJ).count(),
-                    usize::from(unit == WrittenUnit::O),
-                    "{unit}"
-                );
-            }
-            Err(Error::UnsupportedPositionedUnit { .. })
-            | Err(Error::ControlRequiresControlPosition { .. })
-            | Err(Error::ExplicitZwj) => {}
+        let result = match positioned(&shaper, &[rec(unit, UnitPosition::Init)]) {
+            Ok(result) => result,
+            Err(
+                Error::UnsupportedPositionedUnit { .. }
+                | Error::ControlRequiresControlPosition { .. }
+                | Error::ExplicitZwj,
+            ) => continue,
             Err(other) => panic!("{unit}: {other}"),
+        };
+        accepted += 1;
+        let shape = shaper.shape(&result).unwrap();
+        if shape == [unit, WrittenUnit::Zwj] {
+            joined.push(unit);
+        } else {
+            assert_eq!(shape, [unit], "{unit}: {result:?}");
+            assert!(
+                !inventory.contains(&(unit, Position::Isol)),
+                "{unit}: bare {result:?} reads back as {unit}:isol, not {unit}:init"
+            );
         }
     }
+    joined.sort_by_key(|unit| unit.as_str());
     assert_eq!(accepted, 28, "the HUD inventory has 28 init units");
+    assert_eq!(joined, [WrittenUnit::A, WrittenUnit::I, WrittenUnit::O]);
 }
 
 #[test]

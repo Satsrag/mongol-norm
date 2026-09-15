@@ -88,10 +88,12 @@ lone `F:init` record encodes as bare `U+1839`; `F:isol` is not a valid pair and 
 rejected. Letter positions are `isol`, `init`, `medi`, or `fina`; structural units
 `Mvs` and `Nirugu` require `control`. Explicit `Zwj` input is rejected, but the
 encoder may insert ZWJ in its Unicode output when a valid HUD position needs
-joining context. Borrowed forms with a bare candidate remain bare; temporarily,
-`I:isol` and `I:init` both use the plain `I` canonical without inserted ZWJ. The
-sole singleton-initial exception is `O:init`: it reuses the U+1824 U+180B prefix
-selected by canonical `O:init, A:fina`, then adds the trailing U+200D. The
+joining context. Borrowed forms with a bare candidate remain bare: a lone `init`
+record whose bare letter reads back as that record — every consonant, whose isolated
+form borrows the initial unit — encodes without ZWJ. A lone `init` record whose bare
+letter would read back as another record takes a trailing U+200D: `A:init` and
+`I:init`, whose bare spelling is also that of `A:isol` / `I:isol` (which stay bare),
+and `O:init`, which has no bare spelling. The
 generator combines unchanged plain shaping
 traces with source `positioned_written` metadata to verify exact positions and
 MVS-boundary alternatives. The normalizer consults that inventory (compiled into the
