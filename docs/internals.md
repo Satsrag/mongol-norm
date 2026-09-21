@@ -3,8 +3,8 @@
 Background for contributors and porters. Users only need the [README](../README.md).
 
 > **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/2` policy
-> described below) is FVS-pinned and does not follow standard Mongolian orthographic spelling; it may
-> change in a later release.
+> described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
+> e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
 The normalizer implements a **lightweight Mongolian shaping engine** — equivalent to what HarfBuzz
 does with a font file, but using only the rule data from
