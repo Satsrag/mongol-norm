@@ -13,9 +13,10 @@
 ## English
 
 > [!WARNING]
-> **Beta.** `shape` / `same_shape` should be stable. The `normalize` output is **not** yet in the
-> form people usually type: it is an FVS-pinned spelling of the written units (e.g. ᠮᠣᠩᠭᠣᠯ →
-> ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ), and it may change in a later release. If you store normalized keys, store
+> **Beta.** `shape` / `same_shape` should be stable. The `normalize` output currently encodes by
+> **glyph shape**, not the standard **phonetic (nominal-character) spelling**, and may change in a
+> later release. For example ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) normalizes to ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
+> (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`). If you store normalized keys, store
 > `canonical_version()` with them and rebuild when it changes.
 
 **mongol-norm** tells whether two Traditional Mongolian (Hudum) strings look the same, and maps
@@ -52,7 +53,7 @@ or in `Cargo.toml`:
 
 ```toml
 [dependencies]
-mongol-norm = "0.2.2"
+mongol-norm = "0.2.3"
 ```
 
 **Python** (CPython ≥ 3.9, no runtime dependencies, no Rust toolchain needed):
@@ -159,8 +160,9 @@ suites from mongfontbuilder and GB/T 25914-2023. Notices in
 ## 中文
 
 > [!WARNING]
-> **Beta 版。** `shape` / `same_shape` 应该是稳定的。`normalize` 的输出目前**不符合**常见的字符序列：
-> 它是按书写单元钉死 FVS 的拼法（例如 ᠮᠣᠩᠭᠣᠯ → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ），后续版本有可能修改。如果要持久化规范化后的
+> **Beta 版。** `shape` / `same_shape` 应该是稳定的。`normalize` 的输出目前是**按字形**编码的，**不是**按读音
+> 书写的标准名义字符序列，后续版本有可能修改。例如 ᠮᠣᠩᠭᠣᠯ（`MA+O+ANG+GA+O+LA`）规范化后是 ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
+> （`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`）。如果要持久化规范化后的
 > key，请同时保存 `canonical_version()`，版本变化时重建。
 
 **mongol-norm** 判断两段传统蒙古文（回鹘式，Hudum）是否外形相同，并把它们映射成同一个 key。零依赖
@@ -195,7 +197,7 @@ cargo add mongol-norm
 
 ```toml
 [dependencies]
-mongol-norm = "0.2.2"
+mongol-norm = "0.2.3"
 ```
 
 **Python**（CPython ≥ 3.9，无运行时依赖，不需要 Rust 工具链）：
