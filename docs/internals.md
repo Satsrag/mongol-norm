@@ -3,7 +3,7 @@
 Background for contributors and porters. Users only need the [README](../README.md).
 
 > **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/2` policy
-> described below) is FVS-pinned and does not look like the spellings people usually type; it may
+> described below) is FVS-pinned and does not follow standard Mongolian orthographic spelling; it may
 > change in a later release.
 
 The normalizer implements a **lightweight Mongolian shaping engine** — equivalent to what HarfBuzz

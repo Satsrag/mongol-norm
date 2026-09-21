@@ -13,8 +13,8 @@
 ## English
 
 > [!WARNING]
-> **Beta.** `shape` / `same_shape` should be stable. The `normalize` output is **not** yet in the
-> form people usually type: it is an FVS-pinned spelling of the written units (e.g. ᠮᠣᠩᠭᠣᠯ →
+> **Beta.** `shape` / `same_shape` should be stable. The `normalize` output does **not** yet follow
+> standard Mongolian orthographic spelling: it is an FVS-pinned spelling of the written units (e.g. ᠮᠣᠩᠭᠣᠯ →
 > ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ), and it may change in a later release. If you store normalized keys, store
 > `canonical_version()` with them and rebuild when it changes.
 
@@ -159,7 +159,7 @@ suites from mongfontbuilder and GB/T 25914-2023. Notices in
 ## 中文
 
 > [!WARNING]
-> **Beta 版。** `shape` / `same_shape` 应该是稳定的。`normalize` 的输出目前**不符合**常见的字符序列：
+> **Beta 版。** `shape` / `same_shape` 应该是稳定的。`normalize` 的输出目前**不符合**蒙古文正字字符序列：
 > 它是按书写单元钉死 FVS 的拼法（例如 ᠮᠣᠩᠭᠣᠯ → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ），后续版本有可能修改。如果要持久化规范化后的
 > key，请同时保存 `canonical_version()`，版本变化时重建。
 
