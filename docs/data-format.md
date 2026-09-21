@@ -395,7 +395,7 @@ Full reference: [`src/normalize.rs`](../src/normalize.rs) — `canonical_for_sha
 The JSON in `python/mongol_norm/data/` is generated and committed. The scripts live in
 `python/scripts/` but locate the repository from their own path, so run them **from the
 repository root**, in a virtualenv where the extension is built (`cd python && pip install
-'maturin>=1.15,<2' && maturin develop --locked --features testing`, see the README), after
+'maturin>=1.15,<2' && maturin develop --locked --features testing`, see `docs/development.md`), after
 the relevant upstream/code change.
 
 Shape rules (when bumping `mongfontbuilder`):

@@ -411,7 +411,7 @@ impl Shaper {
     /// `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa` becomes `B2` and `I Aa`
     /// becomes `G`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ
     /// are one word and shape identically. The standard's own unit sequence, which keeps all
-    /// nine apart, is [`Shaper::shape_raw`]. The README's "Duplicate encodings" section has the
+    /// nine apart, is [`Shaper::shape_raw`]. `docs/internals.md` ("Duplicate encodings") has the
     /// evidence and the termination argument.
     ///
     /// Errors with [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS,
