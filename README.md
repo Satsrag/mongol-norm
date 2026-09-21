@@ -42,10 +42,33 @@ or input-method output.
 
 ### Install
 
+**Rust** (MSRV 1.82, zero dependencies, also builds for `wasm32-unknown-unknown`):
+
 ```bash
-cargo add mongol-norm          # Rust (MSRV 1.82)
-cargo install mongol-norm      # CLI
-pip install mongol-norm        # Python ≥ 3.9, prebuilt wheels, no dependencies
+cargo add mongol-norm
+```
+
+or in `Cargo.toml`:
+
+```toml
+[dependencies]
+mongol-norm = "0.2.1"
+```
+
+**Python** (CPython ≥ 3.9, no runtime dependencies, no Rust toolchain needed):
+
+```bash
+pip install mongol-norm
+```
+
+Prebuilt wheels cover Linux x86_64 / aarch64 (glibc and musl), macOS x86_64 / Apple silicon and
+Windows x64. On other platforms pip builds from the source distribution, which needs Rust ≥ 1.83.
+
+**Command line** — either of these puts `mongol-norm` on `PATH`:
+
+```bash
+cargo install mongol-norm
+pip install mongol-norm
 ```
 
 ### Rust
@@ -162,10 +185,33 @@ mongol-norm 按 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) 的
 
 ### 安装
 
+**Rust**（MSRV 1.82，零依赖，可编译到 `wasm32-unknown-unknown`）：
+
 ```bash
-cargo add mongol-norm          # Rust（MSRV 1.82）
-cargo install mongol-norm      # 命令行
-pip install mongol-norm        # Python ≥ 3.9，预编译 wheel，无依赖
+cargo add mongol-norm
+```
+
+或写进 `Cargo.toml`：
+
+```toml
+[dependencies]
+mongol-norm = "0.2.1"
+```
+
+**Python**（CPython ≥ 3.9，无运行时依赖，不需要 Rust 工具链）：
+
+```bash
+pip install mongol-norm
+```
+
+预编译 wheel 覆盖 Linux x86_64 / aarch64（glibc 与 musl）、macOS x86_64 / Apple silicon、Windows x64。
+其他平台 pip 会从源码包构建，需要 Rust ≥ 1.83。
+
+**命令行**——下面任意一种都会装上 `mongol-norm` 命令：
+
+```bash
+cargo install mongol-norm
+pip install mongol-norm
 ```
 
 ### 用法

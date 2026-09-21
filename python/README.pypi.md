@@ -34,8 +34,17 @@ This package is a thin binding over the Rust crate
 pip install mongol-norm
 ```
 
-CPython ≥ 3.9, no runtime dependencies. Prebuilt wheels for Linux (x86_64/aarch64, glibc and musl),
-macOS (x86_64/arm64) and Windows x64; elsewhere the sdist needs Rust ≥ 1.83.
+CPython ≥ 3.9. The engine is compiled into the extension, so there are no runtime dependencies and
+no Rust toolchain to install. Prebuilt `cp39-abi3` wheels:
+
+| Platform | Wheels |
+|---|---|
+| Linux x86_64 / aarch64 | glibc (manylinux2014) and musl (musllinux_1_2) |
+| macOS | x86_64 and Apple silicon (arm64) |
+| Windows | x64 |
+
+On any other platform pip falls back to the source distribution, which compiles the extension
+locally and needs Rust ≥ 1.83. The install also puts the `mongol-norm` command on `PATH`.
 
 ### Usage
 
@@ -118,8 +127,15 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
 pip install mongol-norm
 ```
 
-CPython ≥ 3.9，无运行时依赖。Linux（x86_64/aarch64，glibc 与 musl）、macOS（x86_64/arm64）、Windows x64
-有预编译 wheel；其他平台从源码构建，需要 Rust ≥ 1.83。
+CPython ≥ 3.9。引擎已编译进扩展模块，无运行时依赖，也不需要安装 Rust 工具链。预编译 `cp39-abi3` wheel：
+
+| 平台 | wheel |
+|---|---|
+| Linux x86_64 / aarch64 | glibc（manylinux2014）与 musl（musllinux_1_2） |
+| macOS | x86_64 与 Apple silicon（arm64） |
+| Windows | x64 |
+
+其他平台 pip 会回退到源码包，在本地编译扩展，需要 Rust ≥ 1.83。安装后同时会有 `mongol-norm` 命令。
 
 ### 用法
 
