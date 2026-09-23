@@ -90,7 +90,7 @@ impl Trie {
                 };
                 let mut parent = root;
                 for j in 0..syms.len() {
-                    let name = format!("{}{}", &nodes[root as usize], syms[..=j].join(" "));
+                    let name = format!("{}{}", nodes[root as usize], syms[..=j].join(" "));
                     let id = match nodes.iter().position(|n| *n == name) {
                         Some(id) => id as u16,
                         None => {
