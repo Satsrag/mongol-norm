@@ -79,7 +79,7 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         result = run_cli("normalize-written-units", "B+Aa")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "\u182A\u1820\u180B\n")
+        self.assertEqual(result.stdout, "\u182A\u1820\n")
 
     def test_non_batch_stdin_accepts_one_transport_newline(self):
         result = run_cli(
@@ -89,7 +89,7 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "\u182A\u1820\u180B\n")
+        self.assertEqual(result.stdout, "\u182A\u1820\n")
 
     def test_file_input_and_output(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -109,7 +109,7 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
             self.assertEqual(result.stdout, "")
             self.assertEqual(
                 output_path.read_text(encoding="utf-8"),
-                "\u182A\u1820\u180B",
+                "\u182A\u1820",
             )
 
     def test_unknown_and_unencodable_sequences_fail_cleanly(self):
@@ -130,7 +130,7 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "\u182A\u1820\u180B\n" * 2)
+        self.assertEqual(result.stdout, "\u182A\u1820\n" * 2)
 
     def test_surrounding_whitespace_is_rejected(self):
         for text in (" B+Aa", "B+Aa ", "\tB+Aa", "B+Aa\t"):
@@ -256,7 +256,7 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
             self.shaper.normalize(nominal),
         )
 
-    def test_existing_velar_feminine_refinement_is_reused(self):
+    def test_velar_with_a_feminine_vowel_encodes_like_normalize(self):
         nominal = "\u182C\u180C\u1826"  # h+FVS2 + ue -> G Ue
         units = self.shaper.shape(nominal)
 
@@ -312,7 +312,7 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
     def test_plain_units_encode_to_canonical_unicode(self):
         result = self.shaper.normalize_written_units(["B", "Aa"])
 
-        self.assertEqual(result, "\u182A\u1820\u180B")
+        self.assertEqual(result, "\u182A\u1820")
         self.assertEqual(self.shaper.shape(result), ["B", "Aa"])
 
 

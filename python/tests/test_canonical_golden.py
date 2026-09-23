@@ -63,7 +63,7 @@ class TestMNGCanonicalGolden(unittest.TestCase):
     def test_fixture_metadata(self):
         self.assertEqual(self.golden["schema"], "mongol-norm-canonical-golden/1")
         self.assertEqual(self.golden["locale"], "MNG")
-        self.assertEqual(self.golden["canonical_version"], "mng-canonical/2")
+        self.assertEqual(self.golden["canonical_version"], "mng-canonical/3")
         self.assertEqual(self.shaper.canonical_version,
                          self.golden["canonical_version"])
 

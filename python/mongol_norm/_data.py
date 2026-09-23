@@ -7,9 +7,9 @@ runtime never reads it; it ships for tooling and other-language ports:
 
   * `<LOCALE>.json`            — flat, language-agnostic shaping rules,
                                  generated from mongfontbuilder + UTN #57.
-  * `<LOCALE>.normalize.json`  — the normalize table (per-(position,
-                                 written-unit) FVS-pinned encodings),
-                                 generated from this package's own shaper.
+  * `<LOCALE>.normalize.json`  — the tables of the online normalize
+                                 encoder, generated from the engine's own
+                                 shaper (examples/gen_normalize_table).
 
 Both are produced by the repository's dev-only scripts (`python/scripts/`) and
 committed here, so other-language ports can read the raw files directly
@@ -49,8 +49,7 @@ def rules_path(locale: str):
 def load_normalize_table(locale: str) -> Dict[str, Any]:
     """
     Load the precomputed normalize table for `locale`. Raises FileNotFoundError
-    if it has not been generated yet (the shaper then falls back to running the
-    context-independence battery in-process).
+    for a locale without one (only MNG normalizes).
     """
     with (_DATA / f"{_base(locale)}.normalize.json").open(encoding="utf-8") as f:
         return json.load(f)

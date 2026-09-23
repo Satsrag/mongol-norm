@@ -62,12 +62,14 @@ fn test_i_isol_uses_the_plain_i_canonical() {
 /// spelling. Written bare, a lone `A:init` / `I:init` would read back as `A:isol` / `I:isol` — a
 /// different record and a different glyph — so it takes the trailing ZWJ that keeps it initial,
 /// exactly the spelling `normalize_written_units` gives `[unit, Zwj]` (Satsrag/meco-rust#45).
+/// The letters are the shortest that render the initial unit: `e` (initial `A`) and `j` (whose
+/// initial form is `I`).
 #[test]
 fn test_a_and_i_init_take_a_trailing_zwj() {
     let shaper = shaper();
     for (unit, expected) in [
-        (WrittenUnit::A, [0x1820, 0x180B, 0x200D]),
-        (WrittenUnit::I, [0x1822, 0x180B, 0x200D]),
+        (WrittenUnit::A, [0x1821, 0x200D]),
+        (WrittenUnit::I, [0x1835, 0x200D]),
     ] {
         let result = positioned(&shaper, &[rec(unit, UnitPosition::Init)]).unwrap();
         assert_eq!(

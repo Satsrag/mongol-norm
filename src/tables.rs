@@ -321,23 +321,72 @@ pub(crate) struct LocaleData {
     pub particles: &'static [Particle],
 }
 
-/// One normalize-table entry: `(position, written units) → (letter code point, FVS)`.
-pub(crate) struct UnitEntry {
-    pub position: Position,
-    pub units: &'static [WrittenUnit],
+/// One encoding option of the normalize encoder: a letter, bare or with an FVS, and the written
+/// units it renders at its position (see `docs/data-format.md`, "Normalize table").
+pub(crate) struct Candidate {
     pub cp: u32,
     pub fvs: Option<Fvs>,
+    pub position: Position,
+    /// The written units it contributes to a shape.
+    pub units: &'static [WrittenUnit],
+    /// Its written units' index + 1 in the table's `written_sequences` (a context-key component).
+    pub written_id: u8,
+    /// When it may be committed (followed by more letters or by a structural token).
+    pub robust: Robustness,
 }
 
-/// The normalize table of a locale (`MNG.normalize.json`).
+/// When a candidate may be committed.
+pub(crate) enum Robustness {
+    /// In every context and before any next unit (its rendering depends on nothing).
+    Always,
+    /// Never (no reachable context allows it).
+    Never,
+    /// Per context: an index into [`NormalizeData::mask_sets`], whose six masks (one per promise
+    /// the letter may make, `0` = none) hold the next units it is safe before.
+    Table(ContextTable<u8>),
+}
+
+/// A function of the encoder context, tabulated over a projection of it: `default` for every key
+/// that has no row.
+pub(crate) struct ContextTable<V: 'static> {
+    /// Bit set over the context components (`src/encoder.rs`).
+    pub projection: u16,
+    pub default: V,
+    /// Sorted by key.
+    pub rows: &'static [(u64, V)],
+}
+
+/// Which options can be the last letter for a pending tail of written units.
+pub(crate) struct FinalEntry {
+    pub position: Position,
+    pub units: &'static [WrittenUnit],
+    pub valid: FinalValidity,
+}
+
+/// A set of options (bit `i` = the `i`-th candidate of the `(position, units)` group, in table
+/// order) that end the word correctly — fixed, or per context. The encoder picks among them by
+/// preference.
+pub(crate) enum FinalValidity {
+    Always(u32),
+    Table(ContextTable<u32>),
+}
+
+/// The normalize tables of a locale (`MNG.normalize.json`).
 pub(crate) struct NormalizeData {
     pub canonical_version: &'static str,
-    pub unit_enc_max_len: usize,
-    pub unit_table: &'static [UnitEntry],
-    pub velar_fem: &'static [UnitEntry],
-    pub velar_fem_units: &'static [WrittenUnit],
-    /// `(masculine cp, feminine cp)` pairs; only the masculine side is consulted at runtime.
-    pub masc_to_fem: &'static [(u32, u32)],
+    /// Robustness masks, indexed by [`Robustness::Table`] values: per promise, a set of
+    /// `WrittenUnit` bits (`unit as u32`).
+    pub mask_sets: &'static [[u128; 6]],
+    /// Every encoding option; within one `(position, units)` group in preference order.
+    pub candidates: &'static [Candidate],
+    pub finals: &'static [FinalEntry],
+    /// Letters (code points) of each promise class, promise 1..=5.
+    pub promises: [&'static [u32]; 5],
+    /// Particle-key trie: `(parent node, letter)` per node; nodes 0 (word start) and 1 (after an
+    /// MVS) are the roots and have no parent (`u16::MAX`).
+    pub particle_nodes: &'static [(u16, u32)],
+    /// Every written unit the locale's letters render (the written-unit API vocabulary).
+    pub known_units: &'static [WrittenUnit],
     pub positioned_units: &'static [(WrittenUnit, Position)],
 }
 
@@ -413,15 +462,16 @@ mod tests {
         );
         let variants: usize = mng::DATA.letters.iter().map(|l| l.variants.len()).sum();
         assert_eq!(variants, 216);
-        assert_eq!(mng_normalize::DATA.canonical_version, "mng-canonical/2");
-        assert_eq!(mng_normalize::DATA.unit_enc_max_len, 3);
-        assert_eq!(mng_normalize::DATA.unit_table.len(), 151);
-        assert_eq!(mng_normalize::DATA.velar_fem.len(), 15);
+        assert_eq!(mng_normalize::DATA.canonical_version, "mng-canonical/3");
         assert_eq!(mng_normalize::DATA.positioned_units.len(), 95);
         assert_eq!(
-            mng_normalize::DATA.masc_to_fem,
-            &[(0x1820, 0x1821), (0x1823, 0x1825), (0x1824, 0x1826)]
+            mng_normalize::DATA.particle_nodes[..2],
+            [(u16::MAX, 0), (u16::MAX, 0)]
         );
+        assert!(mng_normalize::DATA
+            .candidates
+            .iter()
+            .all(|c| (1..=3).contains(&c.units.len())));
         // Every (cp, position) has exactly one default, in every locale.
         for data in [
             &crate::generated::mng::DATA,

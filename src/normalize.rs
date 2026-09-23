@@ -1,26 +1,25 @@
-//! Canonical normalization — a port of the normalize core of `mongol_norm/shaper.py`
-//! (`_canonical_for_shape`, `_unit_encode_chain`, `_unit_partition`, `_apply_velar_fem`,
-//! `_slot_position`, `_letter_position`, `normalize`, `normalize_text`).
+//! Canonical normalization: `normalize` maps every encoding of a shape to one Unicode string.
 //!
-//! Within the table's domain `normalize` is a pure function of shape: each written unit is
-//! encoded by a context-independent, FVS-pinned `(letter, fvs)` from the per-`(position, unit)`
-//! table; every chain is verified by reshaping it in full context; a chain right after MVS takes
-//! its standalone canonical so a suffix's spelling never depends on the MVS. There is no search
-//! fallback — an uncovered shape is reported (strict) or echoed back unchanged.
+//! The encoding itself is the online encoder of [`crate::encoder`] (policy `mng-canonical/3`):
+//! within the tables' domain it is a pure function of the shape, round-trips
+//! (`shape(normalize(x)) == shape(x)`), and is prefix-stable by construction. This module holds
+//! the tables' runtime indexes and the public entry points; an uncovered shape is reported
+//! (strict) or echoed back unchanged.
 //!
-//! The remedy for a genuine table gap is to widen the table, not the runtime: the table is
-//! generated offline by `python/scripts/gen_normalize_table.py`, so extending coverage means
-//! regenerating it there and rerunning `python/scripts/gen_rust_tables.py`.
+//! The tables are generated offline by `examples/gen_normalize_table` (JSON in
+//! `python/mongol_norm/data/MNG.normalize.json`, compiled by `python/scripts/gen_rust_tables.py`).
 
 use std::collections::{HashMap, HashSet};
+use std::hash::{BuildHasherDefault, Hasher};
 
+use crate::encoder::{self, DEAD, NONE};
 use crate::generated::enums::WrittenUnit;
 use crate::shaper::Shaper;
-use crate::tables::{Fvs, NormalizeData, Position, UnitEntry};
+use crate::tables::{FinalValidity, NormalizeData, Position};
 use crate::unicode::is_mongolian_word_char;
 use crate::Error;
 
-/// Longest written-unit tuple a table key holds (the generator asserts `unit_enc_max_len <= 3`).
+/// Longest written-unit sequence one letter renders.
 const MAX_KEY_LEN: usize = 3;
 
 /// A fixed-capacity `(written units)` key — lookups never allocate.
@@ -31,31 +30,89 @@ struct UnitKey {
 }
 
 impl UnitKey {
-    fn new(units: &[WrittenUnit]) -> UnitKey {
-        debug_assert!(!units.is_empty() && units.len() <= MAX_KEY_LEN);
+    fn new(units: &[WrittenUnit]) -> Option<UnitKey> {
+        if units.is_empty() || units.len() > MAX_KEY_LEN {
+            return None;
+        }
         // The padding value is arbitrary but deterministic per slice, and `len` disambiguates
         // shorter keys from longer ones, so `Hash` and `Eq` stay consistent.
         let mut padded = [units[0]; MAX_KEY_LEN];
         padded[..units.len()].copy_from_slice(units);
-        UnitKey {
+        Some(UnitKey {
             len: units.len() as u8,
             units: padded,
-        }
+        })
     }
 }
 
-/// `(letter code point, FVS)`.
-type Encoding = (u32, Option<Fvs>);
+/// A small multiplicative hasher for the encoder's integer keys (the standard SipHash would
+/// dominate the lookup cost).
+#[derive(Default)]
+struct KeyHasher(u64);
 
-/// The runtime form of `MNG.normalize.json`.
+impl Hasher for KeyHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for &byte in bytes {
+            self.write_u64(u64::from(byte));
+        }
+    }
+
+    fn write_u64(&mut self, value: u64) {
+        self.0 = (self.0.rotate_left(5) ^ value).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+
+    fn write_u8(&mut self, value: u8) {
+        self.write_u64(u64::from(value));
+    }
+
+    fn write_u16(&mut self, value: u16) {
+        self.write_u64(u64::from(value));
+    }
+
+    fn write_u32(&mut self, value: u32) {
+        self.write_u64(u64::from(value));
+    }
+
+    fn write_usize(&mut self, value: usize) {
+        self.write_u64(value as u64);
+    }
+}
+
+type KeyMap<K, V> = HashMap<K, V, BuildHasherDefault<KeyHasher>>;
+
+/// A normalize table with nothing in it: every shape with a letter is uncovered.
+#[cfg(any(test, feature = "testing"))]
+static EMPTY: NormalizeData = NormalizeData {
+    canonical_version: "",
+    mask_sets: &[],
+    candidates: &[],
+    finals: &[],
+    promises: [&[], &[], &[], &[], &[]],
+    particle_nodes: &[(u16::MAX, 0), (u16::MAX, 0)],
+    known_units: &[],
+    positioned_units: &[],
+};
+
+/// The runtime form of `MNG.normalize.json`: the generated data plus lookup indexes.
 pub(crate) struct NormalizeTable {
     pub canonical_version: &'static str,
-    max_len: usize,
-    table: HashMap<(Position, UnitKey), Encoding>,
-    feminine: HashMap<(Position, UnitKey), Encoding>,
-    velar_fem_units: HashSet<WrittenUnit>,
-    masculine_cps: HashSet<u32>,
-    /// Every unit that occurs in a table key, plus the three structural tokens — the vocabulary
+    pub(crate) data: &'static NormalizeData,
+    /// `(position, units)` → the candidates rendering them.
+    options: KeyMap<(Position, UnitKey), OptionGroup>,
+    /// `(position, units)` → which options can end the word.
+    finals: KeyMap<(Position, UnitKey), &'static FinalValidity>,
+    /// `(node, letter)` → child node of the particle-key trie.
+    particle_children: KeyMap<(u16, u32), u16>,
+    /// Promise `p` (1..=5) allows letter `cp`: bit `cp - 0x1820` of `promise_letters[p]`.
+    promise_letters: [u64; 6],
+    /// Promise `p` can be kept before unit `u`: wherever a letter renders `u` alone at medi or
+    /// fina, a letter of the class does too.
+    promise_units: [u128; 6],
+    /// Every unit the locale's letters render, plus the three structural tokens — the vocabulary
     /// of `normalize_written_units` and `parse_written_units`.
     pub known_units: HashSet<WrittenUnit>,
     /// `known_units` as names, in Python's `(-len, name)` order — the compact-segmentation
@@ -65,6 +122,36 @@ pub(crate) struct NormalizeTable {
     pub positioned_units: HashSet<(WrittenUnit, Position)>,
 }
 
+/// The candidates of one `(position, units)` group.
+pub(crate) struct OptionGroup {
+    /// Candidate indices in table order (bit `i` of a final-validity mask is `ids[i]`).
+    pub ids: Vec<u16>,
+    /// Preference orders (indices into `ids`), see [`preference`], indexed by
+    /// `feminine + 2 * after_vowel`: `[plain, feminine, after a vowel, both]`.
+    pub orders: [Vec<u8>; 4],
+}
+
+/// Equal-cost preference among letters. Always: code point order, `g` before `h` (ᠭᠡᠷ, not ᠬᠡᠷ).
+/// `feminine` (the last vowel was `e oe ue ee`): `e oe ue` just before their partners `a o u`.
+/// `after_vowel` (the letter ends its chain right after a vowel): `n` first for a final `A` — a
+/// vowel after a vowel is foreign to the language, a final `n` is common.
+pub(crate) fn preference(
+    cp: u32,
+    units: &[WrittenUnit],
+    feminine: bool,
+    after_vowel: bool,
+) -> (bool, u32) {
+    let rank = |cp: u32| if cp == 0x182D { 0x182C * 2 - 1 } else { cp * 2 };
+    let n_first = after_vowel && cp == 0x1828 && units == [WrittenUnit::A];
+    let rank = match cp {
+        0x1821 if feminine => rank(0x1820) - 1,
+        0x1825 if feminine => rank(0x1823) - 1,
+        0x1826 if feminine => rank(0x1824) - 1,
+        _ => rank(cp),
+    };
+    (!n_first, rank)
+}
+
 /// The unit names of `units` in Python's `sorted(known, key=lambda u: (-len(u), u))` order.
 fn sorted_vocabulary(units: &HashSet<WrittenUnit>) -> Vec<&'static str> {
     let mut names: Vec<&'static str> = units.iter().map(|unit| unit.as_str()).collect();
@@ -72,67 +159,146 @@ fn sorted_vocabulary(units: &HashSet<WrittenUnit>) -> Vec<&'static str> {
     names
 }
 
-fn index_entries(entries: &'static [UnitEntry]) -> HashMap<(Position, UnitKey), Encoding> {
-    entries
-        .iter()
-        .map(|entry| {
-            (
-                (entry.position, UnitKey::new(entry.units)),
-                (entry.cp, entry.fvs),
-            )
-        })
-        .collect()
-}
-
 impl NormalizeTable {
     pub fn new(data: &'static NormalizeData) -> NormalizeTable {
-        let mut known_units: HashSet<WrittenUnit> = data
-            .unit_table
-            .iter()
-            .flat_map(|entry| entry.units.iter().copied())
+        NormalizeTable::with_version(data, data.canonical_version)
+    }
+
+    fn with_version(
+        data: &'static NormalizeData,
+        canonical_version: &'static str,
+    ) -> NormalizeTable {
+        let mut groups: KeyMap<(Position, UnitKey), Vec<u16>> = KeyMap::default();
+        for (id, cand) in data.candidates.iter().enumerate() {
+            let key = UnitKey::new(cand.units).expect("candidate units fit a key");
+            groups
+                .entry((cand.position, key))
+                .or_default()
+                .push(id as u16);
+        }
+        let options = groups
+            .into_iter()
+            .map(|(key, ids)| {
+                let orders = [(false, false), (true, false), (false, true), (true, true)].map(
+                    |(feminine, after_vowel)| {
+                        let mut order: Vec<u8> = (0..ids.len() as u8).collect();
+                        order.sort_by_key(|&i| {
+                            let cand = &data.candidates[ids[i as usize] as usize];
+                            let (not_n, rank) =
+                                preference(cand.cp, cand.units, feminine, after_vowel);
+                            (cand.fvs.is_some(), not_n, rank, cand.fvs)
+                        });
+                        order
+                    },
+                );
+                (key, OptionGroup { ids, orders })
+            })
             .collect();
+        let finals = data
+            .finals
+            .iter()
+            .map(|entry| {
+                let key = UnitKey::new(entry.units).expect("final units fit a key");
+                ((entry.position, key), &entry.valid)
+            })
+            .collect();
+        let particle_children = data
+            .particle_nodes
+            .iter()
+            .enumerate()
+            .filter(|(_, (parent, _))| *parent != NONE)
+            .map(|(node, (parent, cp))| ((*parent, *cp), node as u16))
+            .collect();
+        let mut promise_letters = [u64::MAX; 6];
+        for (index, letters) in data.promises.iter().enumerate() {
+            promise_letters[index + 1] = letters
+                .iter()
+                .fold(0, |bits, cp| bits | 1u64 << (cp - 0x1820));
+        }
+        // A promise is kept when the next letter can render the next unit wherever it may stand:
+        // medial if more follows, final otherwise (positions the unit never takes do not count).
+        let mut promise_units = [u128::MAX; 6];
+        for (promise, bits) in promise_units.iter_mut().enumerate().skip(1) {
+            *bits = 0;
+            for unit in WrittenUnit::ALL {
+                let renders = |position: Position, class: bool| {
+                    data.candidates.iter().any(|cand| {
+                        cand.position == position
+                            && cand.units == [unit]
+                            && (!class
+                                || promise_letters[promise] & (1u64 << (cand.cp - 0x1820)) != 0)
+                    })
+                };
+                let positions = [Position::Medi, Position::Fina];
+                let keeps = positions.iter().any(|&p| renders(p, false))
+                    && positions
+                        .iter()
+                        .all(|&p| !renders(p, false) || renders(p, true));
+                if keeps {
+                    *bits |= 1u128 << (unit as u32);
+                }
+            }
+        }
+        let mut known_units: HashSet<WrittenUnit> = data.known_units.iter().copied().collect();
         known_units.extend([WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]);
         let sorted_vocabulary = sorted_vocabulary(&known_units);
         NormalizeTable {
-            canonical_version: data.canonical_version,
-            max_len: data.unit_enc_max_len,
-            table: index_entries(data.unit_table),
-            feminine: index_entries(data.velar_fem),
-            velar_fem_units: data.velar_fem_units.iter().copied().collect(),
-            masculine_cps: data.masc_to_fem.iter().map(|(masc, _)| *masc).collect(),
+            canonical_version,
+            data,
+            options,
+            finals,
+            particle_children,
+            promise_letters,
+            promise_units,
             known_units,
             sorted_vocabulary,
             positioned_units: data.positioned_units.iter().copied().collect(),
         }
     }
 
-    /// Python's monkeypatched empty table (`_unit_enc = {}`, `_unit_enc_max_len = 1`): no
-    /// encodings at all, so every chain falls back.
+    /// Python's monkeypatched empty table: no encodings at all, so every shape with a letter
+    /// falls back.
     #[cfg(any(test, feature = "testing"))]
     pub fn empty(canonical_version: &'static str) -> NormalizeTable {
-        let known_units: HashSet<WrittenUnit> =
-            [WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]
-                .into_iter()
-                .collect();
-        NormalizeTable {
-            canonical_version,
-            max_len: 1,
-            table: HashMap::new(),
-            feminine: HashMap::new(),
-            velar_fem_units: HashSet::new(),
-            masculine_cps: HashSet::new(),
-            known_units: known_units.clone(),
-            sorted_vocabulary: sorted_vocabulary(&known_units),
-            positioned_units: HashSet::new(),
+        NormalizeTable::with_version(&EMPTY, canonical_version)
+    }
+
+    /// The candidates rendering exactly `units` at `position`.
+    pub(crate) fn options(
+        &self,
+        position: Position,
+        units: &[WrittenUnit],
+    ) -> Option<&OptionGroup> {
+        UnitKey::new(units).and_then(|key| self.options.get(&(position, key)))
+    }
+
+    pub(crate) fn final_validity(
+        &self,
+        position: Position,
+        units: &[WrittenUnit],
+    ) -> Option<&'static FinalValidity> {
+        UnitKey::new(units).and_then(|key| self.finals.get(&(position, key)).copied())
+    }
+
+    pub(crate) fn particle_child(&self, node: u16, cp: u32) -> u16 {
+        if node == DEAD {
+            return DEAD;
         }
+        self.particle_children
+            .get(&(node, cp))
+            .copied()
+            .unwrap_or(DEAD)
     }
 
-    fn get(&self, position: Position, units: &[WrittenUnit]) -> Option<Encoding> {
-        self.table.get(&(position, UnitKey::new(units))).copied()
+    /// Does letter `cp` satisfy promise `promise` (`0` = none)?
+    pub(crate) fn allows(&self, promise: u8, cp: u32) -> bool {
+        (0x1820..0x1860).contains(&cp)
+            && self.promise_letters[promise as usize] & (1u64 << (cp - 0x1820)) != 0
     }
 
-    fn get_feminine(&self, position: Position, units: &[WrittenUnit]) -> Option<Encoding> {
-        self.feminine.get(&(position, UnitKey::new(units))).copied()
+    /// Can promise `promise` be kept when the next unit is `unit`?
+    pub(crate) fn promise_feasible(&self, unit: WrittenUnit, promise: u8) -> bool {
+        self.promise_units[promise as usize] & (1u128 << (unit as u32)) != 0
     }
 }
 
@@ -151,38 +317,6 @@ pub(crate) fn is_joiner(unit: WrittenUnit) -> bool {
     matches!(unit, WrittenUnit::Nirugu | WrittenUnit::Zwj)
 }
 
-fn structural_text(units: &[WrittenUnit]) -> String {
-    units
-        .iter()
-        .map(|unit| structural_char(*unit).expect("structural token"))
-        .collect()
-}
-
-enum Part {
-    Structural(WrittenUnit),
-    Chain(Vec<WrittenUnit>),
-}
-
-/// Split a shape at its structural tokens (which are copied through verbatim).
-fn split_parts(shape: &[WrittenUnit]) -> Vec<Part> {
-    let mut parts = Vec::new();
-    let mut chain = Vec::new();
-    for &unit in shape {
-        if unit.is_structural() {
-            if !chain.is_empty() {
-                parts.push(Part::Chain(std::mem::take(&mut chain)));
-            }
-            parts.push(Part::Structural(unit));
-        } else {
-            chain.push(unit);
-        }
-    }
-    if !chain.is_empty() {
-        parts.push(Part::Chain(chain));
-    }
-    parts
-}
-
 /// Position of a letter spanning units `[start, start + length)` in a chain of `unit_count` units.
 pub(crate) fn slot_position(start: usize, length: usize, unit_count: usize) -> Position {
     if start == 0 && start + length == unit_count {
@@ -196,120 +330,6 @@ pub(crate) fn slot_position(start: usize, length: usize, unit_count: usize) -> P
     }
 }
 
-/// Position of the `letter_index`-th letter out of `total` letters.
-fn letter_position(letter_index: usize, total: usize) -> Position {
-    if total == 1 {
-        Position::Isol
-    } else if letter_index == 0 {
-        Position::Init
-    } else if letter_index == total - 1 {
-        Position::Fina
-    } else {
-        Position::Medi
-    }
-}
-
-/// Python `_unit_partition`: single deterministic local partition + encode pass. At each index
-/// take the single unit if the table has it, else the longest multi-unit entry. Joiners on either
-/// side shift the positions as if one extra unit padded that side.
-fn unit_partition(
-    table: &NormalizeTable,
-    chain: &[WrittenUnit],
-    joined_left: bool,
-    joined_right: bool,
-) -> Option<String> {
-    let unit_count = chain.len();
-    let pad_left = usize::from(joined_left);
-    let pad_right = usize::from(joined_right);
-    let padded_count = unit_count + pad_left + pad_right;
-    let mut letters: Vec<Encoding> = Vec::new();
-    let mut unit_at: Vec<Option<WrittenUnit>> = Vec::new();
-    let mut index = 0;
-    while index < unit_count {
-        let span = table.max_len.min(unit_count - index);
-        let mut hit: Option<(Encoding, usize)> = None;
-        // 1) single unit (preferred — clean output)
-        let position = slot_position(index + pad_left, 1, padded_count);
-        if let Some(encoding) = table.get(position, &chain[index..index + 1]) {
-            hit = Some((encoding, 1));
-        }
-        // 2) else the longest available multi-unit entry (last resort)
-        if hit.is_none() {
-            for length in (2..=span).rev() {
-                let position = slot_position(index + pad_left, length, padded_count);
-                if let Some(encoding) = table.get(position, &chain[index..index + length]) {
-                    hit = Some((encoding, length));
-                    break;
-                }
-            }
-        }
-        let (encoding, length) = hit?;
-        letters.push(encoding);
-        unit_at.push((length == 1).then_some(chain[index]));
-        index += length;
-    }
-    apply_velar_fem(table, &mut letters, &unit_at, pad_left, pad_right);
-    let mut text = String::new();
-    for (cp, fvs) in letters {
-        text.push(char::from_u32(cp).expect("table code points are scalar values"));
-        if let Some(fvs) = fvs {
-            text.push(fvs.as_char());
-        }
-    }
-    Some(text)
-}
-
-/// Python `_apply_velar_fem`: switch the vowel forward-coupled to each init/medi `G`/`Gx` velar to
-/// its feminine letter (only masculine a/o/u flip; backward coupling is deliberately skipped for
-/// prefix-stability).
-fn apply_velar_fem(
-    table: &NormalizeTable,
-    letters: &mut [Encoding],
-    unit_at: &[Option<WrittenUnit>],
-    pad_left: usize,
-    pad_right: usize,
-) {
-    // `letters` and `unit_at` are pushed in lockstep by `unit_partition`, so they have equal
-    // length; iterating `unit_at` (a separate slice, so no borrow conflict with `letters`)
-    // yields exactly the indices of `letters`.
-    let total = letters.len();
-    let padded_total = total + pad_left + pad_right;
-    for (letter_index, unit) in unit_at.iter().enumerate() {
-        let Some(unit) = *unit else {
-            continue;
-        };
-        if !table.velar_fem_units.contains(&unit) {
-            continue;
-        }
-        // FORWARD coupling only (init/medi velar → following vowel). Backward coupling (fina
-        // velar → preceding vowel) is deliberately skipped: a fina velar becomes medi when a
-        // suffix is appended, flipping its coupling direction, which would make the shared-prefix
-        // vowel diverge between word B and word A. The FVS-pinned velar renders `G` regardless,
-        // so a masculine preceding vowel still round-trips — that one's prettiness is traded for
-        // prefix-stability. — see shaper.py::_apply_velar_fem
-        let position = letter_position(letter_index + pad_left, padded_total);
-        if !matches!(position, Position::Init | Position::Medi) {
-            continue;
-        }
-        let target_index = letter_index + 1;
-        if target_index >= total {
-            continue;
-        }
-        let Some(target_unit) = unit_at[target_index] else {
-            continue; // multi-unit coupled letter — leave it
-        };
-        let (cp, _) = letters[target_index];
-        if !table.masculine_cps.contains(&cp) {
-            continue; // only flip a currently-masculine vowel
-        }
-        let target_position = letter_position(target_index + pad_left, padded_total);
-        let Some(feminine) = table.get_feminine(target_position, &[target_unit]) else {
-            continue; // no round-trip-safe feminine form → leave masculine
-        };
-        letters[target_index] = feminine;
-    }
-}
-
 impl Shaper {
     /// The normalize table, or [`Error::NormalizeUnsupported`] for locales without one.
     pub(crate) fn table(&self) -> Result<&NormalizeTable, Error> {
@@ -318,136 +338,25 @@ impl Shaper {
         })
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/2"` for MNG; `None`
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/3"` for MNG; `None`
     /// for locales without a normalize table). Persist it next to stored normalized keys.
     pub fn canonical_version(&self) -> Option<&'static str> {
         self.normalize.as_ref().map(|table| table.canonical_version)
     }
 
-    /// Python `_canonical_for_shape`: encode a full shape (chains right-to-left so each chain is
-    /// verified with the already-encoded suffix; structural tokens copied verbatim).
-    ///
-    /// Right-to-left with the encoded suffix in hand is necessary because rules interact across
-    /// MVS: a masculine vowel after an MVS can propagate backward through the MVS and mark a g/h
-    /// in the previous chain, changing its rendering between `G` and `H`. Per-chain verification
-    /// with only the adjacent MVS is insufficient. — see shaper.py::_canonical_for_shape
-    ///
-    /// The table is fetched only when a chain has to be encoded (Python calls `_build_unit_enc`
-    /// lazily), so a structural-only shape — e.g. a lone nirugu — is copied through even for
-    /// locales without a normalize table.
-    pub(crate) fn canonical_for_shape(&self, shape: &[WrittenUnit]) -> Result<String, Error> {
-        let parts = split_parts(shape);
-        // `suffix_text` accumulates the whole result: each part is prepended as it is encoded, so
-        // after the last (leftmost) part it *is* the canonical text. (Python keeps a parallel
-        // `encoded` list and joins it at the end — this deviates from that structure on purpose.)
-        let mut suffix_text = String::new();
-        let mut suffix_target: Vec<WrittenUnit> = Vec::new();
-        for index in (0..parts.len()).rev() {
-            match &parts[index] {
-                Part::Structural(unit) => {
-                    let text = structural_char(*unit)
-                        .expect("structural token")
-                        .to_string();
-                    suffix_text.insert_str(0, &text);
-                    suffix_target.insert(0, *unit);
-                }
-                Part::Chain(body) => {
-                    let table = self.table()?;
-                    // Context = the full run of structural tokens right before this chain, not
-                    // just the adjacent one: an MVS behind a nirugu still matters, because
-                    // chachlag looks through nirugu. — see shaper.py::_canonical_for_shape
-                    let mut prefix_tokens: Vec<WrittenUnit> = Vec::new();
-                    let mut scan = index;
-                    while scan > 0 {
-                        scan -= 1;
-                        match &parts[scan] {
-                            Part::Structural(unit) => prefix_tokens.insert(0, *unit),
-                            Part::Chain(_) => break,
-                        }
-                    }
-                    let mut chain_canonical: Option<String> = None;
-                    // A chain directly after MVS is a suffix particle: encode it STANDALONE (drop
-                    // the MVS, normalize, re-attach). Exception: chachlag `Aa` is bare `a`.
-                    if prefix_tokens.last() == Some(&WrittenUnit::Mvs) {
-                        let candidate = if body.as_slice() == [WrittenUnit::Aa] {
-                            String::from('\u{1820}')
-                        } else {
-                            self.encode_chain_canonical(table, body, &[], "", &[])?
-                        };
-                        if !candidate.is_empty() {
-                            let prefix_text = structural_text(&prefix_tokens);
-                            let mut want = prefix_tokens.clone();
-                            want.extend_from_slice(body);
-                            want.extend_from_slice(&suffix_target);
-                            if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
-                                == want
-                            {
-                                chain_canonical = Some(candidate);
-                            }
-                        }
-                    }
-                    let chain_canonical = match chain_canonical {
-                        Some(text) => text,
-                        None => self.encode_chain_canonical(
-                            table,
-                            body,
-                            &prefix_tokens,
-                            &suffix_text,
-                            &suffix_target,
-                        )?,
-                    };
-                    suffix_text.insert_str(0, &chain_canonical);
-                    let mut target = body.clone();
-                    target.extend_from_slice(&suffix_target);
-                    suffix_target = target;
-                }
-            }
+    /// The canonical text of a shape (duplicate encodings unified), `Ok(None)` when the tables do
+    /// not cover it. A shape of structural tokens only is copied through without a table, so it
+    /// works on every locale (Python parity).
+    pub(crate) fn encode_shape(&self, shape: &[WrittenUnit]) -> Result<Option<String>, Error> {
+        if shape.iter().all(|unit| unit.is_structural()) {
+            return Ok(Some(
+                shape
+                    .iter()
+                    .map(|unit| structural_char(*unit).expect("structural token"))
+                    .collect(),
+            ));
         }
-        Ok(suffix_text)
-    }
-
-    /// Python `_encode_chain_canonical` / `_compute_chain_canonical`: the table encoding of one
-    /// chain in its structural context, or `""` on a genuine table gap.
-    fn encode_chain_canonical(
-        &self,
-        table: &NormalizeTable,
-        chain: &[WrittenUnit],
-        prefix_tokens: &[WrittenUnit],
-        suffix_text: &str,
-        suffix_target: &[WrittenUnit],
-    ) -> Result<String, Error> {
-        Ok(self
-            .unit_encode_chain(table, chain, prefix_tokens, suffix_text, suffix_target)?
-            .unwrap_or_default())
-    }
-
-    /// Python `_unit_encode_chain`: partition + encode, then verify in FULL context (the
-    /// structural prefix run and the already-encoded following chains).
-    fn unit_encode_chain(
-        &self,
-        table: &NormalizeTable,
-        chain: &[WrittenUnit],
-        prefix_tokens: &[WrittenUnit],
-        suffix_text: &str,
-        suffix_target: &[WrittenUnit],
-    ) -> Result<Option<String>, Error> {
-        let joined_left = prefix_tokens.last().is_some_and(|unit| is_joiner(*unit));
-        let joined_right = suffix_target.first().is_some_and(|unit| is_joiner(*unit));
-        let Some(text) = unit_partition(table, chain, joined_left, joined_right) else {
-            return Ok(None);
-        };
-        let prefix_text = structural_text(prefix_tokens);
-        // `verify_target` MUST include `suffix_target`: without it the non-last chains of a
-        // multi-chain word never verify, and every one of them falls back.
-        // — see shaper.py::_unit_encode_chain
-        let mut verify_target = prefix_tokens.to_vec();
-        verify_target.extend_from_slice(chain);
-        verify_target.extend_from_slice(suffix_target);
-        if self.shape(&format!("{prefix_text}{text}{suffix_text}"))? == verify_target {
-            Ok(Some(text))
-        } else {
-            Ok(None)
-        }
+        Ok(encoder::encode(self.table()?, shape))
     }
 
     fn normalize_impl(&self, text: &str, strict: bool) -> Result<String, Error> {
@@ -460,22 +369,29 @@ impl Shaper {
             // dropped here: a lone nirugu/ZWJ shapes to a structural token and round-trips.)
             return Ok(String::new());
         }
-        let canonical = self.canonical_for_shape(&target)?;
-        if canonical.is_empty() || self.shape(&canonical)? != target {
-            if strict {
-                return Err(Error::NormalizationFallback {
-                    text: text.to_owned(),
-                    written_units: target,
-                });
+        match self.encode_shape(&target)? {
+            Some(canonical) => {
+                // The tables are generated so that this always holds; the tests run it on every
+                // call (the test profile keeps debug assertions).
+                debug_assert_eq!(
+                    self.shape(&canonical).as_deref(),
+                    Ok(&target[..]),
+                    "normalize({text:?}) = {canonical:?} does not reshape to the input's shape"
+                );
+                Ok(canonical)
             }
-            return Ok(text.to_owned());
+            None if strict => Err(Error::NormalizationFallback {
+                text: text.to_owned(),
+                written_units: target,
+            }),
+            None => Ok(text.to_owned()),
         }
-        Ok(canonical)
     }
 
-    /// Canonical, FVS-pinned encoding of one Mongolian word: within the normalize table's domain,
-    /// `shape(x) == shape(y)` ⟹ `normalize(x) == normalize(y)`, and
-    /// `shape(normalize(x)) == shape(x)`.
+    /// Canonical encoding of one Mongolian word: within the normalize tables' domain,
+    /// `shape(x) == shape(y)` ⟹ `normalize(x) == normalize(y)`, `shape(normalize(x)) == shape(x)`,
+    /// and the encoding of a word's shape-prefix is a prefix of the word's encoding apart from its
+    /// last letter.
     ///
     /// Strict (the Python default): an uncovered shape is [`Error::NormalizationFallback`].
     /// Errors with [`Error::NonMongolianChar`] on mixed-script input — see
@@ -617,21 +533,17 @@ mod tests {
         );
         assert_eq!(
             Shaper::new(Locale::Mng).canonical_version(),
-            Some("mng-canonical/2")
+            Some("mng-canonical/3")
         );
     }
 
     #[test]
-    fn positions_of_partition_slots_and_letters() {
+    fn positions_of_slots_and_unit_keys() {
         assert_eq!(slot_position(0, 1, 1), Position::Isol);
         assert_eq!(slot_position(0, 2, 2), Position::Isol);
         assert_eq!(slot_position(0, 1, 3), Position::Init);
         assert_eq!(slot_position(1, 1, 3), Position::Medi);
         assert_eq!(slot_position(1, 2, 3), Position::Fina);
-        assert_eq!(letter_position(0, 1), Position::Isol);
-        assert_eq!(letter_position(0, 2), Position::Init);
-        assert_eq!(letter_position(1, 2), Position::Fina);
-        assert_eq!(letter_position(1, 3), Position::Medi);
         assert_eq!(
             UnitKey::new(&[WrittenUnit::A]),
             UnitKey::new(&[WrittenUnit::A])
@@ -640,5 +552,27 @@ mod tests {
             UnitKey::new(&[WrittenUnit::A]),
             UnitKey::new(&[WrittenUnit::A, WrittenUnit::A])
         );
+        assert_eq!(UnitKey::new(&[]), None);
+        assert_eq!(UnitKey::new(&[WrittenUnit::A; 4]), None);
+    }
+
+    /// The robustness masks are indexed by `unit as u32`: the enum's discriminants must follow
+    /// `WrittenUnit::ALL`, the order the generator writes (`mask_units`).
+    #[test]
+    fn written_unit_discriminants_follow_all() {
+        for (index, unit) in WrittenUnit::ALL.iter().enumerate() {
+            assert_eq!(*unit as usize, index, "{unit:?}");
+        }
+        assert!(WrittenUnit::ALL.len() <= 128, "a mask holds 128 units");
+    }
+
+    #[test]
+    fn the_empty_table_encodes_structural_tokens_only() {
+        let shaper = Shaper::with_empty_normalize_table(Locale::Mng);
+        assert_eq!(
+            shaper.normalize("\u{180E}\u{180A}").unwrap(),
+            "\u{180E}\u{180A}"
+        );
+        assert_eq!(shaper.canonical_version(), Some("mng-canonical/3"));
     }
 }

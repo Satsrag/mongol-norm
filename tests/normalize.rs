@@ -21,9 +21,11 @@ fn normalize_text(text: &str) -> String {
     shaper().normalize_text(text).unwrap()
 }
 
-/// Canonical "sain" under the FVS-pinned per-unit encoder: `s a i+fvs3 i+fvs3 a+fvs2`.
+/// Canonical "sain" (`mng-canonical/3`): `s a i+fvs3 i n`. The first `I` is written `i+fvs3`
+/// because `S A I I` is itself a shape whose first `I` must be committed as a single medial `I`
+/// after a vowel (prefix-stability); the rest is bare, and a final `A` after a vowel is `n`.
 fn canonical_sain() -> String {
-    mgl("s a i fvs3 i fvs3 a fvs2")
+    mgl("s a i fvs3 i n")
 }
 
 fn sain_variants() -> [String; 5] {

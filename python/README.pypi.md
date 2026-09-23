@@ -14,8 +14,8 @@ Shape-aware normalizer for Traditional Mongolian (Hudum) script.
 
 > **Beta.** `shape` / `same_shape` should be stable. The `normalize` output currently encodes by
 > **glyph shape**, not the standard **phonetic (nominal-character) spelling**, and may change in a
-> later release. For example ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) normalizes to ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
-> (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`). If you store normalized keys, store
+> later release. For example ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) normalizes to ᠮᠣᠩᠨ᠋ᠨᠣᠯ
+> (`MA+O+ANG+NA+FVS1+NA+O+LA`). If you store normalized keys, store
 > `shaper.canonical_version` with them and rebuild when it changes.
 
 ### Why
@@ -57,12 +57,12 @@ shaper = MongolianShaper(locale="MNG")
 shaper.shape("ᠰᠠᠢᠨ")                        # → ['S', 'A', 'I', 'I', 'A']
 shaper.shape_str("ᠰᠠᠢᠨ")                    # → 'S+A+I+I+A'
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
-shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
-shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
-shaper.canonical_version                    # → 'mng-canonical/2'
+shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢᠨ'
+shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢᠨ world'
+shaper.canonical_version                    # → 'mng-canonical/3'
 
 # Deduplicate
-{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
+{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢᠨ'}
 ```
 
 - `shape` / `normalize` take **one word** and raise `ValueError` on non-Mongolian characters; use
@@ -74,11 +74,11 @@ shaper.canonical_version                    # → 'mng-canonical/2'
 Written-unit input, if you already have a shape:
 
 ```python
-shaper.normalize_written_units(["B", "Aa"])            # → 'ᠪᠠ᠋'
+shaper.normalize_written_units(["B", "Aa"])            # → 'ᠪᠠ'
 shaper.normalize_positioned_written_units([
     {"unit": "B", "position": "init"},
     {"unit": "Aa", "position": "fina"},
-])                                                     # → 'ᠪᠠ᠋'
+])                                                     # → 'ᠪᠠ'
 shaper.parse_written_units("B+Aa")                     # → ['B', 'Aa']
 ```
 
@@ -110,8 +110,8 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
 ## 中文
 
 > **Beta 版。** `shape` / `same_shape` 应该是稳定的。`normalize` 的输出目前是**按字形**编码的，**不是**按读音
-> 书写的标准名义字符序列，后续版本有可能修改。例如 ᠮᠣᠩᠭᠣᠯ（`MA+O+ANG+GA+O+LA`）规范化后是 ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
-> （`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`）。如果要持久化规范化后的
+> 书写的标准名义字符序列，后续版本有可能修改。例如 ᠮᠣᠩᠭᠣᠯ（`MA+O+ANG+GA+O+LA`）规范化后是 ᠮᠣᠩᠨ᠋ᠨᠣᠯ
+> （`MA+O+ANG+NA+FVS1+NA+O+LA`）。如果要持久化规范化后的
 > key，请同时保存 `shaper.canonical_version`，版本变化时重建。
 
 ### 为什么
@@ -148,11 +148,11 @@ shaper = MongolianShaper(locale="MNG")
 
 shaper.shape("ᠰᠠᠢᠨ")                        # → ['S', 'A', 'I', 'I', 'A']
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
-shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
-shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
+shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢᠨ'
+shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢᠨ world'
 
 # 去重
-{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
+{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢᠨ'}
 ```
 
 - `shape` / `normalize` 只处理**单个词**，遇到非蒙古文字符抛 `ValueError`；句子或混合文本用 `normalize_text`。

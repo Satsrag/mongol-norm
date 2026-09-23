@@ -8,7 +8,7 @@ Python tooling (`mongol_norm._data`) loads -- and emits `src/generated/*.rs`:
 
   enums.rs            WrittenUnit / Condition / Alias enums (union over all locales)
   mng.rs tod.rs ...   per-locale shaping tables (letters, variants, categories, particles)
-  mng_normalize.rs    the MNG normalize table
+  mng_normalize.rs    the MNG normalize-encoder tables
   mod.rs              module declarations
 
 The output is deterministic (no timestamps, stable ordering), so `--check`
@@ -37,9 +37,17 @@ NORMALIZE_LOCALES = ("MNG",)
 STRUCTURAL_UNITS = ("Mvs", "Nirugu", "Zwj")
 POSITIONS = ("isol", "init", "medi", "fina")
 SCHEMA_VERSION = 1
-NORMALIZE_SCHEMA = "mongol-normalize-table/1"
-CANONICAL_VERSION = "mng-canonical/2"
+NORMALIZE_SCHEMA = "mongol-normalize-table/2"
+CANONICAL_VERSION = "mng-canonical/3"
 MAX_UNIT_KEY_LEN = 3  # src/normalize.rs::UnitKey capacity
+# The encoder context's key components, in packing order, with their bit widths. Must equal
+# src/encoder.rs (COMPONENT_BITS) and examples/gen_normalize_table/context.rs (COMPONENTS).
+CONTEXT_COMPONENTS = (
+    ("prev_letter", 6), ("prev_fvs", 3), ("prev_position", 3), ("prev_written", 8),
+    ("prev_token", 3), ("mvs_since_prev", 1), ("cluster", 1), ("masculine", 1),
+    ("particle", 10), ("promise", 3),
+)
+PROMISES = ("vowel", "vowel_not_ee", "masculine", "feminine_or_neutral", "consonant_or_ee")
 # Must equal the code points hard-coded in src/unicode.rs (MVS, NIRUGU, ZWJ) and
 # src/tables.rs (Fvs::cp).
 CONSTANTS = {
@@ -186,7 +194,7 @@ def load_normalize(rules, aliases):
         for name, value in CONSTANTS.items():
             if doc["constants"].get(name) != value:
                 die("{}: constant {} is {!r}, expected {!r}".format(path.name, name, doc["constants"].get(name), value))
-        validate_normalize(locale, doc, rules[locale], aliases[locale])
+        validate_normalize(locale, doc, rules, aliases[locale])
         tables[locale] = doc
     return tables
 
@@ -195,41 +203,118 @@ def locale_units(doc):
     return {unit for letter in doc["letters"] for variant in letter["variants"] for unit in variant["written"]}
 
 
-def validate_normalize(locale, doc, rules_doc, aliases):
+def enum_units(rules):
+    """The WrittenUnit enum order (render_enums): every unit of every locale plus the tokens."""
+    units = set(STRUCTURAL_UNITS)
+    for doc in rules.values():
+        units.update(locale_units(doc))
+    return sorted(units)
+
+
+def projection_bits(names, where):
+    known = [name for name, _bits in CONTEXT_COMPONENTS]
+    bits = 0
+    for name in names:
+        if name not in known:
+            die("{}: unknown context component {!r}".format(where, name))
+        bits |= 1 << known.index(name)
+    return bits
+
+
+def validate_table(where, table, check_value):
+    projection_bits(table["projection"], where)
+    check_value(table["default"])
+    keys = []
+    for key, value in table["rows"]:
+        keys.append(int(key, 16))
+        check_value(value)
+    if keys != sorted(set(keys)):
+        die("{}: rows are not sorted by key".format(where))
+
+
+def validate_normalize(locale, doc, rules, aliases):
+    rules_doc = rules[locale]
     units = locale_units(rules_doc)
     cps = {letter["cp"] for letter in rules_doc["letters"]}
-    max_len = 0
-    for section in ("unit_table", "velar_fem"):
-        for position, entries in doc[section].items():
-            position_variant(position)
-            for key, entry in entries.items():
-                parts = key.split("+")
-                max_len = max(max_len, len(parts))
-                for unit in parts:
-                    if unit not in units:
-                        die("{}: {} names unknown unit {!r}".format(locale, section, unit))
-                try:
-                    cp = int(entry["cp"], 16)
-                except (TypeError, ValueError):
-                    die("{}: {} entry {!r} has a non-hex cp {!r}".format(locale, section, key, entry["cp"]))
-                if cp not in cps:
-                    die("{}: {} entry {!r} has unknown cp {!r}".format(locale, section, key, entry["cp"]))
-                if entry["fvs"] is not None and entry["fvs"] not in FVS_CP_TO_INDEX:
-                    die("{}: {} entry {!r} has bad fvs {!r}".format(locale, section, key, entry["fvs"]))
-    if max_len > MAX_UNIT_KEY_LEN:
-        die("{}: unit key longer than {}".format(locale, MAX_UNIT_KEY_LEN))
-    if doc["unit_enc_max_len"] != max_len:
-        die("{}: unit_enc_max_len {} != longest key {}".format(locale, doc["unit_enc_max_len"], max_len))
-    for unit in doc["velar_fem_units"]:
+    if [tuple(c) for c in doc["context_components"]] != list(CONTEXT_COMPONENTS):
+        die("{}: context_components differ from the encoder's".format(locale))
+    if [name for name, _letters in doc["promises"]] != list(PROMISES):
+        die("{}: promises differ from the encoder's".format(locale))
+    for name, letters in doc["promises"]:
+        for alias in letters:
+            if alias not in aliases:
+                die("{}: promise {!r} names unknown alias {!r}".format(locale, name, alias))
+    if doc["mask_units"] != enum_units(rules):
+        die("{}: mask_units is not the WrittenUnit order".format(locale))
+    for set_ in doc["mask_sets"]:
+        if len(set_) != 6:
+            die("{}: a mask set needs six masks".format(locale))
+        for mask in set_:
+            if int(mask, 16) >> len(doc["mask_units"]):
+                die("{}: mask {} has bits beyond the unit list".format(locale, mask))
+    written = doc["written_sequences"]
+    if written != sorted(set(written)):
+        die("{}: written_sequences must be sorted and unique".format(locale))
+    nodes = doc["particle_nodes"]
+    if nodes[:2] != ["", "M:"] or len(set(nodes)) != len(nodes) or len(nodes) >= 1023:
+        die("{}: bad particle_nodes roots / size".format(locale))
+    for name in nodes[2:]:
+        parent, alias = particle_parent(name)
+        if parent not in nodes or alias not in aliases:
+            die("{}: particle node {!r} has no parent or an unknown alias".format(locale, name))
+    by_slot = {}
+    for index, cand in enumerate(doc["candidates"]):
+        where = "{}: candidate {}".format(locale, index)
+        if aliases.get(cand["letter"]) != int(cand["cp"], 16) or int(cand["cp"], 16) not in cps:
+            die("{} has letter {!r} / cp {!r}".format(where, cand["letter"], cand["cp"]))
+        if cand["fvs"] is not None and cand["fvs"] not in FVS_CP_TO_INDEX:
+            die("{} has bad fvs {!r}".format(where, cand["fvs"]))
+        position_variant(cand["position"])
+        for field in ("units", "written"):
+            parts = cand[field].split("+")
+            if len(parts) > MAX_UNIT_KEY_LEN or any(unit not in units for unit in parts):
+                die("{} has bad {} {!r}".format(where, field, cand[field]))
+        if cand["written"] not in written:
+            die("{}: written {!r} missing from written_sequences".format(where, cand["written"]))
+        robust = cand["robust"]
+        if isinstance(robust, dict):
+            def mask_set(value, where=where):
+                if not isinstance(value, int) or not 0 <= value < len(doc["mask_sets"]):
+                    die("{}: bad mask-set index {!r}".format(where, value))
+            validate_table(where, robust, mask_set)
+        elif robust not in ("always", "never"):
+            die("{}: bad robust {!r}".format(where, robust))
+        by_slot.setdefault((cand["position"], cand["units"]), []).append(index)
+    for entry in doc["finals"]:
+        where = "{}: final {}/{}".format(locale, entry["position"], entry["units"])
+        if entry["position"] not in ("isol", "fina"):
+            die("{}: final letters are isol or fina".format(where))
+        group = by_slot.get((entry["position"], entry["units"]), [])
+
+        def valid(value, where=where, group=group):
+            if not isinstance(value, str) or int(value, 16) >> len(group):
+                die("{}: validity mask {!r} names options the group does not have".format(where, value))
+        if isinstance(entry["valid"], dict):
+            validate_table(where, entry["valid"], valid)
+        else:
+            valid(entry["valid"])
+    for unit in doc["known_units"]:
         if unit not in units:
-            die("{}: velar_fem_units names unknown unit {!r}".format(locale, unit))
-    for masc, fem in doc["masc_to_fem"].items():
-        if masc not in aliases or fem not in aliases:
-            die("{}: masc_to_fem names unknown alias {!r}".format(locale, (masc, fem)))
+            die("{}: known_units names unknown unit {!r}".format(locale, unit))
     for record in doc["positioned_units"]:
         if record["unit"] not in units:
             die("{}: positioned_units names unknown unit {!r}".format(locale, record["unit"]))
         position_variant(record["position"])
+
+
+def particle_parent(name):
+    """`M:a ch a` -> (`M:a ch`, `a`); `u` -> (``, `u`)."""
+    root = "M:" if name.startswith("M:") else ""
+    body = name[len(root):]
+    if " " in body:
+        head, alias = body.rsplit(" ", 1)
+        return root + head, alias
+    return root, body
 
 
 # ── rendering ──────────────────────────────────────────────────────────
@@ -418,41 +503,79 @@ def render_locale(locale, doc):
 
 NORMALIZE_USES = (
     "crate::generated::enums::WrittenUnit",
+    "crate::tables::Candidate",
+    "crate::tables::ContextTable",
+    "crate::tables::FinalEntry",
+    "crate::tables::FinalValidity",
     "crate::tables::Fvs",
     "crate::tables::NormalizeData",
     "crate::tables::Position",
-    "crate::tables::UnitEntry",
+    "crate::tables::Robustness",
 )
 
 
-def render_entries(section):
-    lines = []
-    for position in POSITIONS:
-        for key, entry in section.get(position, {}).items():
-            units = ", ".join("WrittenUnit::" + unit_variant(unit) for unit in key.split("+"))
-            fvs = "None" if entry["fvs"] is None else "Some(Fvs::Fvs{})".format(FVS_CP_TO_INDEX[entry["fvs"]])
-            lines.append("        UnitEntry {{ position: {}, units: &[{}], cp: {}, fvs: {} }},\n".format(
-                position_variant(position), units, hex_cp(int(entry["cp"], 16)), fvs))
-    return "".join(lines)
+def units_expr(names):
+    return "&[{}]".format(", ".join("WrittenUnit::" + unit_variant(unit) for unit in names.split("+")))
+
+
+def table_expr(table, value_expr):
+    rows = ", ".join("(0x{:x}, {})".format(int(key, 16), value_expr(value)) for key, value in table["rows"])
+    return "ContextTable {{ projection: 0b{:010b}, default: {}, rows: &[{}] }}".format(
+        projection_bits(table["projection"], "table"), value_expr(table["default"]), rows)
 
 
 def render_normalize(locale, doc, aliases):
+    written = doc["written_sequences"]
     body = []
     body.append("#[rustfmt::skip]\n")
     body.append("pub(crate) static DATA: NormalizeData = NormalizeData {\n")
     body.append("    canonical_version: {},\n".format(json.dumps(doc["canonical_version"])))
-    body.append("    unit_enc_max_len: {},\n".format(doc["unit_enc_max_len"]))
-    body.append("    unit_table: &[\n")
-    body.append(render_entries(doc["unit_table"]))
+    body.append("    mask_sets: &[\n")
+    for set_ in doc["mask_sets"]:
+        body.append("        [{}],\n".format(", ".join("0x{:x}".format(int(mask, 16)) for mask in set_)))
     body.append("    ],\n")
-    body.append("    velar_fem: &[\n")
-    body.append(render_entries(doc["velar_fem"]))
+    body.append("    candidates: &[\n")
+    for cand in doc["candidates"]:
+        fvs = "None" if cand["fvs"] is None else "Some(Fvs::Fvs{})".format(FVS_CP_TO_INDEX[cand["fvs"]])
+        robust = cand["robust"]
+        if robust == "always":
+            robust_expr = "Robustness::Always"
+        elif robust == "never":
+            robust_expr = "Robustness::Never"
+        else:
+            robust_expr = "Robustness::Table({})".format(table_expr(robust, str))
+        body.append(
+            "        Candidate {{ cp: {}, fvs: {}, position: {}, units: {}, written_id: {}, robust: {} }},\n".format(
+                hex_cp(int(cand["cp"], 16)), fvs, position_variant(cand["position"]), units_expr(cand["units"]),
+                written.index(cand["written"]) + 1, robust_expr))
     body.append("    ],\n")
-    body.append("    velar_fem_units: &[{}],\n".format(
-        ", ".join("WrittenUnit::" + unit_variant(unit) for unit in doc["velar_fem_units"])))
-    pairs = sorted((aliases[masc], aliases[fem]) for masc, fem in doc["masc_to_fem"].items())
-    body.append("    masc_to_fem: &[{}],\n".format(
-        ", ".join("({}, {})".format(hex_cp(masc), hex_cp(fem)) for masc, fem in pairs)))
+    body.append("    finals: &[\n")
+
+    def mask(value):
+        return "0b{:b}".format(int(value, 16))
+    for entry in doc["finals"]:
+        if isinstance(entry["valid"], dict):
+            valid = "FinalValidity::Table({})".format(table_expr(entry["valid"], mask))
+        else:
+            valid = "FinalValidity::Always({})".format(mask(entry["valid"]))
+        body.append("        FinalEntry {{ position: {}, units: {}, valid: {} }},\n".format(
+            position_variant(entry["position"]), units_expr(entry["units"]), valid))
+    body.append("    ],\n")
+    body.append("    promises: [\n")
+    for _name, letters in doc["promises"]:
+        body.append("        &[{}],\n".format(", ".join(hex_cp(aliases[alias]) for alias in letters)))
+    body.append("    ],\n")
+    nodes = doc["particle_nodes"]
+    body.append("    particle_nodes: &[\n")
+    for name in nodes:
+        if name in ("", "M:"):
+            body.append("        (u16::MAX, 0),\n")
+        else:
+            parent, alias = particle_parent(name)
+            body.append("        ({}, {}),\n".format(nodes.index(parent), hex_cp(aliases[alias])))
+    body.append("    ],\n")
+    body.append("    known_units: &[{}],\n".format(
+        ", ".join("WrittenUnit::" + unit_variant(unit) for unit in doc["known_units"])))
     body.append("    positioned_units: &[\n")
     for record in doc["positioned_units"]:
         body.append("        (WrittenUnit::{}, {}),\n".format(

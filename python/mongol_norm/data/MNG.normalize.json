@@ -1,1267 +1,517 @@
 {
-  "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/2",
+  "schema": "mongol-normalize-table/2",
+  "canonical_version": "mng-canonical/3",
   "locale": "MNG",
-  "description": "Per-(position, written-unit) FVS-pinned encoding table for normalize. Each value is a (letter, fvs) that renders exactly the written unit at that position regardless of neighbours. See the mongol-norm README for the consuming algorithm.",
-  "unit_enc_max_len": 3,
-  "positioned_units": [
-    {
-      "unit": "A",
-      "position": "fina"
-    },
-    {
-      "unit": "A",
-      "position": "init"
-    },
-    {
-      "unit": "A",
-      "position": "isol"
-    },
-    {
-      "unit": "A",
-      "position": "medi"
-    },
-    {
-      "unit": "Aa",
-      "position": "fina"
-    },
-    {
-      "unit": "Aa",
-      "position": "isol"
-    },
-    {
-      "unit": "B",
-      "position": "fina"
-    },
-    {
-      "unit": "B",
-      "position": "init"
-    },
-    {
-      "unit": "B",
-      "position": "medi"
-    },
-    {
-      "unit": "B2",
-      "position": "fina"
-    },
-    {
-      "unit": "C",
-      "position": "fina"
-    },
-    {
-      "unit": "C",
-      "position": "init"
-    },
-    {
-      "unit": "C",
-      "position": "medi"
-    },
-    {
-      "unit": "Ch",
-      "position": "fina"
-    },
-    {
-      "unit": "Ch",
-      "position": "init"
-    },
-    {
-      "unit": "Ch",
-      "position": "medi"
-    },
-    {
-      "unit": "Cr",
-      "position": "init"
-    },
-    {
-      "unit": "D",
-      "position": "fina"
-    },
-    {
-      "unit": "D",
-      "position": "init"
-    },
-    {
-      "unit": "D",
-      "position": "medi"
-    },
-    {
-      "unit": "Dd",
-      "position": "fina"
-    },
-    {
-      "unit": "Dd",
-      "position": "medi"
-    },
-    {
-      "unit": "F",
-      "position": "fina"
-    },
-    {
-      "unit": "F",
-      "position": "init"
-    },
-    {
-      "unit": "F",
-      "position": "medi"
-    },
-    {
-      "unit": "G",
-      "position": "fina"
-    },
-    {
-      "unit": "G",
-      "position": "init"
-    },
-    {
-      "unit": "G",
-      "position": "medi"
-    },
-    {
-      "unit": "Gx",
-      "position": "init"
-    },
-    {
-      "unit": "Gx",
-      "position": "medi"
-    },
-    {
-      "unit": "H",
-      "position": "fina"
-    },
-    {
-      "unit": "H",
-      "position": "init"
-    },
-    {
-      "unit": "H",
-      "position": "medi"
-    },
-    {
-      "unit": "Hr",
-      "position": "fina"
-    },
-    {
-      "unit": "Hr",
-      "position": "medi"
-    },
-    {
-      "unit": "Hx",
-      "position": "fina"
-    },
-    {
-      "unit": "Hx",
-      "position": "init"
-    },
-    {
-      "unit": "Hx",
-      "position": "medi"
-    },
-    {
-      "unit": "I",
-      "position": "fina"
-    },
-    {
-      "unit": "I",
-      "position": "init"
-    },
-    {
-      "unit": "I",
-      "position": "isol"
-    },
-    {
-      "unit": "I",
-      "position": "medi"
-    },
-    {
-      "unit": "Ix",
-      "position": "isol"
-    },
-    {
-      "unit": "J",
-      "position": "fina"
-    },
-    {
-      "unit": "J",
-      "position": "medi"
-    },
-    {
-      "unit": "K",
-      "position": "fina"
-    },
-    {
-      "unit": "K",
-      "position": "init"
-    },
-    {
-      "unit": "K",
-      "position": "medi"
-    },
-    {
-      "unit": "K2",
-      "position": "fina"
-    },
-    {
-      "unit": "K2",
-      "position": "init"
-    },
-    {
-      "unit": "K2",
-      "position": "medi"
-    },
-    {
-      "unit": "L",
-      "position": "fina"
-    },
-    {
-      "unit": "L",
-      "position": "init"
-    },
-    {
-      "unit": "L",
-      "position": "medi"
-    },
-    {
-      "unit": "M",
-      "position": "fina"
-    },
-    {
-      "unit": "M",
-      "position": "init"
-    },
-    {
-      "unit": "M",
-      "position": "medi"
-    },
-    {
-      "unit": "N",
-      "position": "fina"
-    },
-    {
-      "unit": "N",
-      "position": "init"
-    },
-    {
-      "unit": "N",
-      "position": "medi"
-    },
-    {
-      "unit": "O",
-      "position": "fina"
-    },
-    {
-      "unit": "O",
-      "position": "init"
-    },
-    {
-      "unit": "O",
-      "position": "medi"
-    },
-    {
-      "unit": "P",
-      "position": "fina"
-    },
-    {
-      "unit": "P",
-      "position": "init"
-    },
-    {
-      "unit": "P",
-      "position": "medi"
-    },
-    {
-      "unit": "R",
-      "position": "fina"
-    },
-    {
-      "unit": "R",
-      "position": "init"
-    },
-    {
-      "unit": "R",
-      "position": "medi"
-    },
-    {
-      "unit": "Rh",
-      "position": "fina"
-    },
-    {
-      "unit": "Rh",
-      "position": "init"
-    },
-    {
-      "unit": "Rh",
-      "position": "medi"
-    },
-    {
-      "unit": "S",
-      "position": "fina"
-    },
-    {
-      "unit": "S",
-      "position": "init"
-    },
-    {
-      "unit": "S",
-      "position": "medi"
-    },
-    {
-      "unit": "Sh",
-      "position": "fina"
-    },
-    {
-      "unit": "Sh",
-      "position": "init"
-    },
-    {
-      "unit": "Sh",
-      "position": "medi"
-    },
-    {
-      "unit": "Sz",
-      "position": "fina"
-    },
-    {
-      "unit": "T",
-      "position": "fina"
-    },
-    {
-      "unit": "T",
-      "position": "init"
-    },
-    {
-      "unit": "T",
-      "position": "medi"
-    },
-    {
-      "unit": "U",
-      "position": "fina"
-    },
-    {
-      "unit": "U",
-      "position": "isol"
-    },
-    {
-      "unit": "Ue",
-      "position": "fina"
-    },
-    {
-      "unit": "Ux",
-      "position": "isol"
-    },
-    {
-      "unit": "W",
-      "position": "fina"
-    },
-    {
-      "unit": "W",
-      "position": "init"
-    },
-    {
-      "unit": "W",
-      "position": "medi"
-    },
-    {
-      "unit": "Y",
-      "position": "init"
-    },
-    {
-      "unit": "Y",
-      "position": "medi"
-    },
-    {
-      "unit": "Z",
-      "position": "fina"
-    },
-    {
-      "unit": "Z",
-      "position": "init"
-    },
-    {
-      "unit": "Z",
-      "position": "medi"
-    },
-    {
-      "unit": "Zr",
-      "position": "init"
-    }
+  "description": "Tables of the online normalize encoder: encoding options per (position, written units) in preference order, when each context-dependent option may be committed (projection of the encoder context -> per-promise masks over the next unit), and the final-letter choice. Generated by examples/gen_normalize_table; see docs/data-format.md.",
+  "constants": {"MVS": "180E", "NIRUGU": "180A", "ZWJ": "200D", "FVS1": "180B", "FVS2": "180C", "FVS3": "180D", "FVS4": "180F"},
+  "context_components": [["prev_letter", 6], ["prev_fvs", 3], ["prev_position", 3], ["prev_written", 8], ["prev_token", 3], ["mvs_since_prev", 1], ["cluster", 1], ["masculine", 1], ["particle", 10], ["promise", 3]],
+  "promises": [["vowel", ["a", "e", "i", "o", "u", "oe", "ue", "ee"]], ["vowel_not_ee", ["a", "e", "i", "o", "u", "oe", "ue"]], ["masculine", ["a", "o", "u"]], ["feminine_or_neutral", ["e", "i", "oe", "ue", "ee"]], ["consonant_or_ee", ["ee", "n", "ng", "b", "p", "h", "g", "m", "l", "s", "sh", "t", "d", "ch", "j", "y", "r", "w", "f", "k2", "k", "c", "z", "hh", "rh", "lh", "zr", "cr"]]],
+  "particle_nodes": ["", "M:", "u", "u u", "ue", "ue ue", "b", "b ue", "b ue ue", "M:u", "M:u u", "M:ue", "M:ue ue", "M:b", "M:b ue", "M:b ue ue", "M:a", "M:a ch", "M:a ch a", "M:a ch a g", "M:a ch a g a", "M:a ch a g a n", "M:i", "M:i y", "M:i y a", "M:i y a r", "M:i y e", "M:i y e r", "M:i y a n", "M:i y e n", "M:u n", "M:ue n", "M:u d", "M:ue d", "M:ch", "M:ch u", "M:ch ue", "M:t", "M:t u", "M:t ue", "M:t ue r", "M:t ue n", "M:t ue n i", "M:y", "M:y ue", "M:y ue g", "M:y ue g e", "M:y ue g e n", "M:l", "M:l ue", "M:l ue g", "M:l ue g e", "M:n", "M:n ue", "M:n ue g", "M:n ue g ue", "M:n ue g ue d", "M:n ue g e", "M:n ue g e n", "M:y ue m", "M:y ue m s", "M:y ue m s e", "M:y ue m s e n", "M:h", "M:h ue", "M:y i", "M:y i n", "M:d", "M:d a", "M:d a g", "M:d a g a", "M:d a g a n", "M:d e", "M:d e g", "M:d e g e", "M:d e g e n", "M:d u", "M:d ue", "M:d a h", "M:d a h i", "M:d e h", "M:d e h i", "M:d u r", "M:d ue r", "M:d u n", "M:d u n i", "M:d ue n", "M:d ue n i", "M:d u g", "M:d u g a", "M:d u g a r", "M:d ue g", "M:d ue g e", "M:d ue g e r"],
+  "written_sequences": ["A", "A+A", "A+G", "A+Hr", "A+I", "A+O", "A+O+I", "A+U", "A+Ue", "A+W", "Aa", "B", "B2", "C", "Ch", "Cr", "D", "F", "G", "Gx", "H", "Hr", "Hx", "I", "I+I", "Ix", "J", "K", "K2", "L", "L+Hr", "M", "N", "O", "O+I", "P", "R", "Rh", "S", "Sh", "Sz", "T", "U", "Ue", "Ux", "W", "Y", "Z", "Zr"],
+  "mask_units": ["A", "Aa", "Ah", "Ai", "At", "B", "B2", "C", "Cc", "Ch", "Cp", "Cr", "Cs", "D", "Db", "Dd", "Dh", "Dp", "Dt", "E", "F", "G", "G2", "G3", "G4", "Gc", "Gh", "Gp", "Gx", "H", "Hb", "Hc", "Hh", "Hp", "Hr", "Hx", "Hx2", "I", "I3", "Ic", "Ip", "Ix", "Iy", "J", "J2", "Jb", "Jc", "K", "K2", "Kc", "Kh", "Kp", "L", "Lv", "M", "M2", "Mvs", "N", "N2", "Nirugu", "Nx", "Ny", "O", "Ob", "Oh", "Op", "Ot", "P", "Pb", "Pp", "R", "R2", "R3", "Rh", "Rr", "S", "Sh", "Sp", "Sz", "T", "Tb", "Th", "Tp", "Tt", "U", "Ue", "Uh", "Up", "Ux", "V", "W", "Wb", "Y", "Yp", "Z", "Zc", "Zr", "Zs", "Zs2", "Zwj", "Zz"],
+  "known_units": ["A", "Aa", "B", "B2", "C", "Ch", "Cr", "D", "Dd", "F", "G", "Gx", "H", "Hr", "Hx", "I", "Ix", "J", "K", "K2", "L", "M", "N", "O", "P", "R", "Rh", "S", "Sh", "Sz", "T", "U", "Ue", "Ux", "W", "Y", "Z", "Zr"],
+  "mask_sets": [
+    ["100000000000000", "0", "0", "0", "0", "0"],
+    ["0", "0", "0", "0", "0", "0"],
+    ["95430da484a51882c30302ae3", "43000004000002000000003", "3000004000002000000003", "1000004000000000000003", "43000004000002000000003", "15410da484251882c30302ae1"],
+    ["95430da484a51882c30302ae3", "0", "0", "0", "0", "0"],
+    ["15420da480251882c30302ae0", "42000000000002000000000", "2000000000002000000000", "0", "43000004000002000000003", "15410da484251882c30302ae1"],
+    ["0", "0", "0", "1000004000000000000003", "0", "0"],
+    ["15430da484251880c30302ae2", "43000004000000000000002", "3000004000000000000002", "1000004000000000000003", "43000004000000000000002", "15410da484251882c30302ae1"],
+    ["15000da480251880c30302ae0", "0", "0", "0", "0", "15010da484251882c30302ae1"],
+    ["15000da480251880c30302ae0", "0", "0", "0", "0", "0"],
+    ["2000000000000000000002", "3000004000002000000003", "3000004000002000000003", "1000004000000000000003", "3000004000002000000003", "0"],
+    ["2000000000000000000002", "43000004000002000000003", "3000004000002000000003", "1000004000000000000003", "43000004000002000000003", "0"],
+    ["2000000000000000000002", "0", "0", "0", "0", "0"],
+    ["2000000000000000000000", "42000000000002000000000", "2000000000002000000000", "0", "43000004000002000000003", "0"],
+    ["15430da484251882c30302ae3", "43000004000002000000003", "3000004000002000000003", "1000004000000000000003", "43000004000002000000003", "15410da484251882c30302ae1"],
+    ["0", "2000000000", "2000000000", "0", "2000000000", "0"],
+    ["15400da480251880c30302ae0", "40000000000000000000000", "0", "0", "40000000000000000000000", "15410da484251882c30302ae1"]
   ],
-  "constants": {
-    "MVS": "180E",
-    "NIRUGU": "180A",
-    "ZWJ": "200D",
-    "FVS1": "180B",
-    "FVS2": "180C",
-    "FVS3": "180D",
-    "FVS4": "180F"
-  },
-  "ci_probe_letters": [
-    "a",
-    "e",
-    "o",
-    "i",
-    "n",
-    "s",
-    "g",
-    "b"
+  "candidates": [
+    {"letter": "e", "cp": "1821", "fvs": null, "position": "isol", "units": "A", "written": "A", "robust": {"projection": ["prev_token"], "default": 0, "rows": [["2", 1]]}},
+    {"letter": "a", "cp": "1820", "fvs": "180B", "position": "isol", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": "180C", "position": "isol", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": "180D", "position": "isol", "units": "A", "written": "A", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "n", "cp": "1828", "fvs": "180B", "position": "isol", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": null, "position": "isol", "units": "A+A", "written": "A+A", "robust": {"projection": ["prev_token"], "default": 0, "rows": [["2", 1]]}},
+    {"letter": "a", "cp": "1820", "fvs": "180D", "position": "isol", "units": "A+A", "written": "A+A", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": "180F", "position": "isol", "units": "A+A", "written": "A+A", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "ng", "cp": "1829", "fvs": null, "position": "isol", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "ng", "cp": "1829", "fvs": "180B", "position": "isol", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "hh", "cp": "183E", "fvs": null, "position": "isol", "units": "A+Hr", "written": "A+Hr", "robust": "always"},
+    {"letter": "hh", "cp": "183E", "fvs": "180B", "position": "isol", "units": "A+Hr", "written": "A+Hr", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": null, "position": "isol", "units": "A+I", "written": "A+I", "robust": {"projection": ["prev_token"], "default": 0, "rows": [["2", 1]]}},
+    {"letter": "i", "cp": "1822", "fvs": "180D", "position": "isol", "units": "A+I", "written": "A+I", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": "180F", "position": "isol", "units": "A+I", "written": "A+I", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "o", "cp": "1823", "fvs": null, "position": "isol", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": null, "position": "isol", "units": "A+O", "written": "A+O", "robust": {"projection": ["prev_token"], "default": 0, "rows": [["2", 1]]}},
+    {"letter": "o", "cp": "1823", "fvs": "180B", "position": "isol", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180D", "position": "isol", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180F", "position": "isol", "units": "A+O", "written": "A+O", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "oe", "cp": "1825", "fvs": "180B", "position": "isol", "units": "A+U", "written": "A+U", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180B", "position": "isol", "units": "A+U", "written": "A+U", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": null, "position": "isol", "units": "A+Ue", "written": "A+Ue", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "isol", "units": "A+Ue", "written": "A+Ue", "robust": {"projection": ["prev_token"], "default": 0, "rows": [["2", 1]]}},
+    {"letter": "oe", "cp": "1825", "fvs": "180C", "position": "isol", "units": "A+Ue", "written": "A+Ue", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180F", "position": "isol", "units": "A+Ue", "written": "A+Ue", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "ee", "cp": "1827", "fvs": null, "position": "isol", "units": "A+W", "written": "A+W", "robust": "always"},
+    {"letter": "ee", "cp": "1827", "fvs": "180B", "position": "isol", "units": "A+W", "written": "A+W", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": null, "position": "isol", "units": "Aa", "written": "Aa", "robust": {"projection": ["prev_token"], "default": 1, "rows": [["2", 0]]}},
+    {"letter": "e", "cp": "1821", "fvs": null, "position": "isol", "units": "Aa", "written": "Aa", "robust": {"projection": ["prev_token"], "default": 1, "rows": [["2", 0]]}},
+    {"letter": "a", "cp": "1820", "fvs": "180C", "position": "isol", "units": "Aa", "written": "Aa", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": "180B", "position": "isol", "units": "Aa", "written": "Aa", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": null, "position": "isol", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": "180B", "position": "isol", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": null, "position": "isol", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": "180B", "position": "isol", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": null, "position": "isol", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": "180B", "position": "isol", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "cr", "cp": "1842", "fvs": null, "position": "isol", "units": "Cr", "written": "Cr", "robust": "always"},
+    {"letter": "cr", "cp": "1842", "fvs": "180B", "position": "isol", "units": "Cr", "written": "Cr", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": null, "position": "isol", "units": "D", "written": "D", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": "180C", "position": "isol", "units": "D", "written": "D", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": null, "position": "isol", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": "180B", "position": "isol", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": "180C", "position": "isol", "units": "G", "written": "G", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180C", "position": "isol", "units": "G", "written": "G", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": "180F", "position": "isol", "units": "Gx", "written": "Gx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180F", "position": "isol", "units": "Gx", "written": "Gx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": null, "position": "isol", "units": "H", "written": "H", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": "180B", "position": "isol", "units": "H", "written": "H", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180D", "position": "isol", "units": "H", "written": "H", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": null, "position": "isol", "units": "Hx", "written": "Hx", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": "180D", "position": "isol", "units": "Hx", "written": "Hx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180B", "position": "isol", "units": "Hx", "written": "Hx", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": null, "position": "isol", "units": "I", "written": "I", "robust": {"projection": ["prev_token"], "default": 1, "rows": [["2", 0]]}},
+    {"letter": "i", "cp": "1822", "fvs": "180B", "position": "isol", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": "180B", "position": "isol", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": "180C", "position": "isol", "units": "I", "written": "I", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "y", "cp": "1836", "fvs": "180B", "position": "isol", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": "180C", "position": "isol", "units": "Ix", "written": "Ix", "robust": "always"},
+    {"letter": "k", "cp": "183B", "fvs": null, "position": "isol", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k", "cp": "183B", "fvs": "180B", "position": "isol", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": null, "position": "isol", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": "180B", "position": "isol", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": null, "position": "isol", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": "180B", "position": "isol", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": null, "position": "isol", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": "180B", "position": "isol", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": null, "position": "isol", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": "180B", "position": "isol", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": null, "position": "isol", "units": "N", "written": "N", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": "180C", "position": "isol", "units": "N", "written": "N", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": null, "position": "isol", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": "180B", "position": "isol", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": null, "position": "isol", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": "180B", "position": "isol", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": null, "position": "isol", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": "180B", "position": "isol", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "s", "cp": "1830", "fvs": null, "position": "isol", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "s", "cp": "1830", "fvs": "180B", "position": "isol", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": "180B", "position": "isol", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": null, "position": "isol", "units": "Sh", "written": "Sh", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": "180C", "position": "isol", "units": "Sh", "written": "Sh", "robust": "always"},
+    {"letter": "t", "cp": "1832", "fvs": null, "position": "isol", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "t", "cp": "1832", "fvs": "180B", "position": "isol", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": "180B", "position": "isol", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": null, "position": "isol", "units": "U", "written": "U", "robust": {"projection": ["prev_token"], "default": 1, "rows": [["2", 0]]}},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "isol", "units": "U", "written": "U", "robust": {"projection": ["prev_token"], "default": 1, "rows": [["2", 0]]}},
+    {"letter": "u", "cp": "1824", "fvs": "180B", "position": "isol", "units": "U", "written": "U", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180C", "position": "isol", "units": "U", "written": "U", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180C", "position": "isol", "units": "Ux", "written": "Ux", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180D", "position": "isol", "units": "Ux", "written": "Ux", "robust": "always"},
+    {"letter": "w", "cp": "1838", "fvs": null, "position": "isol", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "w", "cp": "1838", "fvs": "180B", "position": "isol", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": null, "position": "isol", "units": "Y", "written": "Y", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": "180C", "position": "isol", "units": "Y", "written": "Y", "robust": "always"},
+    {"letter": "z", "cp": "183D", "fvs": null, "position": "isol", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "z", "cp": "183D", "fvs": "180B", "position": "isol", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": null, "position": "isol", "units": "Zr", "written": "Zr", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": "180B", "position": "isol", "units": "Zr", "written": "Zr", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": null, "position": "init", "units": "A", "written": "A", "robust": "never"},
+    {"letter": "e", "cp": "1821", "fvs": null, "position": "init", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": "180B", "position": "init", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": "180C", "position": "init", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": "180B", "position": "init", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": null, "position": "init", "units": "A+A", "written": "A+A", "robust": {"projection": ["prev_token"], "default": 2, "rows": [["2", 1]]}},
+    {"letter": "a", "cp": "1820", "fvs": "180C", "position": "init", "units": "A+A", "written": "A+A", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": "180D", "position": "init", "units": "A+A", "written": "A+A", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "e", "cp": "1821", "fvs": "180B", "position": "init", "units": "A+A", "written": "A+A", "robust": "always"},
+    {"letter": "ng", "cp": "1829", "fvs": null, "position": "init", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "ng", "cp": "1829", "fvs": "180B", "position": "init", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "hh", "cp": "183E", "fvs": null, "position": "init", "units": "A+Hr", "written": "A+Hr", "robust": "always"},
+    {"letter": "hh", "cp": "183E", "fvs": "180B", "position": "init", "units": "A+Hr", "written": "A+Hr", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": null, "position": "init", "units": "A+I", "written": "A+I", "robust": {"projection": ["prev_token"], "default": 2, "rows": [["2", 1]]}},
+    {"letter": "i", "cp": "1822", "fvs": "180C", "position": "init", "units": "A+I", "written": "A+I", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": "180D", "position": "init", "units": "A+I", "written": "A+I", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "o", "cp": "1823", "fvs": null, "position": "init", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": null, "position": "init", "units": "A+O", "written": "A+O", "robust": "never"},
+    {"letter": "o", "cp": "1823", "fvs": "180B", "position": "init", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180C", "position": "init", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180D", "position": "init", "units": "A+O", "written": "A+O", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "oe", "cp": "1825", "fvs": null, "position": "init", "units": "A+O+I", "written": "A+O+I", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "init", "units": "A+O+I", "written": "A+O+I", "robust": "never"},
+    {"letter": "oe", "cp": "1825", "fvs": "180B", "position": "init", "units": "A+O+I", "written": "A+O+I", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180C", "position": "init", "units": "A+O+I", "written": "A+O+I", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180D", "position": "init", "units": "A+O+I", "written": "A+O+I", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "ee", "cp": "1827", "fvs": null, "position": "init", "units": "A+W", "written": "A+W", "robust": "always"},
+    {"letter": "ee", "cp": "1827", "fvs": "180B", "position": "init", "units": "A+W", "written": "A+W", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": null, "position": "init", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": "180B", "position": "init", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": null, "position": "init", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": "180B", "position": "init", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": null, "position": "init", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": "180B", "position": "init", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": null, "position": "init", "units": "D", "written": "D", "robust": "never"},
+    {"letter": "d", "cp": "1833", "fvs": "180B", "position": "init", "units": "D", "written": "D", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": null, "position": "init", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": "180B", "position": "init", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": null, "position": "init", "units": "G", "written": "G", "robust": {"projection": [], "default": 4, "rows": []}},
+    {"letter": "h", "cp": "182C", "fvs": null, "position": "init", "units": "G", "written": "G", "robust": {"projection": [], "default": 4, "rows": []}},
+    {"letter": "g", "cp": "182D", "fvs": "180C", "position": "init", "units": "G", "written": "G", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180C", "position": "init", "units": "G", "written": "G", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": "180F", "position": "init", "units": "Gx", "written": "Gx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180F", "position": "init", "units": "Gx", "written": "Gx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": null, "position": "init", "units": "H", "written": "H", "robust": {"projection": ["prev_token"], "default": 5, "rows": [["2", 1]]}},
+    {"letter": "g", "cp": "182D", "fvs": "180B", "position": "init", "units": "H", "written": "H", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180D", "position": "init", "units": "H", "written": "H", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": null, "position": "init", "units": "Hx", "written": "Hx", "robust": {"projection": [], "default": 5, "rows": []}},
+    {"letter": "g", "cp": "182D", "fvs": "180D", "position": "init", "units": "Hx", "written": "Hx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180B", "position": "init", "units": "Hx", "written": "Hx", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": null, "position": "init", "units": "I", "written": "I", "robust": "never"},
+    {"letter": "j", "cp": "1835", "fvs": null, "position": "init", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": null, "position": "init", "units": "I", "written": "I", "robust": "never"},
+    {"letter": "i", "cp": "1822", "fvs": "180B", "position": "init", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": "180B", "position": "init", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": "180B", "position": "init", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "k", "cp": "183B", "fvs": null, "position": "init", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k", "cp": "183B", "fvs": "180B", "position": "init", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": null, "position": "init", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": "180B", "position": "init", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": null, "position": "init", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": "180B", "position": "init", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": null, "position": "init", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": "180B", "position": "init", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": null, "position": "init", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": "180B", "position": "init", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": null, "position": "init", "units": "N", "written": "N", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": "180C", "position": "init", "units": "N", "written": "N", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": null, "position": "init", "units": "O", "written": "O", "robust": "never"},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "init", "units": "O", "written": "O", "robust": "never"},
+    {"letter": "u", "cp": "1824", "fvs": "180B", "position": "init", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180B", "position": "init", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": null, "position": "init", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": "180B", "position": "init", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": null, "position": "init", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": "180B", "position": "init", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": null, "position": "init", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": "180B", "position": "init", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "s", "cp": "1830", "fvs": null, "position": "init", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": null, "position": "init", "units": "S", "written": "S", "robust": "never"},
+    {"letter": "s", "cp": "1830", "fvs": "180B", "position": "init", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": "180B", "position": "init", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": null, "position": "init", "units": "Sh", "written": "Sh", "robust": {"projection": [], "default": 6, "rows": []}},
+    {"letter": "sh", "cp": "1831", "fvs": "180C", "position": "init", "units": "Sh", "written": "Sh", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": "180D", "position": "init", "units": "Sh", "written": "Sh", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "t", "cp": "1832", "fvs": null, "position": "init", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": null, "position": "init", "units": "T", "written": "T", "robust": {"projection": ["prev_token"], "default": 7, "rows": [["2", 1]]}},
+    {"letter": "t", "cp": "1832", "fvs": "180B", "position": "init", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": "180C", "position": "init", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": "180D", "position": "init", "units": "T", "written": "T", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "w", "cp": "1838", "fvs": null, "position": "init", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "w", "cp": "1838", "fvs": "180B", "position": "init", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": null, "position": "init", "units": "Y", "written": "Y", "robust": {"projection": ["prev_token"], "default": 2, "rows": [["2", 1]]}},
+    {"letter": "y", "cp": "1836", "fvs": "180C", "position": "init", "units": "Y", "written": "Y", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": "180D", "position": "init", "units": "Y", "written": "Y", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "z", "cp": "183D", "fvs": null, "position": "init", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "z", "cp": "183D", "fvs": "180B", "position": "init", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": null, "position": "init", "units": "Zr", "written": "Zr", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": "180B", "position": "init", "units": "Zr", "written": "Zr", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": null, "position": "medi", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": null, "position": "medi", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": null, "position": "medi", "units": "A", "written": "A", "robust": {"projection": ["particle"], "default": 7, "rows": [["1", 1], ["27", 1], ["4c", 1], ["4d", 1]]}},
+    {"letter": "a", "cp": "1820", "fvs": "180C", "position": "medi", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": "180B", "position": "medi", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": "180C", "position": "medi", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": "180D", "position": "medi", "units": "A", "written": "A", "robust": {"projection": [], "default": 8, "rows": []}},
+    {"letter": "a", "cp": "1820", "fvs": "180B", "position": "medi", "units": "A+A", "written": "A+A", "robust": "always"},
+    {"letter": "ng", "cp": "1829", "fvs": null, "position": "medi", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "ng", "cp": "1829", "fvs": "180B", "position": "medi", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": "180B", "position": "medi", "units": "A+I", "written": "A+I", "robust": "always"},
+    {"letter": "o", "cp": "1823", "fvs": "180B", "position": "medi", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180B", "position": "medi", "units": "A+O", "written": "A+O", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": "180C", "position": "medi", "units": "A+O+I", "written": "A+O+I", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180C", "position": "medi", "units": "A+O+I", "written": "A+O+I", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": null, "position": "medi", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": "180B", "position": "medi", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": null, "position": "medi", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": "180B", "position": "medi", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": null, "position": "medi", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": "180B", "position": "medi", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "cr", "cp": "1842", "fvs": null, "position": "medi", "units": "Cr", "written": "Cr", "robust": "always"},
+    {"letter": "cr", "cp": "1842", "fvs": "180B", "position": "medi", "units": "Cr", "written": "Cr", "robust": "always"},
+    {"letter": "t", "cp": "1832", "fvs": null, "position": "medi", "units": "D", "written": "D", "robust": {"projection": [], "default": 9, "rows": []}},
+    {"letter": "d", "cp": "1833", "fvs": null, "position": "medi", "units": "D", "written": "D", "robust": {"projection": [], "default": 10, "rows": []}},
+    {"letter": "t", "cp": "1832", "fvs": "180C", "position": "medi", "units": "D", "written": "D", "robust": "always"},
+    {"letter": "t", "cp": "1832", "fvs": "180D", "position": "medi", "units": "D", "written": "D", "robust": {"projection": ["prev_letter"], "default": 3, "rows": [["1", 11], ["2", 11], ["3", 11], ["4", 11], ["5", 11], ["6", 11], ["7", 11], ["8", 11]]}},
+    {"letter": "d", "cp": "1833", "fvs": "180B", "position": "medi", "units": "D", "written": "D", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": null, "position": "medi", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": "180B", "position": "medi", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": null, "position": "medi", "units": "G", "written": "G", "robust": {"projection": ["prev_letter", "particle"], "default": 4, "rows": [["410", 12], ["412", 1], ["418", 12], ["444", 1], ["7ff", 12], ["c16", 1], ["c2a", 1], ["c41", 1], ["c4f", 1], ["c51", 1], ["c55", 1], ["c57", 1], ["fff", 1], ["13ff", 12], ["1402", 12], ["1403", 12], ["1409", 12], ["140a", 12], ["1423", 12], ["1426", 12], ["144c", 1], ["17ff", 12]]}},
+    {"letter": "h", "cp": "182C", "fvs": null, "position": "medi", "units": "G", "written": "G", "robust": {"projection": ["prev_letter", "mvs_since_prev"], "default": 4, "rows": [["2", 12], ["6", 1], ["8", 12], ["a", 12]]}},
+    {"letter": "g", "cp": "182D", "fvs": "180C", "position": "medi", "units": "G", "written": "G", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180C", "position": "medi", "units": "G", "written": "G", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": "180F", "position": "medi", "units": "Gx", "written": "Gx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180F", "position": "medi", "units": "Gx", "written": "Gx", "robust": "always"},
+    {"letter": "hh", "cp": "183E", "fvs": null, "position": "medi", "units": "Hr", "written": "Hr", "robust": "always"},
+    {"letter": "hh", "cp": "183E", "fvs": "180B", "position": "medi", "units": "Hr", "written": "Hr", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": null, "position": "medi", "units": "I", "written": "I", "robust": {"projection": ["prev_letter", "prev_written"], "default": 2, "rows": [["101", 1], ["102", 1], ["10b", 1], ["201", 1], ["202", 1], ["20b", 1], ["31a", 1], ["406", 1], ["422", 1], ["42b", 1], ["506", 1], ["522", 1], ["52b", 1], ["52d", 1], ["608", 1], ["609", 1], ["622", 1], ["62b", 1], ["62c", 1], ["708", 1], ["709", 1], ["722", 1], ["72b", 1], ["72c", 1], ["72d", 1], ["80a", 1], ["82e", 1]]}},
+    {"letter": "y", "cp": "1836", "fvs": null, "position": "medi", "units": "I", "written": "I", "robust": "never"},
+    {"letter": "i", "cp": "1822", "fvs": "180D", "position": "medi", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": "180F", "position": "medi", "units": "I", "written": "I", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "y", "cp": "1836", "fvs": "180B", "position": "medi", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": null, "position": "medi", "units": "I+I", "written": "I+I", "robust": {"projection": ["prev_letter", "prev_written"], "default": 1, "rows": [["101", 2], ["102", 2], ["10b", 2], ["201", 2], ["202", 2], ["20b", 2], ["31a", 2], ["406", 2], ["422", 2], ["42b", 2], ["506", 2], ["522", 2], ["52b", 2], ["52d", 2], ["608", 2], ["609", 2], ["622", 2], ["62b", 2], ["62c", 2], ["708", 2], ["709", 2], ["722", 2], ["72b", 2], ["72c", 2], ["72d", 2], ["80a", 2], ["82e", 2]]}},
+    {"letter": "i", "cp": "1822", "fvs": "180C", "position": "medi", "units": "I+I", "written": "I+I", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": "180C", "position": "medi", "units": "I+I", "written": "I+I", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": null, "position": "medi", "units": "J", "written": "J", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": "180B", "position": "medi", "units": "J", "written": "J", "robust": "always"},
+    {"letter": "k", "cp": "183B", "fvs": null, "position": "medi", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k", "cp": "183B", "fvs": "180B", "position": "medi", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": null, "position": "medi", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": "180B", "position": "medi", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": null, "position": "medi", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": "180B", "position": "medi", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": null, "position": "medi", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": "180B", "position": "medi", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": null, "position": "medi", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": "180B", "position": "medi", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": null, "position": "medi", "units": "N", "written": "N", "robust": {"projection": [], "default": 10, "rows": []}},
+    {"letter": "n", "cp": "1828", "fvs": "180B", "position": "medi", "units": "N", "written": "N", "robust": "always"},
+    {"letter": "o", "cp": "1823", "fvs": null, "position": "medi", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": null, "position": "medi", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": null, "position": "medi", "units": "O", "written": "O", "robust": {"projection": ["prev_letter", "prev_position", "cluster"], "default": 2, "rows": [["94", 1], ["97", 1], ["a4", 1], ["a7", 1], ["b4", 1], ["b7", 1], ["c4", 1], ["c7", 1], ["d4", 1], ["d7", 1], ["e4", 1], ["e7", 1], ["f4", 1], ["f7", 1], ["104", 1], ["107", 1], ["114", 1], ["117", 1], ["124", 1], ["127", 1], ["134", 1], ["137", 1], ["144", 1], ["147", 1], ["154", 1], ["157", 1], ["164", 1], ["167", 1], ["174", 1], ["177", 1], ["184", 1], ["187", 1], ["194", 1], ["197", 1], ["1a4", 1], ["1a7", 1], ["1b4", 1], ["1b7", 1], ["1c4", 1], ["1c7", 1], ["1d4", 1], ["1d7", 1], ["1e4", 1], ["1e7", 1], ["1f4", 1], ["1f7", 1], ["204", 1], ["207", 1], ["214", 1], ["217", 1], ["224", 1], ["227", 1], ["237", 1]]}},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "medi", "units": "O", "written": "O", "robust": {"projection": ["prev_letter", "prev_position", "cluster"], "default": 2, "rows": [["94", 1], ["97", 1], ["a4", 1], ["a7", 1], ["b4", 1], ["b7", 1], ["c4", 1], ["c7", 1], ["d4", 1], ["d7", 1], ["e4", 1], ["e7", 1], ["f4", 1], ["f7", 1], ["104", 1], ["107", 1], ["114", 1], ["117", 1], ["124", 1], ["127", 1], ["134", 1], ["137", 1], ["144", 1], ["147", 1], ["154", 1], ["157", 1], ["164", 1], ["167", 1], ["174", 1], ["177", 1], ["184", 1], ["187", 1], ["194", 1], ["197", 1], ["1a4", 1], ["1a7", 1], ["1b4", 1], ["1b7", 1], ["1c4", 1], ["1c7", 1], ["1d4", 1], ["1d7", 1], ["1e4", 1], ["1e7", 1], ["1f4", 1], ["1f7", 1], ["204", 1], ["207", 1], ["214", 1], ["217", 1], ["224", 1], ["227", 1], ["237", 1]]}},
+    {"letter": "o", "cp": "1823", "fvs": "180C", "position": "medi", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180C", "position": "medi", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": "180D", "position": "medi", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": "180F", "position": "medi", "units": "O", "written": "O", "robust": {"projection": ["prev_letter", "prev_position"], "default": 3, "rows": [["4a", 1], ["52", 1], ["5a", 1], ["62", 1], ["6a", 1], ["72", 1], ["7a", 1], ["82", 1], ["8a", 1], ["92", 1], ["9a", 1], ["a2", 1], ["aa", 1], ["b2", 1], ["ba", 1], ["c2", 1], ["ca", 1], ["d2", 1], ["da", 1], ["e2", 1], ["ea", 1], ["f2", 1], ["fa", 1], ["102", 1], ["10a", 1], ["112", 1]]}},
+    {"letter": "ue", "cp": "1826", "fvs": "180D", "position": "medi", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180F", "position": "medi", "units": "O", "written": "O", "robust": {"projection": ["prev_letter", "prev_position"], "default": 3, "rows": [["4a", 1], ["52", 1], ["5a", 1], ["62", 1], ["6a", 1], ["72", 1], ["7a", 1], ["82", 1], ["8a", 1], ["92", 1], ["9a", 1], ["a2", 1], ["aa", 1], ["b2", 1], ["ba", 1], ["c2", 1], ["ca", 1], ["d2", 1], ["da", 1], ["e2", 1], ["ea", 1], ["f2", 1], ["fa", 1], ["102", 1], ["10a", 1], ["112", 1]]}},
+    {"letter": "w", "cp": "1838", "fvs": "180B", "position": "medi", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": null, "position": "medi", "units": "O+I", "written": "O+I", "robust": {"projection": ["prev_letter", "prev_position", "cluster"], "default": 1, "rows": [["94", 2], ["97", 2], ["a4", 2], ["a7", 2], ["b4", 2], ["b7", 2], ["c4", 2], ["c7", 2], ["d4", 2], ["d7", 2], ["e4", 2], ["e7", 2], ["f4", 2], ["f7", 2], ["104", 2], ["107", 2], ["114", 2], ["117", 2], ["124", 2], ["127", 2], ["134", 2], ["137", 2], ["144", 2], ["147", 2], ["154", 2], ["157", 2], ["164", 2], ["167", 2], ["174", 2], ["177", 2], ["184", 2], ["187", 2], ["194", 2], ["197", 2], ["1a4", 2], ["1a7", 2], ["1b4", 2], ["1b7", 2], ["1c4", 2], ["1c7", 2], ["1d4", 2], ["1d7", 2], ["1e4", 2], ["1e7", 2], ["1f4", 2], ["1f7", 2], ["204", 2], ["207", 2], ["214", 2], ["217", 2], ["224", 2], ["227", 2], ["237", 2]]}},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "medi", "units": "O+I", "written": "O+I", "robust": {"projection": ["prev_letter", "prev_position", "cluster", "particle"], "default": 1, "rows": [["25001", 2], ["253ff", 2], ["25fff", 2], ["29001", 2], ["293ff", 2], ["29fff", 2], ["2d001", 2], ["2d3ff", 2], ["2dfff", 2], ["31001", 2], ["313ff", 2], ["31fff", 2], ["35001", 2], ["3503f", 13], ["353ff", 2], ["35fff", 2], ["39001", 2], ["393ff", 2], ["39fff", 2], ["3d001", 2], ["3d3ff", 2], ["3dfff", 2], ["41001", 2], ["413ff", 2], ["41fff", 2], ["45001", 2], ["453ff", 2], ["45fff", 2], ["49001", 2], ["493ff", 2], ["49fff", 2], ["4d001", 2], ["4d3ff", 2], ["4dfff", 2], ["51001", 2], ["513ff", 2], ["51fff", 2], ["55001", 2], ["55022", 13], ["553ff", 2], ["55fff", 2], ["59001", 2], ["593ff", 2], ["59fff", 2], ["5d001", 2], ["5d3ff", 2], ["5dfff", 2], ["61001", 2], ["613ff", 2], ["61fff", 2], ["65001", 2], ["653ff", 2], ["65fff", 2], ["69001", 2], ["693ff", 2], ["69fff", 2], ["6d001", 2], ["6d3ff", 2], ["6dfff", 2], ["71001", 2], ["713ff", 2], ["71fff", 2], ["75001", 2], ["753ff", 2], ["75fff", 2], ["79001", 2], ["793ff", 2], ["79fff", 2], ["7d001", 2], ["7d3ff", 2], ["7dfff", 2], ["81001", 2], ["813ff", 2], ["81fff", 2], ["85001", 2], ["853ff", 2], ["85fff", 2], ["89001", 2], ["893ff", 2], ["89fff", 2], ["8dfff", 2]]}},
+    {"letter": "oe", "cp": "1825", "fvs": "180B", "position": "medi", "units": "O+I", "written": "O+I", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180B", "position": "medi", "units": "O+I", "written": "O+I", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": null, "position": "medi", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": "180B", "position": "medi", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": null, "position": "medi", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": "180B", "position": "medi", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": null, "position": "medi", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": "180B", "position": "medi", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "s", "cp": "1830", "fvs": null, "position": "medi", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": null, "position": "medi", "units": "S", "written": "S", "robust": {"projection": [], "default": 14, "rows": []}},
+    {"letter": "s", "cp": "1830", "fvs": "180B", "position": "medi", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": "180B", "position": "medi", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": null, "position": "medi", "units": "Sh", "written": "Sh", "robust": {"projection": [], "default": 6, "rows": []}},
+    {"letter": "sh", "cp": "1831", "fvs": "180C", "position": "medi", "units": "Sh", "written": "Sh", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": "180D", "position": "medi", "units": "Sh", "written": "Sh", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "t", "cp": "1832", "fvs": null, "position": "medi", "units": "T", "written": "T", "robust": {"projection": ["mvs_since_prev"], "default": 15, "rows": [["1", 1]]}},
+    {"letter": "t", "cp": "1832", "fvs": "180B", "position": "medi", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "ee", "cp": "1827", "fvs": null, "position": "medi", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "w", "cp": "1838", "fvs": null, "position": "medi", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "ee", "cp": "1827", "fvs": "180B", "position": "medi", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "w", "cp": "1838", "fvs": "180C", "position": "medi", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": null, "position": "medi", "units": "Y", "written": "Y", "robust": {"projection": [], "default": 2, "rows": []}},
+    {"letter": "y", "cp": "1836", "fvs": "180D", "position": "medi", "units": "Y", "written": "Y", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": "180F", "position": "medi", "units": "Y", "written": "Y", "robust": {"projection": [], "default": 3, "rows": []}},
+    {"letter": "z", "cp": "183D", "fvs": null, "position": "medi", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "z", "cp": "183D", "fvs": "180B", "position": "medi", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": null, "position": "medi", "units": "Zr", "written": "Zr", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": "180B", "position": "medi", "units": "Zr", "written": "Zr", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": null, "position": "fina", "units": "A", "written": "A", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["c", 1], ["12", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "e", "cp": "1821", "fvs": null, "position": "fina", "units": "A", "written": "A", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["3", 1], ["c", 1], ["12", 1], ["13", 1], ["14", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "n", "cp": "1828", "fvs": null, "position": "fina", "units": "A", "written": "A", "robust": "never"},
+    {"letter": "a", "cp": "1820", "fvs": "180C", "position": "fina", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": "180D", "position": "fina", "units": "A", "written": "A", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["c", 1], ["12", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "e", "cp": "1821", "fvs": "180C", "position": "fina", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": "180D", "position": "fina", "units": "A", "written": "A", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["3", 1], ["c", 1], ["12", 1], ["13", 1], ["14", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "n", "cp": "1828", "fvs": "180C", "position": "fina", "units": "A", "written": "A", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": "180D", "position": "fina", "units": "A", "written": "A", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "ng", "cp": "1829", "fvs": null, "position": "fina", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "ng", "cp": "1829", "fvs": "180B", "position": "fina", "units": "A+G", "written": "A+G", "robust": "always"},
+    {"letter": "a", "cp": "1820", "fvs": null, "position": "fina", "units": "Aa", "written": "Aa", "robust": "never"},
+    {"letter": "e", "cp": "1821", "fvs": null, "position": "fina", "units": "Aa", "written": "Aa", "robust": "never"},
+    {"letter": "a", "cp": "1820", "fvs": "180B", "position": "fina", "units": "Aa", "written": "Aa", "robust": "always"},
+    {"letter": "e", "cp": "1821", "fvs": "180B", "position": "fina", "units": "Aa", "written": "Aa", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": null, "position": "fina", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": "180C", "position": "fina", "units": "B", "written": "B", "robust": "always"},
+    {"letter": "b", "cp": "182A", "fvs": "180B", "position": "fina", "units": "B2", "written": "B2", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": null, "position": "fina", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "c", "cp": "183C", "fvs": "180B", "position": "fina", "units": "C", "written": "C", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": null, "position": "fina", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "ch", "cp": "1834", "fvs": "180B", "position": "fina", "units": "Ch", "written": "Ch", "robust": "always"},
+    {"letter": "cr", "cp": "1842", "fvs": null, "position": "fina", "units": "Cr", "written": "Cr", "robust": "always"},
+    {"letter": "cr", "cp": "1842", "fvs": "180B", "position": "fina", "units": "Cr", "written": "Cr", "robust": "always"},
+    {"letter": "d", "cp": "1833", "fvs": "180B", "position": "fina", "units": "D", "written": "D", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": null, "position": "fina", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "f", "cp": "1839", "fvs": "180B", "position": "fina", "units": "F", "written": "F", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": null, "position": "fina", "units": "G", "written": "G", "robust": "never"},
+    {"letter": "g", "cp": "182D", "fvs": "180C", "position": "fina", "units": "G", "written": "G", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": "180F", "position": "fina", "units": "G", "written": "G", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "g", "cp": "182D", "fvs": null, "position": "fina", "units": "H", "written": "H", "robust": "never"},
+    {"letter": "h", "cp": "182C", "fvs": null, "position": "fina", "units": "H", "written": "H", "robust": {"projection": ["prev_letter", "mvs_since_prev"], "default": 0, "rows": [["6", 1]]}},
+    {"letter": "g", "cp": "182D", "fvs": "180B", "position": "fina", "units": "H", "written": "H", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180C", "position": "fina", "units": "H", "written": "H", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "hh", "cp": "183E", "fvs": null, "position": "fina", "units": "Hr", "written": "Hr", "robust": "always"},
+    {"letter": "hh", "cp": "183E", "fvs": "180B", "position": "fina", "units": "Hr", "written": "Hr", "robust": "always"},
+    {"letter": "g", "cp": "182D", "fvs": null, "position": "fina", "units": "Hx", "written": "Hx", "robust": "never"},
+    {"letter": "g", "cp": "182D", "fvs": "180D", "position": "fina", "units": "Hx", "written": "Hx", "robust": "always"},
+    {"letter": "h", "cp": "182C", "fvs": "180B", "position": "fina", "units": "Hx", "written": "Hx", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": null, "position": "fina", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": null, "position": "fina", "units": "I", "written": "I", "robust": "never"},
+    {"letter": "y", "cp": "1836", "fvs": null, "position": "fina", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "i", "cp": "1822", "fvs": "180B", "position": "fina", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": "180B", "position": "fina", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "y", "cp": "1836", "fvs": "180B", "position": "fina", "units": "I", "written": "I", "robust": "always"},
+    {"letter": "j", "cp": "1835", "fvs": null, "position": "fina", "units": "J", "written": "J", "robust": "never"},
+    {"letter": "j", "cp": "1835", "fvs": "180C", "position": "fina", "units": "J", "written": "J", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "k", "cp": "183B", "fvs": null, "position": "fina", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k", "cp": "183B", "fvs": "180B", "position": "fina", "units": "K", "written": "K", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": null, "position": "fina", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "k2", "cp": "183A", "fvs": "180B", "position": "fina", "units": "K2", "written": "K2", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": null, "position": "fina", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "l", "cp": "182F", "fvs": "180B", "position": "fina", "units": "L", "written": "L", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": null, "position": "fina", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "lh", "cp": "1840", "fvs": "180B", "position": "fina", "units": "L+Hr", "written": "L+Hr", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": null, "position": "fina", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "m", "cp": "182E", "fvs": "180B", "position": "fina", "units": "M", "written": "M", "robust": "always"},
+    {"letter": "n", "cp": "1828", "fvs": null, "position": "fina", "units": "N", "written": "N", "robust": "never"},
+    {"letter": "n", "cp": "1828", "fvs": "180B", "position": "fina", "units": "N", "written": "N", "robust": "always"},
+    {"letter": "o", "cp": "1823", "fvs": null, "position": "fina", "units": "O", "written": "O", "robust": {"projection": ["prev_letter", "prev_fvs", "prev_position"], "default": 1, "rows": [["242", 0], ["282", 0], ["2c2", 0], ["302", 0], ["342", 0], ["382", 0], ["3c2", 0], ["402", 0], ["442", 0], ["482", 0], ["4c2", 0], ["542", 0], ["582", 0], ["5c2", 0], ["602", 0], ["642", 0], ["682", 0], ["6c2", 0], ["702", 0], ["742", 0], ["782", 0], ["7c2", 0], ["802", 0], ["842", 0], ["882", 0]]}},
+    {"letter": "u", "cp": "1824", "fvs": null, "position": "fina", "units": "O", "written": "O", "robust": {"projection": ["prev_letter", "prev_fvs", "prev_position", "particle"], "default": 1, "rows": [["90801", 0], ["90834", 0], ["90bff", 0], ["a0801", 0], ["a0bff", 0], ["b0801", 0], ["b0806", 0], ["b080d", 0], ["c0801", 0], ["c0bff", 0], ["d0bff", 0], ["e0bff", 0], ["f0801", 0], ["f0bff", 0], ["100801", 0], ["100830", 0], ["100bff", 0], ["110801", 0], ["110bff", 0], ["120bff", 0], ["130801", 0], ["130bff", 0], ["150801", 0], ["150bff", 0], ["160801", 0], ["160bff", 0], ["170801", 0], ["170bff", 0], ["180801", 0], ["180bff", 0], ["190801", 0], ["190bff", 0], ["1a0801", 0], ["1a0bff", 0], ["1b0801", 0], ["1b0bff", 0], ["1c0801", 0], ["1c0bff", 0], ["1d0801", 0], ["1d0bff", 0], ["1e0801", 0], ["1e0bff", 0], ["1f0801", 0], ["1f0bff", 0], ["200801", 0], ["200bff", 0], ["210801", 0], ["210bff", 0], ["220801", 0], ["220bff", 0]]}},
+    {"letter": "oe", "cp": "1825", "fvs": null, "position": "fina", "units": "O", "written": "O", "robust": "never"},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "fina", "units": "O", "written": "O", "robust": "never"},
+    {"letter": "o", "cp": "1823", "fvs": "180B", "position": "fina", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180B", "position": "fina", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": "180C", "position": "fina", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180C", "position": "fina", "units": "O", "written": "O", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": null, "position": "fina", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "p", "cp": "182B", "fvs": "180B", "position": "fina", "units": "P", "written": "P", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": null, "position": "fina", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "r", "cp": "1837", "fvs": "180B", "position": "fina", "units": "R", "written": "R", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": null, "position": "fina", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "rh", "cp": "183F", "fvs": "180B", "position": "fina", "units": "Rh", "written": "Rh", "robust": "always"},
+    {"letter": "s", "cp": "1830", "fvs": null, "position": "fina", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "s", "cp": "1830", "fvs": "180C", "position": "fina", "units": "S", "written": "S", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": null, "position": "fina", "units": "Sh", "written": "Sh", "robust": "always"},
+    {"letter": "sh", "cp": "1831", "fvs": "180B", "position": "fina", "units": "Sh", "written": "Sh", "robust": "always"},
+    {"letter": "s", "cp": "1830", "fvs": "180B", "position": "fina", "units": "Sz", "written": "Sz", "robust": "always"},
+    {"letter": "t", "cp": "1832", "fvs": null, "position": "fina", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "t", "cp": "1832", "fvs": "180B", "position": "fina", "units": "T", "written": "T", "robust": "always"},
+    {"letter": "o", "cp": "1823", "fvs": null, "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_letter", "prev_fvs", "prev_position"], "default": 0, "rows": [["242", 1], ["281", 1], ["282", 1], ["283", 1], ["284", 1], ["289", 1], ["28a", 1], ["28b", 1], ["28c", 1], ["2c1", 1], ["2c2", 1], ["2c3", 1], ["2c4", 1], ["2c9", 1], ["2ca", 1], ["2cb", 1], ["2d4", 1], ["301", 1], ["302", 1], ["303", 1], ["304", 1], ["309", 1], ["30a", 1], ["30b", 1], ["30c", 1], ["342", 1], ["382", 1], ["3c2", 1], ["402", 1], ["442", 1], ["482", 1], ["4c2", 1], ["542", 1], ["582", 1], ["5c2", 1], ["602", 1], ["642", 1], ["681", 1], ["682", 1], ["683", 1], ["684", 1], ["689", 1], ["68a", 1], ["68b", 1], ["68c", 1], ["6c1", 1], ["6c2", 1], ["6c3", 1], ["6c4", 1], ["6c9", 1], ["6ca", 1], ["6cb", 1], ["6cc", 1], ["701", 1], ["702", 1], ["703", 1], ["704", 1], ["709", 1], ["70a", 1], ["70b", 1], ["70c", 1], ["742", 1], ["782", 1], ["7c2", 1], ["802", 1], ["842", 1], ["882", 1]]}},
+    {"letter": "u", "cp": "1824", "fvs": null, "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_letter", "prev_fvs", "prev_position", "particle"], "default": 0, "rows": [["90801", 1], ["90834", 1], ["90bff", 1], ["a0401", 1], ["a0801", 1], ["a0bff", 1], ["a0c01", 1], ["a0fff", 1], ["a1001", 1], ["a2401", 1], ["a2801", 1], ["a2bff", 1], ["a2c01", 1], ["a2fff", 1], ["a3001", 1], ["b0401", 1], ["b0801", 1], ["b0806", 1], ["b080d", 1], ["b0c01", 1], ["b0c06", 1], ["b0c0d", 1], ["b0fff", 1], ["b1001", 1], ["b2401", 1], ["b2801", 1], ["b2bff", 1], ["b2c01", 1], ["b2fff", 1], ["b5001", 1], ["c0401", 1], ["c0801", 1], ["c0bff", 1], ["c0c01", 1], ["c0fff", 1], ["c1001", 1], ["c2401", 1], ["c2801", 1], ["c2bff", 1], ["c2c01", 1], ["c2fff", 1], ["c3001", 1], ["d0bff", 1], ["e0bff", 1], ["f0801", 1], ["f0bff", 1], ["100801", 1], ["100830", 1], ["100bff", 1], ["110801", 1], ["110bff", 1], ["120bff", 1], ["130801", 1], ["130bff", 1], ["150801", 1], ["150bff", 1], ["160801", 1], ["160bff", 1], ["170801", 1], ["170bff", 1], ["180801", 1], ["180bff", 1], ["190801", 1], ["190bff", 1], ["1a0401", 1], ["1a0801", 1], ["1a0bff", 1], ["1a0c01", 1], ["1a0fff", 1], ["1a1001", 1], ["1a2401", 1], ["1a2801", 1], ["1a2bff", 1], ["1a2c01", 1], ["1a2fff", 1], ["1a3001", 1], ["1b0401", 1], ["1b0801", 1], ["1b0bff", 1], ["1b0c01", 1], ["1b0fff", 1], ["1b1001", 1], ["1b2401", 1], ["1b2801", 1], ["1b2bff", 1], ["1b2c01", 1], ["1b2fff", 1], ["1b3001", 1], ["1c0401", 1], ["1c0801", 1], ["1c0bff", 1], ["1c0c01", 1], ["1c0fff", 1], ["1c1001", 1], ["1c2401", 1], ["1c2801", 1], ["1c2bff", 1], ["1c2c01", 1], ["1c2fff", 1], ["1c3001", 1], ["1d0801", 1], ["1d0bff", 1], ["1e0801", 1], ["1e0bff", 1], ["1f0801", 1], ["1f0bff", 1], ["200801", 1], ["200bff", 1], ["210801", 1], ["210bff", 1], ["220801", 1], ["220bff", 1]]}},
+    {"letter": "oe", "cp": "1825", "fvs": null, "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_fvs", "prev_position", "prev_written"], "default": 0, "rows": [["103", 1], ["10c", 1], ["112", 1], ["11c", 1], ["11d", 1], ["124", 1], ["203", 1], ["204", 1], ["20c", 1], ["20e", 1], ["20f", 1], ["212", 1], ["213", 1], ["218", 1], ["21c", 1], ["21d", 1], ["21e", 1], ["21f", 1], ["220", 1], ["221", 1], ["224", 1], ["225", 1], ["226", 1], ["227", 1], ["228", 1], ["22a", 1], ["22e", 1], ["22f", 1], ["230", 1], ["231", 1], ["303", 1], ["30c", 1], ["312", 1], ["313", 1], ["31c", 1], ["31d", 1], ["324", 1], ["403", 1], ["40c", 1], ["412", 1], ["41c", 1], ["41d", 1], ["424", 1], ["903", 1], ["90c", 1], ["912", 1], ["91c", 1], ["91d", 1], ["924", 1], ["a03", 1], ["a0c", 1], ["a12", 1], ["a1c", 1], ["a1d", 1], ["a24", 1], ["b03", 1], ["b0c", 1], ["b12", 1], ["b1c", 1], ["b1d", 1], ["b24", 1], ["c03", 1], ["c12", 1], ["c1c", 1], ["c1d", 1], ["c24", 1], ["1113", 1], ["1213", 1], ["1313", 1], ["140c", 1], ["1413", 1], ["2114", 1], ["2214", 1], ["2314", 1], ["2413", 1]]}},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_fvs", "prev_position", "prev_written", "particle"], "default": 0, "rows": [["40c01", 1], ["43001", 1], ["44801", 1], ["47001", 1], ["47401", 1], ["49001", 1], ["80c01", 1], ["80fff", 1], ["81001", 1], ["813ff", 1], ["83001", 1], ["83006", 1], ["8300d", 1], ["83801", 1], ["83bff", 1], ["83c01", 1], ["83fff", 1], ["84801", 1], ["84bff", 1], ["84c3f", 1], ["84fff", 1], ["86001", 1], ["863ff", 1], ["87001", 1], ["873ff", 1], ["87401", 1], ["877ff", 1], ["87801", 1], ["87830", 1], ["87bff", 1], ["87c01", 1], ["87fff", 1], ["88001", 1], ["883ff", 1], ["88401", 1], ["88434", 1], ["887ff", 1], ["89001", 1], ["893ff", 1], ["89401", 1], ["897ff", 1], ["89801", 1], ["89bff", 1], ["89c01", 1], ["89fff", 1], ["8a3ff", 1], ["8a801", 1], ["8abff", 1], ["8b801", 1], ["8bbff", 1], ["8bc01", 1], ["8bfff", 1], ["8c001", 1], ["8c3ff", 1], ["8c401", 1], ["8c7ff", 1], ["c0c01", 1], ["c0fff", 1], ["c3001", 1], ["c3006", 1], ["c300d", 1], ["c33ff", 1], ["c4801", 1], ["c4bff", 1], ["c4c2d", 1], ["c4c32", 1], ["c4c36", 1], ["c4c3f", 1], ["c4c49", 1], ["c4c4e", 1], ["c4c50", 1], ["c4c5b", 1], ["c4fff", 1], ["c7001", 1], ["c73ff", 1], ["c7401", 1], ["c77ff", 1], ["c9001", 1], ["c93ff", 1], ["100c01", 1], ["103001", 1], ["104801", 1], ["107001", 1], ["107401", 1], ["109001", 1], ["240c01", 1], ["243001", 1], ["244801", 1], ["247001", 1], ["247401", 1], ["249001", 1], ["280c01", 1], ["280fff", 1], ["283001", 1], ["2833ff", 1], ["284801", 1], ["284bff", 1], ["287001", 1], ["2873ff", 1], ["287401", 1], ["2877ff", 1], ["289001", 1], ["2893ff", 1], ["2c0c01", 1], ["2c0fff", 1], ["2c3001", 1], ["2c33ff", 1], ["2c4801", 1], ["2c4bff", 1], ["2c7001", 1], ["2c73ff", 1], ["2c7401", 1], ["2c77ff", 1], ["2c9001", 1], ["2c93ff", 1], ["300c01", 1], ["304801", 1], ["307001", 1], ["307401", 1], ["309001", 1], ["444c01", 1], ["484c01", 1], ["484fff", 1], ["4c4c01", 1], ["4c4fff", 1], ["503001", 1], ["504c01", 1], ["845001", 1], ["885001", 1], ["8853ff", 1], ["8c5001", 1], ["8c53ff", 1], ["904c01", 1]]}},
+    {"letter": "w", "cp": "1838", "fvs": null, "position": "fina", "units": "U", "written": "U", "robust": "never"},
+    {"letter": "o", "cp": "1823", "fvs": "180C", "position": "fina", "units": "U", "written": "U", "robust": "always"},
+    {"letter": "o", "cp": "1823", "fvs": "180D", "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["3", 1], ["c", 1], ["12", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "u", "cp": "1824", "fvs": "180C", "position": "fina", "units": "U", "written": "U", "robust": "always"},
+    {"letter": "u", "cp": "1824", "fvs": "180D", "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["3", 1], ["c", 1], ["12", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "oe", "cp": "1825", "fvs": "180D", "position": "fina", "units": "U", "written": "U", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": "180F", "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["3", 1], ["c", 1], ["12", 1], ["13", 1], ["14", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "ue", "cp": "1826", "fvs": "180D", "position": "fina", "units": "U", "written": "U", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180F", "position": "fina", "units": "U", "written": "U", "robust": {"projection": ["prev_written"], "default": 0, "rows": [["3", 1], ["c", 1], ["12", 1], ["13", 1], ["14", 1], ["1c", 1], ["1d", 1], ["24", 1]]}},
+    {"letter": "w", "cp": "1838", "fvs": "180B", "position": "fina", "units": "U", "written": "U", "robust": "always"},
+    {"letter": "oe", "cp": "1825", "fvs": null, "position": "fina", "units": "Ue", "written": "Ue", "robust": {"projection": ["prev_fvs", "prev_position", "prev_written"], "default": 1, "rows": [["203", 0], ["204", 0], ["20c", 0], ["20e", 0], ["20f", 0], ["212", 0], ["213", 0], ["218", 0], ["21c", 0], ["21d", 0], ["21e", 0], ["21f", 0], ["220", 0], ["221", 0], ["224", 0], ["225", 0], ["226", 0], ["227", 0], ["228", 0], ["22a", 0], ["22e", 0], ["22f", 0], ["230", 0], ["231", 0], ["1213", 0], ["2214", 0]]}},
+    {"letter": "ue", "cp": "1826", "fvs": null, "position": "fina", "units": "Ue", "written": "Ue", "robust": {"projection": ["prev_fvs", "prev_position", "prev_written", "particle"], "default": 1, "rows": [["80c01", 0], ["80fff", 0], ["81001", 0], ["813ff", 0], ["83001", 0], ["83006", 0], ["8300d", 0], ["83801", 0], ["83bff", 0], ["83c01", 0], ["83fff", 0], ["84801", 0], ["84bff", 0], ["84fff", 0], ["86001", 0], ["863ff", 0], ["87001", 0], ["873ff", 0], ["87401", 0], ["877ff", 0], ["87801", 0], ["87830", 0], ["87bff", 0], ["87c01", 0], ["87fff", 0], ["88001", 0], ["883ff", 0], ["88401", 0], ["88434", 0], ["887ff", 0], ["89001", 0], ["893ff", 0], ["89401", 0], ["897ff", 0], ["89801", 0], ["89bff", 0], ["89c01", 0], ["89fff", 0], ["8a3ff", 0], ["8a801", 0], ["8abff", 0], ["8b801", 0], ["8bbff", 0], ["8bc01", 0], ["8bfff", 0], ["8c001", 0], ["8c3ff", 0], ["8c401", 0], ["8c7ff", 0], ["484c01", 0], ["484fff", 0], ["885001", 0], ["8853ff", 0]]}},
+    {"letter": "oe", "cp": "1825", "fvs": "180B", "position": "fina", "units": "Ue", "written": "Ue", "robust": "always"},
+    {"letter": "ue", "cp": "1826", "fvs": "180B", "position": "fina", "units": "Ue", "written": "Ue", "robust": "always"},
+    {"letter": "ee", "cp": "1827", "fvs": null, "position": "fina", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "w", "cp": "1838", "fvs": null, "position": "fina", "units": "W", "written": "W", "robust": "never"},
+    {"letter": "ee", "cp": "1827", "fvs": "180B", "position": "fina", "units": "W", "written": "W", "robust": "always"},
+    {"letter": "w", "cp": "1838", "fvs": "180C", "position": "fina", "units": "W", "written": "W", "robust": {"projection": [], "default": 0, "rows": []}},
+    {"letter": "z", "cp": "183D", "fvs": null, "position": "fina", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "z", "cp": "183D", "fvs": "180B", "position": "fina", "units": "Z", "written": "Z", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": null, "position": "fina", "units": "Zr", "written": "Zr", "robust": "always"},
+    {"letter": "zr", "cp": "1841", "fvs": "180B", "position": "fina", "units": "Zr", "written": "Zr", "robust": "always"}
   ],
-  "velar_fem_units": [
-    "G",
-    "Gx"
+  "finals": [
+    {"position": "isol", "units": "A", "valid": {"projection": ["prev_token"], "default": "1f", "rows": [["2", "1e"]]}},
+    {"position": "isol", "units": "A+A", "valid": {"projection": ["prev_token"], "default": "7", "rows": [["2", "6"]]}},
+    {"position": "isol", "units": "A+G", "valid": "3"},
+    {"position": "isol", "units": "A+Hr", "valid": "3"},
+    {"position": "isol", "units": "A+I", "valid": {"projection": ["prev_token"], "default": "7", "rows": [["2", "6"]]}},
+    {"position": "isol", "units": "A+O", "valid": {"projection": ["prev_token"], "default": "1f", "rows": [["2", "1d"]]}},
+    {"position": "isol", "units": "A+U", "valid": "3"},
+    {"position": "isol", "units": "A+Ue", "valid": {"projection": ["prev_token"], "default": "f", "rows": [["2", "d"]]}},
+    {"position": "isol", "units": "A+W", "valid": "3"},
+    {"position": "isol", "units": "Aa", "valid": {"projection": ["prev_token"], "default": "c", "rows": [["2", "f"]]}},
+    {"position": "isol", "units": "B", "valid": "3"},
+    {"position": "isol", "units": "C", "valid": "3"},
+    {"position": "isol", "units": "Ch", "valid": "3"},
+    {"position": "isol", "units": "Cr", "valid": "3"},
+    {"position": "isol", "units": "D", "valid": "3"},
+    {"position": "isol", "units": "F", "valid": "3"},
+    {"position": "isol", "units": "G", "valid": "3"},
+    {"position": "isol", "units": "Gx", "valid": "3"},
+    {"position": "isol", "units": "H", "valid": "7"},
+    {"position": "isol", "units": "Hx", "valid": "7"},
+    {"position": "isol", "units": "I", "valid": {"projection": ["prev_token"], "default": "1e", "rows": [["2", "1f"]]}},
+    {"position": "isol", "units": "Ix", "valid": "1"},
+    {"position": "isol", "units": "K", "valid": "3"},
+    {"position": "isol", "units": "K2", "valid": "3"},
+    {"position": "isol", "units": "L", "valid": "3"},
+    {"position": "isol", "units": "L+Hr", "valid": "3"},
+    {"position": "isol", "units": "M", "valid": "3"},
+    {"position": "isol", "units": "N", "valid": "3"},
+    {"position": "isol", "units": "P", "valid": "3"},
+    {"position": "isol", "units": "R", "valid": "3"},
+    {"position": "isol", "units": "Rh", "valid": "3"},
+    {"position": "isol", "units": "S", "valid": "7"},
+    {"position": "isol", "units": "Sh", "valid": "3"},
+    {"position": "isol", "units": "T", "valid": "7"},
+    {"position": "isol", "units": "U", "valid": {"projection": ["prev_token"], "default": "c", "rows": [["2", "f"]]}},
+    {"position": "isol", "units": "Ux", "valid": "3"},
+    {"position": "isol", "units": "W", "valid": "3"},
+    {"position": "isol", "units": "Y", "valid": "3"},
+    {"position": "isol", "units": "Z", "valid": "3"},
+    {"position": "isol", "units": "Zr", "valid": "3"},
+    {"position": "fina", "units": "A", "valid": {"projection": ["prev_letter", "prev_written", "masculine", "promise"], "default": "1ff", "rows": [["9015", "184"], ["901d", "184"], ["9211", "7b"], ["9212", "7b"], ["9213", "7b"], ["9214", "7b"], ["9219", "7b"], ["921a", "7b"], ["921b", "7b"], ["921c", "7b"], ["a030", "1bd"], ["a038", "1bd"], ["b0c0", "1ac"], ["b0c8", "1ac"], ["c240", "1ac"], ["c248", "1ac"], ["d130", "1bd"], ["d134", "1a4"], ["d135", "1a4"], ["d138", "1bd"], ["d13c", "20"], ["d13d", "1a4"], ["d140", "1bd"], ["d148", "1bd"], ["d153", "19"], ["e130", "1bd"], ["e134", "1a4"], ["e135", "1a4"], ["e138", "1bd"], ["e13c", "20"], ["e13d", "1a4"], ["e140", "1bd"], ["e148", "1bd"], ["e173", "19"], ["13111", "7b"], ["13112", "7b"], ["13113", "7b"], ["13114", "7b"], ["13119", "7b"], ["1311a", "7b"], ["1311b", "7b"], ["1311c", "7b"], ["132a5", "184"], ["132ad", "184"], ["14111", "7b"], ["14112", "7b"], ["14113", "7b"], ["14114", "7b"], ["14119", "7b"], ["1411a", "7b"], ["1411b", "7b"], ["1411c", "7b"], ["142a5", "1fc"], ["1a120", "1ac"], ["1a128", "1ac"], ["1b1d0", "1ac"], ["1b1d8", "1ac"], ["1c1c0", "1ac"], ["1c1c8", "1ac"]]}},
+    {"position": "fina", "units": "A+G", "valid": {"projection": ["prev_written", "masculine", "promise"], "default": "3", "rows": [["111", "0"], ["112", "0"], ["113", "0"], ["114", "0"], ["119", "0"], ["11a", "0"], ["11b", "0"], ["11c", "0"], ["13c", "0"], ["153", "0"], ["173", "0"], ["211", "0"], ["212", "0"], ["213", "0"], ["214", "0"], ["219", "0"], ["21a", "0"], ["21b", "0"], ["21c", "0"]]}},
+    {"position": "fina", "units": "Aa", "valid": {"projection": ["prev_fvs", "prev_position", "prev_written", "prev_token", "particle"], "default": "c", "rows": [["206c01", "e"], ["207001", "e"], ["218c01", "f"], ["219001", "f"], ["224c01", "f"], ["225001", "f"], ["238c01", "f"], ["239001", "f"], ["23ac01", "f"], ["23b001", "f"], ["248c01", "f"], ["249001", "f"], ["4027ff", "0"], ["4067ff", "e"], ["406c01", "e"], ["406fff", "e"], ["407001", "e"], ["4073ff", "e"], ["40a7ff", "0"], ["40c7ff", "0"], ["40e7ff", "0"], ["418406", "f"], ["41840d", "f"], ["418c01", "f"], ["418c06", "f"], ["418c0d", "f"], ["419001", "f"], ["419006", "f"], ["41900d", "f"], ["4247ff", "f"], ["424c01", "f"], ["424fff", "f"], ["425001", "f"], ["4253ff", "f"], ["42643f", "a"], ["4267ff", "a"], ["42a7ff", "4"], ["42e7ff", "4"], ["4387ff", "f"], ["438c01", "f"], ["438fff", "f"], ["439001", "f"], ["4393ff", "f"], ["43a7ff", "f"], ["43ac01", "f"], ["43afff", "f"], ["43b001", "f"], ["43b3ff", "f"], ["4487ff", "f"], ["448c01", "f"], ["448fff", "f"], ["449001", "f"], ["4493ff", "f"], ["60242e", "0"], ["602433", "0"], ["602439", "0"], ["60244a", "0"], ["60245c", "0"], ["6067ff", "e"], ["606c01", "e"], ["606fff", "e"], ["607001", "e"], ["6073ff", "e"], ["618406", "f"], ["61840d", "f"], ["6187ff", "f"], ["618c01", "f"], ["618c06", "f"], ["618c0d", "f"], ["618fff", "f"], ["619001", "f"], ["619006", "f"], ["61900d", "f"], ["6193ff", "f"], ["6247ff", "f"], ["624c01", "f"], ["624fff", "f"], ["625001", "f"], ["6253ff", "f"], ["62642d", "a"], ["626432", "a"], ["626436", "a"], ["62643f", "a"], ["626449", "a"], ["62644e", "a"], ["626450", "a"], ["62645b", "a"], ["6267ff", "a"], ["630416", "0"], ["63042a", "0"], ["630441", "0"], ["63044f", "0"], ["630451", "0"], ["630455", "0"], ["630457", "0"], ["6307ff", "0"], ["632416", "0"], ["6327ff", "0"], ["6387ff", "f"], ["638c01", "f"], ["638fff", "f"], ["639001", "f"], ["6393ff", "f"], ["63a7ff", "f"], ["63ac01", "f"], ["63afff", "f"], ["63b001", "f"], ["63b3ff", "f"], ["644402", "0"], ["644403", "0"], ["644404", "0"], ["644405", "0"], ["644407", "0"], ["644408", "0"], ["644409", "0"], ["64440a", "0"], ["64440b", "0"], ["64440c", "0"], ["64440e", "0"], ["64440f", "0"], ["644423", "0"], ["644424", "0"], ["644426", "0"], ["644427", "0"], ["64442c", "0"], ["644431", "0"], ["644435", "0"], ["644437", "0"], ["644440", "0"], ["64444c", "0"], ["64444d", "0"], ["6447ff", "0"], ["64640b", "0"], ["646424", "0"], ["646440", "0"], ["6467ff", "0"], ["6487ff", "f"], ["648c01", "f"], ["648fff", "f"], ["649001", "f"], ["6493ff", "f"], ["806c01", "e"], ["807001", "e"], ["818c01", "f"], ["819001", "f"], ["824c01", "f"], ["825001", "f"], ["838c01", "f"], ["839001", "f"], ["83ac01", "f"], ["83b001", "f"], ["848c01", "f"], ["849001", "f"], ["1206c01", "e"], ["1207001", "e"], ["1218c01", "f"], ["1219001", "f"], ["1224c01", "f"], ["1225001", "f"], ["1238c01", "f"], ["1239001", "f"], ["123ac01", "f"], ["123b001", "f"], ["1248c01", "f"], ["1249001", "f"], ["14027ff", "0"], ["14067ff", "e"], ["1406c01", "e"], ["1406fff", "e"], ["1407001", "e"], ["14073ff", "e"], ["140c7ff", "0"], ["140e7ff", "0"], ["14187ff", "f"], ["1418c01", "f"], ["1418fff", "f"], ["1419001", "f"], ["14193ff", "f"], ["14247ff", "f"], ["1424c01", "f"], ["1424fff", "f"], ["1425001", "f"], ["14253ff", "f"], ["14387ff", "f"], ["1438c01", "f"], ["1438fff", "f"], ["1439001", "f"], ["14393ff", "f"], ["143a7ff", "f"], ["143ac01", "f"], ["143afff", "f"], ["143b001", "f"], ["143b3ff", "f"], ["14487ff", "f"], ["1448c01", "f"], ["1448fff", "f"], ["1449001", "f"], ["14493ff", "f"], ["16067ff", "e"], ["1606c01", "e"], ["1606fff", "e"], ["1607001", "e"], ["16073ff", "e"], ["160a7ff", "0"], ["160c7ff", "0"], ["16187ff", "f"], ["1618c01", "f"], ["1618fff", "f"], ["1619001", "f"], ["16193ff", "f"], ["16247ff", "f"], ["1624c01", "f"], ["1624fff", "f"], ["1625001", "f"], ["16253ff", "f"], ["16307ff", "0"], ["16387ff", "f"], ["1638c01", "f"], ["1638fff", "f"], ["1639001", "f"], ["16393ff", "f"], ["163a7ff", "f"], ["163ac01", "f"], ["163afff", "f"], ["163b001", "f"], ["163b3ff", "f"], ["16447ff", "0"], ["16467ff", "0"], ["16487ff", "f"], ["1648c01", "f"], ["1648fff", "f"], ["1649001", "f"], ["16493ff", "f"], ["1806c01", "e"], ["1807001", "e"], ["1824c01", "f"], ["1825001", "f"], ["1838c01", "f"], ["1839001", "f"], ["183ac01", "f"], ["183b001", "f"], ["1848c01", "f"], ["1849001", "f"], ["2226c01", "e"], ["2227001", "e"], ["24027ff", "0"], ["240a7ff", "0"], ["240c7ff", "0"], ["240e7ff", "0"], ["24267ff", "e"], ["2426c01", "e"], ["2426fff", "e"], ["2427001", "e"], ["24273ff", "e"], ["260e7ff", "0"], ["26267ff", "e"], ["2626c01", "e"], ["2626fff", "e"], ["2627001", "e"], ["26273ff", "e"], ["26327ff", "0"], ["26447ff", "0"], ["2818c01", "f"], ["2819001", "f"], ["2826c01", "e"], ["2827001", "e"], ["340a7ff", "0"], ["340c7ff", "0"], ["340e7ff", "0"], ["36307ff", "0"], ["36447ff", "0"], ["4228c01", "e"], ["4229001", "e"], ["44287ff", "e"], ["4428c01", "e"], ["4428fff", "e"], ["4429001", "e"], ["44293ff", "e"], ["46287ff", "e"], ["4628c01", "e"], ["4628fff", "e"], ["4629001", "e"], ["46293ff", "e"], ["46307ff", "0"], ["46447ff", "0"], ["4826c01", "e"], ["4827001", "e"]]}},
+    {"position": "fina", "units": "B", "valid": "3"},
+    {"position": "fina", "units": "B2", "valid": "1"},
+    {"position": "fina", "units": "C", "valid": "3"},
+    {"position": "fina", "units": "Ch", "valid": "3"},
+    {"position": "fina", "units": "Cr", "valid": "3"},
+    {"position": "fina", "units": "D", "valid": "1"},
+    {"position": "fina", "units": "F", "valid": "3"},
+    {"position": "fina", "units": "G", "valid": {"projection": ["prev_letter", "masculine"], "default": "7", "rows": [["3", "6"], ["7", "6"], ["9", "6"], ["b", "6"]]}},
+    {"position": "fina", "units": "H", "valid": {"projection": ["prev_letter", "masculine"], "default": "e", "rows": [["3", "f"], ["7", "f"], ["9", "f"], ["b", "f"]]}},
+    {"position": "fina", "units": "Hr", "valid": "3"},
+    {"position": "fina", "units": "Hx", "valid": "6"},
+    {"position": "fina", "units": "I", "valid": {"projection": ["prev_position", "prev_written", "masculine", "promise"], "default": "3d", "rows": [["22a5", "3c"], ["3015", "34"], ["301d", "34"], ["3111", "9"], ["3112", "9"], ["3114", "9"], ["3119", "9"], ["311a", "9"], ["311c", "9"], ["3139", "9"], ["313a", "9"], ["313c", "9"], ["3211", "9"], ["3212", "9"], ["3214", "9"], ["3219", "9"], ["321a", "9"], ["321c", "9"], ["3271", "9"], ["3272", "9"], ["3274", "9"], ["3279", "9"], ["327a", "9"], ["327c", "9"], ["3285", "34"], ["328d", "34"], ["32a5", "34"], ["32ad", "34"]]}},
+    {"position": "fina", "units": "J", "valid": "3"},
+    {"position": "fina", "units": "K", "valid": "3"},
+    {"position": "fina", "units": "K2", "valid": "3"},
+    {"position": "fina", "units": "L", "valid": "3"},
+    {"position": "fina", "units": "L+Hr", "valid": "3"},
+    {"position": "fina", "units": "M", "valid": "3"},
+    {"position": "fina", "units": "N", "valid": "2"},
+    {"position": "fina", "units": "O", "valid": {"projection": ["prev_fvs", "prev_position", "prev_written", "particle"], "default": "f0", "rows": [["40c01", "ff"], ["43001", "ff"], ["44801", "ff"], ["47001", "ff"], ["47401", "ff"], ["49001", "ff"], ["80c01", "f3"], ["80fff", "f3"], ["81001", "f3"], ["813ff", "f3"], ["83001", "f3"], ["83006", "f3"], ["8300d", "f3"], ["83801", "f3"], ["83bff", "f3"], ["83c01", "f3"], ["83c22", "f1"], ["83fff", "f3"], ["84801", "f3"], ["84bff", "f3"], ["84c3f", "c8"], ["84fff", "c0"], ["857ff", "33"], ["85fff", "33"], ["86001", "f3"], ["863ff", "f3"], ["87001", "f3"], ["873ff", "f3"], ["87401", "f3"], ["877ff", "f3"], ["87801", "f3"], ["87830", "f3"], ["87bff", "f3"], ["87c01", "f3"], ["87fff", "f3"], ["88001", "f3"], ["883ff", "f3"], ["88401", "f3"], ["88434", "f3"], ["887ff", "f3"], ["89001", "f3"], ["893ff", "f3"], ["89401", "f3"], ["897ff", "f3"], ["89801", "f3"], ["89bff", "f3"], ["89c01", "f3"], ["89fff", "f3"], ["8a3ff", "f3"], ["8a801", "f3"], ["8a825", "f1"], ["8abff", "f3"], ["8b801", "f3"], ["8bbff", "f3"], ["8bc01", "f3"], ["8bfff", "f3"], ["8c001", "f3"], ["8c3ff", "f3"], ["8c401", "f3"], ["8c7ff", "f3"], ["c0c01", "ff"], ["c0fff", "ff"], ["c3001", "ff"], ["c3006", "ff"], ["c300d", "ff"], ["c33ff", "ff"], ["c4801", "ff"], ["c4bff", "ff"], ["c4c2d", "cc"], ["c4c32", "cc"], ["c4c36", "cc"], ["c4c3f", "cc"], ["c4c49", "cc"], ["c4c4e", "cc"], ["c4c50", "cc"], ["c4c5b", "cc"], ["c4fff", "cc"], ["c7001", "ff"], ["c73ff", "ff"], ["c7401", "ff"], ["c77ff", "ff"], ["c9001", "ff"], ["c93ff", "ff"], ["100c01", "ff"], ["103001", "ff"], ["104801", "ff"], ["107001", "ff"], ["107401", "ff"], ["109001", "ff"], ["240c01", "ff"], ["243001", "ff"], ["244801", "ff"], ["247001", "ff"], ["247401", "ff"], ["249001", "ff"], ["280c01", "ff"], ["280fff", "ff"], ["283001", "f3"], ["2833ff", "f3"], ["284801", "f3"], ["284bff", "f3"], ["287001", "f3"], ["2873ff", "f3"], ["287401", "f3"], ["2877ff", "f3"], ["289001", "f3"], ["2893ff", "f3"], ["2c0c01", "ff"], ["2c0fff", "ff"], ["2c3001", "ff"], ["2c33ff", "ff"], ["2c4801", "ff"], ["2c4bff", "ff"], ["2c7001", "ff"], ["2c73ff", "ff"], ["2c7401", "ff"], ["2c77ff", "ff"], ["2c9001", "ff"], ["2c93ff", "ff"], ["300c01", "ff"], ["304801", "ff"], ["307001", "ff"], ["307401", "ff"], ["309001", "ff"], ["444c01", "fc"], ["4c4c01", "fc"], ["4c4fff", "fc"], ["503001", "ff"], ["504c01", "fc"], ["845001", "fc"], ["8c5001", "fc"], ["8c53ff", "fc"], ["904c01", "fc"]]}},
+    {"position": "fina", "units": "P", "valid": "3"},
+    {"position": "fina", "units": "R", "valid": "3"},
+    {"position": "fina", "units": "Rh", "valid": "3"},
+    {"position": "fina", "units": "S", "valid": "3"},
+    {"position": "fina", "units": "Sh", "valid": "3"},
+    {"position": "fina", "units": "Sz", "valid": "1"},
+    {"position": "fina", "units": "T", "valid": "3"},
+    {"position": "fina", "units": "U", "valid": {"projection": ["prev_fvs", "prev_position", "prev_written", "masculine", "particle", "promise"], "default": "3fef", "rows": [["40c008", "2aa0"], ["430008", "2aa0"], ["448008", "2aa0"], ["470008", "2aa0"], ["474008", "2aa0"], ["490008", "2aa0"], ["80c008", "2aa0"], ["80dff8", "2aa0"], ["810008", "3fe0"], ["811ff8", "3fe0"], ["830008", "2aa0"], ["830030", "2aa0"], ["830068", "2aa0"], ["838008", "3fe0"], ["839ff8", "3fe0"], ["83c008", "3fe0"], ["83c110", "3fea"], ["83dff8", "3fe0"], ["848008", "2aa0"], ["849ff8", "2aa0"], ["84c1fc", "2a00"], ["84c1fd", "2a00"], ["84dffc", "2a00"], ["84dffd", "2a00"], ["855ffb", "1e0"], ["85dffb", "1e0"], ["860008", "3fe0"], ["861ff8", "3fe0"], ["870008", "2aa0"], ["871ff8", "2aa0"], ["874008", "2aa0"], ["875ff8", "2aa0"], ["878008", "3fe0"], ["878180", "3fe0"], ["879ff8", "3fe0"], ["87c008", "3fe0"], ["87dff8", "3fe0"], ["880008", "3fe0"], ["881ff8", "3fe0"], ["884008", "3fe0"], ["8841a0", "3fe0"], ["885ff8", "3fe0"], ["890008", "2aa0"], ["891ff8", "2aa0"], ["894008", "3fe0"], ["895ff8", "3fe0"], ["898008", "3fe0"], ["899ff8", "3fe0"], ["89c008", "3fe0"], ["89dff8", "3fe0"], ["8a1ff8", "3fe0"], ["8a1ff9", "3fe0"], ["8a1ffa", "3fe0"], ["8a1ffb", "3fe0"], ["8a1ffc", "3fe0"], ["8a1ffd", "3fe0"], ["8a8008", "3fe0"], ["8a8128", "3fea"], ["8a9ff8", "3fe0"], ["8a9ffd", "3fe0"], ["8b8008", "3fe0"], ["8b9ff8", "3fe0"], ["8bc008", "3fe0"], ["8bdff8", "3fe0"], ["8bdff9", "3fe0"], ["8bdffa", "3fe0"], ["8bdffb", "3fe0"], ["8bdffc", "3fe0"], ["8bdffd", "3fe0"], ["8c0008", "3fe0"], ["8c1ff8", "3fe0"], ["8c4008", "3fe0"], ["8c5ff8", "3fe0"], ["c040ed", "2000"], ["c040fd", "2000"], ["c0417d", "2000"], ["c041d5", "2000"], ["c041f5", "2000"], ["c04215", "2000"], ["c0425d", "2000"], ["c05ffd", "2000"], ["c060e5", "2000"], ["c060f5", "2000"], ["c07ffd", "2000"], ["c0c008", "2aa0"], ["c0dff8", "2aa0"], ["c0fff8", "2aa0"], ["c30008", "2aa0"], ["c30030", "2aa0"], ["c30068", "2aa0"], ["c31ff8", "2aa0"], ["c33ff8", "2aa0"], ["c44109", "1fef"], ["c4410a", "1fef"], ["c4410b", "1fef"], ["c4410c", "1fef"], ["c44129", "1fef"], ["c4412a", "1fef"], ["c4412b", "1fef"], ["c4412c", "1fef"], ["c441c1", "1fef"], ["c441c2", "1fef"], ["c441c3", "1fef"], ["c441c4", "1fef"], ["c44219", "1fef"], ["c4421a", "1fef"], ["c4421b", "1fef"], ["c4421c", "1fef"], ["c45ff9", "1fef"], ["c45ffa", "1fef"], ["c45ffb", "1fef"], ["c45ffc", "1fef"], ["c46101", "1fef"], ["c46102", "1fef"], ["c46103", "1fef"], ["c46104", "1fef"], ["c47ff9", "1fef"], ["c47ffa", "1fef"], ["c47ffb", "1fef"], ["c47ffc", "1fef"], ["c48008", "2aa0"], ["c49ff8", "2aa0"], ["c4bff8", "2aa0"], ["c4c16c", "2a00"], ["c4c16d", "2a00"], ["c4c194", "2a00"], ["c4c195", "2a00"], ["c4c1b4", "2a00"], ["c4c1b5", "2a00"], ["c4c1fc", "2a00"], ["c4c1fd", "2a00"], ["c4c24c", "2a00"], ["c4c24d", "2a00"], ["c4c284", "2a00"], ["c4c285", "2a00"], ["c4c2dc", "2a00"], ["c4c2dd", "2a00"], ["c4dffc", "2a00"], ["c4dffd", "2a00"], ["c4e274", "a00"], ["c4fffc", "a00"], ["c4fffd", "2a00"], ["c70008", "2aa0"], ["c71ff8", "2aa0"], ["c73ff8", "2aa0"], ["c74008", "2aa0"], ["c75ff8", "2aa0"], ["c77ff8", "2aa0"], ["c840e9", "1fef"], ["c840ea", "1fef"], ["c840eb", "1fef"], ["c840ec", "1fef"], ["c840f9", "1fef"], ["c840fa", "1fef"], ["c840fb", "1fef"], ["c840fc", "1fef"], ["c84149", "1fef"], ["c8414a", "1fef"], ["c8414b", "1fef"], ["c8414c", "1fef"], ["c84179", "1fef"], ["c8417a", "1fef"], ["c8417b", "1fef"], ["c8417c", "1fef"], ["c841a1", "1fef"], ["c841a2", "1fef"], ["c841a3", "1fef"], ["c841a4", "1fef"], ["c841d1", "1fef"], ["c841d2", "1fef"], ["c841d3", "1fef"], ["c841d4", "1fef"], ["c841f1", "1fef"], ["c841f2", "1fef"], ["c841f3", "1fef"], ["c841f4", "1fef"], ["c84211", "1fef"], ["c84212", "1fef"], ["c84213", "1fef"], ["c84214", "1fef"], ["c84259", "1fef"], ["c8425a", "1fef"], ["c8425b", "1fef"], ["c8425c", "1fef"], ["c842b1", "1fef"], ["c842b2", "1fef"], ["c842b3", "1fef"], ["c842b4", "1fef"], ["c85ff9", "1fef"], ["c85ffa", "1fef"], ["c85ffb", "1fef"], ["c85ffc", "1fef"], ["c860e1", "1fef"], ["c860e2", "1fef"], ["c860e3", "1fef"], ["c860e4", "1fef"], ["c860f1", "1fef"], ["c860f2", "1fef"], ["c860f3", "1fef"], ["c860f4", "1fef"], ["c862a1", "1fef"], ["c862a2", "1fef"], ["c862a3", "1fef"], ["c862a4", "1fef"], ["c87ff9", "1fef"], ["c87ffa", "1fef"], ["c87ffb", "1fef"], ["c87ffc", "1fef"], ["c90008", "2aa0"], ["c91ff8", "2aa0"], ["c93ff8", "2aa0"], ["ca9ffd", "2000"], ["cabffd", "2000"], ["100c008", "2aa0"], ["1030008", "2aa0"], ["1048008", "2aa0"], ["1070008", "2aa0"], ["1074008", "2aa0"], ["1090008", "2aa0"], ["240c008", "2aa0"], ["2430008", "2aa0"], ["2448008", "2aa0"], ["2470008", "2aa0"], ["2474008", "2aa0"], ["2490008", "2aa0"], ["280c008", "2aa0"], ["280dff8", "2aa0"], ["2830008", "2aa0"], ["2831ff8", "2aa0"], ["2848008", "2aa0"], ["2849ff8", "2aa0"], ["2870008", "2aa0"], ["2871ff8", "2aa0"], ["2874008", "2aa0"], ["2875ff8", "2aa0"], ["2890008", "2aa0"], ["2891ff8", "2aa0"], ["2c0c008", "2aa0"], ["2c0dff8", "2aa0"], ["2c0fff8", "2aa0"], ["2c30008", "2aa0"], ["2c31ff8", "2aa0"], ["2c33ff8", "2aa0"], ["2c48008", "2aa0"], ["2c49ff8", "2aa0"], ["2c4bff8", "2aa0"], ["2c70008", "2aa0"], ["2c71ff8", "2aa0"], ["2c73ff8", "2aa0"], ["2c74008", "2aa0"], ["2c75ff8", "2aa0"], ["2c77ff8", "2aa0"], ["2c90008", "2aa0"], ["2c91ff8", "2aa0"], ["2c93ff8", "2aa0"], ["300c008", "2aa0"], ["3048008", "2aa0"], ["3070008", "2aa0"], ["3074008", "2aa0"], ["3090008", "2aa0"], ["444c008", "2be3"], ["484c008", "2be3"], ["484dff8", "2be3"], ["4c4c008", "2be3"], ["4c4dff8", "2be3"], ["4c4fff8", "2be3"], ["5030008", "2aa0"], ["504c008", "2be3"], ["8450008", "2be3"], ["8850008", "2be3"], ["8851ff8", "2be3"], ["8c50008", "2be3"], ["8c51ff8", "2be3"], ["8c53ff8", "2be3"], ["904c008", "2be3"]]}},
+    {"position": "fina", "units": "Ue", "valid": {"projection": ["prev_fvs", "prev_position", "prev_written", "particle"], "default": "c", "rows": [["80c01", "f"], ["80fff", "f"], ["81001", "f"], ["813ff", "f"], ["83001", "f"], ["83006", "f"], ["8300d", "f"], ["83801", "f"], ["83bff", "f"], ["83c01", "f"], ["83c22", "d"], ["83fff", "f"], ["84801", "f"], ["84bff", "f"], ["84c3f", "d"], ["84fff", "f"], ["86001", "f"], ["863ff", "f"], ["87001", "f"], ["873ff", "f"], ["87401", "f"], ["877ff", "f"], ["87801", "f"], ["87830", "f"], ["87bff", "f"], ["87c01", "f"], ["87fff", "f"], ["88001", "f"], ["883ff", "f"], ["88401", "f"], ["88434", "f"], ["887ff", "f"], ["89001", "f"], ["893ff", "f"], ["89401", "f"], ["897ff", "f"], ["89801", "f"], ["89bff", "f"], ["89c01", "f"], ["89fff", "f"], ["8a3ff", "f"], ["8a801", "f"], ["8a825", "d"], ["8abff", "f"], ["8b801", "f"], ["8bbff", "f"], ["8bc01", "f"], ["8bfff", "f"], ["8c001", "f"], ["8c3ff", "f"], ["8c401", "f"], ["8c7ff", "f"], ["283001", "f"], ["2833ff", "f"], ["284801", "f"], ["284bff", "f"], ["287001", "f"], ["2873ff", "f"], ["287401", "f"], ["2877ff", "f"], ["289001", "f"], ["2893ff", "f"], ["484c01", "f"], ["484fff", "f"], ["885001", "f"], ["8853ff", "f"]]}},
+    {"position": "fina", "units": "W", "valid": {"projection": ["prev_written", "masculine", "promise"], "default": "f", "rows": [["111", "5"], ["114", "5"], ["119", "5"], ["11c", "5"], ["139", "5"], ["13c", "5"], ["211", "5"], ["214", "5"], ["219", "5"], ["21c", "5"]]}},
+    {"position": "fina", "units": "Z", "valid": "3"},
+    {"position": "fina", "units": "Zr", "valid": "3"}
   ],
-  "masc_to_fem": {
-    "a": "e",
-    "o": "oe",
-    "u": "ue"
-  },
-  "unit_table": {
-    "isol": {
-      "A": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180B"
-      },
-      "A+A": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180D"
-      },
-      "A+G": {
-        "letter": "ng",
-        "cp": "1829",
-        "fvs": null
-      },
-      "A+Hr": {
-        "letter": "hh",
-        "cp": "183E",
-        "fvs": null
-      },
-      "A+I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180D"
-      },
-      "A+O": {
-        "letter": "o",
-        "cp": "1823",
-        "fvs": null
-      },
-      "A+U": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180B"
-      },
-      "A+Ue": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": null
-      },
-      "A+W": {
-        "letter": "ee",
-        "cp": "1827",
-        "fvs": null
-      },
-      "Aa": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180C"
-      },
-      "B": {
-        "letter": "b",
-        "cp": "182A",
-        "fvs": null
-      },
-      "C": {
-        "letter": "c",
-        "cp": "183C",
-        "fvs": null
-      },
-      "Ch": {
-        "letter": "ch",
-        "cp": "1834",
-        "fvs": null
-      },
-      "Cr": {
-        "letter": "cr",
-        "cp": "1842",
-        "fvs": null
-      },
-      "D": {
-        "letter": "d",
-        "cp": "1833",
-        "fvs": null
-      },
-      "F": {
-        "letter": "f",
-        "cp": "1839",
-        "fvs": null
-      },
-      "G": {
-        "letter": "g",
-        "cp": "182D",
-        "fvs": "180C"
-      },
-      "Gx": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180F"
-      },
-      "H": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": null
-      },
-      "Hx": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180B"
-      },
-      "I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180B"
-      },
-      "Ix": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180C"
-      },
-      "K": {
-        "letter": "k",
-        "cp": "183B",
-        "fvs": null
-      },
-      "K2": {
-        "letter": "k2",
-        "cp": "183A",
-        "fvs": null
-      },
-      "L": {
-        "letter": "l",
-        "cp": "182F",
-        "fvs": null
-      },
-      "L+Hr": {
-        "letter": "lh",
-        "cp": "1840",
-        "fvs": null
-      },
-      "M": {
-        "letter": "m",
-        "cp": "182E",
-        "fvs": null
-      },
-      "N": {
-        "letter": "n",
-        "cp": "1828",
-        "fvs": null
-      },
-      "P": {
-        "letter": "p",
-        "cp": "182B",
-        "fvs": null
-      },
-      "R": {
-        "letter": "r",
-        "cp": "1837",
-        "fvs": null
-      },
-      "Rh": {
-        "letter": "rh",
-        "cp": "183F",
-        "fvs": null
-      },
-      "S": {
-        "letter": "s",
-        "cp": "1830",
-        "fvs": null
-      },
-      "Sh": {
-        "letter": "sh",
-        "cp": "1831",
-        "fvs": null
-      },
-      "T": {
-        "letter": "t",
-        "cp": "1832",
-        "fvs": null
-      },
-      "U": {
-        "letter": "u",
-        "cp": "1824",
-        "fvs": "180B"
-      },
-      "Ux": {
-        "letter": "u",
-        "cp": "1824",
-        "fvs": "180C"
-      },
-      "W": {
-        "letter": "w",
-        "cp": "1838",
-        "fvs": null
-      },
-      "Y": {
-        "letter": "y",
-        "cp": "1836",
-        "fvs": null
-      },
-      "Z": {
-        "letter": "z",
-        "cp": "183D",
-        "fvs": null
-      },
-      "Zr": {
-        "letter": "zr",
-        "cp": "1841",
-        "fvs": null
-      }
-    },
-    "init": {
-      "A": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180B"
-      },
-      "A+A": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180C"
-      },
-      "A+G": {
-        "letter": "ng",
-        "cp": "1829",
-        "fvs": null
-      },
-      "A+Hr": {
-        "letter": "hh",
-        "cp": "183E",
-        "fvs": null
-      },
-      "A+I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180C"
-      },
-      "A+O": {
-        "letter": "o",
-        "cp": "1823",
-        "fvs": null
-      },
-      "A+O+I": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": null
-      },
-      "A+W": {
-        "letter": "ee",
-        "cp": "1827",
-        "fvs": null
-      },
-      "B": {
-        "letter": "b",
-        "cp": "182A",
-        "fvs": null
-      },
-      "C": {
-        "letter": "c",
-        "cp": "183C",
-        "fvs": null
-      },
-      "Ch": {
-        "letter": "ch",
-        "cp": "1834",
-        "fvs": null
-      },
-      "Cr": {
-        "letter": "cr",
-        "cp": "1842",
-        "fvs": null
-      },
-      "D": {
-        "letter": "d",
-        "cp": "1833",
-        "fvs": "180B"
-      },
-      "F": {
-        "letter": "f",
-        "cp": "1839",
-        "fvs": null
-      },
-      "G": {
-        "letter": "g",
-        "cp": "182D",
-        "fvs": "180C"
-      },
-      "Gx": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180F"
-      },
-      "H": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180D"
-      },
-      "Hx": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180B"
-      },
-      "I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180B"
-      },
-      "K": {
-        "letter": "k",
-        "cp": "183B",
-        "fvs": null
-      },
-      "K2": {
-        "letter": "k2",
-        "cp": "183A",
-        "fvs": null
-      },
-      "L": {
-        "letter": "l",
-        "cp": "182F",
-        "fvs": null
-      },
-      "L+Hr": {
-        "letter": "lh",
-        "cp": "1840",
-        "fvs": null
-      },
-      "M": {
-        "letter": "m",
-        "cp": "182E",
-        "fvs": null
-      },
-      "N": {
-        "letter": "n",
-        "cp": "1828",
-        "fvs": null
-      },
-      "O": {
-        "letter": "u",
-        "cp": "1824",
-        "fvs": "180B"
-      },
-      "P": {
-        "letter": "p",
-        "cp": "182B",
-        "fvs": null
-      },
-      "R": {
-        "letter": "r",
-        "cp": "1837",
-        "fvs": null
-      },
-      "Rh": {
-        "letter": "rh",
-        "cp": "183F",
-        "fvs": null
-      },
-      "S": {
-        "letter": "s",
-        "cp": "1830",
-        "fvs": null
-      },
-      "Sh": {
-        "letter": "sh",
-        "cp": "1831",
-        "fvs": "180C"
-      },
-      "T": {
-        "letter": "t",
-        "cp": "1832",
-        "fvs": null
-      },
-      "W": {
-        "letter": "w",
-        "cp": "1838",
-        "fvs": null
-      },
-      "Y": {
-        "letter": "y",
-        "cp": "1836",
-        "fvs": "180C"
-      },
-      "Z": {
-        "letter": "z",
-        "cp": "183D",
-        "fvs": null
-      },
-      "Zr": {
-        "letter": "zr",
-        "cp": "1841",
-        "fvs": null
-      }
-    },
-    "medi": {
-      "A": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": null
-      },
-      "A+A": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180B"
-      },
-      "A+G": {
-        "letter": "ng",
-        "cp": "1829",
-        "fvs": null
-      },
-      "A+I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180B"
-      },
-      "A+O": {
-        "letter": "o",
-        "cp": "1823",
-        "fvs": "180B"
-      },
-      "A+O+I": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180C"
-      },
-      "B": {
-        "letter": "b",
-        "cp": "182A",
-        "fvs": null
-      },
-      "C": {
-        "letter": "c",
-        "cp": "183C",
-        "fvs": null
-      },
-      "Ch": {
-        "letter": "ch",
-        "cp": "1834",
-        "fvs": null
-      },
-      "Cr": {
-        "letter": "cr",
-        "cp": "1842",
-        "fvs": null
-      },
-      "D": {
-        "letter": "t",
-        "cp": "1832",
-        "fvs": "180C"
-      },
-      "Dd": {
-        "letter": "d",
-        "cp": "1833",
-        "fvs": "180C"
-      },
-      "F": {
-        "letter": "f",
-        "cp": "1839",
-        "fvs": null
-      },
-      "G": {
-        "letter": "g",
-        "cp": "182D",
-        "fvs": "180C"
-      },
-      "Gx": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180F"
-      },
-      "H": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180D"
-      },
-      "Hr": {
-        "letter": "hh",
-        "cp": "183E",
-        "fvs": null
-      },
-      "Hx": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180B"
-      },
-      "I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180D"
-      },
-      "I+I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": "180C"
-      },
-      "J": {
-        "letter": "j",
-        "cp": "1835",
-        "fvs": null
-      },
-      "K": {
-        "letter": "k",
-        "cp": "183B",
-        "fvs": null
-      },
-      "K2": {
-        "letter": "k2",
-        "cp": "183A",
-        "fvs": null
-      },
-      "L": {
-        "letter": "l",
-        "cp": "182F",
-        "fvs": null
-      },
-      "L+Hr": {
-        "letter": "lh",
-        "cp": "1840",
-        "fvs": null
-      },
-      "M": {
-        "letter": "m",
-        "cp": "182E",
-        "fvs": null
-      },
-      "N": {
-        "letter": "n",
-        "cp": "1828",
-        "fvs": "180B"
-      },
-      "O": {
-        "letter": "o",
-        "cp": "1823",
-        "fvs": null
-      },
-      "O+I": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180B"
-      },
-      "P": {
-        "letter": "p",
-        "cp": "182B",
-        "fvs": null
-      },
-      "R": {
-        "letter": "r",
-        "cp": "1837",
-        "fvs": null
-      },
-      "Rh": {
-        "letter": "rh",
-        "cp": "183F",
-        "fvs": null
-      },
-      "S": {
-        "letter": "s",
-        "cp": "1830",
-        "fvs": null
-      },
-      "Sh": {
-        "letter": "sh",
-        "cp": "1831",
-        "fvs": "180C"
-      },
-      "T": {
-        "letter": "t",
-        "cp": "1832",
-        "fvs": "180B"
-      },
-      "W": {
-        "letter": "w",
-        "cp": "1838",
-        "fvs": null
-      },
-      "Y": {
-        "letter": "y",
-        "cp": "1836",
-        "fvs": "180D"
-      },
-      "Z": {
-        "letter": "z",
-        "cp": "183D",
-        "fvs": null
-      },
-      "Zr": {
-        "letter": "zr",
-        "cp": "1841",
-        "fvs": null
-      }
-    },
-    "fina": {
-      "A": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180C"
-      },
-      "A+G": {
-        "letter": "ng",
-        "cp": "1829",
-        "fvs": null
-      },
-      "Aa": {
-        "letter": "a",
-        "cp": "1820",
-        "fvs": "180B"
-      },
-      "B": {
-        "letter": "b",
-        "cp": "182A",
-        "fvs": null
-      },
-      "B2": {
-        "letter": "b",
-        "cp": "182A",
-        "fvs": "180B"
-      },
-      "C": {
-        "letter": "c",
-        "cp": "183C",
-        "fvs": null
-      },
-      "Ch": {
-        "letter": "ch",
-        "cp": "1834",
-        "fvs": null
-      },
-      "Cr": {
-        "letter": "cr",
-        "cp": "1842",
-        "fvs": null
-      },
-      "D": {
-        "letter": "d",
-        "cp": "1833",
-        "fvs": "180B"
-      },
-      "Dd": {
-        "letter": "d",
-        "cp": "1833",
-        "fvs": null
-      },
-      "F": {
-        "letter": "f",
-        "cp": "1839",
-        "fvs": null
-      },
-      "G": {
-        "letter": "g",
-        "cp": "182D",
-        "fvs": "180C"
-      },
-      "H": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": null
-      },
-      "Hr": {
-        "letter": "hh",
-        "cp": "183E",
-        "fvs": null
-      },
-      "Hx": {
-        "letter": "h",
-        "cp": "182C",
-        "fvs": "180B"
-      },
-      "I": {
-        "letter": "i",
-        "cp": "1822",
-        "fvs": null
-      },
-      "J": {
-        "letter": "j",
-        "cp": "1835",
-        "fvs": null
-      },
-      "K": {
-        "letter": "k",
-        "cp": "183B",
-        "fvs": null
-      },
-      "K2": {
-        "letter": "k2",
-        "cp": "183A",
-        "fvs": null
-      },
-      "L": {
-        "letter": "l",
-        "cp": "182F",
-        "fvs": null
-      },
-      "L+Hr": {
-        "letter": "lh",
-        "cp": "1840",
-        "fvs": null
-      },
-      "M": {
-        "letter": "m",
-        "cp": "182E",
-        "fvs": null
-      },
-      "N": {
-        "letter": "n",
-        "cp": "1828",
-        "fvs": "180B"
-      },
-      "O": {
-        "letter": "o",
-        "cp": "1823",
-        "fvs": "180B"
-      },
-      "P": {
-        "letter": "p",
-        "cp": "182B",
-        "fvs": null
-      },
-      "R": {
-        "letter": "r",
-        "cp": "1837",
-        "fvs": null
-      },
-      "Rh": {
-        "letter": "rh",
-        "cp": "183F",
-        "fvs": null
-      },
-      "S": {
-        "letter": "s",
-        "cp": "1830",
-        "fvs": null
-      },
-      "Sh": {
-        "letter": "sh",
-        "cp": "1831",
-        "fvs": null
-      },
-      "Sz": {
-        "letter": "s",
-        "cp": "1830",
-        "fvs": "180B"
-      },
-      "T": {
-        "letter": "t",
-        "cp": "1832",
-        "fvs": null
-      },
-      "U": {
-        "letter": "o",
-        "cp": "1823",
-        "fvs": "180C"
-      },
-      "Ue": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180B"
-      },
-      "W": {
-        "letter": "w",
-        "cp": "1838",
-        "fvs": null
-      },
-      "Z": {
-        "letter": "z",
-        "cp": "183D",
-        "fvs": null
-      },
-      "Zr": {
-        "letter": "zr",
-        "cp": "1841",
-        "fvs": null
-      }
-    }
-  },
-  "velar_fem": {
-    "isol": {
-      "A": {
-        "letter": "e",
-        "cp": "1821",
-        "fvs": "180C"
-      },
-      "Aa": {
-        "letter": "e",
-        "cp": "1821",
-        "fvs": "180B"
-      },
-      "U": {
-        "letter": "ue",
-        "cp": "1826",
-        "fvs": "180C"
-      },
-      "Ux": {
-        "letter": "ue",
-        "cp": "1826",
-        "fvs": "180D"
-      }
-    },
-    "init": {
-      "A": {
-        "letter": "e",
-        "cp": "1821",
-        "fvs": null
-      },
-      "O": {
-        "letter": "ue",
-        "cp": "1826",
-        "fvs": "180B"
-      }
-    },
-    "medi": {
-      "A": {
-        "letter": "e",
-        "cp": "1821",
-        "fvs": null
-      },
-      "O": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180D"
-      },
-      "W": {
-        "letter": "ee",
-        "cp": "1827",
-        "fvs": null
-      }
-    },
-    "fina": {
-      "A": {
-        "letter": "e",
-        "cp": "1821",
-        "fvs": "180C"
-      },
-      "Aa": {
-        "letter": "e",
-        "cp": "1821",
-        "fvs": "180B"
-      },
-      "O": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180C"
-      },
-      "U": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180D"
-      },
-      "Ue": {
-        "letter": "oe",
-        "cp": "1825",
-        "fvs": "180B"
-      },
-      "W": {
-        "letter": "ee",
-        "cp": "1827",
-        "fvs": null
-      }
-    }
-  }
+  "positioned_units": [{"unit": "A", "position": "fina"}, {"unit": "A", "position": "init"}, {"unit": "A", "position": "isol"}, {"unit": "A", "position": "medi"}, {"unit": "Aa", "position": "fina"}, {"unit": "Aa", "position": "isol"}, {"unit": "B", "position": "fina"}, {"unit": "B", "position": "init"}, {"unit": "B", "position": "medi"}, {"unit": "B2", "position": "fina"}, {"unit": "C", "position": "fina"}, {"unit": "C", "position": "init"}, {"unit": "C", "position": "medi"}, {"unit": "Ch", "position": "fina"}, {"unit": "Ch", "position": "init"}, {"unit": "Ch", "position": "medi"}, {"unit": "Cr", "position": "init"}, {"unit": "D", "position": "fina"}, {"unit": "D", "position": "init"}, {"unit": "D", "position": "medi"}, {"unit": "Dd", "position": "fina"}, {"unit": "Dd", "position": "medi"}, {"unit": "F", "position": "fina"}, {"unit": "F", "position": "init"}, {"unit": "F", "position": "medi"}, {"unit": "G", "position": "fina"}, {"unit": "G", "position": "init"}, {"unit": "G", "position": "medi"}, {"unit": "Gx", "position": "init"}, {"unit": "Gx", "position": "medi"}, {"unit": "H", "position": "fina"}, {"unit": "H", "position": "init"}, {"unit": "H", "position": "medi"}, {"unit": "Hr", "position": "fina"}, {"unit": "Hr", "position": "medi"}, {"unit": "Hx", "position": "fina"}, {"unit": "Hx", "position": "init"}, {"unit": "Hx", "position": "medi"}, {"unit": "I", "position": "fina"}, {"unit": "I", "position": "init"}, {"unit": "I", "position": "isol"}, {"unit": "I", "position": "medi"}, {"unit": "Ix", "position": "isol"}, {"unit": "J", "position": "fina"}, {"unit": "J", "position": "medi"}, {"unit": "K", "position": "fina"}, {"unit": "K", "position": "init"}, {"unit": "K", "position": "medi"}, {"unit": "K2", "position": "fina"}, {"unit": "K2", "position": "init"}, {"unit": "K2", "position": "medi"}, {"unit": "L", "position": "fina"}, {"unit": "L", "position": "init"}, {"unit": "L", "position": "medi"}, {"unit": "M", "position": "fina"}, {"unit": "M", "position": "init"}, {"unit": "M", "position": "medi"}, {"unit": "N", "position": "fina"}, {"unit": "N", "position": "init"}, {"unit": "N", "position": "medi"}, {"unit": "O", "position": "fina"}, {"unit": "O", "position": "init"}, {"unit": "O", "position": "medi"}, {"unit": "P", "position": "fina"}, {"unit": "P", "position": "init"}, {"unit": "P", "position": "medi"}, {"unit": "R", "position": "fina"}, {"unit": "R", "position": "init"}, {"unit": "R", "position": "medi"}, {"unit": "Rh", "position": "fina"}, {"unit": "Rh", "position": "init"}, {"unit": "Rh", "position": "medi"}, {"unit": "S", "position": "fina"}, {"unit": "S", "position": "init"}, {"unit": "S", "position": "medi"}, {"unit": "Sh", "position": "fina"}, {"unit": "Sh", "position": "init"}, {"unit": "Sh", "position": "medi"}, {"unit": "Sz", "position": "fina"}, {"unit": "T", "position": "fina"}, {"unit": "T", "position": "init"}, {"unit": "T", "position": "medi"}, {"unit": "U", "position": "fina"}, {"unit": "U", "position": "isol"}, {"unit": "Ue", "position": "fina"}, {"unit": "Ux", "position": "isol"}, {"unit": "W", "position": "fina"}, {"unit": "W", "position": "init"}, {"unit": "W", "position": "medi"}, {"unit": "Y", "position": "init"}, {"unit": "Y", "position": "medi"}, {"unit": "Z", "position": "fina"}, {"unit": "Z", "position": "init"}, {"unit": "Z", "position": "medi"}, {"unit": "Zr", "position": "init"}]
 }

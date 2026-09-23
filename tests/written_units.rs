@@ -82,7 +82,7 @@ fn duplicate_encodings_are_accepted_as_input_and_unified() {
 }
 
 #[test]
-fn test_existing_velar_feminine_refinement_is_reused() {
+fn test_velar_with_a_feminine_vowel_encodes_like_normalize() {
     let shaper = shaper();
     let nominal = "\u{182C}\u{180C}\u{1826}"; // h+FVS2 + ue -> G Ue
     let units = shaper.shape(nominal).unwrap();
@@ -173,7 +173,7 @@ fn test_plain_units_encode_to_canonical_unicode() {
     let result = shaper
         .normalize_written_units(&[WrittenUnit::B, WrittenUnit::Aa])
         .unwrap();
-    assert_eq!(result, "\u{182A}\u{1820}\u{180B}");
+    assert_eq!(result, "\u{182A}\u{1820}");
     assert_eq!(
         shaper.shape(&result).unwrap(),
         [WrittenUnit::B, WrittenUnit::Aa]

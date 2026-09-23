@@ -1109,15 +1109,16 @@ class TestNormalize(unittest.TestCase):
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    # Canonical "sain" under the FVS-pinned per-unit encoder: all five
-    # encodings shape to ['S','A','I','I','A'] and converge to ONE output.
-    # The encoder pins each unit to a context-independent (letter, fvs):
-    # s, a, i+fvs3, i+fvs3, a — so prefixes encode stably regardless of
-    # what follows (medial 'I' needs fvs3 to be context-independent; that
-    # FVS clutter is the deliberate price of prefix-stability).
-    # 每个单元钉死为 context 无关编码,故前缀稳定;中位 I 需 fvs3 才 context
-    # 无关,FVS 杂讯是前缀稳定的代价。
-    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
+    # Canonical "sain" (mng-canonical/3): all five encodings shape to
+    # ['S','A','I','I','A'] and converge to ONE output, s a i+fvs3 i n. The
+    # online encoder commits letters left to right and never revises them: the
+    # first 'I' is written i+fvs3 because S A I I is itself a shape whose first
+    # 'I' must stay a single medial 'I' after a vowel whatever follows
+    # (prefix-stability); the rest is bare, and a final 'A' after a vowel is n.
+    # 在线编码器从左到右提交字母、不回改:S A I I 本身也是一个字形,其第一个 I
+    # 须在任何后续下保持为元音后的单个中位 I,故写 i+fvs3;其余为裸字母,
+    # 元音后的词末 A 写 n。
+    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢᠨ"
 
     @needs_testing_hook
     def test_non_strict_mode_preserves_input_when_canonicalization_falls_back(self):
@@ -1179,9 +1180,9 @@ class TestNormalizeText(unittest.TestCase):
     def setUpClass(cls):
         cls.s = MongolianShaper(locale="MNG")
 
-    # Canonical "sain" under the FVS-pinned per-unit encoder (see
-    # TestNormalize for the rationale). All variants converge to one output.
-    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
+    # Canonical "sain" (see TestNormalize for the rationale). All variants
+    # converge to one output.
+    CANONICAL_SAIN = "ᠰᠠᠢ᠍ᠢᠨ"
 
     @needs_testing_hook
     def test_default_mode_reports_a_fallback_inside_mixed_text(self):

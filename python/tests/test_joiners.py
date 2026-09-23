@@ -20,10 +20,9 @@ ZWJ = '‍'
 O = 'ᠣ'      # o
 U = 'ᠤ'      # u
 OE = 'ᠥ'     # oe
-A = 'ᠠ'      # a
+N = 'ᠨ'      # n
 D = 'ᠳ'      # d
 J = 'ᠵ'      # j
-FVS2 = '᠌'
 FVS3 = '᠍'
 
 
@@ -80,8 +79,9 @@ class TestJoinerNormalize(_Base):
     def test_zwj_preserved(self):
         # The ZWJ survives normalize verbatim, and the shape round-trips. The word itself
         # is no longer a fixed point: its shape is `Zwj O A`, so the canonical spelling is
-        # the `O`+`A` pair, not the single `d` that renders the same ink as `Dd`.
-        self.assertEqual(self._round_trips(ZWJ + D), ZWJ + O + A + FVS2)
+        # a two-letter one — `o` and, as a final `A` after a vowel, `n` — not the single
+        # `d` that renders the same ink as `Dd`.
+        self.assertEqual(self._round_trips(ZWJ + D), ZWJ + O + N)
 
     def test_single_sided_nirugu_round_trips(self):
         for text in (NIRUGU + J,          # joined-left J  -> fina form
