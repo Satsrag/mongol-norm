@@ -279,10 +279,10 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
 - 本项目用 [Claude Code](https://claude.ai/code) 编写，测试与核心代码经人工审核。遇到问题请提
   [issue](https://github.com/Satsrag/mongol-norm/issues)。
 
-更多：[实现原理](https://github.com/Satsrag/mongol-norm/blob/main/docs/internals.md) ·
-[数据格式](https://github.com/Satsrag/mongol-norm/blob/main/docs/data-format.md) ·
-[开发与测试](https://github.com/Satsrag/mongol-norm/blob/main/docs/development.md) ·
-[发布流程](https://github.com/Satsrag/mongol-norm/blob/main/docs/releasing.md)
+更多：[实现原理](https://github.com/Satsrag/mongol-norm/blob/main/docs/internals.md#中文) ·
+[数据格式](https://github.com/Satsrag/mongol-norm/blob/main/docs/data-format.md#中文) ·
+[开发与测试](https://github.com/Satsrag/mongol-norm/blob/main/docs/development.md#中文) ·
+[发布流程](https://github.com/Satsrag/mongol-norm/blob/main/docs/releasing.md#中文)
 
 ### 许可
 
