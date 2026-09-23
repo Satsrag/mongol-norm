@@ -11,9 +11,10 @@ name: Test
 # The Python job builds the extension in place (maturin develop) on every
 # supported CPython and runs the unittest suite, which covers all shaping logic,
 # the normalize round-trip / canonicity / prefix-stability properties, the
-# normalize-table export, the mongfontbuilder core-hud / eac-hud TSV regression
-# sets and the binding layer. The Rust job checks the whole workspace on stable
-# and the core crate's MSRV / wasm32 / packaging guarantees.
+# bundled normalize table, the mongfontbuilder core-hud / eac-hud TSV regression
+# sets and the binding layer. The Rust job checks the whole workspace on stable,
+# that the normalize table is fresh (its generator is a Rust example), and the
+# core crate's MSRV / wasm32 / packaging guarantees.
 
 on:
   push:
@@ -81,7 +82,7 @@ jobs:
         #   - hand-written shaper tests (shape / same_shape / normalize)
         #   - joiner-token semantics (nirugu / ZWJ in shape + normalize)
         #   - normalize round-trip + shape-canonicity + prefix-stability
-        #   - normalize-table export (compute == bundled)
+        #   - the bundled normalize table agrees with the engine
         #   - 225 mongfontbuilder core-hud cases (100%)
         #   - 3513 mongfontbuilder eac-hud cases (100%, 5 UTN-xfail)
         #   - the binding layer: dict formats, error mapping, console script (test_bindings, test_cli)
@@ -89,13 +90,13 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_*.py'
 
       - name: Generated artifacts are fresh
-        # The bundled normalize table, the Rust tables and the compat goldens are
-        # generated from python/mongol_norm/data/*.json; each script's --check fails
+        # The Rust tables and the compat goldens are generated from
+        # python/mongol_norm/data/*.json and the engine; each script's --check fails
         # when the committed file differs from what it would generate now. The
         # scripts locate the repository from their own path; run them from the root.
+        # (The normalize table's check runs once, in the Rust job.)
         run: |
           python python/scripts/gen_rust_tables.py --check
-          python python/scripts/gen_normalize_table.py --check
           python python/scripts/gen_compat_goldens.py --check
 
   rust:
@@ -127,6 +128,12 @@ jobs:
 
       - name: Test (stable, whole workspace)
         run: cargo test --workspace --locked
+
+      - name: Normalize table is fresh
+        # examples/gen_normalize_table regenerates python/mongol_norm/data/MNG.normalize.json
+        # from the engine (python/scripts/gen_normalize_table.py runs the same command) and
+        # fails when the committed file differs.
+        run: cargo run --release --locked --example gen_normalize_table -- --check
 
       # The remaining steps are core-crate only (-p mongol-norm): the binding crate
       # needs Rust 1.83 and a Python interpreter, has no wasm32 story and is not

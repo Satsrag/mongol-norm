@@ -6,7 +6,7 @@ mongol-norm bundles pre-processed JSON in [`python/mongol_norm/data/`](../python
 
 **Audience:** anyone implementing a Mongolian shaper or normalizer in any language (JS, Dart, Java, C, PHP, …; Rust and Python are covered by the crate and its bindings). The JSON has no language-specific structure — it is generated once (see [Regenerating](#regenerating)) and committed; there is no separate data package to install.
 
-**How mongol-norm itself uses it:** the runtime — the Rust crate at the repository root ([`src/`](../src/)), which the Python package wraps — does not read this JSON. `python/scripts/gen_rust_tables.py` compiles it into static Rust tables (`src/generated/`); the JSON is the input of that generator and of the other tooling (`python/scripts/gen_normalize_table.py` writes `MNG.normalize.json`, the tests read the files through `mongol_norm._data`). The wheel still ships the files for that tooling.
+**How mongol-norm itself uses it:** the runtime — the Rust crate at the repository root ([`src/`](../src/)), which the Python package wraps — does not read this JSON. `python/scripts/gen_rust_tables.py` compiles it into static Rust tables (`src/generated/`); the JSON is the input of that generator and of the other tooling (the Rust example `examples/gen_normalize_table`, run by `python/scripts/gen_normalize_table.py`, writes `MNG.normalize.json` from `MNG.json`; the tests read the files through `mongol_norm._data`). The wheel still ships the files for that tooling.
 
 The rules are derived from:
 - [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) — Unicode technical note defining the shaping algorithm.
@@ -27,7 +27,7 @@ python/mongol_norm/data/
 
 Each `<LOCALE>.json` is self-contained: one JSON document with every piece of data needed to shape that locale. A `<LOCALE>.normalize.json` (currently `MNG` only) additionally supports *normalization* — see [Normalize table](#normalize-table-mngnormalizejson).
 
-Size: shape rules 45–60 KB each; the normalize table ~16 KB.
+Size: shape rules 45–60 KB each; the normalize table ~95 KB.
 
 ## Getting the JSON
 
@@ -51,7 +51,7 @@ from mongol_norm import MongolianShaper
 
 shaper = MongolianShaper(locale="MNG")
 shaper.normalize_written_units(["B", "Aa"])
-# -> "ᠪᠠ᠋"
+# -> "ᠪᠠ"
 
 shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 ```
@@ -273,7 +273,7 @@ Other locales may expose a different subset.
 This document is **data only**. For the algorithm, see:
 
 - **Spec:** [UTN #57 v4, section 3 ("Shaping")](https://www.unicode.org/notes/tn57/tn57-4.html) — the 5-step Mongolian-specific shaping phase.
-- **Reference implementation:** [`src/`](../src/) — dependency-free Rust: `token.rs` (tokenization, structural positions), `rules.rs` (the five phases, one function per rule), `shaper.rs` (variant resolution; `shape` / `same_shape` / `shape_detailed` / `trace`), `normalize.rs` (the normalize algorithm), `written_units.rs` (the written-unit input APIs). The Python package calls exactly this code through the binding crate in `python/`.
+- **Reference implementation:** [`src/`](../src/) — dependency-free Rust: `token.rs` (tokenization, structural positions), `rules.rs` (the five phases, one function per rule), `shaper.rs` (variant resolution; `shape` / `same_shape` / `shape_detailed` / `trace`), `normalize.rs` and `encoder.rs` (the normalize algorithm), `written_units.rs` (the written-unit input APIs). The Python package calls exactly this code through the binding crate in `python/`.
 
 The 5 steps summarized:
 
@@ -306,9 +306,9 @@ The reference implementation builds them in two steps: `python/scripts/gen_rust_
 
 ## Normalize table (`MNG.normalize.json`)
 
-Alongside the shape rules, `python/mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
+Alongside the shape rules, `python/mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse: the tables of mongol-norm's **online normalize encoder** (policy `mng-canonical/3`; the design is in [`docs/internals.md`](internals.md), "Normalization strategy"). For every `(position, written units)` it lists the letters that render them in preference order, says when a context-dependent letter may be *committed* — written before the rest of the word is known — and which letters can end a word.
 
-It exists so other languages can implement mongol-norm's `normalize` for covered written-unit chains (same supported shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. mongol-norm's own engine consumes this exact file too, compiled into `src/generated/mng_normalize.rs` by `python/scripts/gen_rust_tables.py`. An uncovered chain is outside this table contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False` (the Rust API: `Error::NormalizationFallback`, or `normalize_allow_fallback`).
+With this file, the shape rules and the algorithm below, a port reproduces mongol-norm's `normalize` byte for byte: the shaper computes the input's shape, the encoder itself never shapes and never searches beyond a few units. mongol-norm's own engine consumes this exact file, compiled into `src/generated/mng_normalize.rs` by `python/scripts/gen_rust_tables.py`. A shape the tables cannot encode is outside this contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False` (the Rust API: `Error::NormalizationFallback`, or `normalize_allow_fallback`). No reachable shape is known to hit this.
 
 ```python
 from mongol_norm._data import load_normalize_table
@@ -319,45 +319,101 @@ tbl = load_normalize_table("MNG")   # -> dict
 
 ```json
 {
-  "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/2",
+  "schema": "mongol-normalize-table/2",
+  "canonical_version": "mng-canonical/3",
   "locale": "MNG",
-  "unit_enc_max_len": 3,
-  "positioned_units": [
-    {"unit": "F", "position": "init"},
-    {"unit": "I", "position": "isol"}
+  "constants": { "MVS": "180E", "NIRUGU": "180A", "ZWJ": "200D", "FVS1": "180B", "...": "..." },
+  "context_components": [["prev_letter", 6], ["prev_fvs", 3], "..."],
+  "promises": [["vowel", ["a", "e", "i", "o", "u", "oe", "ue", "ee"]], "..."],
+  "particle_nodes": ["", "M:", "u", "u u", "...", "M:y i n", "..."],
+  "written_sequences": ["A", "A+A", "A+G", "..."],
+  "mask_units": ["A", "Aa", "Ah", "..."],
+  "mask_sets": [["100000000000000", "0", "0", "0", "0", "0"], "..."],
+  "candidates": [
+    { "letter": "i", "cp": "1822", "fvs": null, "position": "medi", "units": "I", "written": "I",
+      "robust": { "projection": ["prev_letter", "prev_written"], "default": 2, "rows": [["101", 1], "..."] } },
+    { "letter": "i", "cp": "1822", "fvs": "180D", "position": "medi", "units": "I", "written": "I",
+      "robust": "always" }
   ],
-  "constants": { "MVS": "180E", "NIRUGU": "180A", "FVS1": "180B", "...": "..." },
-  "velar_fem_units": ["G", "Gx"],
-  "masc_to_fem": { "a": "e", "o": "oe", "u": "ue" },
-  "unit_table": {
-    "isol": { "A": { "letter": "a", "cp": "1820", "fvs": "180B" } },
-    "init": { "...": {} }, "medi": { "...": {} }, "fina": { "...": {} }
-  },
-  "velar_fem": { "fina": { "O": { "letter": "oe", "cp": "1825", "fvs": "180C" } } }
+  "finals": [
+    { "position": "fina", "units": "N", "valid": "2" },
+    { "position": "isol", "units": "A+O",
+      "valid": { "projection": ["prev_token"], "default": "1f", "rows": [["2", "1d"]] } }
+  ],
+  "known_units": ["A", "Aa", "..."],
+  "positioned_units": [{ "unit": "F", "position": "init" }, { "unit": "I", "position": "isol" }]
 }
 ```
 
 | field | meaning |
 |---|---|
 | `canonical_version` | Version of the exact shape → canonical Unicode selection policy. Persist this alongside normalized index keys; a changed value means stored keys may need rebuilding. |
-| `unit_table[pos][unit]` | The pinned encoding for a written `unit` at `pos` (`isol`/`init`/`medi`/`fina`). `unit` is a `+`-joined written-unit tuple — single (`"A"`) or multi (`"A+O+I"`). Value: `letter` (alias), `cp` (hex codepoint), `fvs` (hex codepoint or `null`). |
-| `unit_enc_max_len` | Longest written-unit tuple in `unit_table`; bounds the multi-unit lookahead during partition. |
-| `positioned_units` | Complete valid HUD `(unit, position)` inventory used to validate positioned requests. Encoding reuses `unit_table` through `normalize_written_units()`; incomplete chain edges are represented by implicit ZWJ. |
-| `velar_fem[pos][unit]` | The feminine encoding of a single vowel unit, used by the velar-feminine refinement. |
-| `velar_fem_units` | Units that trigger that refinement (`G`, `Gx`). |
-| `masc_to_fem` | Masculine→feminine vowel alias map the refinement applies. |
-| `constants` | Hex codepoints for MVS / Nirugu / ZWJ / FVS1–4. |
-| `ci_probe_letters` | The neighbour letters the selection battery probed (provenance; not needed at runtime). |
+| `constants` | Hex code points of MVS / nirugu / ZWJ / FVS1–4. |
+| `context_components` | `[name, bits]` of the encoder context's components, in key-packing order ([The context](#the-context)). |
+| `promises` | Promise classes 1–5, in order: `[name, letter aliases]`. Promise 0 is "none". |
+| `particle_nodes` | The particle-key trie ([The context](#the-context)). Node 0 (`""`) is the word start, node 1 (`"M:"`) the start of a segment after an MVS. Every other node is named by its parent's name plus its letter's alias (`"M:y i"` is the child of `"M:y"` by `i`; `"u"` the child of `""` by `u`, `"M:u"` of `"M:"`). |
+| `written_sequences` | Every candidate's `written`, sorted; the context's `prev_written` is a 1-based index into it. |
+| `mask_units` | The written units in the bit order of a next-unit mask: bit `i` is `mask_units[i]` (the `WrittenUnit` order, structural tokens included). |
+| `mask_sets` | A pool of robustness answers: six hex masks each, one per promise 0–5. A set bit means "may be committed before this next unit, making this promise". |
+| `candidates` | Every encoding option: `letter` (alias), `cp`, `fvs` (hex code point, or `null` for a bare letter), `position` (`isol`/`init`/`medi`/`fina`), `units` (the `+`-joined written units it renders; `written` is the same sequence as the engine names it), and `robust`: `"always"` (may be committed in every context, without a promise), `"never"`, or a [context table](#context-tables) whose values index `mask_sets`. The options of one `(position, units)` group are contiguous and in the base preference order ([Preference](#preference)). |
+| `finals` | Which options of an `isol`/`fina` group can end a word: `valid`, a hex mask over the group's options (bit `i` is the group's `i`-th candidate), or a context table of such masks. A group missing here never ends a word. |
+| `known_units` | Every written unit the locale's letters render, the nine duplicate encodings included; with `Mvs`, `Nirugu` and `Zwj` it is the vocabulary of `normalize_written_units()`. |
+| `positioned_units` | Complete valid HUD `(unit, position)` inventory used to validate positioned requests (`normalize_positioned_written_units()`, which encodes through `normalize_written_units()`; incomplete chain edges are represented by implicit ZWJ). |
 
-`cp`/`fvs` are **hex strings** (`"1820"`, or `null` for no FVS) — parse with base 16.
+`cp`, `fvs`, masks and row keys are **hex strings** — parse with base 16.
+
+#### Context tables
+
+`{"projection": [component names], "default": value, "rows": [[key, value], …]}` gives a value per context. The key of a context under a projection concatenates the projected components' values in `context_components` order, each in its bit width (`key = (key << bits) | value`), written in hex. The value is the row with that key (rows are sorted by key), or `default`. An empty projection is a constant.
+
+### The context
+
+The encoder keeps a context of the text committed so far. After each committed letter or structural token it holds:
+
+| component | value |
+|---|---|
+| `prev_letter` | The last committed letter (structural tokens skipped): `cp − 0x1820 + 1`; `0` before the first. |
+| `prev_fvs` | Its FVS: `1`–`4`, `0` if bare. |
+| `prev_position` | Its position: `isol` 1, `init` 2, `medi` 3, `fina` 4. |
+| `prev_written` | Its `written`, as a 1-based index into `written_sequences`. |
+| `prev_token` | The last committed token: `0` none, `1` letter, `2` MVS, `3` nirugu, `4` ZWJ. |
+| `mvs_since_prev` | `1` if an MVS came after the last letter. |
+| `cluster` | `1` if the letters since the last vowel are an initial consonant followed by one or more medial consonants (III.2a cluster `marked`). |
+| `masculine` | `1` if the nearest vowel back in the MVS segment is `a`, `o` or `u` in initial or medial position (III.2f). |
+| `particle` | The particle-trie node the MVS segment has reached, or `1023` once it can match no key (III.3). |
+| `promise` | The promise the last letter made (`0`–`5`). |
+
+It starts with every component `0` (the particle node is the word start). Committing candidate `c` with promise `p`:
+
+- `cluster`: a vowel breaks the cluster; a consonant at `init` starts one; a consonant at `medi` extends a started one to "initial + medial" (the component is `1` only then); anything else breaks it.
+- `masculine`: `e oe ue ee` clear it; `a o u` at `init`/`medi` set it; other letters keep it.
+- `particle`: a bare letter moves to the child node by its letter, or to `1023` if there is none; a letter with an FVS goes to `1023`; `1023` stays.
+- `prev_*` describe `c`; `prev_token` = letter; `mvs_since_prev` = 0; `promise` = `p`.
+
+A structural token sets `promise` = 0 and `prev_token` to the token; an MVS also sets `mvs_since_prev` = 1, breaks the cluster, clears `masculine` and sets `particle` to node 1.
+
+The encoder also tracks a **harmony**, which is not a key component: `a o u` make it masculine, `e oe ue ee` feminine, other letters and all tokens keep it. It only orders equally short letters.
+
+**Positions.** The next letter is *chain-first* when `prev_token` is none or MVS. A letter committed with more letters of its chain to follow is `init` if chain-first, else `medi`. The last letter before a structural token is `isol`/`fina` before an MVS and `init`/`medi` before a nirugu or ZWJ (chain-first / not). The word's last letter is `isol`/`fina`.
+
+### Preference
+
+The options of a group are tried in this order: without an FVS first, then `n` first where it applies, then by rank, then by FVS (1–4). **Rank** is `cp × 2`, except that `g` (`182D`) ranks `182C × 2 − 1`, just before `h`; when the harmony is feminine, `e`, `oe`, `ue` rank one below `a`, `o`, `u`. **`n` first** applies to the option `n` rendering `A` when the letter ends its chain right after a vowel — the previous token is a letter and that letter a vowel — and only for the word's final letter and for the last letter before a structural token. With masculine or no harmony and no `n`-first, this is the order of `candidates`.
+
+### Lookups
+
+- **allows(p, letter)**: `p` is 0, or the letter is in class `p`.
+- **feasible(p, u)** — may promise `p` > 0 be made before next unit `u`? Yes when some candidate renders exactly `[u]` at `medi` or `fina`, and at each of those two positions where one does, one whose letter is in class `p` does too.
+- **robust(ctx, c, next, p)** — may `c` be committed before `next` (the unit after its span, or the structural token that closes it) with promise `p`? `"always"`: iff `p` is 0. `"never"`: no. A table: bit `next` of `mask_sets[value][p]`.
+- **final(ctx, units)** — the letter that ends the word with `units`: the position is `isol` if chain-first, else `fina`; take the group's `valid` mask (none: no final letter), and return the first option in preference order whose bit is set and whose letter `allows(ctx.promise)`.
+- **cost** — 1 for a bare letter, 2 with an FVS.
 
 ### Consuming it (the normalize algorithm)
 
-Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
+Per word:
 
-1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
-1a. **Unify the duplicate encodings.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
+1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens; they are copied through to the output unchanged.
+2. **Unify the duplicate encodings.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are chain slots — a chain is the letters between structural tokens, and a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
 
    First **expand**, in one left-to-right pass over each chain:
 
@@ -382,11 +438,55 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
    Initial/final `H`/`Hx`, a lone `Cr:isol`, and a lone `A` are unchanged. One expansion pass suffices: neither direction emits expansion targets or exposes initial/final `H`/`Hx` as medial. All contractions end the chain; `A/B2/G` cannot contract again, and a contracted `Aa` follows a bowed written unit rather than `A/O/I`. This proves idempotence without repeated deletion. In particular `Dd Aa → O A Aa` cannot then contract: `O` is not a bowed written unit. See the 168 421-input exhaustion and context regressions in `src/duplicates.rs`.
 
    UTN #57 and GB/T 25914-2023 keep all nine as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-unification sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs).
-2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
-3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
-4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, fail closed (raise), or return the input unchanged only when the caller opted in (`strict=False` / `--allow-fallback`); never mis-encode.
+3. Encode the unified shape left to right. Every letter but the last is committed — appended to the output and never revised — which is what makes the encoding prefix-stable:
 
-Full reference: [`src/normalize.rs`](../src/normalize.rs) — `canonical_for_shape`, `unit_encode_chain`, `unit_partition`, `apply_velar_fem`.
+   ```text
+   encode(shape):
+     out = "", ctx = start, covered = 0
+     for end = 1 .. len(shape):
+       u = shape[end - 1]
+       if u is structural:
+         steps = plan(ctx, shape[covered : end - 1], token = u)   # none: the shape is uncovered
+         commit steps; out += u; update ctx with u; covered = end
+       else if final(ctx, shape[covered : end]) exists:
+         wait                                   # one final letter can still end the word
+       else if plan(ctx, shape[covered : end], token = none) succeeds:
+         commit its steps; covered += the units they span
+       else:
+         wait                                   # not a prefix of any shape yet
+     if covered < len(shape):
+       out += final(ctx, shape[covered :])      # none: the shape is uncovered
+     return out
+   ```
+
+   Committing a step appends its letter (`cp`, then `fvs` if not null) and updates the context with its promise. `plan` finds the cheapest way — total cost, the final letter included — to commit letters from the front of `pending` so that the rest is one final letter or, before a token, so that nothing is left:
+
+   ```text
+   plan(ctx, pending, token):
+     if pending is empty: return (cost 0, no steps) if token else none
+     best = (cost(final(ctx, pending)), no steps) if no token and that final exists
+     for span = min(3, len(pending)) down to 1:
+       closing = token if span == len(pending) else none
+       if span == len(pending) and no token: continue       # the last letter stays pending
+       position = the close position of token if closing, else init / medi
+       next = closing if closing else pending[span]
+       for option in group(position, pending[: span]), in preference order:
+         if not allows(ctx.promise, option.letter): continue
+         if best and cost(option) >= best.cost: break
+         for p in (0 .. 5 if option is bare and not closing, else 0):
+           if p > 0 and not feasible(p, next): continue
+           if not robust(ctx, option, next, p): continue
+           sub = plan(ctx updated with option and p, pending[span :], token)
+           if sub:
+             if not best or cost(option) + sub.cost < best.cost:
+               best = (cost(option) + sub.cost, [option with p] + sub.steps)
+             next span                                    # the cheapest safe option of this span
+     return best
+   ```
+
+   A missing group skips the span. The final letter tried for `best` and the `n`-first preference see the context the plan has reached.
+
+Reference implementation: [`src/encoder.rs`](../src/encoder.rs) (`encode`, `plan`, the context) and [`src/normalize.rs`](../src/normalize.rs) (the table indexes, `preference`, the entry points). The tables are generated by [`examples/gen_normalize_table`](../examples/gen_normalize_table/) — see [Regenerating](#regenerating).
 
 ---
 
@@ -408,21 +508,22 @@ python python/scripts/preprocess.py MNG TOD    # specific
 
 The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `python/mongol_norm/data/`.
 
-Normalize table (after a change to shaping or the selection battery — no extra
-dependency, it drives the package's own shaper, i.e. the compiled engine, so rebuild the
-extension first when the shaping rules changed):
+Normalize table (after a change to shaping or to the encoder). The generator is the Rust example
+`examples/gen_normalize_table`: it drives the crate's shaping engine directly — about 49 million
+probe shapes, some 15 s in release mode — and needs `cargo`, not the extension.
+`gen_normalize_table.py` runs it:
 
 ```sh
-python python/scripts/gen_normalize_table.py        # all locales
-python python/scripts/gen_normalize_table.py MNG    # specific
+python python/scripts/gen_normalize_table.py           # = cargo run --release --example gen_normalize_table
+python python/scripts/gen_normalize_table.py --check   # CI freshness check
 ```
 
 Rust tables (after any JSON change — regenerate them, rebuild the extension with
 `maturin develop --locked --features testing` from `python/`, then run `cargo test
 --workspace` from the root). Mind the loop: the engine's tables come from the JSON and the
 normalize table comes from the engine, so a shape-rule change is `gen_rust_tables.py` →
-`maturin develop` → `gen_normalize_table.py` → `gen_rust_tables.py` again (the normalize
-table is compiled in too) → `maturin develop`:
+`gen_normalize_table.py` → `gen_rust_tables.py` again (the normalize table is compiled in too;
+repeat until `gen_normalize_table.py --check` passes) → `maturin develop`:
 
 ```sh
 python python/scripts/gen_rust_tables.py            # regenerate src/generated/
@@ -443,6 +544,10 @@ Commit the regenerated JSONs along with a changelog note referencing the source 
 `schema_version: 1` is the initial schema. Incompatible changes (field removal, type changes, semantic shifts) increment this. Additive changes (new optional fields) do not.
 
 Consumers should check `schema_version` on load and fail loudly on unknown values.
+
+The normalize table carries its own `schema` string instead: `mongol-normalize-table/2` holds the
+online encoder's tables (`mng-canonical/3`); `/1` was the per-unit FVS-pinned table of
+`mng-canonical/1` and `/2`.
 
 ## License
 

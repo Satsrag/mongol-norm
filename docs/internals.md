@@ -2,9 +2,9 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/2` policy
+> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/3` policy
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
-> e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
+> e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠩᠨ᠋ᠨᠣᠯ (`MA+O+ANG+NA+FVS1+NA+O+LA`) — and may change in a later release.
 
 The normalizer implements a **lightweight Mongolian shaping engine** — equivalent to what HarfBuzz
 does with a font file, but using only the rule data from
@@ -46,7 +46,7 @@ elsewhere; repeated insertion/deletion of `A` would not preserve the ink:
 | `O Aa` ending a chain         | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
 | `I Aa` ending a chain         | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
 
-Position is part of every rule, and it is the *chain* position `normalize` already uses — slots
+Position is part of every rule, and it is the *chain* position — a chain being the letters
 between structural units, with a nirugu or ZWJ neighbour padding the chain the way it pads the
 rendering. That is why the `B2` and `G` witnesses are written with a leading nirugu: it is what
 makes the unit final. Forms outside a verified pair are left alone — initial and final `H`/`Hx` are
@@ -93,48 +93,109 @@ is the public, unified sequence.
 
 ## Normalization strategy
 
-Within the normalization table's supported written-unit domain, `normalize` is a **pure function of
-shape**: any two encodings that shape identically produce the same Unicode output, and the output
-round-trips — `shape(normalize(x)) == shape(x)`. It is also **prefix-stable**. When these goals
+Within the normalize tables' domain, `normalize` is a **pure function of shape**: any two encodings
+that shape identically produce the same Unicode output, and the output round-trips —
+`shape(normalize(x)) == shape(x)`. It is also **prefix-stable**: the encoding of a word's
+shape-prefix is a prefix of the word's encoding, apart from its last letter. When these goals
 conflict the priority is **round-trip > prefix-stable > shortest**.
 
-Per word:
+Per word, `normalize` shapes the input (duplicate encodings unified, see above) and encodes the
+written units left to right with the **online encoder** (`src/encoder.rs`). Structural characters —
+MVS, nirugu, ZWJ — appear in the shape verbatim as PascalCase `Mvs` / `Nirugu` / `Zwj` tokens and
+are copied through; they are also the evidence for a neighbour's init/medi/fina form.
 
-1. **shape** the input into its written-unit sequence. Structural characters — MVS, nirugu, ZWJ — appear verbatim as PascalCase `Mvs` / `Nirugu` / `Zwj` tokens (nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
-2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
-   1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
-   2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
-   3. **verify** — reshape the candidate in full context; accept only if it equals the target chain shape.
-   4. **no search fallback** — the table is total over the corpus (with FVS-first selection there are no gap chains left). If an out-of-corpus shape ever misses the table, normalization fails closed with the input and the uncovered written-unit sequence. Callers may explicitly ask for the lenient variant to return the input unchanged (round-trip preserved, never a mis-encoding). A letter next to a joiner simply looks its unit up at the shifted (joined) position.
-3. **post-MVS suffix rule** — a chain directly after MVS takes its **standalone** canonical (drop the MVS, normalize, re-attach), so the spelling never depends on MVS. One exception: chachlag `Aa` after MVS is written the bare letter `a`. (The isolate-`I` → `i+FVS1` spelling is pinned in the table itself — no post-processing pass exists.)
+**Prefix-stability is online encoding.** Every letter but the last is *committed*: appended to the
+output and never revised. The last letter stays *pending* until the word ends. An encoder that works
+this way is prefix-stable by construction, whichever letters it picks, so the design question is
+only which letter to commit, and when.
 
-**Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the
-shared region encodes identically except the single boundary unit whose position changes (final in
-*B* → medial in *A*). The per-unit table delivers this for free — each unit's encoding depends only
-on its own position, never on its neighbours.
+**A committed letter must be right-robust.** When a letter is committed, everything left of it is
+known — it is committed text. What is unknown is the rest of the word. A letter may be committed only
+if it renders its own written units, and leaves every committed letter's units intact, for *every*
+continuation the encoder may still write. The pending last letter needs no robustness: it is chosen
+in its actual, complete context.
 
-**How the table is built** (the *selection method*): offline, a **context-independence battery**
-fills each `(position, written-unit)` slot with the `(letter, FVS)` that renders *exactly* that unit
-in *every* probed neighbour context (the probes include a bowed consonant, so post-bowed effects
-can't hide). Candidate order is **letter-major, FVS-first within the letter** — an FVS exists
-precisely to pin a form against context, so the pinned variant of the right letter always beats its
-context-sensitive bare form. The result is exported as JSON; the battery lives in
-`python/scripts/gen_normalize_table.py`.
+**Promises.** The encoder writes the next letter too, so a committed bare letter may constrain it.
+A medial bare `n` renders `N` only before a vowel (elsewhere a plain tooth, `A`), so it may be
+committed with the promise "the next letter is a vowel" instead of as `n+FVS1`; the next letter is
+then chosen from that class. Five classes
+cover the rules that look right: *vowel*, *vowel but not `ee`* (`t` before `ee` takes its devsger
+form), *masculine vowel*, *feminine or neutral vowel*, *consonant or `ee`*.
 
-> Note: supported output is **FVS-pinned**, not bare — each unit carries the selector that fixes its
-> form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
-> hold inside the table's domain.
+**Lazy commitment.** A pending tail waits as long as one final letter can still end the word with it,
+which keeps multi-unit letters available: `a` = `A A`, `o` = `A O`, `oe` = `A O I`, `ng` = `A G`,
+`i` after a vowel = `I I`, … When a new unit makes that impossible, a small search over the tail —
+usually one or two units, at most three per letter — commits the cheapest right-robust letters that
+leave a tail one final letter can end. A structural token commits the whole tail (its last letter
+at `fina`/`isol`, or at `medi`/`init` before a joiner). At the end of the word the tail becomes the
+final letter. If no letter ends it — a shape outside the tables' domain; none is known — strict
+normalization fails with the input and its written units, and the lenient variant returns the input
+unchanged; it never mis-encodes.
 
-The exact canonical selection policy is frozen as **`mng-canonical/2`**. It is available as
+**Preference.** Among letters of equal cost (a bare letter is one code point, a letter with an FVS
+two), the encoder prefers, in this order:
+
+- for a final `A` right after a vowel, `n` — a vowel after a vowel is foreign to the language, a
+  final `n` is common;
+- after a feminine vowel (the last masculine or feminine vowel written; an MVS does not reset it,
+  so a suffix follows its stem), `e oe ue` before `a o u`;
+- code-point order, except `g` before `h` (ᠭᠡᠷ, not ᠬᠡᠷ);
+- then the lower FVS.
+
+An isolated `I` is written `i+FVS1`, never `j`. The renderings that shape unifies with a unit pair
+(`Dd`, medial `H`/`Hx`, initial `Cr`) are never emitted.
+
+The output encodes the glyphs, not the spelling. ᠰᠠᠢᠨ becomes `s a i+FVS3 i n`: `S A I I` is itself
+a shape, whose first `I` must be committed as a single medial `I` after a vowel, and only `i+FVS3`
+renders that. No function of the glyphs can restore the intended spelling in general — ᠲᠡᠷᠡ *tere*
+and ᠳᠡᠷᠡ *dere* render identically — and correct spelling contradicts prefix-stability: ᠪᠠᠯ *bal*
+is a prefix shape of ᠪᠡᠯᠭᠡ *belge*, so belge's key starts like bal's.
+
+**How the tables are built.** Whether a letter is right-robust depends on the committed text only
+through a small *context*: the previous letter (letter, FVS, position, written units); the previous
+token (none, letter, MVS, nirugu, ZWJ) and whether an MVS followed the previous letter; whether an
+initial consonant has been followed by a medial one (III.2a cluster `marked`); whether the nearest
+vowel back is a masculine one in initial or medial position (III.2f `g`/`h`); the particle-key
+prefix of the current MVS segment (III.3); and the promise in force. `examples/gen_normalize_table`
+explores every context the encoder can reach, breadth first from the word start (about 2 700), and
+asks the shaping engine — by shaping probe texts: the committed text, the candidate letter, and
+every continuation the encoder may write over the next two or three letters, plus every particle
+key the segment can still complete — which letters may be committed before which next unit under
+which promise, and which letters can end the word. States with the same context must get the same
+answers; the generator fails otherwise (the context would miss something the rules see). Each
+answer is tabulated over the fewest context components that determine it, as a default plus
+exception rows. The run takes about 49 million probes, 15 s on eight cores. It writes
+`python/mongol_norm/data/MNG.normalize.json` (schema in
+[`docs/data-format.md`](https://github.com/Satsrag/mongol-norm/blob/main/docs/data-format.md)),
+which `gen_rust_tables.py` compiles into `src/generated/mng_normalize.rs`.
+
+**Guarantees.** Canonical and idempotent: the input is the shape. Prefix-stable: by construction.
+Round trip: every committed letter is robust against every continuation the encoder can write, and
+the final letter is chosen in context; the tests check it on every input of up to two symbols
+(letters with and without each FVS, MVS, nirugu, ZWJ), 2 000 random words dense in structural
+characters, every corpus word and every prefix of it (`tests/online_encoder.rs`), and the canonical
+golden vectors. Debug builds re-shape every output (`debug_assert!`); release builds do not.
+`normalize_written_units` and the positioned API still re-shape, as their input may be no shape at
+all.
+
+On the 1 990 corpus shape groups the output averages **6.62 code points** (0.64 of them FVS;
+`mng-canonical/2`: 8.46, 2.25 FVS; the shortest encodings with no prefix-stability requirement
+average 5.83). `normalize` takes about 0.95 µs per word, of which `shape` is 0.58 µs
+(`mng-canonical/2`: 2.8 µs).
+
+The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
 
-**`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
-duplicate encodings changes canonical text: comparing current output against the base branch's
-1993 `mng-canonical/1` golden representatives finds **287** changed texts; three verified pairs
-merge into **1990** groups. Rebuild any stored normalized key. The context correction also
-invalidates pre-fix PR #26 output; this is not a new release or a claim that old test suites were rerun.
+**`mng-canonical/3` invalidates keys stored under `mng-canonical/2`.** The online encoder replaces
+the per-unit FVS-pinned table of `/2`: 1 656 of the 1 990 golden representatives change (1 562
+shorter, 91 the same length, 3 longer). Rebuild any stored normalized key.
+
+**`mng-canonical/2` (0.2.0) invalidated keys stored under `mng-canonical/1`.** Unifying the nine
+duplicate encodings changed canonical text: comparing against the base branch's 1993
+`mng-canonical/1` golden representatives found **287** changed texts; three verified pairs merged
+into **1990** groups.
 
 ## Data and fixtures
 

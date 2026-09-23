@@ -74,11 +74,12 @@ impl Shaper {
         // the standard and in callers' data — and folded before encoding, so they get the same
         // canonical text as the sequence they render identically to.
         let units = collapse(units);
-        let canonical = self.canonical_for_shape(&units)?;
-        if canonical.is_empty() || self.shape(&canonical)? != units {
-            return Err(Error::NoCanonicalEncoding);
+        // The input can be any sequence, not only a shape something renders, so the result is
+        // checked by reshaping it.
+        match self.encode_shape(&units)? {
+            Some(canonical) if self.shape(&canonical)? == units => Ok(canonical),
+            _ => Err(Error::NoCanonicalEncoding),
         }
-        Ok(canonical)
     }
 
     /// Encode explicit HUD-position records as canonical Unicode (the API `zvvnmod-utn57`

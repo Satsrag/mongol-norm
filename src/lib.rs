@@ -16,7 +16,7 @@
 //! * [`Shaper::shape`] — text → written-unit sequence (`Mvs` / `Nirugu` / `Zwj` appear verbatim),
 //!   with the nine duplicate encodings unified (see [`Shaper::shape_raw`])
 //! * [`Shaper::same_shape`] — do two encodings render identically?
-//! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
+//! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, prefix-stable Unicode
 //! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —
 //!   encode written units directly
 //! * [`Shaper::trace`] — per-rule condition transitions, for debugging and the golden fixtures
@@ -32,6 +32,7 @@
 struct ReadmeDoctests;
 
 mod duplicates;
+mod encoder;
 mod error;
 // clippy::all silences style lints on generated code (see the design doc).
 #[allow(clippy::all)]

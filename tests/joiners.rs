@@ -10,11 +10,10 @@ const ZWJ: &str = "\u{200D}";
 const O: &str = "\u{1823}";
 const U: &str = "\u{1824}";
 const OE: &str = "\u{1825}";
-const A: &str = "\u{1820}";
 const D: &str = "\u{1833}";
 const J: &str = "\u{1835}";
+const N: &str = "\u{1828}";
 const FVS1: &str = "\u{180B}";
-const FVS2: &str = "\u{180C}";
 const FVS3: &str = "\u{180D}";
 
 fn shaper() -> Shaper {
@@ -108,11 +107,12 @@ fn test_nirugu_count_preserved() {
 #[test]
 fn test_zwj_preserved() {
     // The ZWJ survives normalize verbatim, and the shape round-trips. The word itself is no
-    // longer a fixed point: its shape is `Zwj O A`, so the canonical spelling is the `O`+`A`
-    // pair, not the single `d` that renders the same ink as `Dd`.
+    // longer a fixed point: its shape is `Zwj O A`, so the canonical spelling is a two-letter
+    // one — `o` and, as a final `A` after a vowel, `n` — not the single `d` that renders the same
+    // ink as `Dd`.
     let text = format!("{ZWJ}{D}");
     let norm = round_trips(&text);
-    assert_eq!(norm, format!("{ZWJ}{O}{A}{FVS2}"));
+    assert_eq!(norm, format!("{ZWJ}{O}{N}"));
 }
 
 #[test]

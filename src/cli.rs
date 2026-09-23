@@ -82,7 +82,7 @@ I/O modes (shape / normalize / normalize-text / normalize-written-units):
 Examples / 示例:
   mongol-norm normalize 'ᠰᠡᠢᠨ'
   mongol-norm shape 'ᠰᠠᠢᠨ'                          # → S+A+I+I+A
-  mongol-norm normalize-written-units 'B+Aa'           # → ᠪᠠ᠋
+  mongol-norm normalize-written-units 'B+Aa'           # → ᠪᠠ
   mongol-norm normalize-text 'Hello ᠰᠡᠢᠨ world'
   mongol-norm normalize-text -- '-ᠰᠡᠢᠨ'                # text starting with '-'
   echo 'ᠰᠡᠢᠨ' | mongol-norm normalize -

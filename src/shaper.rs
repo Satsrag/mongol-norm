@@ -160,8 +160,8 @@ impl Shaper {
     }
 
     /// Python's monkeypatched empty normalize table (`python/tests/test_shaper.py`,
-    /// `python/tests/test_cli.py`): every chain falls back. No reachable MNG input misses the real
-    /// table, so the fallback paths are only testable this way.
+    /// `python/tests/test_cli.py`): every word with a letter falls back. No reachable MNG input
+    /// misses the real table, so the fallback paths are only testable this way.
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
     pub fn with_empty_normalize_table(locale: Locale) -> Shaper {
@@ -169,7 +169,7 @@ impl Shaper {
         let version = shaper
             .normalize
             .as_ref()
-            .map_or("mng-canonical/2", |table| table.canonical_version);
+            .map_or("mng-canonical/3", |table| table.canonical_version);
         shaper.normalize = Some(NormalizeTable::empty(version));
         shaper
     }

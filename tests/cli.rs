@@ -227,14 +227,14 @@ fn test_canonical_control_capitalization() {
 fn test_inline_plus_delimited_units() {
     let output = run(&["normalize-written-units", "B+Aa"], None);
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(output.stdout, "\u{182A}\u{1820}\u{180B}\n");
+    assert_eq!(output.stdout, "\u{182A}\u{1820}\n");
 }
 
 #[test]
 fn test_non_batch_stdin_accepts_one_transport_newline() {
     let output = run(&["normalize-written-units", "-"], Some("B+Aa\n"));
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(output.stdout, "\u{182A}\u{1820}\u{180B}\n");
+    assert_eq!(output.stdout, "\u{182A}\u{1820}\n");
 }
 
 #[test]
@@ -257,7 +257,7 @@ fn test_file_input_and_output() {
     assert_eq!(output.stdout, "");
     assert_eq!(
         std::fs::read_to_string(&output_path).unwrap(),
-        "\u{182A}\u{1820}\u{180B}"
+        "\u{182A}\u{1820}"
     );
 }
 
@@ -274,7 +274,7 @@ fn test_long_option_equals_forms() {
     assert_eq!(output.stdout, "");
     assert_eq!(
         std::fs::read_to_string(&output_path).unwrap(),
-        "\u{182A}\u{1820}\u{180B}"
+        "\u{182A}\u{1820}"
     );
 }
 
@@ -296,7 +296,7 @@ fn test_batch_writes_every_line_to_the_output_file() {
     assert_eq!(output.stdout, "");
     assert_eq!(
         std::fs::read_to_string(&output_path).unwrap(),
-        "\u{182A}\u{1820}\u{180B}\n".repeat(2)
+        "\u{182A}\u{1820}\n".repeat(2)
     );
 }
 
@@ -317,7 +317,7 @@ fn test_stdin_batch_processes_one_sequence_per_line() {
         Some("B+Aa\nB+Aa\n"),
     );
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(output.stdout, "\u{182A}\u{1820}\u{180B}\n".repeat(2));
+    assert_eq!(output.stdout, "\u{182A}\u{1820}\n".repeat(2));
 }
 
 #[test]
@@ -355,7 +355,7 @@ fn test_same_reports_visual_identity_via_exit_code() {
 
 #[test]
 fn test_shape_normalize_and_normalize_text_smoke() {
-    let canonical = mgl("s a i fvs3 i fvs3 a fvs2");
+    let canonical = mgl("s a i fvs3 i n");
     let shaped = run(&["shape", &mgl("s a i n")], None);
     assert_eq!((shaped.code, shaped.stdout.as_str()), (0, "S+A+I+I+A\n"));
     let normalized = run(&["normalize", &mgl("s e i n")], None);
@@ -425,7 +425,7 @@ fn test_locale_equals_form_and_short_version_flag() {
 fn test_double_dash_ends_option_parsing() {
     // Without `--` a hyphen-initial TEXT would be an unrecognized option.
     let text = format!("-{}", mgl("s e i n"));
-    let canonical = mgl("s a i fvs3 i fvs3 a fvs2");
+    let canonical = mgl("s a i fvs3 i n");
     let dashed = run(&["normalize-text", "--", &text], None);
     assert_eq!(
         (dashed.code, dashed.stdout.as_str()),
@@ -452,7 +452,7 @@ fn test_same_rejects_options() {
 
 #[test]
 fn test_batch_splits_lines_like_python_splitlines() {
-    let expected = "\u{182A}\u{1820}\u{180B}\n";
+    let expected = "\u{182A}\u{1820}\n";
     // Python `"B+Aa\rB+Aa\n".splitlines()` has two entries; `str::lines` would see one.
     let carriage = run(
         &["normalize-written-units", "--batch", "-"],

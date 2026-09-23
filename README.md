@@ -15,8 +15,8 @@
 > [!WARNING]
 > **Beta.** `shape` / `same_shape` should be stable. The `normalize` output currently encodes by
 > **glyph shape**, not the standard **phonetic (nominal-character) spelling**, and may change in a
-> later release. For example ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) normalizes to ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
-> (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`). If you store normalized keys, store
+> later release. For example ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) normalizes to ᠮᠣᠩᠨ᠋ᠨᠣᠯ
+> (`MA+O+ANG+NA+FVS1+NA+O+LA`). If you store normalized keys, store
 > `canonical_version()` with them and rebuild when it changes.
 
 **mongol-norm** tells whether two Traditional Mongolian (Hudum) strings look the same, and maps
@@ -36,7 +36,9 @@ mongol-norm runs the [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html
 
 - `shape(word)` — the written-unit sequence, a fingerprint of the visible word
 - `same_shape(a, b)` — do two encodings render identically?
-- `normalize(word)` / `normalize_text(text)` — one canonical Unicode string per shape
+- `normalize(word)` / `normalize_text(text)` — one canonical Unicode string per shape, and
+  prefix-stable: the key of a word's beginning is the beginning of the word's key, apart from its
+  last letter
 
 Use it for search and indexing, deduplication, corpus counts, spell-check lookup, and cleaning OCR
 or input-method output.
@@ -107,11 +109,11 @@ shaper = MongolianShaper(locale="MNG")
 
 shaper.shape("ᠰᠠᠢᠨ")                        # → ['S', 'A', 'I', 'I', 'A']
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
-shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
-shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
+shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢᠨ'
+shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢᠨ world'
 
 # Deduplicate
-{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
+{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢᠨ'}
 ```
 
 More in the [Python README](https://github.com/Satsrag/mongol-norm/blob/main/python/README.pypi.md).
@@ -161,8 +163,8 @@ suites from mongfontbuilder and GB/T 25914-2023. Notices in
 
 > [!WARNING]
 > **Beta 版。** `shape` / `same_shape` 应该是稳定的。`normalize` 的输出目前是**按字形**编码的，**不是**按读音
-> 书写的标准名义字符序列，后续版本有可能修改。例如 ᠮᠣᠩᠭᠣᠯ（`MA+O+ANG+GA+O+LA`）规范化后是 ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
-> （`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`）。如果要持久化规范化后的
+> 书写的标准名义字符序列，后续版本有可能修改。例如 ᠮᠣᠩᠭᠣᠯ（`MA+O+ANG+GA+O+LA`）规范化后是 ᠮᠣᠩᠨ᠋ᠨᠣᠯ
+> （`MA+O+ANG+NA+FVS1+NA+O+LA`）。如果要持久化规范化后的
 > key，请同时保存 `canonical_version()`，版本变化时重建。
 
 **mongol-norm** 判断两段传统蒙古文（回鹘式，Hudum）是否外形相同，并把它们映射成同一个 key。零依赖
@@ -181,7 +183,8 @@ mongol-norm 按 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) 的
 
 - `shape(word)` —— 书写单元序列，即可见词形的指纹
 - `same_shape(a, b)` —— 两种编码渲染结果是否相同
-- `normalize(word)` / `normalize_text(text)` —— 同一个 shape 只输出一个 Unicode 字符串
+- `normalize(word)` / `normalize_text(text)` —— 同一个 shape 只输出一个 Unicode 字符串，且前缀稳定：
+  词开头部分的 key 就是整个词 key 的开头，最多只差最后一个字母
 
 用途：搜索和索引、去重、语料词频统计、拼写检查前的查词、清洗 OCR 或输入法输出。
 
@@ -246,11 +249,11 @@ shaper = MongolianShaper(locale="MNG")
 
 shaper.shape("ᠰᠠᠢᠨ")                        # → ['S', 'A', 'I', 'I', 'A']
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
-shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
-shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
+shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢᠨ'
+shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢᠨ world'
 
 # 去重
-{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
+{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢᠨ'}
 ```
 
 命令行：

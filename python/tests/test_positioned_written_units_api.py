@@ -43,10 +43,12 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
     def test_a_and_i_init_take_a_trailing_zwj(self):
         # A and I are the letters the HUD inventory also carries at isol, under the
         # same bare spelling: written bare, a lone A:init / I:init would read back as
-        # A:isol / I:isol, so it takes the ZWJ that keeps it initial.
+        # A:isol / I:isol, so it takes the ZWJ that keeps it initial. The letters are
+        # the shortest that render the initial unit: e (initial A) and j (whose
+        # initial form is I).
         for unit, expected in (
-            ("A", (0x1820, 0x180B, 0x200D)),
-            ("I", (0x1822, 0x180B, 0x200D)),
+            ("A", (0x1821, 0x200D)),
+            ("I", (0x1835, 0x200D)),
         ):
             with self.subTest(unit=unit):
                 result = self.shaper.normalize_positioned_written_units([

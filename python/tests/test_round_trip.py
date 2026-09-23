@@ -384,12 +384,12 @@ class TestRoundTripEacHud(unittest.TestCase, _RoundTripBase):
 # ────────────────────────────────────────────────────────────────────
 # Particle test cases — verify the user-requested rules:
 #   1. `I` at iso always normalizes to `i+fvs1` (not bare `j`)
-#   2. `mvs + particle` and `particle alone` give the same encoding
-#      (the chain portion after MVS doesn't rely on MVS to render)
-# Exception: chachlag (chain shape ('Aa',) after MVS) keeps `mvs + bare a/e`.
+#   2. a suffix after MVS is spelled the same after every stem of one
+#      vowel harmony (the masculine or the feminine particle), like the
+#      written language
 # Also: normalize output must not contain nirugu (U+180A).
-# 粒子用例 —— 验证用户规则:I iso 总归 i+fvs1;mvs+particle 与 particle
-# 编码一致(不依赖 MVS 渲染)。chachlag 例外。normalize 不应含 nirugu。
+# 粒子用例 —— 验证用户规则:I iso 总归 i+fvs1;MVS 后的后缀在同一元音和谐
+# 的所有词干后写法相同(阳性或阴性粒子)。normalize 不应含 nirugu。
 # ────────────────────────────────────────────────────────────────────
 PARTICLE_CASES = [
     # Single-letter chains after MVS — vowel particles
@@ -428,15 +428,24 @@ PARTICLE_EQUIVALENCE_GROUPS = [
     ('I iso (j vs i+fvs1)',  ['j', 'i fvs1']),
 ]
 
+# Stems of every kind in front of a suffix — a bowed final consonant, final
+# `n`, a vowel ending, an initial vowel — grouped by vowel harmony (the suffix
+# follows it).
+# 各类词干(弓形词末辅音、词末 n、元音结尾、词首元音),按元音和谐分组。
+_STEMS = (
+    ('t a l', 'b a', 's a i n', 'o r o n', 'm o r i n', 'a b', 'n o m'),
+    ('g e r', 'e n e', 'h e l e', 'e m e'),
+)
+
 
 class TestParticleUniform(unittest.TestCase, _RoundTripBase):
     """
-    Particle rules: chain encoding after MVS shouldn't rely on MVS to
-    render correctly (Rule 2). Single-letter `I` at iso always uses the
-    vowel particle `i+fvs1` (Rule 1). Chachlag (`mvs + bare a/e`) is the
-    explicit exception. Normalize output must not contain nirugu.
-    粒子规则:MVS 后的 chain 编码不依赖 MVS 渲染;`I` iso 总用 `i+fvs1`;
-    chachlag 例外;normalize 输出不应含 nirugu。
+    Particle rules: a suffix after MVS is spelled the same after every stem
+    of one vowel harmony (Rule 2). Single-letter `I` at iso always uses the
+    vowel particle `i+fvs1` (Rule 1). Normalize output must not contain
+    nirugu.
+    粒子规则:MVS 后的后缀在同一元音和谐的词干后写法一致;`I` iso 总用
+    `i+fvs1`;normalize 输出不应含 nirugu。
     """
 
     @classmethod
@@ -456,45 +465,45 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                 print(f)
             self.fail(f"{len(failures)} of {len(PARTICLE_CASES)} particle round-trips failed")
 
-    def test_mvs_uniform_no_mvs_dependency(self):
+    def _suffix_spelling(self, stem, suffix_text):
         """
-        For chain after MVS (except chachlag), stripping the MVS prefix
-        from normalize() output must give a chain that, when shaped
-        ALONE, equals the chain portion of the MVS-context shape.
-        I.e., the chain encoding doesn't depend on MVS to render correctly.
-        MVS 后的 chain(chachlag 除外):去 MVS 前缀后独立 shape 应等于
-        其在 MVS 上下文中的 shape。
+        The spelling of the last MVS and everything after it in
+        normalize(stem + suffix); the whole word must round-trip.
+        normalize(词干+后缀) 中最后一个 MVS 及其后的写法;整词须保形。
         """
-        mvs_ch = chr(0x180E)
-        chachlag_chain = ('Aa',)
+        text = _mgl(stem) + suffix_text
+        norm = self.s.normalize(text)
+        self.assertEqual(self.s.shape(norm), self.s.shape(text), repr(text))
+        at = norm.rfind(chr(0x180E))
+        self.assertGreaterEqual(at, 0, f"{text!r}: the suffix lost its MVS")
+        return norm[at:]
+
+    def _stem_harmony_failures(self, label, suffix_text):
+        failures = []
+        for stems in _STEMS:
+            spellings = {self._suffix_spelling(stem, suffix_text) for stem in stems}
+            if len(spellings) != 1:
+                failures.append(f"{label} after {stems}: {sorted(spellings)}")
+        return failures
+
+    def test_suffix_spelling_follows_the_stem_harmony(self):
+        """
+        A suffix after MVS is written the same after every stem of one vowel
+        harmony — the masculine or the feminine variant of the particle
+        (`mvs u` / `mvs ue`, `mvs b a n` / `mvs b e n`), like the written
+        language. (Under mng-canonical/2 the chain after an MVS was instead
+        spelled as if it stood alone, pinning FVS; the online encoder writes
+        it naturally, relying on the particle rule.)
+        MVS 后的后缀在同一元音和谐的所有词干后写法相同(阳性或阴性粒子),
+        与书面语一致。
+        """
         failures = []
         for label, aliases in PARTICLE_CASES:
-            for word_text in _aliases_to_words(aliases):
-                if not word_text or not word_text.startswith(mvs_ch):
-                    continue
-                norm = self.s.normalize(word_text)
-                if not norm.startswith(mvs_ch):
-                    failures.append(f"{label}: normalize lost MVS prefix: {norm!r}")
-                    continue
-                in_ctx_shape = self.s.shape(word_text)
-                chain_shape = tuple(u for u in in_ctx_shape if u != 'Mvs')
-                if chain_shape == chachlag_chain:
-                    continue
-                chain_text = norm[len(mvs_ch):]
-                alone_shape = tuple(self.s.shape(chain_text))
-                if alone_shape != chain_shape:
-                    failures.append(
-                        f"{label}: chain after MVS depends on MVS to render\n"
-                        f"   input        : {word_text!r}\n"
-                        f"   normalize    : {norm!r}\n"
-                        f"   shape(input) : {list(in_ctx_shape)}\n"
-                        f"   chain alone  : {list(alone_shape)}\n"
-                        f"   chain in ctx : {list(chain_shape)}"
-                    )
+            word_text = _mgl(aliases)
+            if word_text.startswith(chr(0x180E)):
+                failures.extend(self._stem_harmony_failures(label, word_text))
         if failures:
-            for f in failures:
-                print(f)
-            self.fail(f"{len(failures)} particle cases depend on MVS for chain rendering")
+            self.fail("\n".join(failures))
 
     def test_i_iso_always_i_fvs1(self):
         """Rule 1: shape ['I'] at iso → `i+fvs1` (not bare `j`)."""
@@ -567,40 +576,6 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                 print(f)
             self.fail(f"{len(failures)} equivalence groups diverged")
 
-    def _check_chain_shape_uniform(self, word_text):
-        """
-        Verify that the chain after MVS doesn't depend on MVS to render
-        correctly: the chain part of normalize, shaped alone, equals the
-        chain part of the input's shape.
-        校验 MVS 后的 chain 不依赖 MVS 渲染:normalize 去掉首个 MVS 后
-        独立 shape 应等于输入 shape 去掉首个 'mvs' 后的部分。
-
-        Returns None on pass / N/A; returns an error description on fail.
-        通过或不适用返回 None,失败返回错误描述。
-        """
-        mvs_char = chr(0x180E)
-        with_mvs_shape = self.s.shape(word_text)
-        if not with_mvs_shape or with_mvs_shape[0] != 'Mvs':
-            return None
-        except_shape = with_mvs_shape[1:]  # remove first 'mvs' token
-
-        with_mvs_norm = self.s.normalize(word_text)
-        if not with_mvs_norm.startswith(mvs_char):
-            return None
-        without_mvs_norm = with_mvs_norm[len(mvs_char):]  # remove first MVS char
-        without_mvs_shape = self.s.shape(without_mvs_norm)
-
-        if except_shape != without_mvs_shape:
-            return (
-                f"input         : {word_text!r}\n"
-                f"   shape(input)         : {with_mvs_shape}\n"
-                f"   expect (strip 1st mvs): {except_shape}\n"
-                f"   normalize            : {with_mvs_norm!r}\n"
-                f"   strip 1st MVS char   : {without_mvs_norm!r}\n"
-                f"   shape of that        : {without_mvs_shape}"
-            )
-        return None
-
     def test_particles_from_data(self):
         """
         Data-driven sweep using the FULL particle list from
@@ -609,19 +584,18 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
         `mongfontbuilder/data/particles.json`).
 
         47 MNG particle patterns include multi-letter chains like
-        `mvs y i n`, `mvs d ue r`, `mvs ch ue` etc. For each particle
-        starting with 'mvs', apply the user's pseudo-code shape-
-        uniformity check.
+        `mvs y i n`, `mvs d ue r`, `mvs ch ue` etc. Every particle starting
+        with 'mvs' is spelled the same after every stem of one harmony, and
+        round-trips.
         数据驱动:用 mongfontbuilder 的完整 particle 列表(47 个 MNG
-        条目,含多字母短语)。每个以 mvs 开头的条目都跑伪代码 shape 对比。
-
-        Note: particles.json doesn't include pure `mvs+a` / `mvs+e`,
-        so no chachlag exception is needed here.
-        注:particles.json 不含纯 `mvs+a`/`mvs+e`,故无需 chachlag 例外。
+        条目,含多字母短语)。每个以 mvs 开头的条目在同一和谐的词干后写法一致
+        且保形。
         """
         mvs_char = chr(0x180E)
 
         particles = sorted(load_rules('MNG')['particles'].keys())
+        self.assertEqual(len(particles), 47,
+                         "the particle inventory in the bundled MNG.json changed")
         failures = []
         checked = 0
         skipped_no_mvs = 0
@@ -634,15 +608,14 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                 continue
 
             # Particles like `u u`, `ue ue`, `b ue ue` don't start with
-            # mvs and don't fit the MVS-uniformity rule. Skip these.
-            # `u u`、`ue ue` 这类不带 mvs 的 particle 不适用本规则,跳过。
+            # mvs and aren't suffixes. Skip these.
+            # `u u`、`ue ue` 这类不带 mvs 的 particle 不是后缀,跳过。
             if not word_text.startswith(mvs_char):
                 skipped_no_mvs += 1
                 continue
 
-            fail = self._check_chain_shape_uniform(word_text)
-            if fail:
-                failures.append(f"particle {alias_string!r}:\n   {fail}")
+            failures.extend(
+                self._stem_harmony_failures(f"particle {alias_string!r}", word_text))
             checked += 1
 
         print(f"\nparticle data sweep: {len(particles)} particles total, "
@@ -652,7 +625,7 @@ class TestParticleUniform(unittest.TestCase, _RoundTripBase):
                 print(f)
             if len(failures) > 20:
                 print(f"... ({len(failures) - 20} more)")
-            self.fail(f"{len(failures)} particles fail shape-uniformity")
+            self.fail(f"{len(failures)} particles depend on more than the stem's harmony")
 
 
 class TestNormalizeFast(unittest.TestCase, _RoundTripBase):

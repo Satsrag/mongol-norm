@@ -189,49 +189,59 @@ fn particles_round_trip() {
     report("particle", &failures, PARTICLE_CASES.len());
 }
 
-/// For a chain after MVS (except chachlag), stripping the MVS from normalize() output must give
-/// a chain that, shaped ALONE, equals the chain portion of the MVS-context shape.
+/// Stems of every kind in front of a suffix — a bowed final consonant, final `n`, a vowel
+/// ending, an initial vowel — grouped by vowel harmony (the suffix follows it).
+const STEMS: [&[&str]; 2] = [
+    &[
+        "t a l",
+        "b a",
+        "s a i n",
+        "o r o n",
+        "m o r i n",
+        "a b",
+        "n o m",
+    ],
+    &["g e r", "e n e", "h e l e", "e m e"],
+];
+
+/// The spelling of `word`'s last MVS and everything after it in normalize(stem + word).
+fn suffix_spelling(shaper: &Shaper, stem: &str, suffix: &str) -> String {
+    let text = format!("{}{suffix}", mgl(stem));
+    let norm = shaper.normalize(&text).unwrap();
+    assert_eq!(
+        shaper.shape(&norm).unwrap(),
+        shaper.shape(&text).unwrap(),
+        "{text:?}"
+    );
+    let at = norm.rfind(MVS_CHAR).expect("the suffix keeps its MVS");
+    norm[at..].to_owned()
+}
+
+/// A suffix after MVS is written the same after every stem of one vowel harmony — the
+/// masculine or the feminine variant of the particle (`mvs u` / `mvs ue`, `mvs b a n` /
+/// `mvs b e n`), like the written language. (Under `mng-canonical/2` the chain after an MVS was
+/// instead spelled as if it stood alone, pinning FVS; the online encoder writes it naturally,
+/// relying on the particle rule.)
 #[test]
-fn mvs_uniform_no_mvs_dependency() {
+fn suffix_spelling_follows_the_stem_harmony() {
     let shaper = shaper();
     let mut failures = Vec::new();
     for (label, aliases) in PARTICLE_CASES {
-        for word in aliases_to_words(aliases) {
-            if word.is_empty() || !word.starts_with(MVS_CHAR) {
-                continue;
-            }
-            let norm = shaper.normalize(&word).unwrap();
-            if !norm.starts_with(MVS_CHAR) {
-                failures.push(format!("{label}: normalize lost MVS prefix: {norm:?}"));
-                continue;
-            }
-            let in_ctx = shaper.shape(&word).unwrap();
-            let chain: Vec<WrittenUnit> = in_ctx
+        let word = mgl(aliases);
+        if !word.starts_with(MVS_CHAR) {
+            continue;
+        }
+        for stems in STEMS {
+            let spellings: std::collections::BTreeSet<String> = stems
                 .iter()
-                .copied()
-                .filter(|u| *u != WrittenUnit::Mvs)
+                .map(|stem| suffix_spelling(&shaper, stem, &word))
                 .collect();
-            if chain == [WrittenUnit::Aa] {
-                continue; // chachlag keeps `mvs + bare a/e`
-            }
-            let alone = shaper.shape(&norm[MVS_CHAR.len_utf8()..]).unwrap();
-            if alone != chain {
-                failures.push(format!(
-                    "{label}: chain after MVS depends on MVS to render\n   input: {word:?}\n   normalize: {norm:?}\n   chain alone: {:?}\n   chain in ctx: {:?}",
-                    unit_names(&alone),
-                    unit_names(&chain)
-                ));
+            if spellings.len() != 1 {
+                failures.push(format!("{label} after {stems:?}: {spellings:?}"));
             }
         }
     }
-    for failure in &failures {
-        eprintln!("{failure}");
-    }
-    assert!(
-        failures.is_empty(),
-        "{} particle cases depend on MVS for chain rendering",
-        failures.len()
-    );
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// Rule 1: shape ['I'] at iso → `i+fvs1` (not bare `j`).
@@ -294,31 +304,9 @@ fn equivalence_groups_converge() {
     }
 }
 
-/// Python `_check_chain_shape_uniform`: `None` on pass / N/A, else a failure description.
-fn check_chain_shape_uniform(shaper: &Shaper, word: &str) -> Option<String> {
-    let with_mvs_shape = shaper.shape(word).unwrap();
-    if with_mvs_shape.first() != Some(&WrittenUnit::Mvs) {
-        return None;
-    }
-    let except_shape = &with_mvs_shape[1..];
-    let with_mvs_norm = shaper.normalize(word).unwrap();
-    if !with_mvs_norm.starts_with(MVS_CHAR) {
-        return None;
-    }
-    let without_mvs_norm = &with_mvs_norm[MVS_CHAR.len_utf8()..];
-    let without_mvs_shape = shaper.shape(without_mvs_norm).unwrap();
-    (except_shape != without_mvs_shape.as_slice()).then(|| {
-        format!(
-            "input {word:?}\n   shape(input): {:?}\n   expect (strip 1st mvs): {:?}\n   normalize: {with_mvs_norm:?}\n   shape of stripped: {:?}",
-            unit_names(&with_mvs_shape),
-            unit_names(except_shape),
-            unit_names(&without_mvs_shape)
-        )
-    })
-}
-
 /// Data-driven sweep over the full MNG particle dictionary (read from
-/// `python/mongol_norm/data/MNG.json`, the source of the generated tables).
+/// `python/mongol_norm/data/MNG.json`, the source of the generated tables): every MVS-headed
+/// particle is spelled the same after every stem of one harmony, and round-trips.
 #[test]
 fn particles_from_data() {
     let shaper = shaper();
@@ -343,19 +331,23 @@ fn particles_from_data() {
             skipped_no_mvs += 1;
             continue;
         }
-        if let Some(failure) = check_chain_shape_uniform(&shaper, &word) {
-            failures.push(format!("particle {key:?}:\n   {failure}"));
+        for stems in STEMS {
+            let spellings: std::collections::BTreeSet<String> = stems
+                .iter()
+                .map(|stem| suffix_spelling(&shaper, stem, &word))
+                .collect();
+            if spellings.len() != 1 {
+                failures.push(format!("particle {key:?} after {stems:?}: {spellings:?}"));
+            }
         }
         checked += 1;
     }
     eprintln!("\nparticle data sweep: {} particles total, {checked} checked, {skipped_no_mvs} no-mvs skipped", keys.len());
-    for failure in failures.iter().take(20) {
-        eprintln!("{failure}");
-    }
     assert!(
         failures.is_empty(),
-        "{} particles fail shape-uniformity",
-        failures.len()
+        "{} particles depend on more than the stem's harmony:\n{}",
+        failures.len(),
+        failures.join("\n")
     );
 }
 
@@ -447,21 +439,19 @@ fn ab_shared_prefix_identical() {
 }
 
 /// Prefix stability over real corpus pairs: wherever shape(B) is a shape-prefix of shape(A), the
-/// shared region (all of B's letters except the boundary one) encodes identically. This is exact
-/// today — all 2237 pairs hold — and both the pair count and the violation count are pinned, so a
-/// regression shows up as a failure rather than as a slightly lower percentage.
-///
-/// The count is sensitive to shape length, so unifying the duplicates moves it: expansion
-/// lengthened the shapes that held one (2237 -> 2241 with the five expanding rules alone) and the
-/// four contracting rules shorten others back (-> 2237 again). Zero violations throughout.
+/// shared region (all of B's letters except the boundary one) encodes identically. Every shape
+/// counts, MVS / nirugu / ZWJ included — a structural character is a chunk of its own, so a prefix
+/// that ends with one has committed everything before it. The online encoder commits letters
+/// append-only, so this holds by construction; the pair count is pinned so that coverage drift
+/// shows up as a failure.
 #[test]
 fn corpus_real_pair_stability() {
     let shaper = shaper();
     let mut shapes: HashMap<Vec<WrittenUnit>, String> = HashMap::new();
     for word in all_corpus_words() {
         let shape = shaper.shape(&word).unwrap();
-        if shape.iter().any(|unit| unit.is_structural()) {
-            continue; // structural tokens split words into chains; only pure-letter chains qualify
+        if shape.is_empty() {
+            continue;
         }
         let encoded = shaper
             .normalize_written_units(&shape)
@@ -500,7 +490,7 @@ fn corpus_real_pair_stability() {
         pairs - violations,
         rate * 100.0
     );
-    assert_eq!(pairs, 2240, "corpus prefix-pair coverage drifted");
+    assert_eq!(pairs, 3859, "corpus prefix-pair coverage drifted");
     let report: Vec<String> = examples
         .iter()
         .map(|(a, b, full, prefix)| {
