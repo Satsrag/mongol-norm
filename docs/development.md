@@ -21,6 +21,9 @@ mongol-norm/
 ├── README.md           the GitHub landing page, the crates.io README, and a doctest
 ├── LICENSE  NOTICE     the crate's own licence files
 ├── assets/  docs/  .github/workflows/
+├── web/                static Hudum playground; browser bindings in a separate Cargo workspace
+│   ├── wasm/           thin wasm-bindgen adapter calling the root crate
+│   └── public/         HTML/CSS/JS, hudum.otf, and generated (ignored) pkg/ bindings
 └── python/             everything Python
     ├── Cargo.toml      the PyO3 binding crate mongol-norm-py (Rust 1.83; not on crates.io)
     ├── build.rs  src/lib.rs
@@ -37,6 +40,9 @@ mongol-norm/
 ```
 
 ## Running the tests
+
+The browser playground has separate build prerequisites and browser tests; see
+[`web/README.md`](../web/README.md). It does not add dependencies to the core workspace.
 
 Rust, from the repository root:
 

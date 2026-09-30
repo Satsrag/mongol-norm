@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f5f0" />
+    <meta name="description" content="Explore Mongolian shapes and normalized text. 输入蒙古文，查看字形序列与规范化结果。" />
+    <title>mongol-norm · Script Lab / 字形实验室</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%232e5147'/%3E%3Cpath d='M15 8v24m10-24v24M10 16h20M10 24h20' stroke='%23f6f5f0' stroke-width='2'/%3E%3C/svg%3E" />
+    <link rel="preload" href="./fonts/hudum.otf" as="font" type="font/otf" crossorigin />
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="mongol-norm home / 首页"><span class="brand-mark" aria-hidden="true">ᠮ</span>mongol<span class="brand-light">-norm</span><span class="brand-tag">PLAYGROUND / 实验室</span></a>
+        <a class="source-link" href="https://github.com/Satsrag/mongol-norm" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="title">
+          <div>
+            <p class="eyebrow"><span></span> MONGOLIAN SCRIPT LAB / 蒙古文字形实验室</p>
+            <h1 id="title">See the shape. <span>Know the code.</span><span class="headline-zh" lang="zh-CN">看见字形，理解编码。</span></h1>
+            <p class="intro-copy">Enter Mongolian text to explore shape, norm, and their visual forms.<span class="translation" lang="zh-CN">输入蒙古文，实时查看 shape 与 norm，比较规范化前后的字形。</span></p>
+          </div>
+          <div class="intro-note"><span class="note-line" lang="mn">ᠮᠣᠩᠭᠣᠯ</span><span>HUDUM<br />Traditional Mongolian<br /><span lang="zh-CN">传统蒙古文</span></span></div>
+        </section>
+
+        <div class="workspace">
+          <section class="panel input-panel" aria-labelledby="input-heading">
+            <div class="panel-heading"><h2 id="input-heading"><span class="step">01</span>Input <span class="section-en" lang="zh-CN">输入</span></h2><button id="clear" class="text-button" type="button">Clear / 清空</button></div>
+            <label class="sr-only" for="input">Mongolian input / 蒙古文输入</label>
+            <textarea id="input" class="mongolian input" lang="mn" spellcheck="false" autocapitalize="off" autocomplete="off" maxlength="2048" placeholder="ᠮᠣᠩᠭᠣᠯ" aria-describedby="input-help" disabled>ᠮᠣᠩᠭᠣᠯ</textarea>
+            <div class="input-meta"><span>HUDUM.OTF</span><span id="input-count">—</span></div>
+            <p id="input-help" class="help">Enter one word. FVS, MVS, NNBSP, Nirugu, and ZWJ are supported.<span class="translation" lang="zh-CN">输入单个蒙古文词。支持 FVS、MVS、NNBSP、Nirugu 和 ZWJ。</span></p>
+
+            <div class="toolbar" role="group" aria-label="Insert control characters / 插入控制字符">
+              <span class="toolbar-label">Insert / 插入</span>
+              <button type="button" data-insert="180B" title="U+180B · Free variation selector one / 第一变体选择符">FVS1</button>
+              <button type="button" data-insert="180C" title="U+180C · Free variation selector two / 第二变体选择符">FVS2</button>
+              <button type="button" data-insert="180D" title="U+180D · Free variation selector three / 第三变体选择符">FVS3</button>
+              <button type="button" data-insert="180E" title="U+180E · Mongolian vowel separator / 蒙古文元音分隔符">MVS</button>
+              <button type="button" data-insert="202F" title="U+202F · Narrow no-break space / 窄不换行空格">NNBSP</button>
+              <button type="button" data-insert="200D" title="U+200D · Zero width joiner / 零宽连接符">ZWJ</button>
+              <button type="button" data-insert="200C" title="U+200C · Zero width non-joiner, currently unsupported / 零宽非连接符，当前引擎不支持">ZWNJ</button>
+            </div>
+            <div class="samples"><span class="toolbar-label">Try / 试一试</span><button type="button" data-sample="mongol">Mongol / 蒙古文</button><button type="button" data-sample="sain">Same shape / 同形异码</button><button type="button" data-sample="zwj">Mid-word ZWJ / 词中 ZWJ</button></div>
+            <details class="code-details" open><summary>Input code points / 输入码点 <span>UNICODE</span></summary><div id="input-codepoints" class="codepoints"></div></details>
+          </section>
+
+          <div class="results" aria-live="polite" aria-atomic="false">
+            <section class="panel shape-panel" aria-labelledby="shape-heading">
+              <div class="panel-heading"><h2 id="shape-heading"><span class="step">02</span>shape <span class="section-en" lang="zh-CN">字形序列</span></h2><button id="copy-shape" class="copy-button" type="button" disabled>Copy / 复制</button></div>
+              <div id="shape-output" class="shape-output" aria-label="shape result / shape 结果"><span class="placeholder">Loading engine… / 正在加载引擎…</span></div>
+              <p id="shape-error" class="error" hidden></p>
+              <div class="result-foot"><span>WRITTEN UNITS / 书写单元</span><span id="unit-count">—</span></div>
+            </section>
+
+            <section class="panel norm-panel" aria-labelledby="norm-heading">
+              <div class="panel-heading"><h2 id="norm-heading"><span class="step">03</span>norm <span class="section-en" lang="zh-CN">规范化</span></h2><button id="copy-norm" class="copy-button" type="button" disabled>Copy / 复制</button></div>
+              <div class="norm-body"><p id="norm-output" class="mongolian norm-output" lang="mn" aria-label="norm result / norm 结果"></p><span id="norm-state" class="status-tag" hidden></span></div>
+              <p id="norm-placeholder" class="placeholder">Loading engine… / 正在加载引擎…</p>
+              <p id="norm-error" class="error" hidden></p>
+              <p class="help norm-help">Canonical encoding by shape; this is not a spelling correction.<span class="translation" lang="zh-CN">按字形生成规范编码，结果不代表蒙古文正字法拼写。</span></p>
+              <details class="code-details" open><summary>Output code points / 输出码点 <span>UNICODE</span></summary><div id="norm-codepoints" class="codepoints"></div></details>
+            </section>
+          </div>
+        </div>
+
+        <section class="panel comparison" aria-labelledby="comparison-heading">
+          <div class="comparison-intro"><p class="eyebrow">SIDE BY SIDE / 并排比较</p><h2 id="comparison-heading">Compare shapes / 字形对照</h2><p>Original and normalized text, in the same Hudum font.<span class="translation" lang="zh-CN">同一份 Hudum 字体，对照原文与规范化结果。</span></p><span id="shape-match" class="match-status">Waiting for input / 等待输入</span></div>
+          <div class="preview-column"><span class="preview-label">Original <span lang="zh-CN">原文</span></span><div class="preview-scroll"><p id="original-preview" class="mongolian vertical" lang="mn"></p></div></div>
+          <div class="preview-column"><span class="preview-label">Normalized <span lang="zh-CN">规范化</span></span><div class="preview-scroll"><p id="normalized-preview" class="mongolian vertical" lang="mn"></p></div></div>
+        </section>
+        <p id="announcement" class="sr-only" role="status"></p>
+        <noscript><p class="error">Enable JavaScript to compute shape and norm. / 请启用 JavaScript 以运行字形与规范化计算。</p></noscript>
+      </main>
+
+      <footer><span id="engine-status" role="status">Loading engine and font… / 正在加载引擎与字体…</span><span>UTN #57 v4<span class="footer-dot">·</span><a href="./fonts/NOTICE.txt">Hudum font notes / 字体说明</a></span></footer>
+    </div>
+  </body>
+</html>

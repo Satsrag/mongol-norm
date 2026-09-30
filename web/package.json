@@ -1,0 +1,14 @@
+{
+  "name": "mongol-norm-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "sh build.sh",
+    "dev": "npm run build && npm run serve",
+    "serve": "python3 -m http.server 4173 --bind 127.0.0.1 --directory public",
+    "test": "npm run build && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

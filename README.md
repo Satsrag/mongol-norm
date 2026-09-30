@@ -41,6 +41,15 @@ mongol-norm runs the [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html
 Use it for search and indexing, deduplication, corpus counts, spell-check lookup, and cleaning OCR
 or input-method output.
 
+### Web playground
+
+**[Try it online →](https://www.satsrag.dev/norm/)** — enter Mongolian text to see `shape`,
+`norm`, Unicode code points, and vertical previews. Everything runs in your browser.
+
+The [web playground](https://github.com/Satsrag/mongol-norm/blob/main/web/README.md) runs the Rust engine and renders input and
+normalized text with the bundled `hudum.otf`. From this repository, run
+`npm --prefix web run dev`, then open <http://127.0.0.1:4173> (see the web README for build prerequisites).
+
 ### Install
 
 **Rust** (MSRV 1.82, zero dependencies, also builds for `wasm32-unknown-unknown`):
@@ -184,6 +193,13 @@ mongol-norm 按 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) 的
 - `normalize(word)` / `normalize_text(text)` —— 同一个 shape 只输出一个 Unicode 字符串
 
 用途：搜索和索引、去重、语料词频统计、拼写检查前的查词、清洗 OCR 或输入法输出。
+
+### 在线体验
+
+**[打开网页 →](https://www.satsrag.dev/norm/)** —— 输入蒙古文，实时查看 `shape`、`norm`、
+Unicode 码点和规范化前后的竖排字形对照。使用 `hudum.otf` 显示，全部计算都在浏览器本地完成。
+
+本地运行与构建说明见 [web/README.md](https://github.com/Satsrag/mongol-norm/blob/main/web/README.md)。
 
 ### 安装
 

@@ -8,6 +8,9 @@ One GitHub Release (tag `vX.Y.Z`) publishes two artifacts from the same commit:
 Both use Trusted Publishing (GitHub OIDC) from a protected GitHub environment; no PyPI or
 crates.io token is stored in GitHub.
 
+The same release also builds, tests, and deploys the [web playground](https://www.satsrag.dev/norm/)
+through `.github/workflows/deploy-web.yml`.
+
 ## The version
 
 The version literal lives in exactly one place: `[workspace.package] version` in the root
@@ -19,7 +22,8 @@ the binding crate use `version.workspace = true`, maturin reads it through
 crate and (on a release) the tag agree with it.
 
 To bump it: edit the literal in the root `Cargo.toml`, run `cargo update -w` so
-`Cargo.lock` records the new workspace version, run the suites, commit.
+`Cargo.lock` records the new workspace version, refresh the web lockfile with
+`cargo update --manifest-path web/wasm/Cargo.toml -p mongol-norm`, run the suites, commit.
 
 ## One-time setup (PyPI)
 
@@ -80,6 +84,9 @@ in a fresh virtual environment — and to rehearse a release before tagging.
    runs the same metadata validation over all of them, and exchanges its GitHub OIDC identity for a short-lived PyPI credential
    (`pypa/gh-action-pypi-publish`, which also attaches PEP 740 attestations).
 6. `publish-crate.yml` runs in parallel from the same release (see below).
+7. `deploy-web.yml` builds and browser-tests the web playground, then deploys it to
+   <https://www.satsrag.dev/norm/> (see below). Its build and deployment are independent
+   of the PyPI and crates.io publication jobs.
 
 Do not upload the same version twice: PyPI release files are immutable. If a
 publication fails after any file reaches PyPI, increment the version before retrying.
@@ -164,3 +171,37 @@ triggers both `publish.yml` (PyPI) and `publish-crate.yml` (crates.io). The crat
 skips cleanly when the version already exists on crates.io with the expected checksum, so
 re-running a release is safe. crates.io files are immutable, like PyPI's — never reuse a
 version number.
+
+## The web playground
+
+`.github/workflows/deploy-web.yml` runs on a published GitHub Release, on relevant
+pull requests, or manually. It builds the Rust engine at the checked-out commit
+into WebAssembly, checks the adapter with rustfmt/Clippy, and runs the Playwright
+suite against the built page and the native CLI. Release runs require `vX.Y.Z`
+to match the workspace version, the remote tag to still point at the checked-out
+commit, and that commit to be merged into `main`.
+
+After the checks pass, release runs deploy the tested static artifact to `norm/`
+on the `master` branch of `Satsrag/satsrag.github.io`. GitHub Pages serves it at
+<https://www.satsrag.dev/norm/>. This follows mongol-convert's `convert/` deployment
+model. The site homepage links to the normalizer; later deployments only stage
+changes inside `norm/`, preserving the homepage and the other tools.
+
+One-time setup: create a dedicated SSH deploy key with write access on
+`Satsrag/satsrag.github.io`, then store its private half as the repository Actions
+secret `PAGE_DEPLOY_KEY` in `Satsrag/mongol-norm`. The private key must never be
+committed. A missing secret fails the deployment with an explicit error.
+
+Manual runs default to verification only. To deploy the current `main` without
+publishing a new package version, run:
+
+```sh
+gh workflow run deploy-web.yml --ref main -f deploy=true
+```
+
+Manual deployment is restricted to `main`; pull requests never deploy. Website
+deployments use a single concurrency group, and rebase their directory-scoped
+commit onto the latest site branch before pushing so other tools' updates survive.
+
+When bumping the engine version, also refresh the web adapter's independent
+lockfile with `cargo update --manifest-path web/wasm/Cargo.toml -p mongol-norm`.

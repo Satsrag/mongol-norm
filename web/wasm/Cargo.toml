@@ -1,0 +1,22 @@
+[package]
+name = "mongol-norm-web"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+# Keep browser tooling and its compiler requirements out of the core workspace.
+[workspace]
+
+[dependencies]
+mongol-norm = { path = "../.." }
+# The build script checks that the CLI has this exact version too.
+wasm-bindgen = "=0.2.125"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
