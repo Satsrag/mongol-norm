@@ -92,3 +92,8 @@ Kushim-Jiang/mongolian commit `37aa567`; it is bundled unchanged. Its Noto
 outlines use SIL OFL 1.1, and mongfontbuilder's generated rules use MIT.
 Provenance, checksum, and both license notices are in `public/fonts/` and ship
 with the static site.
+
+The browser uses the same versioned canonical shape policy as the core: redundant
+interior Hudum ZWJ is omitted before duplicate unification; boundary ZWJ is retained.
+The input preview still displays the original string. Rebuild WASM after changing
+the engine; the bundled font is unchanged by this policy update.

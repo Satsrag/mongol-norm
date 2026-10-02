@@ -169,7 +169,7 @@ impl Shaper {
         let version = shaper
             .normalize
             .as_ref()
-            .map_or("mng-canonical/2", |table| table.canonical_version);
+            .map_or("mng-canonical/4", |table| table.canonical_version);
         shaper.normalize = Some(NormalizeTable::empty(version));
         shaper
     }
@@ -401,8 +401,10 @@ impl Shaper {
         Ok(tokens)
     }
 
-    /// Shape `text` into its written-unit sequence. Structural characters appear verbatim as
-    /// [`WrittenUnit::Mvs`], [`WrittenUnit::Nirugu`] and [`WrittenUnit::Zwj`].
+    /// Shape `text` into its written-unit sequence. MVS and nirugu appear verbatim.
+    /// For MNG, ZWJ is omitted only between resolved letters in the same joining segment
+    /// (nirugu and repeated ZWJ may intervene), before duplicate unification. Leading/trailing
+    /// ZWJ, control-only runs, and ZWJ next to MVS/NNBSP remain explicit [`WrittenUnit::Zwj`].
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
@@ -417,7 +419,38 @@ impl Shaper {
     /// Errors with [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS,
     /// NNBSP, nirugu and ZWJ — use [`Shaper::normalize_text`] for mixed-script text.
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
-        Ok(collapse(&self.shape_raw(text)?))
+        Ok(self.canonical_shape(&self.run_pipeline(text)?))
+    }
+
+    /// Canonicalize resolved tokens, retaining source-token boundaries until joiners are
+    /// classified. Never delete ZWJ from Unicode before tokenization: that would attach an
+    /// otherwise orphan FVS to the preceding letter. Rules and raw diagnostics stay untouched.
+    fn canonical_shape(&self, tokens: &[Token]) -> Vec<WrittenUnit> {
+        if self.locale != Locale::Mng || !tokens.iter().any(|token| token.kind == TokenKind::Zwj) {
+            return collapse(&flatten(tokens));
+        }
+        let mut redundant = vec![false; tokens.len()];
+        let mut previous_letter = None;
+        for (index, token) in tokens.iter().enumerate() {
+            match token.kind {
+                TokenKind::Letter if token.written.is_some_and(|units| !units.is_empty()) => {
+                    if let Some(previous) = previous_letter {
+                        // Both endpoints supply joining. Keep visible nirugu, omit only ZWJ.
+                        // These disjoint intervals make the entire pass linear.
+                        for between in previous + 1..index {
+                            redundant[between] = tokens[between].kind == TokenKind::Zwj;
+                        }
+                    }
+                    previous_letter = Some(index);
+                }
+                TokenKind::Nirugu | TokenKind::Zwj => {}
+                // MVS (including NNBSP) and unresolved letters are hard scope boundaries.
+                _ => previous_letter = None,
+            }
+        }
+        collapse(&flatten(tokens.iter().enumerate().filter_map(
+            |(index, token)| (!redundant[index]).then_some(token),
+        )))
     }
 
     /// The engine's written-unit sequence before duplicate encodings are unified — the
@@ -509,14 +542,15 @@ impl Shaper {
                         .unwrap_or_default()
                 })
                 .collect(),
-            shape: collapse(&flatten(&tokens)),
+            shape: self.canonical_shape(&tokens),
         })
     }
 }
 
-/// Flatten resolved tokens into the public shape.
-pub(crate) fn flatten(tokens: &[Token]) -> Vec<WrittenUnit> {
-    let mut shape = Vec::with_capacity(tokens.len() * 2);
+/// Flatten resolved tokens without duplicate unification.
+pub(crate) fn flatten<'a>(tokens: impl IntoIterator<Item = &'a Token>) -> Vec<WrittenUnit> {
+    let tokens = tokens.into_iter();
+    let mut shape = Vec::with_capacity(tokens.size_hint().1.unwrap_or(0).saturating_mul(2));
     for token in tokens {
         match token.kind {
             TokenKind::Mvs => shape.push(WrittenUnit::Mvs),

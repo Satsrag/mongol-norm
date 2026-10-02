@@ -67,7 +67,9 @@ and structural context—the API does not accept explicit position records and
 never infers or inserts a structural control. In particular, output contains ZWJ
 only when the request contains `Zwj`. An empty sequence returns an empty string.
 Malformed outer input or a non-string item raises `TypeError`; unknown units and
-sequences that cannot reshape to the exact requested units raise `ValueError`.
+sequences that cannot reshape to the duplicate-unified requested units under the
+explicit-unit contract raise `ValueError`. Requested `Zwj` controls are retained in
+that verification; public `shape()` may subsequently omit redundant interior ZWJ.
 There is no partial-output or first-candidate fallback.
 
 For callers that carry authoritative HUD written-unit positions, use the record
@@ -320,7 +322,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 ```json
 {
   "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/2",
+  "canonical_version": "mng-canonical/4",
   "locale": "MNG",
   "unit_enc_max_len": 3,
   "positioned_units": [
@@ -356,7 +358,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
-1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
+1. `shape()` the word (needs the shape rules). For MNG, omit only ZWJ bracketed by resolved letters in the same joining segment, after raw rules and FVS attachment but **before** step 1a. Nirugu may intervene and stays visible; MVS/NNBSP and unresolved letters stop the scan. Edge ZWJ, including repeated runs and control-only input, stays explicit. Retained structural characters appear as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
 1a. **Unify the duplicate encodings.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
 
    First **expand**, in one left-to-right pass over each chain:

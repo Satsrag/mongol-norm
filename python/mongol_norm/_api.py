@@ -88,6 +88,11 @@ class MongolianShaper:
         Shape *text* into its written-unit sequence.
         将 *text* 处理为书写单元序列。
 
+        For MNG, redundant interior ZWJ is omitted before duplicate unification.
+        MVS/NNBSP and unresolved letters block the scan; nirugu and word-edge ZWJ
+        remain explicit. Raw/detailed diagnostics retain every ZWJ.
+        MNG 的词中冗余 ZWJ 在重复编码统一前移除；词首、词尾 ZWJ 及 nirugu 保留。
+
         Nine written units render as exactly the same ink as a sequence of other
         units, and each is unified with that sequence here. Five expand: ``Dd`` (both
         positions), medial ``H``, medial ``Hx`` and initial ``Cr`` come out as ``O A``,
@@ -224,10 +229,13 @@ class MongolianShaper:
         control。只有请求含 ``Zwj`` 时才输出
         ZWJ；空序列返回空字符串。
 
-        The result is accepted only when it reshapes to the exact requested
-        sequence. An unknown/malformed unit or an unencodable sequence raises
+        The result is verified against duplicate-unified raw units, preserving
+        explicit ``Zwj`` controls. Public :meth:`shape` may then omit redundant
+        interior ZWJ; this API does not silently change that input contract.
+        An unknown/malformed unit or an unencodable sequence raises
         instead of guessing or returning a partial result.
-        仅当输出重新 shape 后与请求序列完全一致时才接受。未知/非法 unit 或无法
+        验证使用统一重复编码后的原始单元序列，保留显式 ``Zwj``；公开 ``shape``
+        随后可能移除词中冗余 ZWJ。本 API 的显式 control 约定不变。未知/非法 unit 或无法
         编码的序列会抛出异常，不猜测，也不返回部分结果。
 
         Raises:

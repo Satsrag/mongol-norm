@@ -2,8 +2,8 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/2` policy
-> described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
+> **Beta.** `shape` and `normalize` follow the versioned `mng-canonical/4` policy. The normalized output
+> encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
 The normalizer implements a **lightweight Mongolian shaping engine** — equivalent to what HarfBuzz
@@ -18,6 +18,44 @@ does with a font file, but using only the rule data from
 3. **Particle** — MVS particle dictionary lookup for specific suffix words
 4. **Devsger** — I after a vowel (vowel_devsger) gets double-tooth form: `I → I+I`
 5. **Post-bowed** — Vowel forms change after bowed consonants (G, B, K, P, F)
+
+## Redundant interior ZWJ (issue #33, stage one)
+
+For **MNG only**, `shape`, `same_shape`, `normalize` and `normalize_text` omit ZWJ
+between two resolved letters in the same joining segment. Any intervening nirugu stays
+visible; one or many intervening ZWJs are redundant. Tokenization first binds FVS to
+its original letter, and the raw rule pipeline resolves positions and contextual forms.
+Only then does canonical flattening omit those ZWJ tokens, **before** duplicate unification.
+For example `182F 1822 200D 1821 180B` and `182F 1822 1821 180B` both become `L+G`,
+not `L+I+Aa`. An orphan FVS following a ZWJ is never reattached to an earlier letter.
+
+MVS/NNBSP and unresolved letters stop this interior scan. Every leading/trailing ZWJ
+(including repetitions), a ZWJ with only nirugu on one side, and control-only inputs keep
+their existing behavior. ZWNJ remains unsupported. No positional-form equivalence or
+near-equivalence is added: leading ZWJ in `BA`, `SA`, and `NA`, and trailing ZWJ in `A`,
+all remain explicit in this stage. Reviewed boundary equivalences are deferred to stage two.
+Raw shaping, `shape_detailed`, and trace token diagnostics retain ZWJ; `trace.shape` reports
+the canonical public shape. No font or fuzzy comparison is used at runtime.
+
+The **direct written-unit APIs retain their explicit-control contract**:
+`normalize_written_units` preserves requested `Zwj`, and the positioned API preserves
+its required implicit controls. Their encoder verification compares duplicate-unified
+raw units, while text normalization verifies public canonical shape. Consequently a direct
+request such as `L I Zwj Aa` can still be encoded, but passing that text to `shape` gives
+`L G`, and passing it to `normalize` removes the redundant joiner. This stage does not
+silently reinterpret stored written-unit requests.
+
+**Policy/release coordination:** `/4` is a proposed distinct policy identifier, not an
+already allocated release. Current main uses `/2`; open [PR #32](https://github.com/Satsrag/mongol-norm/pull/32)
+proposes `/3` for a different encoder. This branch is based on main and does not include
+that encoder. Before release, coordinate the merge order: if #32 lands first, rebase this
+change on it and regenerate tables/goldens for the combined policy; if this change ships
+first, #32 must use a new later identifier. Never release two different policies under one
+identifier or roll the identifier back. Package version/release publishing is separate.
+Regenerated corpus goldens merge one interior-ZWJ pair, reducing 1990 groups to 1989;
+the other canonical texts and the phase-trace fixture remain unchanged.
+Stored normalized keys must be rebuilt when this policy changes, including keys containing
+redundant interior ZWJ. The table schema remains `mongol-normalize-table/1` in this branch.
 
 ## Duplicate encodings
 
@@ -100,7 +138,7 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **shape** the input into its written-unit sequence. Structural characters — MVS, nirugu, ZWJ — appear verbatim as PascalCase `Mvs` / `Nirugu` / `Zwj` tokens (nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
+1. **shape** the input into its written-unit sequence. MVS, nirugu and the ZWJ controls retained by the interior policy appear as PascalCase `Mvs` / `Nirugu` / `Zwj` tokens (nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
@@ -125,7 +163,7 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/2`**. It is available as
+The canonical selection policy on this branch is **`mng-canonical/4`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
@@ -152,7 +190,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 |---|---|
 | `tests/data/core-hud.tsv` | 177 rows — mongfontbuilder's curated regression set (225 cases) |
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
-| `tests/golden/mng-canonical-v1.jsonl` | 1990 canonical vectors |
+| `tests/golden/mng-canonical-v1.jsonl` | 1989 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
 
 Because the corpus and golden tests read that directory, `cargo test` needs a repository checkout —

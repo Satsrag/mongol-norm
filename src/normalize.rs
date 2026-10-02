@@ -14,6 +14,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use crate::duplicates::collapse;
 use crate::generated::enums::WrittenUnit;
 use crate::shaper::Shaper;
 use crate::tables::{Fvs, NormalizeData, Position, UnitEntry};
@@ -156,6 +157,13 @@ fn structural_text(units: &[WrittenUnit]) -> String {
         .iter()
         .map(|unit| structural_char(*unit).expect("structural token"))
         .collect()
+}
+
+/// Text normalization uses canonical shape; direct unit APIs preserve requested controls.
+#[derive(Clone, Copy)]
+pub(crate) enum ShapeContract {
+    Canonical,
+    ExplicitUnits,
 }
 
 enum Part {
@@ -318,7 +326,7 @@ impl Shaper {
         })
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/2"` for MNG; `None`
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/4"` for MNG; `None`
     /// for locales without a normalize table). Persist it next to stored normalized keys.
     pub fn canonical_version(&self) -> Option<&'static str> {
         self.normalize.as_ref().map(|table| table.canonical_version)
@@ -335,7 +343,11 @@ impl Shaper {
     /// The table is fetched only when a chain has to be encoded (Python calls `_build_unit_enc`
     /// lazily), so a structural-only shape — e.g. a lone nirugu — is copied through even for
     /// locales without a normalize table.
-    pub(crate) fn canonical_for_shape(&self, shape: &[WrittenUnit]) -> Result<String, Error> {
+    pub(crate) fn canonical_for_shape(
+        &self,
+        shape: &[WrittenUnit],
+        contract: ShapeContract,
+    ) -> Result<String, Error> {
         let parts = split_parts(shape);
         // `suffix_text` accumulates the whole result: each part is prepended as it is encoded, so
         // after the last (leftmost) part it *is* the canonical text. (Python keeps a parallel
@@ -372,15 +384,17 @@ impl Shaper {
                         let candidate = if body.as_slice() == [WrittenUnit::Aa] {
                             String::from('\u{1820}')
                         } else {
-                            self.encode_chain_canonical(table, body, &[], "", &[])?
+                            self.encode_chain_canonical(table, body, &[], "", &[], contract)?
                         };
                         if !candidate.is_empty() {
                             let prefix_text = structural_text(&prefix_tokens);
                             let mut want = prefix_tokens.clone();
                             want.extend_from_slice(body);
                             want.extend_from_slice(&suffix_target);
-                            if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
-                                == want
+                            if self.encoding_shape(
+                                &format!("{prefix_text}{candidate}{suffix_text}"),
+                                contract,
+                            )? == want
                             {
                                 chain_canonical = Some(candidate);
                             }
@@ -394,6 +408,7 @@ impl Shaper {
                             &prefix_tokens,
                             &suffix_text,
                             &suffix_target,
+                            contract,
                         )?,
                     };
                     suffix_text.insert_str(0, &chain_canonical);
@@ -415,9 +430,17 @@ impl Shaper {
         prefix_tokens: &[WrittenUnit],
         suffix_text: &str,
         suffix_target: &[WrittenUnit],
+        contract: ShapeContract,
     ) -> Result<String, Error> {
         Ok(self
-            .unit_encode_chain(table, chain, prefix_tokens, suffix_text, suffix_target)?
+            .unit_encode_chain(
+                table,
+                chain,
+                prefix_tokens,
+                suffix_text,
+                suffix_target,
+                contract,
+            )?
             .unwrap_or_default())
     }
 
@@ -430,6 +453,7 @@ impl Shaper {
         prefix_tokens: &[WrittenUnit],
         suffix_text: &str,
         suffix_target: &[WrittenUnit],
+        contract: ShapeContract,
     ) -> Result<Option<String>, Error> {
         let joined_left = prefix_tokens.last().is_some_and(|unit| is_joiner(*unit));
         let joined_right = suffix_target.first().is_some_and(|unit| is_joiner(*unit));
@@ -443,10 +467,25 @@ impl Shaper {
         let mut verify_target = prefix_tokens.to_vec();
         verify_target.extend_from_slice(chain);
         verify_target.extend_from_slice(suffix_target);
-        if self.shape(&format!("{prefix_text}{text}{suffix_text}"))? == verify_target {
+        if self.encoding_shape(&format!("{prefix_text}{text}{suffix_text}"), contract)?
+            == verify_target
+        {
             Ok(Some(text))
         } else {
             Ok(None)
+        }
+    }
+
+    /// Keep the direct written-unit API's explicit-control contract separate from text
+    /// canonicalization. Both paths still unify the nine duplicate encodings.
+    pub(crate) fn encoding_shape(
+        &self,
+        text: &str,
+        contract: ShapeContract,
+    ) -> Result<Vec<WrittenUnit>, Error> {
+        match contract {
+            ShapeContract::Canonical => self.shape(text),
+            ShapeContract::ExplicitUnits => Ok(collapse(&self.shape_raw(text)?)),
         }
     }
 
@@ -460,7 +499,7 @@ impl Shaper {
             // dropped here: a lone nirugu/ZWJ shapes to a structural token and round-trips.)
             return Ok(String::new());
         }
-        let canonical = self.canonical_for_shape(&target)?;
+        let canonical = self.canonical_for_shape(&target, ShapeContract::Canonical)?;
         if canonical.is_empty() || self.shape(&canonical)? != target {
             if strict {
                 return Err(Error::NormalizationFallback {
@@ -617,7 +656,7 @@ mod tests {
         );
         assert_eq!(
             Shaper::new(Locale::Mng).canonical_version(),
-            Some("mng-canonical/2")
+            Some("mng-canonical/4")
         );
     }
 

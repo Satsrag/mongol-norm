@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use crate::Error;
 
-/// A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). The structural tokens `Mvs`, `Nirugu` and `Zwj` are members too: they appear verbatim in [`Shaper::shape`](crate::Shaper::shape) output, exactly as the Python implementation emits them.
+/// A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). The structural tokens `Mvs`, `Nirugu` and `Zwj` are members too. MNG omits redundant interior ZWJ in [`Shaper::shape`](crate::Shaper::shape) output; other structural controls remain explicit.
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[rustfmt::skip]

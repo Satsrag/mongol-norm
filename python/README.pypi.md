@@ -59,7 +59,7 @@ shaper.shape_str("ᠰᠠᠢᠨ")                    # → 'S+A+I+I+A'
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
-shaper.canonical_version                    # → 'mng-canonical/2'
+shaper.canonical_version                    # → 'mng-canonical/4'
 
 # Deduplicate
 {shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
@@ -161,3 +161,11 @@ shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ
 - locale：`"MNG"`（回鹘式）、`"TOD"`、`"SIB"`、`"MCH"`，只有 `MNG` 支持规范化。
 
 书写单元输入、调试接口和命令行见上方英文部分，用法相同。
+
+### Redundant interior ZWJ
+
+The proposed `mng-canonical/4` policy removes only redundant interior Hudum ZWJ,
+before duplicate unification. Nirugu, edge ZWJs, MVS/NNBSP-adjacent controls and
+explicit written-unit requests retain their previous contracts. Rebuild stored keys
+when the policy changes. Release numbering must be coordinated with open PR #32;
+this branch does not include that PR's encoder.

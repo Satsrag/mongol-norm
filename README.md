@@ -38,6 +38,11 @@ mongol-norm runs the [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html
 - `same_shape(a, b)` — do two encodings render identically?
 - `normalize(word)` / `normalize_text(text)` — one canonical Unicode string per shape
 
+For Hudum, redundant mid-word ZWJs are omitted before duplicate-encoding unification;
+word-edge ZWJs remain explicit in this stage. The proposed policy is `mng-canonical/4`.
+See [scope, direct-unit compatibility and release coordination](docs/internals.md#redundant-interior-zwj-issue-33-stage-one).
+Rebuild stored normalized keys when the policy changes.
+
 Use it for search and indexing, deduplication, corpus counts, spell-check lookup, and cleaning OCR
 or input-method output.
 
@@ -176,6 +181,10 @@ suites from mongfontbuilder and GB/T 25914-2023. Notices in
 
 **mongol-norm** 判断两段传统蒙古文（回鹘式，Hudum）是否外形相同，并把它们映射成同一个 key。零依赖
 Rust crate，另有 Python 包和命令行工具。
+
+回鹘式蒙古文词中冗余 ZWJ 现在会在重复编码统一之前移除；本阶段保留全部词首、词尾 ZWJ。
+提议的策略编号为 `mng-canonical/4`，发布前须与 #32 协调；策略变化后需重建已存储的规范化键。
+[范围及直接书写单位 API 的兼容约定](docs/internals.md#redundant-interior-zwj-issue-33-stage-one)
 
 ### 为什么
 

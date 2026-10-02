@@ -32,6 +32,23 @@ test("loads the bundled font and matches the CLI for real words and controls", a
   expect(errors).toEqual([]);
 });
 
+test("canonicalizes interior ZWJ before duplicate unification and retains edges", async ({ page }) => {
+  await ready(page);
+  const plain = "ᠯᠢᠡ\u180b";
+  for (const word of [plain, "ᠯᠢ\u200dᠡ\u180b", "ᠯᠢ\u200d\u200dᠡ\u180b"]) {
+    await page.locator("#input").fill(word);
+    await expect(page.locator("#shape-output")).toHaveText("L+G");
+    await expect(page.locator("#norm-output")).toHaveText(cli("normalize", plain));
+    await expect(page.locator("#shape-match")).toHaveText("✓ Shapes match / shape 序列一致");
+  }
+  for (const word of ["\u200dᠪᠠ", "\u200dᠰᠠ", "\u200dᠨᠠ", "ᠠ\u200d"]) {
+    await page.locator("#input").fill(word);
+    await expect(page.locator("#shape-output")).toHaveText(cli("shape", word));
+    await expect(page.locator("#shape-output")).toContainText("Zwj");
+    await expect(page.locator("#norm-codepoints")).toContainText("U+200D");
+  }
+});
+
 test("invalid input clears stale results and keeps the engine error", async ({ page }) => {
   await ready(page);
   for (const text of ["ᠠ\u200cᠠ", "hello", "ᠠ ᠠ", "ᠠ\nᠠ"]) {

@@ -2,14 +2,8 @@
 """
 Joiner tokens (`Nirugu` / `Zwj`) in shape and normalize.
 
-Nirugu (U+180A) renders a visible stem-extender glyph and ZWJ (U+200D)
-invisibly forces joining. Both must appear VERBATIM in shape() output —
-like `Mvs` — because they are the evidence for why a neighbouring letter
-takes its init/medi/fina form, and (for nirugu) a visible glyph in their
-own right. normalize() must preserve them exactly (count and kind) while
-canonicalizing the letters between them.
-`Nirugu`/`Zwj` 与 `Mvs` 同等对待:shape 原样输出、normalize 原样保留,
-字母的 init/medi/fina 位置以它们为依据。
+Nirugu and boundary ZWJ remain explicit controls. Redundant interior MNG ZWJ
+is covered separately by test_redundant_zwj; visible nirugu is never removed.
 """
 import unittest
 

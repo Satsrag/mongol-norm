@@ -13,7 +13,8 @@
 //! normalizer: within the bundled table's domain, `shape(x) == shape(y)` implies
 //! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.
 //!
-//! * [`Shaper::shape`] — text → written-unit sequence (`Mvs` / `Nirugu` / `Zwj` appear verbatim),
+//! * [`Shaper::shape`] — text → written-unit sequence (MNG omits redundant interior `Zwj`;
+//!   other structural controls stay explicit),
 //!   with the nine duplicate encodings unified (see [`Shaper::shape_raw`])
 //! * [`Shaper::same_shape`] — do two encodings render identically?
 //! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode

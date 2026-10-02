@@ -530,7 +530,7 @@ fn public_written_unit_api_covers_all_shape_groups() {
     }
     assert_eq!(
         representatives.len(),
-        1990, // 1993 raw groups minus three verified pairs; D A Aa is not D Aa
+        1989, // 1993 raw groups minus three duplicate pairs and one interior-ZWJ pair
         "corpus shape-group coverage drifted"
     );
     let mut failures = Vec::new();

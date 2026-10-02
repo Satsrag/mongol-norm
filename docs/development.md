@@ -47,7 +47,7 @@ The browser playground has separate build prerequisites and browser tests; see
 Rust, from the repository root:
 
 ```bash
-cargo test --workspace --locked   # 256 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
+cargo test --workspace --locked   # 281 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all --check
 cargo package -p mongol-norm      # what crates.io would receive
@@ -63,7 +63,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install 'maturin>=1.15,<2'
 maturin develop --locked --features testing        # builds mongol_norm/_native
 
-python -m unittest discover -s tests -p 'test_*.py'   # 253 tests
+python -m unittest discover -s tests -p 'test_*.py'   # 270 tests
 python -m unittest tests.test_shaper -v               # shape / same_shape / normalize
 python -m unittest tests.test_round_trip              # round-trip + canonicity + prefix-stability
 python -m unittest tests.test_core_hud tests.test_eac_hud   # the upstream TSV suites
@@ -79,7 +79,7 @@ python python/scripts/gen_normalize_table.py --check
 python python/scripts/gen_compat_goldens.py --check
 ```
 
-Current totals: **256 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
-1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest) and **253 Python
+Current totals: **281 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
+1989 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest) and **270 Python
 tests**, green on Rust stable / 1.82 (the core crate's MSRV; the binding crate needs 1.83) and
 CPython 3.9 – 3.14.

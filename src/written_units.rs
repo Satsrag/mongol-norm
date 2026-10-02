@@ -3,7 +3,7 @@
 
 use crate::duplicates::collapse;
 use crate::generated::enums::WrittenUnit;
-use crate::normalize::{is_joiner, slot_position, NormalizeTable};
+use crate::normalize::{is_joiner, slot_position, NormalizeTable, ShapeContract};
 use crate::shaper::Shaper;
 use crate::tables::{Position, UnitPosition};
 use crate::Error;
@@ -48,7 +48,9 @@ impl Shaper {
     /// Encode an ordered written-unit sequence (e.g. the output of [`Shaper::shape`]) as
     /// canonical Unicode. Letter positions are inferred from order and the structural tokens;
     /// ZWJ is emitted only where `Zwj` is present in the request. The result is accepted only if
-    /// it reshapes to exactly the requested sequence.
+    /// it reshapes to exactly the requested sequence under the explicit-unit contract: duplicate
+    /// encodings are unified, but requested `Zwj` controls are retained. Text [`Shaper::shape`]
+    /// may subsequently omit redundant mid-word ZWJs.
     ///
     /// An empty sequence returns `""` — without consulting the table, so it succeeds on every
     /// locale.
@@ -74,8 +76,10 @@ impl Shaper {
         // the standard and in callers' data — and folded before encoding, so they get the same
         // canonical text as the sequence they render identically to.
         let units = collapse(units);
-        let canonical = self.canonical_for_shape(&units)?;
-        if canonical.is_empty() || self.shape(&canonical)? != units {
+        let canonical = self.canonical_for_shape(&units, ShapeContract::ExplicitUnits)?;
+        if canonical.is_empty()
+            || self.encoding_shape(&canonical, ShapeContract::ExplicitUnits)? != units
+        {
             return Err(Error::NoCanonicalEncoding);
         }
         Ok(canonical)
