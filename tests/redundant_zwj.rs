@@ -125,13 +125,33 @@ fn repeated_zwj_keeps_one() {
 }
 
 #[test]
-fn zwj_next_to_mvs_is_kept() {
-    assert_zwj_kept(&format!("{A}{L}{ZWJ}{MVS}{A}"), &format!("{A}{L}{MVS}{A}"));
+fn zwj_after_mvs_is_kept() {
     assert_zwj_kept(&format!("{A}{MVS}{ZWJ}{N}{A}"), &format!("{A}{MVS}{N}{A}"));
+    // B:init ≡ B:medi, but a joiner after the MVS changes the MVS glyph itself.
+    assert_zwj_kept(&format!("{A}{MVS}{ZWJ}{B}{A}"), &format!("{A}{MVS}{B}{A}"));
+    assert_zwj_kept(&format!("{A}{MVS}{ZWJ}{A}"), &format!("{A}{MVS}{A}"));
+}
+
+#[test]
+fn zwj_before_mvs_follows_the_word_final_table() {
+    // The letter before an MVS is segment-final, so the word-final lists decide.
+    assert_zwj_kept(&format!("{A}{L}{ZWJ}{MVS}{A}"), &format!("{A}{L}{MVS}{A}")); // L:medi ≠ L:fina
     assert_eq!(
         shape(&format!("{A}{L}{ZWJ}{MVS}{A}")),
         ["A", "A", "L", "Zwj", "Mvs", "Aa"]
     );
+    assert_same_word(
+        &format!("{A}{O}{ZWJ}{MVS}{A}"),
+        &format!("{A}{O}{FVS1}{MVS}{A}"),
+    ); // O:medi ≡ O:fina
+    assert_eq!(
+        shape(&format!("{A}{O}{ZWJ}{MVS}{A}")),
+        ["A", "A", "O", "Mvs", "Aa"]
+    );
+    assert_same_word(&format!("{B}{ZWJ}{MVS}{A}"), &format!("{B}{MVS}{A}")); // lone B:init ≡ B:isol
+    assert_zwj_kept(&format!("{A}{ZWJ}{MVS}{A}"), &format!("{A}{MVS}{A}")); // lone A:init ≠ A:isol
+    assert_same_word(&format!("{ZWJ}{B}{ZWJ}{MVS}{A}"), &format!("{B}{MVS}{A}"));
+    // fixed point
 }
 
 // ── word edges: the reviewed equivalence table ──

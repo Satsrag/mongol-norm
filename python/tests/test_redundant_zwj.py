@@ -72,11 +72,22 @@ class TestSegmentInterior(_Base):
         self.assert_same_word(L + I + ZWJ + ZWJ + E + FVS1, L + I + E + FVS1)
         self.assertEqual(self.s.shape(ZWJ + ZWJ), ['Zwj'])
 
-    def test_zwj_next_to_mvs_is_kept(self):
-        self.assert_zwj_kept(A + L + ZWJ + MVS + A, A + L + MVS + A)
+    def test_zwj_after_mvs_is_kept(self):
         self.assert_zwj_kept(A + MVS + ZWJ + N + A, A + MVS + N + A)
+        # B:init ≡ B:medi, but a joiner after the MVS changes the MVS glyph itself.
+        self.assert_zwj_kept(A + MVS + ZWJ + B + A, A + MVS + B + A)
+        self.assert_zwj_kept(A + MVS + ZWJ + A, A + MVS + A)
+
+    def test_zwj_before_mvs_follows_the_word_final_table(self):
+        # The letter before an MVS is segment-final, so the word-final lists decide.
+        self.assert_zwj_kept(A + L + ZWJ + MVS + A, A + L + MVS + A)  # L:medi ≠ L:fina
         self.assertEqual(self.s.shape(A + L + ZWJ + MVS + A),
                          ['A', 'A', 'L', 'Zwj', 'Mvs', 'Aa'])
+        self.assert_same_word(A + O + ZWJ + MVS + A, A + O + FVS1 + MVS + A)  # O:medi ≡ O:fina
+        self.assertEqual(self.s.shape(A + O + ZWJ + MVS + A), ['A', 'A', 'O', 'Mvs', 'Aa'])
+        self.assert_same_word(B + ZWJ + MVS + A, B + MVS + A)  # lone B:init ≡ B:isol
+        self.assert_zwj_kept(A + ZWJ + MVS + A, A + MVS + A)  # lone A:init ≠ A:isol
+        self.assert_same_word(ZWJ + B + ZWJ + MVS + A, B + MVS + A)  # fixed point
 
 
 class TestWordEdges(_Base):

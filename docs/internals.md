@@ -41,11 +41,11 @@ ZWJ of the input.
 | `Zwj Zwj` | one copy (then judged like a single one) |
 | next to a `Nirugu`, either side | dropped — the nirugu already joins |
 | between two letter units (segment interior) | dropped |
-| next to `Mvs`, either side | kept — the joiner changes how the MVS itself renders; undecided (#33) |
+| directly after an `Mvs` | kept — the joiner also changes how the MVS itself renders (see below) |
 | word-initial before `U` + more letters (`U:medi` → `U:init`) | dropped for `B C Ch Cr D Dd F G Gx I K K2 O P R Rh S Sh T W Y Z Zr` |
 | word-initial before a lone `U` (`U:fina` → `U:isol`) | dropped for `Aa Cr Dd I U Zr` |
-| word-final after letters + `U` (`U:medi` → `U:fina`) | dropped for `Cr O Zr` |
-| word-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch Cr D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
+| segment-final (word end or directly before an `Mvs`) after letters + `U` (`U:medi` → `U:fina`) | dropped for `Cr O Zr` |
+| segment-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch Cr D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
 | a lone `Zwj` | kept (it is the whole shape) |
 
 The four edge lists are the maintainer's reviewed equivalence classes for Hudum, selected on #33
@@ -60,6 +60,14 @@ ordinary unit grows a tail at the end of a word and keeps its word-final ZWJ aft
 letter. "Lone" means the unit is the only letter of its segment — nothing, or an `Mvs`, on the far
 side; segments are split at MVS exactly as the position assignment splits them. The lists are
 Hudum data, so they apply to MNG only; the structural rows hold for every locale.
+
+An MVS is a segment end on both sides, but only the left side behaves like a word edge. The font
+gives the letter before an MVS its `fina` (or `isol`) form, so `ᠠᠣ‍᠎ᠠ` vs `ᠠᠣ᠋᠎ᠠ` is the very
+`O:medi`/`O:fina` pair of the word-final row and the same lists decide it (`ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`,
+`ᠠᠯ‍᠎ᠠ` keeps its `Zwj`). After an MVS the letter likewise goes `medi` → `init`, but the font
+also renders the MVS itself differently once a joiner follows it — a wide, inked `mvs` glyph
+instead of the narrow gap before the suffix `a` — so a ZWJ directly after an MVS always changes
+the ink and is kept.
 
 The pass is a fixed point of left-to-right single removals: `Zwj B Zwj` first loses the leading
 joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one (`B:init` ≡ `B:isol`).

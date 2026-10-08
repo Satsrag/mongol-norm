@@ -20,11 +20,11 @@
 //! | `Zwj Zwj` | one copy survives (then judged like a single one) |
 //! | next to a `Nirugu`, on either side | dropped — the nirugu already joins |
 //! | between two letter units (segment interior) | dropped |
-//! | next to `Mvs`, on either side | kept (undecided, see #33) |
+//! | directly after an `Mvs` | kept — the joiner changes how the MVS itself renders (see below) |
 //! | word-initial, before a letter unit `U` | dropped iff `U:init` is accepted as the same shape as `U:medi` |
 //! | word-initial, before a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:fina` |
-//! | word-final, after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
-//! | word-final, after a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:init` |
+//! | segment-final (end of word or directly before an `Mvs`), after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
+//! | segment-final, after a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:init` |
 //! | a lone `Zwj` | kept (it is the whole shape) |
 //!
 //! The four edge tables are the maintainer's reviewed equivalence classes for Hudum, selected on
@@ -33,6 +33,13 @@
 //! HarfBuzz, and compared outline-against-outline. They are **Hudum (MNG) only**; the other
 //! locales get the structural rules alone. "Lone" means the unit is the only letter of its
 //! segment: nothing, or an `Mvs`, on the far side.
+//!
+//! An `Mvs` ends a segment exactly as the position assignment splits it, and the reference font
+//! agrees: the letter before an MVS takes its `fina` (or `isol`) form, so a ZWJ there asks the
+//! same question as a word-final one and uses the same two lists (`ᠠᠣ‍᠎ᠠ` = `ᠠᠣ᠋᠎ᠠ`, `ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`).
+//! After an MVS the letter likewise goes `medi` → `init`, but the font also draws the MVS
+//! differently once a joiner follows it (a wide, inked `mvs` glyph instead of the narrow gap),
+//! so that joiner always changes the ink and is kept.
 //!
 //! The pass is a fixed point of left-to-right single removals, so `Zwj B Zwj` first loses the
 //! leading joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one
@@ -54,10 +61,10 @@ const INITIAL_BEFORE_LETTER: &[WrittenUnit] = &[
 /// Word-initial `Zwj U` with `U` alone in its segment → `U` (`U:fina` ≡ `U:isol`).
 const INITIAL_ALONE: &[WrittenUnit] = &[Aa, Cr, Dd, I, U, Zr];
 
-/// Word-final `…X U Zwj` → `…X U` (`U:medi` ≡ `U:fina`).
+/// Segment-final `…X U Zwj` → `…X U` (`U:medi` ≡ `U:fina`); at the end of the word or before an MVS.
 const FINAL_AFTER_LETTER: &[WrittenUnit] = &[Cr, O, Zr];
 
-/// Word-final `U Zwj` with `U` alone in its segment → `U` (`U:init` ≡ `U:isol`).
+/// Segment-final `U Zwj` with `U` alone in its segment → `U` (`U:init` ≡ `U:isol`).
 const FINAL_ALONE: &[WrittenUnit] = &[
     B, C, Ch, Cr, D, F, G, Gx, H, Hx, K, K2, L, M, N, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
@@ -98,7 +105,7 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
     let next = units.get(index + 1).copied();
     match (prev, next) {
         (Some(Nirugu), _) | (_, Some(Nirugu)) => true,
-        (Some(Mvs), _) | (_, Some(Mvs)) => false,
+        (Some(Mvs), _) => false,
         (Some(p), Some(n)) if is_letter(p) && is_letter(n) => true,
         (None, Some(n)) if is_letter(n) => {
             // The far side of `n`: another letter or a joiner keeps `n` joined onward, so
@@ -112,7 +119,8 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
             };
             hudum_edges && same_shape.contains(&n)
         }
-        (Some(p), None) if is_letter(p) => {
+        (Some(p), None | Some(Mvs)) if is_letter(p) => {
+            // An MVS ends the segment like the end of the word: `p` is `fina` (or `isol`) either way.
             let alone = index < 2 || units[index - 2] == Mvs;
             let same_shape = if alone {
                 FINAL_ALONE
@@ -162,11 +170,21 @@ mod tests {
     }
 
     #[test]
-    fn zwj_next_to_mvs_is_kept() {
-        assert_eq!(drop(&[A, L, Zwj, Mvs, Aa]), [A, L, Zwj, Mvs, Aa]);
+    fn zwj_after_mvs_is_kept() {
         assert_eq!(drop(&[A, Mvs, Zwj, Aa]), [A, Mvs, Zwj, Aa]);
+        assert_eq!(drop(&[A, Mvs, Zwj, B, Aa]), [A, Mvs, Zwj, B, Aa]); // B:init ≡ B:medi, but the MVS changes
         assert_eq!(drop(&[Zwj, Mvs, Aa]), [Zwj, Mvs, Aa]);
         assert_eq!(drop(&[Mvs, Zwj]), [Mvs, Zwj]);
+    }
+
+    #[test]
+    fn zwj_before_mvs_is_segment_final() {
+        assert_eq!(drop(&[A, L, Zwj, Mvs, Aa]), [A, L, Zwj, Mvs, Aa]); // L:medi ≠ L:fina
+        assert_eq!(drop(&[A, O, Zwj, Mvs, Aa]), [A, O, Mvs, Aa]); // O:medi ≡ O:fina
+        assert_eq!(drop(&[B, Zwj, Mvs, Aa]), [B, Mvs, Aa]); // lone: B:init ≡ B:isol
+        assert_eq!(drop(&[A, Zwj, Mvs, Aa]), [A, Zwj, Mvs, Aa]); // lone: A:init ≠ A:isol
+        assert_eq!(drop(&[Mvs, B, Zwj, Mvs, Aa]), [Mvs, B, Mvs, Aa]); // lone between two MVS
+        assert_eq!(drop(&[Zwj, B, Zwj, Mvs, Aa]), [B, Mvs, Aa]); // fixed point, as at a word end
     }
 
     #[test]

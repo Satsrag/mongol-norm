@@ -406,8 +406,9 @@ impl Shaper {
     /// [`WrittenUnit::Mvs`] and [`WrittenUnit::Nirugu`]; a ZWJ appears as [`WrittenUnit::Zwj`]
     /// only where it changes the ink — between two letters that already join, next to a nirugu,
     /// doubled, or at a word edge whose joined and unjoined forms are the same shape, it is
-    /// dropped (see `redundant_zwj.rs` for the rules and the reviewed edge table). A ZWJ next to
-    /// an MVS is always kept.
+    /// dropped (see `redundant_zwj.rs` for the rules and the reviewed edge table). An MVS ends a
+    /// segment like a word end for the letter before it; a ZWJ directly after an MVS is always
+    /// kept.
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,

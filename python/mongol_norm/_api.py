@@ -106,11 +106,12 @@ class MongolianShaper:
         One between two letters that already join, next to a nirugu, doubled, or at a
         word edge whose joined and unjoined forms are the same shape (a reviewed Hudum
         table, see ``docs/internals.md``) is dropped before duplicate unification, so
-        ᠯᠢᠡ᠋ and ᠯᠢ + ZWJ + ᠡ᠋ are both ``L G``. A ZWJ next to an MVS is always kept.
+        ᠯᠢᠡ᠋ and ᠯᠢ + ZWJ + ᠡ᠋ are both ``L G``. Before an MVS the word-final rule
+        applies; a ZWJ directly after an MVS is always kept.
         ``Mvs`` and ``Nirugu`` always appear verbatim.
         同理,ZWJ 只在改变字形时作为 ``Zwj`` 出现:两侧已连写、挨着 nirugu、重复、或词首尾
         连写形与非连写形同形(见 ``docs/internals.md`` 的表)的 ZWJ 在统一重复编码前去掉;
-        紧挨 MVS 的 ZWJ 总是保留。``Mvs`` 和 ``Nirugu`` 总是原样输出。
+        MVS 前按词尾规则处理，紧跟 MVS 之后的 ZWJ 总是保留。``Mvs`` 和 ``Nirugu`` 总是原样输出。
 
         Raises ValueError on characters outside the Mongolian word alphabet
         (letters, FVS, MVS, NNBSP, Nirugu, ZWJ); use :meth:`normalize_text`
