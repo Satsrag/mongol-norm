@@ -2,7 +2,7 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/2` policy
+> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/3` policy
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
@@ -18,6 +18,55 @@ does with a font file, but using only the rule data from
 3. **Particle** — MVS particle dictionary lookup for specific suffix words
 4. **Devsger** — I after a vowel (vowel_devsger) gets double-tooth form: `I → I+I`
 5. **Post-bowed** — Vowel forms change after bowed consonants (G, B, K, P, F)
+
+## Redundant ZWJ
+
+UTN #57 v4 treats ZWJ (U+200D) purely as a cursive joining control: it forces its neighbours into
+their joined (`init` / `medi` / `fina`) forms. (v1/v2 also used a mid-word ZWJ as a *word root
+delimiter* that changed the following vowel; v3 withdrew that, and so did the reference font.)
+Where the neighbours already join, or where the joined form is the same ink as the unjoined one,
+the ZWJ is invisible — yet kept as a `Zwj` token it broke "same shape ⟹ same `normalize`" (ᠯᠢᠡ᠋
+is `L G`, ᠯᠢ + ZWJ + ᠡ᠋ was `L I Zwj Aa`, because the token also stopped duplicate unification from
+crossing it). Issue #33 has the full study.
+
+`shape` therefore drops every ZWJ that changes no glyph. The filter (`src/redundant_zwj.rs`) runs
+on the written-unit sequence after the rules resolved every letter and **before** duplicate
+unification — so a joiner that separated `I Aa` no longer blocks the `G` contraction — and it is
+the same function for `shape`, `trace` and `normalize_written_units`, so `[L, I, Zwj, Aa]` and the
+text `ᠯᠢ‍ᠡ᠋` are one contract. `shape_raw`, `shape_detailed` and the trace tokens keep every
+ZWJ of the input.
+
+| ZWJ context | public shape |
+|---|---|
+| `Zwj Zwj` | one copy (then judged like a single one) |
+| next to a `Nirugu`, either side | dropped — the nirugu already joins |
+| between two letter units (segment interior) | dropped |
+| next to `Mvs`, either side | kept — the joiner changes how the MVS itself renders; undecided (#33) |
+| word-initial before `U` + more letters (`U:medi` → `U:init`) | dropped for `B C Ch Cr D Dd F G Gx I K K2 O P R Rh S Sh T W Y Z Zr` |
+| word-initial before a lone `U` (`U:fina` → `U:isol`) | dropped for `Aa Cr Dd I U Zr` |
+| word-final after letters + `U` (`U:medi` → `U:fina`) | dropped for `Cr O Zr` |
+| word-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch Cr D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
+| a lone `Zwj` | kept (it is the whole shape) |
+
+The four edge lists are the maintainer's reviewed equivalence classes for Hudum, selected on #33
+from an ink comparison of every unit on the reference font (mongfontbuilder `hudum.otf`): each
+candidate pair was encoded with `normalize_written_units`, rendered with HarfBuzz and compared
+outline against outline. Most listed pairs are identical ink (`B:init`/`B:medi`, `F`, `G`, `K`,
+`P`, …, or differ by a hairline stub: `D`, `R`, `W`, `Y`); a few are explicitly accepted
+near-equivalents (`S`, `Sh`, `C`, `Ch`, `Z` word-initially; the whole word-final-alone list, where
+a consonant's isolated form *is* its initial unit). `A`, `N`, `L`, `M`, `H` and `Hx` differ
+visibly between `init` and `medi` (crown, tooth count) and keep their word-initial ZWJ; every
+ordinary unit grows a tail at the end of a word and keeps its word-final ZWJ after another
+letter. "Lone" means the unit is the only letter of its segment — nothing, or an `Mvs`, on the far
+side; segments are split at MVS exactly as the position assignment splits them. The lists are
+Hudum data, so they apply to MNG only; the structural rows hold for every locale.
+
+The pass is a fixed point of left-to-right single removals: `Zwj B Zwj` first loses the leading
+joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one (`B:init` ≡ `B:isol`).
+Applying it to its own output changes nothing, which is what `normalize`'s verification
+(`shape(candidate) == target`) relies on. The positioned written-unit API inserts its implicit
+ZWJs by position and then folds them the same way, so `[B:medi]` encodes as bare `b`, while
+`[N:medi]` keeps both joiners.
 
 ## Duplicate encodings
 
@@ -100,7 +149,7 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **shape** the input into its written-unit sequence. Structural characters — MVS, nirugu, ZWJ — appear verbatim as PascalCase `Mvs` / `Nirugu` / `Zwj` tokens (nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
+1. **shape** the input into its written-unit sequence. MVS and nirugu appear verbatim as PascalCase `Mvs` / `Nirugu` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above; nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
@@ -125,10 +174,17 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/2`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
+
+**`mng-canonical/3` invalidates keys stored under `mng-canonical/2` only where the text contains a
+ZWJ.** Dropping redundant ZWJs (above) changes no canonical text without a ZWJ: of the 1990
+`mng-canonical/2` golden representatives, two merge into groups that already existed
+(`A A R A Zwj O A` into `A A R A O A`, `Zwj O A` into `O A`) and every other vector is unchanged,
+leaving **1988** groups. Keys stored for texts that contain a ZWJ must be rebuilt; all other keys
+are stable.
 
 **`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
 duplicate encodings changes canonical text: comparing current output against the base branch's
@@ -152,7 +208,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 |---|---|
 | `tests/data/core-hud.tsv` | 177 rows — mongfontbuilder's curated regression set (225 cases) |
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
-| `tests/golden/mng-canonical-v1.jsonl` | 1990 canonical vectors |
+| `tests/golden/mng-canonical-v1.jsonl` | 1988 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
 
 Because the corpus and golden tests read that directory, `cargo test` needs a repository checkout —

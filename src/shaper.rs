@@ -7,6 +7,7 @@ use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::generated::mng_normalize;
 use crate::generated::{mch, mng, sib, tod};
 use crate::normalize::NormalizeTable;
+use crate::redundant_zwj::drop_redundant_zwj;
 use crate::rules::{self, Rule};
 use crate::tables::{Fvs, Letter, Locale, LocaleData, ParticleSym, Position, Variant};
 use crate::token::{assign_positions, tokenize, Token, TokenKind};
@@ -169,7 +170,7 @@ impl Shaper {
         let version = shaper
             .normalize
             .as_ref()
-            .map_or("mng-canonical/2", |table| table.canonical_version);
+            .map_or("mng-canonical/3", |table| table.canonical_version);
         shaper.normalize = Some(NormalizeTable::empty(version));
         shaper
     }
@@ -401,8 +402,12 @@ impl Shaper {
         Ok(tokens)
     }
 
-    /// Shape `text` into its written-unit sequence. Structural characters appear verbatim as
-    /// [`WrittenUnit::Mvs`], [`WrittenUnit::Nirugu`] and [`WrittenUnit::Zwj`].
+    /// Shape `text` into its written-unit sequence. MVS and nirugu appear verbatim as
+    /// [`WrittenUnit::Mvs`] and [`WrittenUnit::Nirugu`]; a ZWJ appears as [`WrittenUnit::Zwj`]
+    /// only where it changes the ink — between two letters that already join, next to a nirugu,
+    /// doubled, or at a word edge whose joined and unjoined forms are the same shape, it is
+    /// dropped (see `redundant_zwj.rs` for the rules and the reviewed edge table). A ZWJ next to
+    /// an MVS is always kept.
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
@@ -417,12 +422,23 @@ impl Shaper {
     /// Errors with [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS,
     /// NNBSP, nirugu and ZWJ — use [`Shaper::normalize_text`] for mixed-script text.
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
-        Ok(collapse(&self.shape_raw(text)?))
+        Ok(self.canonical_units(&self.shape_raw(text)?))
     }
 
-    /// The engine's written-unit sequence before duplicate encodings are unified — the
-    /// sequence UTN #57 / GB/T 25914-2023 describe, and the one their EAC conformance vectors
-    /// are checked against. All nine duplicates can appear here.
+    /// The public shape of an engine-level unit sequence: redundant ZWJs dropped, then the
+    /// duplicate encodings unified — in that order, so a joiner that separated `I Aa` no longer
+    /// blocks the `G` contraction. Shared by [`Shaper::shape`], [`Shaper::trace`] and the
+    /// written-unit encoders, which is what keeps `normalize_written_units([L, I, Zwj, Aa])` and
+    /// `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one contract. The reviewed edge equivalences are Hudum
+    /// data, so they apply to MNG only.
+    pub(crate) fn canonical_units(&self, raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
+        collapse(&drop_redundant_zwj(raw, self.locale == Locale::Mng))
+    }
+
+    /// The engine's written-unit sequence before redundant ZWJs are dropped and duplicate
+    /// encodings are unified — the sequence UTN #57 / GB/T 25914-2023 describe, and the one
+    /// their EAC conformance vectors are checked against. All nine duplicates and every ZWJ of
+    /// the input can appear here.
     ///
     /// Not part of the public contract: it exists so the conformance suites and the table
     /// generator can compare against the standard verbatim. Everything user-facing goes through
@@ -509,7 +525,7 @@ impl Shaper {
                         .unwrap_or_default()
                 })
                 .collect(),
-            shape: collapse(&flatten(&tokens)),
+            shape: self.canonical_units(&flatten(&tokens)),
         })
     }
 }
@@ -623,15 +639,15 @@ mod tests {
             shaper.shape("\u{180A}\u{1823}").unwrap(),
             vec![WrittenUnit::Nirugu, WrittenUnit::U]
         );
-        // The engine keeps `Dd`; the public shape folds it, and a ZWJ-joined final `Dd` is the
-        // final duplicate: `O A`.
+        // The engine keeps `Dd` and the ZWJ; the public shape drops the joiner (a lone `Dd:fina`
+        // is the same shape as `Dd:isol`) and folds the duplicate: `O A`.
         assert_eq!(
             shaper.shape_raw("\u{200D}\u{1833}").unwrap(),
             vec![WrittenUnit::Zwj, WrittenUnit::Dd]
         );
         assert_eq!(
             shaper.shape("\u{200D}\u{1833}").unwrap(),
-            vec![WrittenUnit::Zwj, WrittenUnit::O, WrittenUnit::A]
+            vec![WrittenUnit::O, WrittenUnit::A]
         );
         assert_eq!(shaper.shape("").unwrap(), Vec::<WrittenUnit>::new());
         assert_eq!(shaper.shape_str("\u{1820}").unwrap(), "A+A");

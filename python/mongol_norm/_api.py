@@ -102,6 +102,16 @@ class MongolianShaper:
         (``Dd``、词中 ``H``、词中 ``Hx``、词首 ``Cr``),另四个收缩(展开式以 ``Aa``
         结尾,而 ``Aa`` 本身就是重复编码,永不收敛)。
 
+        For the same reason a ZWJ appears as ``Zwj`` only where it changes the ink.
+        One between two letters that already join, next to a nirugu, doubled, or at a
+        word edge whose joined and unjoined forms are the same shape (a reviewed Hudum
+        table, see ``docs/internals.md``) is dropped before duplicate unification, so
+        ᠯᠢᠡ᠋ and ᠯᠢ + ZWJ + ᠡ᠋ are both ``L G``. A ZWJ next to an MVS is always kept.
+        ``Mvs`` and ``Nirugu`` always appear verbatim.
+        同理,ZWJ 只在改变字形时作为 ``Zwj`` 出现:两侧已连写、挨着 nirugu、重复、或词首尾
+        连写形与非连写形同形(见 ``docs/internals.md`` 的表)的 ZWJ 在统一重复编码前去掉;
+        紧挨 MVS 的 ZWJ 总是保留。``Mvs`` 和 ``Nirugu`` 总是原样输出。
+
         Raises ValueError on characters outside the Mongolian word alphabet
         (letters, FVS, MVS, NNBSP, Nirugu, ZWJ); use :meth:`normalize_text`
         for mixed-script input.
@@ -110,10 +120,11 @@ class MongolianShaper:
 
     def _shape_raw(self, text):
         """
-        The engine's own written-unit sequence, before the nine duplicate encodings are
-        unified — the sequence UTN #57 / GB/T 25914-2023 describe, in which all nine
-        still appear.
-        引擎自身的书写单元序列(未统一重复编码),即 UTN #57 / GB/T 25914-2023 所描述的序列。
+        The engine's own written-unit sequence, before redundant ZWJs are dropped and the
+        nine duplicate encodings are unified — the sequence UTN #57 / GB/T 25914-2023
+        describe, in which all nine and every ZWJ of the input still appear.
+        引擎自身的书写单元序列(未去冗余 ZWJ、未统一重复编码),即 UTN #57 / GB/T 25914-2023
+        所描述的序列。
 
         NOT part of the public contract (hence the leading underscore, mirroring the Rust
         crate's ``#[doc(hidden)] Shaper::shape_raw``): it exists so the conformance suites
@@ -224,11 +235,16 @@ class MongolianShaper:
         control。只有请求含 ``Zwj`` 时才输出
         ZWJ；空序列返回空字符串。
 
-        The result is accepted only when it reshapes to the exact requested
-        sequence. An unknown/malformed unit or an unencodable sequence raises
-        instead of guessing or returning a partial result.
-        仅当输出重新 shape 后与请求序列完全一致时才接受。未知/非法 unit 或无法
-        编码的序列会抛出异常，不猜测，也不返回部分结果。
+        The request goes through the same redundant-ZWJ filter and duplicate
+        unification as :meth:`shape`, so ``["L", "I", "Zwj", "Aa"]`` is encoded as
+        ``L G`` — exactly like the text ᠯᠢ + ZWJ + ᠡ᠋ — and a ``Zwj`` that changes
+        no glyph is not emitted. The result is accepted only when it reshapes to
+        that folded sequence. An unknown/malformed unit or an unencodable sequence
+        raises instead of guessing or returning a partial result.
+        请求先经过与 :meth:`shape` 相同的冗余 ZWJ 过滤和重复编码统一(``L I Zwj Aa``
+        编码为 ``L G``),不改变字形的 ``Zwj`` 不会输出。仅当输出重新 shape 后与
+        折叠后的序列完全一致时才接受。未知/非法 unit 或无法编码的序列会抛出异常,
+        不猜测,也不返回部分结果。
 
         Raises:
             TypeError: ``written_units`` is not an ordered string sequence.

@@ -144,9 +144,10 @@ fn test_positioned_records_have_no_cli_subcommand() {
 
 #[test]
 fn test_shape_cli_pascal_case_output_pipes_back() {
-    let shaped = run(&["shape", "\u{182A}\u{200D}"], None);
+    // `a` + ZWJ keeps its joiner (`A:init` is not the isolated `A A`); `b` + ZWJ would not.
+    let shaped = run(&["shape", "\u{1820}\u{200D}"], None);
     assert_eq!(shaped.code, 0, "{}", shaped.stderr);
-    assert_eq!(shaped.stdout, "B+Zwj\n");
+    assert_eq!(shaped.stdout, "A+A+Zwj\n");
     let normalized = run(
         &[
             "normalize-written-units",
@@ -159,20 +160,25 @@ fn test_shape_cli_pascal_case_output_pipes_back() {
         shaper()
             .shape(normalized.stdout.trim_end_matches('\n'))
             .unwrap(),
-        [WrittenUnit::B, WrittenUnit::Zwj]
+        [WrittenUnit::A, WrittenUnit::A, WrittenUnit::Zwj]
     );
 }
 
 #[test]
 fn test_compact_pascal_case_units() {
-    let output = run(&["normalize-written-units", "BZwj"], None);
+    let output = run(&["normalize-written-units", "AAZwj"], None);
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(
         shaper()
             .shape(output.stdout.trim_end_matches('\n'))
             .unwrap(),
-        [WrittenUnit::B, WrittenUnit::Zwj]
+        [WrittenUnit::A, WrittenUnit::A, WrittenUnit::Zwj]
     );
+    // A redundant joiner in the request is folded away: a lone `B` is the same shape joined
+    // onward or not, so `BZwj` encodes as bare `b`.
+    let output = run(&["normalize-written-units", "BZwj"], None);
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.stdout, "\u{182A}\n");
 }
 
 #[test]

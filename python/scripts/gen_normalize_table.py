@@ -56,7 +56,7 @@ LOCALES = ["MNG"]
 
 # Canonical Unicode output policy. Bump this whenever normalize() may choose a
 # different encoding for an existing supported shape.
-CANONICAL_VERSION = "mng-canonical/2"
+CANONICAL_VERSION = "mng-canonical/3"
 
 POSITIONS = ("isol", "init", "medi", "fina")
 

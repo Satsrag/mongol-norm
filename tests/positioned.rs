@@ -411,19 +411,29 @@ fn test_record_limit_fails_closed() {
 
 #[test]
 fn test_singleton_medi_and_fina_insert_zwj_by_position() {
+    // The implicit joiners are inserted by position, then folded exactly as
+    // `normalize_written_units` folds an explicit `Zwj`: `N:medi` keeps both (`N:init` and
+    // `N:fina` are different shapes), `O:medi` keeps only the trailing one (`O:init` is the
+    // medial form), and a lone `U:fina` is the isolated `U`.
     let shaper = shaper();
-    let cases: [(WrittenUnit, UnitPosition, &[WrittenUnit], usize); 2] = [
+    let cases: [(WrittenUnit, UnitPosition, &[WrittenUnit], usize); 3] = [
+        (
+            WrittenUnit::N,
+            UnitPosition::Medi,
+            &[WrittenUnit::Zwj, WrittenUnit::N, WrittenUnit::Zwj],
+            2,
+        ),
         (
             WrittenUnit::O,
             UnitPosition::Medi,
             &[WrittenUnit::Zwj, WrittenUnit::O, WrittenUnit::Zwj],
-            2,
+            1,
         ),
         (
             WrittenUnit::U,
             UnitPosition::Fina,
             &[WrittenUnit::Zwj, WrittenUnit::U],
-            1,
+            0,
         ),
     ];
     for (unit, position, units, zwj_count) in cases {

@@ -271,8 +271,8 @@ class TestShapeCanonicity(unittest.TestCase, _RoundTripBase):
 
         self.assertEqual(
             len(representatives),
-            # 1993 raw groups minus three verified pairs; D A Aa is not D Aa.
-            1990,
+            # 1993 raw groups minus three verified pairs and two redundant-ZWJ pairs.
+            1988,
             "corpus shape-group coverage drifted",
         )
 
