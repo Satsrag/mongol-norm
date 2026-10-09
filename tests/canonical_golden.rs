@@ -58,7 +58,7 @@ fn fixture_metadata() {
     assert_eq!(manifest.index("locale").as_str(), "MNG");
     assert_eq!(
         manifest.index("canonical_version").as_str(),
-        "mng-canonical/2"
+        "mng-canonical/3"
     );
     assert_eq!(
         Shaper::new(Locale::Mng).canonical_version(),
@@ -76,17 +76,18 @@ fn fixture_covers_every_current_corpus_shape_group() {
 #[test]
 fn fixture_has_frozen_unique_cardinality() {
     let (_, vectors) = load();
-    // 1993 raw groups: three verified pairs merge. H A D A Aa and H A D Aa remain
+    // 1993 raw groups: three verified duplicate pairs merge, and two redundant-ZWJ pairs
+    // (`A A R A Zwj O A` / `A A R A O A`, `Zwj O A` / `O A`). H A D A Aa and H A D Aa remain
     // distinct: D is not a bowed written unit, so deleting that A would lose a tooth.
-    assert_eq!(vectors.len(), 1990);
+    assert_eq!(vectors.len(), 1988);
     let ids: Vec<String> = vectors
         .iter()
         .map(|v| v.index("id").as_str().to_owned())
         .collect();
-    let expected: Vec<String> = (1..=1990).map(|i| format!("shape-{i:04}")).collect();
+    let expected: Vec<String> = (1..=1988).map(|i| format!("shape-{i:04}")).collect();
     assert_eq!(ids, expected);
     let shapes: HashSet<Vec<String>> = vectors.iter().map(|v| v.index("shape").strings()).collect();
-    assert_eq!(shapes.len(), 1990);
+    assert_eq!(shapes.len(), 1988);
 }
 
 #[test]

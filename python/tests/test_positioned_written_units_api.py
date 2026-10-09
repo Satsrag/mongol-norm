@@ -365,9 +365,14 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
 
     def test_singleton_medi_and_fina_insert_zwj_by_position(self):
+        # The implicit joiners are inserted by position, then folded exactly as
+        # normalize_written_units folds an explicit Zwj: N:medi keeps both (N:init and
+        # N:fina are different shapes), O:medi keeps only the trailing one (O:init is the
+        # medial form), and a lone U:fina is the isolated U.
         cases = [
-            ("O", "medi", ["Zwj", "O", "Zwj"], 2),
-            ("U", "fina", ["Zwj", "U"], 1),
+            ("N", "medi", ["Zwj", "N", "Zwj"], 2),
+            ("O", "medi", ["Zwj", "O", "Zwj"], 1),
+            ("U", "fina", ["Zwj", "U"], 0),
         ]
         for unit, position, plain, zwj_count in cases:
             with self.subTest(unit=unit, position=position):

@@ -3,13 +3,16 @@
 Joiner tokens (`Nirugu` / `Zwj`) in shape and normalize.
 
 Nirugu (U+180A) renders a visible stem-extender glyph and ZWJ (U+200D)
-invisibly forces joining. Both must appear VERBATIM in shape() output —
-like `Mvs` — because they are the evidence for why a neighbouring letter
-takes its init/medi/fina form, and (for nirugu) a visible glyph in their
-own right. normalize() must preserve them exactly (count and kind) while
-canonicalizing the letters between them.
-`Nirugu`/`Zwj` 与 `Mvs` 同等对待:shape 原样输出、normalize 原样保留,
-字母的 init/medi/fina 位置以它们为依据。
+invisibly forces joining. A nirugu always appears VERBATIM in shape() output —
+like `Mvs` — because it is the evidence for why a neighbouring letter takes
+its init/medi/fina form, and a visible glyph in its own right. A ZWJ appears
+only where it changes the ink; a redundant one (between joined letters, next
+to a nirugu, doubled, or at a word edge whose joined and unjoined forms are
+the same shape) is dropped — see test_redundant_zwj. normalize() preserves
+the surviving controls exactly (count and kind) while canonicalizing the
+letters between them.
+`Nirugu` 与 `Mvs` 同等对待:shape 原样输出、normalize 原样保留;`Zwj` 只在
+改变字形时保留,冗余的 ZWJ 被去掉(见 test_redundant_zwj)。
 """
 import unittest
 
@@ -23,6 +26,8 @@ OE = 'ᠥ'     # oe
 A = 'ᠠ'      # a
 D = 'ᠳ'      # d
 J = 'ᠵ'      # j
+N = 'ᠨ'      # n
+FVS1 = '᠋'
 FVS2 = '᠌'
 FVS3 = '᠍'
 
@@ -43,8 +48,14 @@ class TestJoinerTokensInShape(_Base):
                          ['Nirugu', 'Nirugu', 'O', 'Nirugu'])
 
     def test_zwj_is_a_shape_token(self):
-        # `d` joined onward by the ZWJ renders `Dd`, which the public shape spells `O A`.
-        self.assertEqual(self.s.shape(ZWJ + D), ['Zwj', 'O', 'A'])
+        # A ZWJ whose joined form differs from the unjoined one stays in the shape:
+        # N:medi is not N:init.
+        self.assertEqual(self.s.shape(ZWJ + N + A), ['Zwj', 'N', 'A'])
+
+    def test_redundant_zwj_is_dropped_from_the_shape(self):
+        # `d` joined onward by the ZWJ renders `Dd`, which the public shape spells `O A`;
+        # a lone Dd:fina is the same shape as Dd:isol, so the joiner itself is gone.
+        self.assertEqual(self.s.shape(ZWJ + D), ['O', 'A'])
 
     def test_nirugu_vs_zwj_shapes_differ(self):
         # visible stem vs invisible joiner — must NOT be conflated
@@ -78,10 +89,13 @@ class TestJoinerNormalize(_Base):
         self.assertEqual(self._round_trips(text), text)
 
     def test_zwj_preserved(self):
-        # The ZWJ survives normalize verbatim, and the shape round-trips. The word itself
-        # is no longer a fixed point: its shape is `Zwj O A`, so the canonical spelling is
-        # the `O`+`A` pair, not the single `d` that renders the same ink as `Dd`.
-        self.assertEqual(self._round_trips(ZWJ + D), ZWJ + O + A + FVS2)
+        # A ZWJ that changes the ink survives normalize verbatim, and the shape round-trips.
+        self.assertEqual(self._round_trips(ZWJ + N + A), ZWJ + N + FVS1 + A + FVS2)
+
+    def test_redundant_zwj_is_dropped_by_normalize(self):
+        # `ZWJ d` shapes to `O A` (see test_redundant_zwj_is_dropped_from_the_shape), so
+        # its canonical spelling is the `O`+`A` pair without any joiner.
+        self.assertEqual(self._round_trips(ZWJ + D), U + FVS1 + A + FVS2)
 
     def test_single_sided_nirugu_round_trips(self):
         for text in (NIRUGU + J,          # joined-left J  -> fina form

@@ -13,8 +13,9 @@
 //! normalizer: within the bundled table's domain, `shape(x) == shape(y)` implies
 //! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.
 //!
-//! * [`Shaper::shape`] — text → written-unit sequence (`Mvs` / `Nirugu` / `Zwj` appear verbatim),
-//!   with the nine duplicate encodings unified (see [`Shaper::shape_raw`])
+//! * [`Shaper::shape`] — text → written-unit sequence (`Mvs` and `Nirugu` appear verbatim; a
+//!   `Zwj` only where it changes the ink), with the nine duplicate encodings unified (see
+//!   [`Shaper::shape_raw`])
 //! * [`Shaper::same_shape`] — do two encodings render identically?
 //! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
 //! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —
@@ -37,6 +38,7 @@ mod error;
 #[allow(clippy::all)]
 mod generated;
 mod normalize;
+mod redundant_zwj;
 mod rules;
 mod shaper;
 mod tables;

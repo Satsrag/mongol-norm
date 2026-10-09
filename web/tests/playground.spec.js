@@ -32,6 +32,32 @@ test("loads the bundled font and matches the CLI for real words and controls", a
   expect(errors).toEqual([]);
 });
 
+test("drops redundant ZWJ like the CLI and keeps the ones that change the ink", async ({ page }) => {
+  await ready(page);
+  const plain = "ᠯᠢᠡ᠋";
+  for (const [word, without] of [
+    ["ᠯᠢ‍ᠡ᠋", plain],
+    ["ᠯᠢ‍‍ᠡ᠋", plain],
+    ["‍ᠪᠠ", "ᠪᠠ"],
+    ["ᠪ‍", "ᠪ"],
+    ["ᠠᠣ‍᠎ᠠ", "ᠠᠣ᠋᠎ᠠ"],
+    ["ᠠ᠎‍ᠶᠢᠨ", "ᠠ᠎ᠶ᠌ᠢᠨ"],
+    ["ᠠ᠎‍᠎ᠠ", "ᠠ᠎᠎ᠠ"],
+  ]) {
+    await page.locator("#input").fill(word);
+    await expect(page.locator("#shape-output")).toHaveText(cli("shape", without));
+    await expect(page.locator("#shape-output")).not.toContainText("Zwj");
+    await expect(page.locator("#norm-output")).toHaveText(cli("normalize", without));
+    await expect(page.locator("#shape-match")).toHaveText("✓ Shapes match / shape 序列一致");
+  }
+  for (const word of ["‍ᠨᠠ", "ᠠ‍", "ᠠᠯ‍᠎ᠠ", "ᠲᠠᠯ᠎‍ᠠ"]) {
+    await page.locator("#input").fill(word);
+    await expect(page.locator("#shape-output")).toHaveText(cli("shape", word));
+    await expect(page.locator("#shape-output")).toContainText("Zwj");
+    await expect(page.locator("#norm-output")).toHaveText(cli("normalize", word));
+  }
+});
+
 test("invalid input clears stale results and keeps the engine error", async ({ page }) => {
   await ready(page);
   for (const text of ["ᠠ\u200cᠠ", "hello", "ᠠ ᠠ", "ᠠ\nᠠ"]) {

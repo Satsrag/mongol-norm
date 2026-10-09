@@ -18,10 +18,15 @@ fn test_shape_outputs_pascal_case_controls() {
         unit_names(&shaper.shape("\u{180A}\u{1823}").unwrap()),
         ["Nirugu", "U"]
     );
-    // `Dd` is folded out of the public shape: ZWJ + `d` is `Zwj O A`.
+    // A ZWJ that changes the ink is a control too: `N:medi` is not `N:init`.
+    assert_eq!(
+        unit_names(&shaper.shape("\u{200D}\u{1828}\u{1820}").unwrap()),
+        ["Zwj", "N", "A"]
+    );
+    // `Dd` is folded out of the public shape, and so is a redundant ZWJ: ZWJ + `d` is `O A`.
     assert_eq!(
         unit_names(&shaper.shape("\u{200D}\u{1833}").unwrap()),
-        ["Zwj", "O", "A"]
+        ["O", "A"]
     );
 }
 
@@ -52,15 +57,16 @@ fn test_shape_output_is_accepted_directly() {
     );
 }
 
-/// Duplicate encodings are still *accepted* as input and unified before encoding, so written-unit
-/// data captured from an older `shape()` keeps working — in both directions, expanding and
-/// contracting.
+/// Duplicate encodings and redundant ZWJs are still *accepted* as input and unified before
+/// encoding, so written-unit data captured from an older `shape()` keeps working — in both
+/// directions, expanding and contracting.
 #[test]
 fn duplicate_encodings_are_accepted_as_input_and_unified() {
-    use WrittenUnit::{Aa, Cr, Dd, Nirugu, Zwj, A, B, B2, G, I, O};
+    use WrittenUnit::{Aa, Cr, Dd, Nirugu, Zwj, A, B, B2, G, I, L, O};
     let shaper = shaper();
     for (spelled, unified) in [
-        (vec![Zwj, Dd], vec![Zwj, O, A]),
+        (vec![Zwj, Dd], vec![O, A]),
+        (vec![L, I, Zwj, Aa], vec![L, G]),
         (vec![Cr, Nirugu], vec![O, O, Nirugu]),
         (vec![A, Aa], vec![A]),
         (vec![B, A, Aa], vec![B, Aa]),

@@ -19,10 +19,11 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
 
     def test_shape_cli_pascal_case_output_pipes_back(self):
-        shaped = run_cli("shape", "\u182A\u200D")
+        # `a` + ZWJ keeps its joiner (`A:init` is not the isolated `A A`); `b` + ZWJ would not.
+        shaped = run_cli("shape", "\u1820\u200D")
 
         self.assertEqual(shaped.returncode, 0, shaped.stderr)
-        self.assertEqual(shaped.stdout, "B+Zwj\n")
+        self.assertEqual(shaped.stdout, "A+A+Zwj\n")
         normalized = run_cli(
             "normalize-written-units",
             shaped.stdout.rstrip("\n"),
@@ -30,17 +31,22 @@ class TestNormalizeWrittenUnitsCli(unittest.TestCase):
         self.assertEqual(normalized.returncode, 0, normalized.stderr)
         self.assertEqual(
             MongolianShaper(locale="MNG").shape(normalized.stdout.rstrip("\n")),
-            ["B", "Zwj"],
+            ["A", "A", "Zwj"],
         )
 
     def test_compact_pascal_case_units(self):
-        result = run_cli("normalize-written-units", "BZwj")
+        result = run_cli("normalize-written-units", "AAZwj")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             MongolianShaper(locale="MNG").shape(result.stdout.rstrip("\n")),
-            ["B", "Zwj"],
+            ["A", "A", "Zwj"],
         )
+        # A redundant joiner in the request is folded away: a lone `B` is the same shape
+        # joined onward or not, so `BZwj` encodes as bare `b`.
+        result = run_cli("normalize-written-units", "BZwj")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "\u182A\n")
 
     def test_compact_units_are_segmented_before_shape_validation(self):
         result = run_cli("normalize-written-units", "AAaBZwj")
@@ -216,8 +222,10 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
     def test_shape_outputs_pascal_case_controls(self):
         self.assertEqual(self.shaper.shape("\u180E"), ["Mvs"])
         self.assertEqual(self.shaper.shape("\u180A\u1823"), ["Nirugu", "U"])
-        # `Dd` is folded out of the public shape: ZWJ + `d` is `Zwj O A`.
-        self.assertEqual(self.shaper.shape("\u200D\u1833"), ["Zwj", "O", "A"])
+        # A ZWJ that changes the ink is a control too: `N:medi` is not `N:init`.
+        self.assertEqual(self.shaper.shape("\u200D\u1828\u1820"), ["Zwj", "N", "A"])
+        # `Dd` is folded out of the public shape, and so is a redundant ZWJ: ZWJ + `d` is `O A`.
+        self.assertEqual(self.shaper.shape("\u200D\u1833"), ["O", "A"])
 
     def test_duplicate_encodings_are_accepted_as_input_and_unified(self):
         # Duplicate encodings are still accepted as input and unified before encoding,
@@ -225,7 +233,8 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
         # directions, expanding and contracting.
         # 重复编码仍可作为输入并在编码前统一,旧 shape() 采集的数据继续可用。
         cases = [
-            (["Zwj", "Dd"], ["Zwj", "O", "A"]),
+            (["Zwj", "Dd"], ["O", "A"]),
+            (["L", "I", "Zwj", "Aa"], ["L", "G"]),
             (["Cr", "Nirugu"], ["O", "O", "Nirugu"]),
             (["A", "Aa"], ["A"]),
             (["B", "A", "Aa"], ["B", "Aa"]),

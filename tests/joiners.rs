@@ -13,6 +13,7 @@ const OE: &str = "\u{1825}";
 const A: &str = "\u{1820}";
 const D: &str = "\u{1833}";
 const J: &str = "\u{1835}";
+const N: &str = "\u{1828}";
 const FVS1: &str = "\u{180B}";
 const FVS2: &str = "\u{180C}";
 const FVS3: &str = "\u{180D}";
@@ -54,8 +55,16 @@ fn test_nirugu_run_count_preserved() {
 
 #[test]
 fn test_zwj_is_a_shape_token() {
-    // `d` joined onward by the ZWJ renders `Dd`, which the public shape spells `O A`.
-    assert_eq!(shape(&format!("{ZWJ}{D}")), ["Zwj", "O", "A"]);
+    // A ZWJ whose joined form differs from the unjoined one stays in the shape: `N:medi` is
+    // not `N:init`.
+    assert_eq!(shape(&format!("{ZWJ}{N}{A}")), ["Zwj", "N", "A"]);
+}
+
+#[test]
+fn test_redundant_zwj_is_dropped_from_the_shape() {
+    // `d` joined onward by the ZWJ renders `Dd`, which the public shape spells `O A`; a lone
+    // `Dd:fina` is the same shape as `Dd:isol`, so the joiner itself is gone.
+    assert_eq!(shape(&format!("{ZWJ}{D}")), ["O", "A"]);
 }
 
 #[test]
@@ -107,12 +116,19 @@ fn test_nirugu_count_preserved() {
 
 #[test]
 fn test_zwj_preserved() {
-    // The ZWJ survives normalize verbatim, and the shape round-trips. The word itself is no
-    // longer a fixed point: its shape is `Zwj O A`, so the canonical spelling is the `O`+`A`
-    // pair, not the single `d` that renders the same ink as `Dd`.
+    // A ZWJ that changes the ink survives normalize verbatim, and the shape round-trips.
+    let text = format!("{ZWJ}{N}{A}");
+    let norm = round_trips(&text);
+    assert_eq!(norm, format!("{ZWJ}{N}{FVS1}{A}{FVS2}"));
+}
+
+#[test]
+fn test_redundant_zwj_is_dropped_by_normalize() {
+    // `ZWJ d` shapes to `O A` (see test_redundant_zwj_is_dropped_from_the_shape), so its
+    // canonical spelling is the `O`+`A` pair without any joiner.
     let text = format!("{ZWJ}{D}");
     let norm = round_trips(&text);
-    assert_eq!(norm, format!("{ZWJ}{O}{A}{FVS2}"));
+    assert_eq!(norm, format!("{U}{FVS1}{A}{FVS2}"));
 }
 
 #[test]

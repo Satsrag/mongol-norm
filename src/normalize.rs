@@ -318,7 +318,7 @@ impl Shaper {
         })
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/2"` for MNG; `None`
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/3"` for MNG; `None`
     /// for locales without a normalize table). Persist it next to stored normalized keys.
     pub fn canonical_version(&self) -> Option<&'static str> {
         self.normalize.as_ref().map(|table| table.canonical_version)
@@ -380,7 +380,7 @@ impl Shaper {
                             want.extend_from_slice(body);
                             want.extend_from_slice(&suffix_target);
                             if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
-                                == want
+                                == self.without_redundant_zwj(&want)
                             {
                                 chain_canonical = Some(candidate);
                             }
@@ -440,10 +440,16 @@ impl Shaper {
         // `verify_target` MUST include `suffix_target`: without it the non-last chains of a
         // multi-chain word never verify, and every one of them falls back.
         // — see shaper.py::_unit_encode_chain
+        // The check sees only part of the word (no chain to the left), so a ZWJ that the full
+        // word keeps can look redundant here — `ᠠᠯ‍᠎ᠠ` verifies its last chain as `‍᠎ᠠ`, whose
+        // ZWJ has no letter beside it. Filter the target the same way `shape` filters the text;
+        // the full-word check in `normalize_impl` still has the last word.
         let mut verify_target = prefix_tokens.to_vec();
         verify_target.extend_from_slice(chain);
         verify_target.extend_from_slice(suffix_target);
-        if self.shape(&format!("{prefix_text}{text}{suffix_text}"))? == verify_target {
+        if self.shape(&format!("{prefix_text}{text}{suffix_text}"))?
+            == self.without_redundant_zwj(&verify_target)
+        {
             Ok(Some(text))
         } else {
             Ok(None)
@@ -617,7 +623,7 @@ mod tests {
         );
         assert_eq!(
             Shaper::new(Locale::Mng).canonical_version(),
-            Some("mng-canonical/2")
+            Some("mng-canonical/3")
         );
     }
 

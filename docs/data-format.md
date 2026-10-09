@@ -320,7 +320,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 ```json
 {
   "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/2",
+  "canonical_version": "mng-canonical/3",
   "locale": "MNG",
   "unit_enc_max_len": 3,
   "positioned_units": [
