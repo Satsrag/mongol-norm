@@ -85,6 +85,14 @@ class TestSegmentInterior(_Base):
         self.assert_zwj_kept(T + A + L + MVS + ZWJ + A, T + A + L + MVS + A)
         self.assertEqual(self.s.shape(T + A + L + MVS + ZWJ + A), ['T', 'A', 'L', 'Mvs', 'Zwj', 'A'])
 
+    def test_zwj_with_no_letter_on_either_side_is_dropped(self):
+        # Only MVS or the word boundary around the joiner: it joins nothing.
+        self.assert_same_word(ZWJ + MVS + A, MVS + A)
+        self.assert_same_word(A + MVS + ZWJ, A + MVS)
+        self.assert_same_word(A + MVS + ZWJ + MVS + A, A + MVS + MVS + A)
+        self.assertEqual(self.s.shape(MVS + ZWJ), ['Mvs'])
+        self.assertEqual(self.s.shape(ZWJ), ['Zwj'])  # a lone ZWJ is the whole shape
+
     def test_zwj_before_mvs_follows_the_word_final_table(self):
         # The letter before an MVS is segment-final, so the word-final lists decide.
         self.assert_zwj_kept(A + L + ZWJ + MVS + A, A + L + MVS + A)  # L:medi ≠ L:fina
@@ -168,6 +176,7 @@ class TestWrittenUnitApis(_Base):
                 shaper = MongolianShaper(locale=locale)
                 self.assertIn('Zwj', shaper.shape(N + ZWJ))
                 self.assertNotIn('Zwj', shaper.shape(N + A + ZWJ + N + A))
+                self.assertNotIn('Zwj', shaper.shape(N + MVS + ZWJ + MVS + A))
 
 
 if __name__ == '__main__':

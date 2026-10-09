@@ -127,6 +127,19 @@ fn repeated_zwj_keeps_one() {
 }
 
 #[test]
+fn zwj_with_no_letter_on_either_side_is_dropped() {
+    // Only MVS or the word boundary around the joiner: it joins nothing.
+    assert_same_word(&format!("{ZWJ}{MVS}{A}"), &format!("{MVS}{A}"));
+    assert_same_word(&format!("{A}{MVS}{ZWJ}"), &format!("{A}{MVS}"));
+    assert_same_word(
+        &format!("{A}{MVS}{ZWJ}{MVS}{A}"),
+        &format!("{A}{MVS}{MVS}{A}"),
+    );
+    assert_eq!(shape(&format!("{MVS}{ZWJ}")), ["Mvs"]);
+    assert_eq!(shape(ZWJ), ["Zwj"]); // a lone ZWJ is the whole shape
+}
+
+#[test]
 fn zwj_after_mvs_follows_the_word_initial_table() {
     // The letter after an MVS is segment-initial, so the word-initial lists decide; the MVS
     // placeholder box the font draws before a joiner is not text ink.
@@ -288,5 +301,7 @@ fn edge_equivalences_are_hudum_only() {
             !interior.contains(&"Zwj".to_owned()),
             "{locale:?}: {interior:?}"
         );
+        let bare = unit_names(&shaper.shape(&format!("{N}{MVS}{ZWJ}{MVS}{A}")).unwrap());
+        assert!(!bare.contains(&"Zwj".to_owned()), "{locale:?}: {bare:?}");
     }
 }

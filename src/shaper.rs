@@ -432,7 +432,12 @@ impl Shaper {
     /// `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one contract. The reviewed edge equivalences are Hudum
     /// data, so they apply to MNG only.
     pub(crate) fn canonical_units(&self, raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-        collapse(&drop_redundant_zwj(raw, self.locale == Locale::Mng))
+        collapse(&self.without_redundant_zwj(raw))
+    }
+
+    /// The redundant-ZWJ filter alone (no duplicate unification), with this locale's tables.
+    pub(crate) fn without_redundant_zwj(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
+        drop_redundant_zwj(units, self.locale == Locale::Mng)
     }
 
     /// The engine's written-unit sequence before redundant ZWJs are dropped and duplicate

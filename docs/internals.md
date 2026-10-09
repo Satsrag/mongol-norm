@@ -47,6 +47,7 @@ one such unit.
 | segment-initial before a lone `U` (`U:fina` → `U:isol`) | dropped for `Aa Cr Dd I U Zr` |
 | segment-final (word end or directly before an `Mvs`) after letters + `U` (`U:medi` → `U:fina`) | dropped for `Cr O Zr` |
 | segment-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch Cr D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
+| no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`) | dropped — it has nothing to join |
 | a lone `Zwj` | kept (it is the whole shape) |
 
 The four edge lists are the maintainer's reviewed equivalence classes for Hudum, selected on #33
@@ -70,7 +71,10 @@ reference font every after-MVS pair has exactly the letter glyphs of its word-in
 only extra difference is the MVS itself: followed by a joiner it is drawn as the font's dashed
 "MVS" placeholder box (an MVS no rule handles), otherwise as a plain gap. The box is not text
 ink, so the word-initial lists decide: `ᠠ᠎‍ᠶᠢᠨ` = `ᠠ᠎ᠶ᠌ᠢᠨ` (`Y:medi` ≡ `Y:init`), while
-`ᠲᠠᠯ᠎‍ᠠ` keeps its `Zwj` (`A:fina` is not the suffix `a`).
+`ᠲᠠᠯ᠎‍ᠠ` keeps its `Zwj` (`A:fina` is not the suffix `a`). A ZWJ whose only neighbours are MVS
+or the word boundary joins nothing at all: on the reference font every such pair renders the
+same glyphs at the same positions, MVS included, so it is dropped like the other structural
+cases, in every locale.
 
 The pass is a fixed point of left-to-right single removals: `Zwj B Zwj` first loses the leading
 joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one (`B:init` ≡ `B:isol`).

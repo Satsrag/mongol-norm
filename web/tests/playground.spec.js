@@ -42,6 +42,7 @@ test("drops redundant ZWJ like the CLI and keeps the ones that change the ink", 
     ["ᠪ‍", "ᠪ"],
     ["ᠠᠣ‍᠎ᠠ", "ᠠᠣ᠋᠎ᠠ"],
     ["ᠠ᠎‍ᠶᠢᠨ", "ᠠ᠎ᠶ᠌ᠢᠨ"],
+    ["ᠠ᠎‍᠎ᠠ", "ᠠ᠎᠎ᠠ"],
   ]) {
     await page.locator("#input").fill(word);
     await expect(page.locator("#shape-output")).toHaveText(cli("shape", without));

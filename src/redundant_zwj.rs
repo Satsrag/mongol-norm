@@ -27,6 +27,7 @@
 //! | segment-initial, before a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:fina` |
 //! | segment-final (end of word or directly before an `Mvs`), after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
 //! | segment-final, after a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:init` |
+//! | no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`) | dropped — it has nothing to join |
 //! | a lone `Zwj` | kept (it is the whole shape) |
 //!
 //! The four edge tables are the maintainer's reviewed equivalence classes for Hudum, selected on
@@ -44,7 +45,8 @@
 //! its dashed "MVS" placeholder box, without one a plain gap. That box marks an MVS the font
 //! has no rule for, not text ink, so it does not count (`ᠠ᠎‍ᠶᠢᠨ` = `ᠠ᠎ᠶ᠌ᠢᠨ`, while `ᠲᠠᠯ᠎‍ᠠ`
 //! keeps its `Zwj`: `A:fina` is not the suffix `a`). Examples before an MVS: `ᠠᠣ‍᠎ᠠ` = `ᠠᠣ᠋᠎ᠠ`,
-//! `ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`.
+//! `ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`. A ZWJ whose only neighbours are MVS or the word boundary joins nothing: on the
+//! reference font every such pair renders the same glyphs at the same positions, MVS included.
 //!
 //! The pass is a fixed point of left-to-right single removals, so `Zwj B Zwj` first loses the
 //! leading joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one
@@ -134,7 +136,10 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
             };
             hudum_edges && same_shape.contains(&p)
         }
-        _ => false,
+        // A lone `Zwj` is the whole shape.
+        (None, None) => false,
+        // Only MVS or the word boundary around it: the joiner has nothing to join.
+        _ => true,
     }
 }
 
@@ -181,10 +186,19 @@ mod tests {
         assert_eq!(drop(&[A, Mvs, Zwj, N, A]), [A, Mvs, Zwj, N, A]); // N:medi ≠ N:init
         assert_eq!(drop(&[A, Mvs, Zwj, Aa]), [A, Mvs, Aa]); // lone: Aa:fina ≡ Aa:isol
         assert_eq!(drop(&[A, Mvs, Zwj, A]), [A, Mvs, Zwj, A]); // lone: A:fina ≠ the suffix a
-        assert_eq!(drop(&[A, Mvs, Zwj, B, Zwj, Mvs, Aa]), [A, Mvs, B, Mvs, Aa]); // fixed point
-        assert_eq!(drop(&[Zwj, Mvs, Aa]), [Zwj, Mvs, Aa]); // no letter on either side
-        assert_eq!(drop(&[A, Mvs, Zwj, Mvs, Aa]), [A, Mvs, Zwj, Mvs, Aa]);
-        assert_eq!(drop(&[Mvs, Zwj]), [Mvs, Zwj]);
+        assert_eq!(drop(&[A, Mvs, Zwj, B, Zwj, Mvs, Aa]), [A, Mvs, B, Mvs, Aa]);
+        // fixed point
+    }
+
+    #[test]
+    fn zwj_with_no_letter_on_either_side_is_dropped() {
+        assert_eq!(drop(&[Zwj, Mvs, Aa]), [Mvs, Aa]);
+        assert_eq!(drop(&[A, Mvs, Zwj]), [A, Mvs]);
+        assert_eq!(drop(&[A, Mvs, Zwj, Mvs, Aa]), [A, Mvs, Mvs, Aa]);
+        assert_eq!(drop(&[Mvs, Zwj]), [Mvs]);
+        assert_eq!(drop(&[Zwj, Mvs]), [Mvs]);
+        // Structural, so it holds without the Hudum edge tables too.
+        assert_eq!(drop_redundant_zwj(&[Zwj, Mvs, Aa], false), [Mvs, Aa]);
     }
 
     #[test]
