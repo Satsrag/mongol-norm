@@ -15,6 +15,9 @@
 //!
 //! # Rules (left to right, repeated until nothing changes)
 //!
+//! Everything here is about written units: a "letter unit" is any unit other than the structural
+//! `Mvs`, `Nirugu` and `Zwj` ([`WrittenUnit::is_structural`]), and `U` names one such unit.
+//!
 //! | ZWJ context | result |
 //! |---|---|
 //! | `Zwj Zwj` | one copy survives (then judged like a single one) |

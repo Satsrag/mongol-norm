@@ -34,7 +34,9 @@ on the written-unit sequence after the rules resolved every letter and **before*
 unification — so a joiner that separated `I Aa` no longer blocks the `G` contraction — and it is
 the same function for `shape`, `trace` and `normalize_written_units`, so `[L, I, Zwj, Aa]` and the
 text `ᠯᠢ‍ᠡ᠋` are one contract. `shape_raw`, `shape_detailed` and the trace tokens keep every
-ZWJ of the input.
+ZWJ of the input. Everything below is about written units: a *letter unit* is any written unit
+other than the structural `Mvs`, `Nirugu` and `Zwj` (`WrittenUnit::is_structural`), and `U` names
+one such unit.
 
 | ZWJ context | public shape |
 |---|---|
