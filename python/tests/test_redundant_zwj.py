@@ -13,6 +13,7 @@ ZWJ = '‍'
 NIRUGU = '᠊'
 MVS = '᠎'
 FVS1 = '᠋'
+FVS2 = '᠌'
 A = 'ᠠ'
 E = 'ᠡ'
 I = 'ᠢ'
@@ -27,6 +28,7 @@ S = 'ᠰ'
 T = 'ᠲ'
 D = 'ᠳ'
 R = 'ᠷ'
+Y = 'ᠶ'
 
 
 class _Base(unittest.TestCase):
@@ -72,11 +74,16 @@ class TestSegmentInterior(_Base):
         self.assert_same_word(L + I + ZWJ + ZWJ + E + FVS1, L + I + E + FVS1)
         self.assertEqual(self.s.shape(ZWJ + ZWJ), ['Zwj'])
 
-    def test_zwj_after_mvs_is_kept(self):
-        self.assert_zwj_kept(A + MVS + ZWJ + N + A, A + MVS + N + A)
-        # B:init ≡ B:medi, but a joiner after the MVS changes the MVS glyph itself.
-        self.assert_zwj_kept(A + MVS + ZWJ + B + A, A + MVS + B + A)
-        self.assert_zwj_kept(A + MVS + ZWJ + A, A + MVS + A)
+    def test_zwj_after_mvs_follows_the_word_initial_table(self):
+        # The letter after an MVS is segment-initial, so the word-initial lists decide; the
+        # MVS placeholder box the font draws before a joiner is not text ink.
+        self.assert_same_word(A + MVS + ZWJ + Y + I + N, A + MVS + Y + FVS2 + I + N)  # Y:medi ≡ Y:init
+        self.assertEqual(self.s.shape(A + MVS + ZWJ + Y + I + N), ['A', 'A', 'Mvs', 'Y', 'I', 'A'])
+        self.assert_same_word(A + MVS + ZWJ + B + A, A + MVS + B + A)  # B:medi ≡ B:init
+        self.assert_zwj_kept(A + MVS + ZWJ + N + A, A + MVS + N + A)  # N:medi ≠ N:init
+        # Lone A after the MVS: A:fina is not the suffix a.
+        self.assert_zwj_kept(T + A + L + MVS + ZWJ + A, T + A + L + MVS + A)
+        self.assertEqual(self.s.shape(T + A + L + MVS + ZWJ + A), ['T', 'A', 'L', 'Mvs', 'Zwj', 'A'])
 
     def test_zwj_before_mvs_follows_the_word_final_table(self):
         # The letter before an MVS is segment-final, so the word-final lists decide.

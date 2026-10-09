@@ -23,9 +23,8 @@
 //! | `Zwj Zwj` | one copy survives (then judged like a single one) |
 //! | next to a `Nirugu`, on either side | dropped — the nirugu already joins |
 //! | between two letter units (segment interior) | dropped |
-//! | directly after an `Mvs` | kept — the joiner changes how the MVS itself renders (see below) |
-//! | word-initial, before a letter unit `U` | dropped iff `U:init` is accepted as the same shape as `U:medi` |
-//! | word-initial, before a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:fina` |
+//! | segment-initial (start of word or directly after an `Mvs`), before a letter unit `U` | dropped iff `U:init` is accepted as the same shape as `U:medi` |
+//! | segment-initial, before a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:fina` |
 //! | segment-final (end of word or directly before an `Mvs`), after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
 //! | segment-final, after a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:init` |
 //! | a lone `Zwj` | kept (it is the whole shape) |
@@ -37,12 +36,15 @@
 //! locales get the structural rules alone. "Lone" means the unit is the only letter of its
 //! segment: nothing, or an `Mvs`, on the far side.
 //!
-//! An `Mvs` ends a segment exactly as the position assignment splits it, and the reference font
-//! agrees: the letter before an MVS takes its `fina` (or `isol`) form, so a ZWJ there asks the
-//! same question as a word-final one and uses the same two lists (`ᠠᠣ‍᠎ᠠ` = `ᠠᠣ᠋᠎ᠠ`, `ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`).
-//! After an MVS the letter likewise goes `medi` → `init`, but the font also draws the MVS
-//! differently once a joiner follows it (a wide, inked `mvs` glyph instead of the narrow gap),
-//! so that joiner always changes the ink and is kept.
+//! An `Mvs` splits segments exactly as the position assignment splits them, and the reference
+//! font agrees on both sides: the letter before an MVS takes its `fina` (or `isol`) form and the
+//! letter after it its `init` (or `isol`) form, so a ZWJ next to an MVS asks the same question as
+//! one at the word edge and uses the same lists. Every after-MVS pair differs from its
+//! word-initial twin only in how the MVS itself is drawn: with a joiner after it the font shows
+//! its dashed "MVS" placeholder box, without one a plain gap. That box marks an MVS the font
+//! has no rule for, not text ink, so it does not count (`ᠠ᠎‍ᠶᠢᠨ` = `ᠠ᠎ᠶ᠌ᠢᠨ`, while `ᠲᠠᠯ᠎‍ᠠ`
+//! keeps its `Zwj`: `A:fina` is not the suffix `a`). Examples before an MVS: `ᠠᠣ‍᠎ᠠ` = `ᠠᠣ᠋᠎ᠠ`,
+//! `ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`.
 //!
 //! The pass is a fixed point of left-to-right single removals, so `Zwj B Zwj` first loses the
 //! leading joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one
@@ -56,12 +58,12 @@ use WrittenUnit::{
     P, R, S, T, U, W, Y, Z,
 };
 
-/// Word-initial `Zwj U X…` → `U X…` (`U:medi` ≡ `U:init`).
+/// Segment-initial `Zwj U X…` → `U X…` (`U:medi` ≡ `U:init`); at the start of the word or after an MVS.
 const INITIAL_BEFORE_LETTER: &[WrittenUnit] = &[
     B, C, Ch, Cr, D, Dd, F, G, Gx, I, K, K2, O, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
 
-/// Word-initial `Zwj U` with `U` alone in its segment → `U` (`U:fina` ≡ `U:isol`).
+/// Segment-initial `Zwj U` with `U` alone in its segment → `U` (`U:fina` ≡ `U:isol`).
 const INITIAL_ALONE: &[WrittenUnit] = &[Aa, Cr, Dd, I, U, Zr];
 
 /// Segment-final `…X U Zwj` → `…X U` (`U:medi` ≡ `U:fina`); at the end of the word or before an MVS.
@@ -108,9 +110,9 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
     let next = units.get(index + 1).copied();
     match (prev, next) {
         (Some(Nirugu), _) | (_, Some(Nirugu)) => true,
-        (Some(Mvs), _) => false,
         (Some(p), Some(n)) if is_letter(p) && is_letter(n) => true,
-        (None, Some(n)) if is_letter(n) => {
+        (None | Some(Mvs), Some(n)) if is_letter(n) => {
+            // An MVS starts the segment like the start of the word: `n` is `init` (or `isol`).
             // The far side of `n`: another letter or a joiner keeps `n` joined onward, so
             // dropping the ZWJ turns `n:medi` into `n:init`; nothing (or an MVS) leaves a lone
             // `n`, `fina` → `isol`.
@@ -173,10 +175,15 @@ mod tests {
     }
 
     #[test]
-    fn zwj_after_mvs_is_kept() {
-        assert_eq!(drop(&[A, Mvs, Zwj, Aa]), [A, Mvs, Zwj, Aa]);
-        assert_eq!(drop(&[A, Mvs, Zwj, B, Aa]), [A, Mvs, Zwj, B, Aa]); // B:init ≡ B:medi, but the MVS changes
-        assert_eq!(drop(&[Zwj, Mvs, Aa]), [Zwj, Mvs, Aa]);
+    fn zwj_after_mvs_is_segment_initial() {
+        assert_eq!(drop(&[A, Mvs, Zwj, B, Aa]), [A, Mvs, B, Aa]); // B:medi ≡ B:init
+        assert_eq!(drop(&[A, Mvs, Zwj, Y, I, A]), [A, Mvs, Y, I, A]); // Y:medi ≡ Y:init
+        assert_eq!(drop(&[A, Mvs, Zwj, N, A]), [A, Mvs, Zwj, N, A]); // N:medi ≠ N:init
+        assert_eq!(drop(&[A, Mvs, Zwj, Aa]), [A, Mvs, Aa]); // lone: Aa:fina ≡ Aa:isol
+        assert_eq!(drop(&[A, Mvs, Zwj, A]), [A, Mvs, Zwj, A]); // lone: A:fina ≠ the suffix a
+        assert_eq!(drop(&[A, Mvs, Zwj, B, Zwj, Mvs, Aa]), [A, Mvs, B, Mvs, Aa]); // fixed point
+        assert_eq!(drop(&[Zwj, Mvs, Aa]), [Zwj, Mvs, Aa]); // no letter on either side
+        assert_eq!(drop(&[A, Mvs, Zwj, Mvs, Aa]), [A, Mvs, Zwj, Mvs, Aa]);
         assert_eq!(drop(&[Mvs, Zwj]), [Mvs, Zwj]);
     }
 

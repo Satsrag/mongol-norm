@@ -11,6 +11,7 @@ const ZWJ: &str = "\u{200D}";
 const NIRUGU: &str = "\u{180A}";
 const MVS: &str = "\u{180E}";
 const FVS1: &str = "\u{180B}";
+const FVS2: &str = "\u{180C}";
 const A: &str = "\u{1820}";
 const E: &str = "\u{1821}";
 const I: &str = "\u{1822}";
@@ -24,6 +25,7 @@ const S: &str = "\u{1830}";
 const T: &str = "\u{1832}";
 const D: &str = "\u{1833}";
 const R: &str = "\u{1837}";
+const Y: &str = "\u{1836}";
 const P: &str = "\u{182B}";
 
 fn shaper() -> Shaper {
@@ -125,11 +127,28 @@ fn repeated_zwj_keeps_one() {
 }
 
 #[test]
-fn zwj_after_mvs_is_kept() {
-    assert_zwj_kept(&format!("{A}{MVS}{ZWJ}{N}{A}"), &format!("{A}{MVS}{N}{A}"));
-    // B:init ≡ B:medi, but a joiner after the MVS changes the MVS glyph itself.
-    assert_zwj_kept(&format!("{A}{MVS}{ZWJ}{B}{A}"), &format!("{A}{MVS}{B}{A}"));
-    assert_zwj_kept(&format!("{A}{MVS}{ZWJ}{A}"), &format!("{A}{MVS}{A}"));
+fn zwj_after_mvs_follows_the_word_initial_table() {
+    // The letter after an MVS is segment-initial, so the word-initial lists decide; the MVS
+    // placeholder box the font draws before a joiner is not text ink.
+    assert_same_word(
+        &format!("{A}{MVS}{ZWJ}{Y}{I}{N}"),
+        &format!("{A}{MVS}{Y}{FVS2}{I}{N}"),
+    ); // Y:medi ≡ Y:init
+    assert_eq!(
+        shape(&format!("{A}{MVS}{ZWJ}{Y}{I}{N}")),
+        ["A", "A", "Mvs", "Y", "I", "A"]
+    );
+    assert_same_word(&format!("{A}{MVS}{ZWJ}{B}{A}"), &format!("{A}{MVS}{B}{A}")); // B:medi ≡ B:init
+    assert_zwj_kept(&format!("{A}{MVS}{ZWJ}{N}{A}"), &format!("{A}{MVS}{N}{A}")); // N:medi ≠ N:init
+                                                                                  // Lone A after the MVS: A:fina is not the suffix a.
+    assert_zwj_kept(
+        &format!("{T}{A}{L}{MVS}{ZWJ}{A}"),
+        &format!("{T}{A}{L}{MVS}{A}"),
+    );
+    assert_eq!(
+        shape(&format!("{T}{A}{L}{MVS}{ZWJ}{A}")),
+        ["T", "A", "L", "Mvs", "Zwj", "A"]
+    );
 }
 
 #[test]

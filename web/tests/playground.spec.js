@@ -41,6 +41,7 @@ test("drops redundant ZWJ like the CLI and keeps the ones that change the ink", 
     ["‍ᠪᠠ", "ᠪᠠ"],
     ["ᠪ‍", "ᠪ"],
     ["ᠠᠣ‍᠎ᠠ", "ᠠᠣ᠋᠎ᠠ"],
+    ["ᠠ᠎‍ᠶᠢᠨ", "ᠠ᠎ᠶ᠌ᠢᠨ"],
   ]) {
     await page.locator("#input").fill(word);
     await expect(page.locator("#shape-output")).toHaveText(cli("shape", without));
@@ -48,7 +49,7 @@ test("drops redundant ZWJ like the CLI and keeps the ones that change the ink", 
     await expect(page.locator("#norm-output")).toHaveText(cli("normalize", without));
     await expect(page.locator("#shape-match")).toHaveText("✓ Shapes match / shape 序列一致");
   }
-  for (const word of ["‍ᠨᠠ", "ᠠ‍", "ᠠᠯ‍᠎ᠠ"]) {
+  for (const word of ["‍ᠨᠠ", "ᠠ‍", "ᠠᠯ‍᠎ᠠ", "ᠲᠠᠯ᠎‍ᠠ"]) {
     await page.locator("#input").fill(word);
     await expect(page.locator("#shape-output")).toHaveText(cli("shape", word));
     await expect(page.locator("#shape-output")).toContainText("Zwj");
