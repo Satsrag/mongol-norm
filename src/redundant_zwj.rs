@@ -130,7 +130,7 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
             // `isol`). The far side of `n`: another letter or a joiner keeps `n` joined onward,
             // so dropping the ZWJ turns `n:medi` into `n:init`; nothing (or an edge) leaves a
             // lone `n`, `fina` → `isol`.
-            let alone = units.get(index + 2).map_or(true, |&unit| is_edge(unit));
+            let alone = units.get(index + 2).is_none_or(|&unit| is_edge(unit));
             let same_shape = if alone {
                 INITIAL_ALONE
             } else {
@@ -190,7 +190,7 @@ pub(crate) fn zwnj_join_keeps_shape(
     }
     if let Some(n) = next.filter(|&n| is_letter(n)) {
         if joins(prev) {
-            let alone = units.get(index + 2).map_or(true, |&unit| is_edge(unit));
+            let alone = units.get(index + 2).is_none_or(|&unit| is_edge(unit));
             let same_shape = if alone {
                 INITIAL_ALONE
             } else {
