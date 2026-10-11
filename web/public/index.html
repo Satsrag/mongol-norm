@@ -34,7 +34,7 @@
             <label class="sr-only" for="input">Mongolian input / 蒙古文输入</label>
             <textarea id="input" class="mongolian input" lang="mn" spellcheck="false" autocapitalize="off" autocomplete="off" maxlength="2048" placeholder="ᠮᠣᠩᠭᠣᠯ" aria-describedby="input-help" disabled>ᠮᠣᠩᠭᠣᠯ</textarea>
             <div class="input-meta"><span>HUDUM.OTF</span><span id="input-count">—</span></div>
-            <p id="input-help" class="help">Enter one word. FVS, MVS, NNBSP, Nirugu, and ZWJ are supported.<span class="translation" lang="zh-CN">输入单个蒙古文词。支持 FVS、MVS、NNBSP、Nirugu 和 ZWJ。</span></p>
+            <p id="input-help" class="help">Enter one word. FVS, MVS, NNBSP, Nirugu, ZWJ, and ZWNJ are supported.<span class="translation" lang="zh-CN">输入单个蒙古文词。支持 FVS、MVS、NNBSP、Nirugu、ZWJ 和 ZWNJ。</span></p>
 
             <div class="toolbar" role="group" aria-label="Insert control characters / 插入控制字符">
               <span class="toolbar-label">Insert / 插入</span>
@@ -44,7 +44,7 @@
               <button type="button" data-insert="180E" title="U+180E · Mongolian vowel separator / 蒙古文元音分隔符">MVS</button>
               <button type="button" data-insert="202F" title="U+202F · Narrow no-break space / 窄不换行空格">NNBSP</button>
               <button type="button" data-insert="200D" title="U+200D · Zero width joiner / 零宽连接符">ZWJ</button>
-              <button type="button" data-insert="200C" title="U+200C · Zero width non-joiner, currently unsupported / 零宽非连接符，当前引擎不支持">ZWNJ</button>
+              <button type="button" data-insert="200C" title="U+200C · Zero width non-joiner / 零宽非连接符">ZWNJ</button>
             </div>
             <div class="samples"><span class="toolbar-label">Try / 试一试</span><button type="button" data-sample="mongol">Mongol / 蒙古文</button><button type="button" data-sample="sain">Same shape / 同形异码</button><button type="button" data-sample="zwj">Mid-word ZWJ / 词中 ZWJ</button></div>
             <details class="code-details" open><summary>Input code points / 输入码点 <span>UNICODE</span></summary><div id="input-codepoints" class="codepoints"></div></details>
