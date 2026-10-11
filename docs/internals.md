@@ -2,7 +2,7 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/3` policy
+> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/4` policy
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
@@ -81,7 +81,72 @@ joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing on
 Applying it to its own output changes nothing, which is what `normalize`'s verification
 (`shape(candidate) == target`) relies on. The positioned written-unit API inserts its implicit
 ZWJs by position and then folds them the same way, so `[B:medi]` encodes as bare `b`, while
-`[N:medi]` keeps both joiners.
+`[N:medi]` keeps both joiners. A `Zwnj` (below) is a segment edge for every rule in the table,
+exactly like an `Mvs`.
+
+## ZWNJ: an in-word joining break
+
+A ZWNJ (U+200C) is a word character (issue #34). It breaks the cursive chain — the position
+assignment splits segments at it as it does at an MVS, so the letter before it is written `fina`
+(or `isol`) and the letter after it `init` (or `isol`) — and that is *all* it does to the
+rendering: following the reference font (mongfontbuilder `hudum.otf`,
+[Kushim-Jiang/mongolian#58](https://github.com/Kushim-Jiang/mongolian/issues/58)), phase III
+substitutes the ZWNJ to an ignored glyph before any rule runs, and every rule lookup skips
+ignored glyphs. The engine mirrors that: the context walks of vowel harmony, the gender markers,
+chachlag, dotless g and the particle lookup look through a ZWNJ the way they look through a
+nirugu, while an MVS keeps blocking them. One function, `token::zwnj_blocks_context()`, holds
+that decision (`false`; it is the only shipped behaviour). ᠨᠦ‌ᠬ᠊ (`n ue` + ZWNJ + `h nirugu`) is
+`N Ue Zwnj G Nirugu`: the `ue` is final and the `h` initial, yet the `h` is the feminine `G` the
+vowel across the break asks for — the font's `u182C.G.init`.
+
+Where the font keys a lookup on joining positions, the ZWNJ changes the answer through the
+positions it changed, not through the glyph: the forward gender markers (`iii.py`
+preprocessing A/B, D/E) move only onto `medi`/`fina` glyphs, so they cross a break only when a
+joiner follows it; the backward chain (G–K) runs through letters of every position and skips the
+break, but needs the marker G hands only to `init`/`medi`/`fina` glyphs; an `init`/`isol` g/h
+after a vowel (possible only through a break) has no `masculine_devsger` variant and falls
+through to the "initial g/h before a consonant → feminine" rule; a particle pattern names every
+letter's position, so a particle ends at a break (`MVS i` + ZWNJ + `n` is the particle `I`) and a
+break between a particle's letters ends the match; the vowel-devsger and `sh` dotless classes are
+`init`/`medi` vowels and `medi`/`fina` `i`, which a letter across a break is not. Each of these
+is written so that a word without a ZWNJ takes exactly the path it took before.
+
+An FVS belongs to the letter directly before it; one after a ZWNJ is a stray and ignored
+(the font sees it and may reset a `marked` vowel — the one documented divergence). A kept
+`Zwnj` is a segment edge for the ZWJ rules, duplicate unification does not contract across it
+(`L I Zwnj Aa` stays, `l i e᠋` is `L G`), and `normalize` writes it back as U+200C with the chain
+after it encoded from `init`. `shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
+
+**Redundant ZWNJ.** Like a ZWJ, a break that changes no glyph is dropped from the public shape,
+and the decision is made on the written units alone — never by re-shaping the text or consulting
+a font (`src/redundant_zwnj.rs`). Take the `Zwnj` out; the two sides are now one segment, so run
+the ZWJ filter and duplicate unification again over it; then the break is redundant iff every
+unit beside it that changed form is in the reviewed edge class for that change: the unit before
+goes `fina` → `medi` (the `Cr O Zr` list) or, alone in its segment, `isol` → `init` (the
+word-final-alone list); the unit after goes `init` → `medi` (the word-initial list) or, alone,
+`isol` → `fina` (the word-initial-alone list). A unit changes form only when the other side is a
+letter unit or a joiner; beside an `Mvs`, another `Zwnj` or the word boundary nothing changes
+and equal units decide. The pass is a fixed point of left-to-right single removals, repeated
+ZWNJs collapse to one (or none), and a lone ZWNJ keeps its `Zwnj` like a lone ZWJ.
+
+| input | `shape` | why |
+|---|---|---|
+| ZWNJ + ᠪᠠ, ᠪᠠ + ZWNJ | `B Aa` | word edge: no position changes |
+| ᠪ‌ᠪᠠ | `B B Aa` | `B:isol` ≡ `B:init`, `B:init` ≡ `B:medi` |
+| ᠪ‌ᠠ | `B Zwnj A A` | `A:isol` ≠ `A:fina` |
+| ᠯᠢ‌ᠡ᠋ | `L I Zwnj Aa` | `I:fina` ≠ `I:medi`; no `G` across the break |
+| ᠠ‌᠎ᠠ, ᠎‌ᠠ | `A A Mvs Aa`, `Mvs Aa` | beside an MVS; chachlag looks through |
+| ᠠ‌‌ᠪ | `A A Zwnj B` | repeated breaks collapse |
+| ‍‌ᠨᠠ, ᠨᠠ‌‍ | `N A` | the ZWJ had nothing to join while the break stood, and goes with it |
+| ᠠ‍‌ᠪᠠ | `A A B Aa` | the kept ZWJ joined the `a`; after the break goes, the ZWJ sits between letters |
+| ᠯᠠᠯᠠ‍‌ᠫᠦᠳ (issue #34) | `L A L A P O I O A` | `P:init` ≡ `P:medi`; the marked `ue` stays, the break goes |
+| ZWNJ alone | `Zwnj` | the whole shape |
+
+Judging on the units rather than by re-shaping the text is what makes the first word of the
+issue work: the text without its ZWNJ renders `P O O A` (the `ue` is marked only after an
+initial `p`), so a text-based test would keep the break — but every FVS-pinned spelling of the
+same ink renders alike with or without it, so no canonical text could have reproduced a kept
+`Zwnj`. `normalize` gives ᠯᠠᠯᠠᠫᠣᠢ᠍ᠣᠠ᠌, which shapes back to the same units.
 
 ## Duplicate encodings
 
@@ -164,7 +229,7 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **shape** the input into its written-unit sequence. MVS and nirugu appear verbatim as PascalCase `Mvs` / `Nirugu` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above; nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
+1. **shape** the input into its written-unit sequence. MVS and nirugu appear verbatim as PascalCase `Mvs` / `Nirugu` tokens, a ZWJ as `Zwj` and a ZWNJ as `Zwnj` where they change the ink (see "Redundant ZWJ" and "ZWNJ" above; nirugu renders a visible stem; all four are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged. A chain after a `Zwnj` starts at `init` like one after an `Mvs` — only `Nirugu` and `Zwj` join the chain beside them.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
@@ -189,10 +254,17 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/4`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
+
+**`mng-canonical/4` invalidates keys stored under `mng-canonical/3` only where the text contains a
+ZWNJ.** Under `/3` a ZWNJ was rejected (`NonMongolianChar`), so no key for such a text exists;
+every other text takes exactly the `/3` code path, and the 1988 `mng-canonical/3` golden
+representatives are byte-identical under `/4`. The number moves because `normalize_text`, which
+used to split a run at a ZWNJ and normalize the pieces independently, now treats it as a word
+character: text with a ZWNJ between Mongolian letters normalizes differently.
 
 **`mng-canonical/3` invalidates keys stored under `mng-canonical/2` only where the text contains a
 ZWJ.** Dropping redundant ZWJs (above) changes no canonical text without a ZWJ: of the 1990

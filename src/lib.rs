@@ -14,8 +14,8 @@
 //! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.
 //!
 //! * [`Shaper::shape`] — text → written-unit sequence (`Mvs` and `Nirugu` appear verbatim; a
-//!   `Zwj` only where it changes the ink), with the nine duplicate encodings unified (see
-//!   [`Shaper::shape_raw`])
+//!   `Zwj` or `Zwnj` only where it changes the ink), with the nine duplicate encodings unified
+//!   (see [`Shaper::shape_raw`])
 //! * [`Shaper::same_shape`] — do two encodings render identically?
 //! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
 //! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —
@@ -39,6 +39,7 @@ mod error;
 mod generated;
 mod normalize;
 mod redundant_zwj;
+mod redundant_zwnj;
 mod rules;
 mod shaper;
 mod tables;

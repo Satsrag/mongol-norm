@@ -65,6 +65,7 @@ pub const ALIAS_TO_CP: &[(&str, u32)] = &[
     ("nnbsp", 0x202F),
     ("nirugu", 0x180A),
     ("zwj", 0x200D),
+    ("zwnj", 0x200C),
 ];
 
 pub fn is_known_alias(alias: &str) -> bool {

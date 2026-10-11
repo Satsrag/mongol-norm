@@ -8,8 +8,8 @@
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::shaper::{
-    next_adjacent_letter, next_letter, next_tok, prev_adjacent_letter, prev_letter, prev_tok,
-    Shaper,
+    next_adjacent_letter, next_letter, next_tok_through_zwnj, prev_adjacent_letter, prev_letter,
+    prev_tok_through_zwnj, Shaper,
 };
 use crate::tables::{Fvs, Locale, ParticleSym, Position};
 use crate::token::Token;
@@ -90,10 +90,15 @@ fn iii1_chachlag_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     if !matches!(tok.alias, Some(Alias::A | Alias::E)) {
         return;
     }
-    let Some(prev) = prev_tok(tokens, index) else {
+    let Some(prev) = prev_tok_through_zwnj(tokens, index) else {
         return;
     };
     if !tokens[prev].is_mvs() {
+        return;
+    }
+    // Through a ZWNJ the font's lookup still names the isolated glyph; the directly-adjacent
+    // path keeps its historical, position-free check.
+    if prev + 1 != index && tok.position != Position::Isol {
         return;
     }
     if tok.has_fvs {
@@ -210,10 +215,10 @@ fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Sh
         j -= 1;
         let t = &tokens[j];
         if !t.is_letter() {
-            if t.is_nirugu() {
-                continue;
+            if t.is_transparent() {
+                continue; // nirugu, zwj; a zwnj the marker looks through
             }
-            return; // mvs/etc. blocks
+            return; // mvs blocks
         }
         if !shaper.is_consonant(t) {
             return; // vowel blocks the chain
@@ -224,8 +229,10 @@ fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Sh
             }
             return;
         }
-        if t.position != Position::Medi {
-            return; // fina / isol — not a propagation source
+        // iii.py propagates the marker through `medi` *and* `fina` consonants; a `fina` one
+        // before this vowel can only be reached across a ZWNJ.
+        if !matches!(t.position, Position::Medi | Position::Fina) {
+            return; // isol — not a propagation source
         }
         saw_medi = true;
     }
@@ -274,7 +281,7 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper)
     if tok.condition.is_some() || !tok.is_letter || tok.has_fvs {
         return;
     }
-    let Some(next) = next_tok(tokens, index) else {
+    let Some(next) = next_tok_through_zwnj(tokens, index) else {
         return;
     };
     if !tokens[next].is_mvs() {
@@ -368,6 +375,12 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     }
     let next = next_adjacent_letter(tokens, index);
     let prev = prev_adjacent_letter(tokens, index);
+    // `masculine_devsger` exists only for a joined-before (`medi`/`fina`) g/h, and in iii.py an
+    // input class holds only the glyphs that have the variant, so an `init`/`isol` g/h after a
+    // vowel — reachable only through a ZWNJ — does not match those patterns and falls through
+    // to the later ones instead. Without a ZWNJ a g/h after an adjacent vowel is always
+    // `medi`/`fina`, so this gate changes nothing there.
+    let joined_before = matches!(tok.position, Position::Medi | Position::Fina);
 
     // ── (a) the adjacent vowel decides ──
     if let Some(next) = next {
@@ -381,7 +394,7 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         }
     }
     if let Some(prev) = prev {
-        if shaper.is_masc_vowel(&tokens[prev]) {
+        if shaper.is_masc_vowel(&tokens[prev]) && joined_before {
             set(tokens, index, Condition::MasculineDevsger);
             return;
         }
@@ -394,7 +407,7 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     // ── (b) i + g/h with a reachable MASC marker (iii2f.A) ──
     if let Some(prev) = prev {
         if tokens[prev].alias == Some(Alias::I) {
-            if shaper.masc_marker_reaches_g_h(tokens, index) {
+            if joined_before && shaper.masc_marker_reaches_g_h(tokens, index) {
                 set(tokens, index, Condition::MasculineDevsger);
                 return;
             }
@@ -456,12 +469,20 @@ fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let Some(next) = next_letter(tokens, index) else {
         return;
     };
+    let next_index = next;
     let next = view(tokens, next);
     if next.alias != Some(Alias::I) {
         return;
     }
     if tok.position == Position::Init && next.position == Position::Medi {
         set(tokens, index, Condition::Dotless);
+        return;
+    }
+    // iii.py: `sh.medi` + `i.medi`/`i.fina`. Across a ZWNJ the i is `init`/`isol` and does not
+    // match; the MVS case keeps its historical, position-free check.
+    if matches!(next.position, Position::Init | Position::Isol)
+        && (index + 1..next_index).any(|k| tokens[k].is_zwnj() && tokens[k].is_transparent())
+    {
         return;
     }
     if tok.position == Position::Medi {
@@ -500,7 +521,7 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     // chachlag leaves the default `a.isol` glyph, which iii.py's rule would not match, so this
     // rule must not fire either — see rules.py::_iii2g_g_dotless_at.
     if tok.position == Position::Fina {
-        if let Some(next) = next_tok(tokens, index) {
+        if let Some(next) = next_tok_through_zwnj(tokens, index) {
             if tokens[next].is_mvs() {
                 if let Some(after) = next_letter(tokens, next) {
                     let after = view(tokens, after);
@@ -573,6 +594,12 @@ fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
 /// `(symbols, token indices)` per MVS-headed segment; nirugu is skipped, and a letter without an
 /// alias becomes `ParticleSym::Unknown` (never matches, exactly like Python's empty alias) —
 /// see rules.py::_build_mvs_segments.
+///
+/// A ZWNJ ends a segment too (without starting one). iii.py's particle lookup ignores the ZWNJ
+/// glyph, but every pattern names each letter's joining position (`mvs y.init i.medi n.fina`),
+/// and a ZWNJ changes exactly those: a particle whose letters it separates can never match, and
+/// one it follows matches as it does at the end of a word — `MVS i` + ZWNJ + `n` is the particle
+/// `I` followed by a new `init` n, as in the reference font.
 fn build_mvs_segments(tokens: &[Token]) -> Vec<(Vec<ParticleSym>, Vec<usize>)> {
     let mut segments = Vec::new();
     let mut syms: Vec<ParticleSym> = Vec::new();
@@ -584,6 +611,13 @@ fn build_mvs_segments(tokens: &[Token]) -> Vec<(Vec<ParticleSym>, Vec<usize>)> {
             }
             syms.push(ParticleSym::Mvs);
             indices.push(i);
+        } else if token.is_zwnj() {
+            // Only once a letter is in: between an MVS and its first letter the ZWNJ changes
+            // no position, and the font's pattern still matches through it (`MVS` + ZWNJ + `i`
+            // is the particle `I`).
+            if indices.iter().any(|&index| tokens[index].is_letter()) {
+                segments.push((std::mem::take(&mut syms), std::mem::take(&mut indices)));
+            }
         } else if token.is_letter() {
             syms.push(token.alias.map_or(ParticleSym::Unknown, ParticleSym::Alias));
             indices.push(i);
@@ -618,6 +652,14 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         return;
     };
     if !shaper.is_vowel(&tokens[prev]) {
+        return;
+    }
+    // iii.py's class holds `init`/`medi` vowels only. Across a ZWNJ the vowel before a medial
+    // `i` is `fina`/`isol` (a joiner after the break keeps the `i` medial) and does not match;
+    // the MVS case keeps its historical, position-free check.
+    if matches!(tokens[prev].position, Position::Fina | Position::Isol)
+        && (prev + 1..index).any(|k| tokens[k].is_zwnj() && tokens[k].is_transparent())
+    {
         return;
     }
     shaper.resolve_written(&mut tokens[prev]);

@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use crate::Error;
 
-/// A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). The structural tokens `Mvs`, `Nirugu` and `Zwj` are members too: they appear verbatim in [`Shaper::shape`](crate::Shaper::shape) output, exactly as the Python implementation emits them.
+/// A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). The structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj` are members too: they appear verbatim in [`Shaper::shape`](crate::Shaper::shape) output, exactly as the Python implementation emits them.
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[rustfmt::skip]
@@ -214,6 +214,8 @@ pub enum WrittenUnit {
     Zs2,
     /// Structural token: zero width joiner U+200D.
     Zwj,
+    /// Structural token: zero width non-joiner U+200C (a joining break inside a word).
+    Zwnj,
     /// Written unit `Zz`.
     Zz,
 }
@@ -221,7 +223,7 @@ pub enum WrittenUnit {
 #[rustfmt::skip]
 impl WrittenUnit {
     /// Every variant, in declaration (sorted contract-name) order.
-    pub const ALL: [WrittenUnit; 101] = [
+    pub const ALL: [WrittenUnit; 102] = [
         WrittenUnit::A,
         WrittenUnit::Aa,
         WrittenUnit::Ah,
@@ -322,6 +324,7 @@ impl WrittenUnit {
         WrittenUnit::Zs,
         WrittenUnit::Zs2,
         WrittenUnit::Zwj,
+        WrittenUnit::Zwnj,
         WrittenUnit::Zz,
     ];
 
@@ -428,13 +431,14 @@ impl WrittenUnit {
             WrittenUnit::Zs => "Zs",
             WrittenUnit::Zs2 => "Zs2",
             WrittenUnit::Zwj => "Zwj",
+            WrittenUnit::Zwnj => "Zwnj",
             WrittenUnit::Zz => "Zz",
         }
     }
 
-    /// `true` for the structural tokens `Mvs`, `Nirugu` and `Zwj`.
+    /// `true` for the structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj`.
     pub const fn is_structural(self) -> bool {
-        matches!(self, WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwj)
+        matches!(self, WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwj | WrittenUnit::Zwnj)
     }
 }
 
@@ -544,6 +548,7 @@ impl FromStr for WrittenUnit {
             "Zs" => Ok(WrittenUnit::Zs),
             "Zs2" => Ok(WrittenUnit::Zs2),
             "Zwj" => Ok(WrittenUnit::Zwj),
+            "Zwnj" => Ok(WrittenUnit::Zwnj),
             "Zz" => Ok(WrittenUnit::Zz),
             _ => Err(Error::UnknownName { kind: "written unit", name: name.to_owned() }),
         }

@@ -394,6 +394,7 @@ mod tests {
         assert!(WrittenUnit::Mvs.is_structural());
         assert!(WrittenUnit::Nirugu.is_structural());
         assert!(WrittenUnit::Zwj.is_structural());
+        assert!(WrittenUnit::Zwnj.is_structural());
         assert!(!WrittenUnit::A.is_structural());
         assert_eq!(Condition::ChachlagOnsetGb.as_str(), "chachlag_onset_gb");
         assert_eq!(Alias::K2.as_str(), "k2");
@@ -413,7 +414,7 @@ mod tests {
         );
         let variants: usize = mng::DATA.letters.iter().map(|l| l.variants.len()).sum();
         assert_eq!(variants, 216);
-        assert_eq!(mng_normalize::DATA.canonical_version, "mng-canonical/3");
+        assert_eq!(mng_normalize::DATA.canonical_version, "mng-canonical/4");
         assert_eq!(mng_normalize::DATA.unit_enc_max_len, 3);
         assert_eq!(mng_normalize::DATA.unit_table.len(), 151);
         assert_eq!(mng_normalize::DATA.velar_fem.len(), 15);

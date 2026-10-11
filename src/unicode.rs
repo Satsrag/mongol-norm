@@ -9,6 +9,8 @@ pub(crate) const MVS: u32 = 0x180E;
 pub(crate) const NIRUGU: u32 = 0x180A;
 /// U+200D ZERO WIDTH JOINER.
 pub(crate) const ZWJ: u32 = 0x200D;
+/// U+200C ZERO WIDTH NON-JOINER — a joining break inside a word.
+pub(crate) const ZWNJ: u32 = 0x200C;
 /// U+202F NARROW NO-BREAK SPACE — folded into MVS at tokenization, like Python does.
 pub(crate) const NNBSP: u32 = 0x202F;
 
@@ -39,12 +41,14 @@ pub fn is_mongolian_letter(c: char) -> bool {
     is_mongolian_letter_cp(c as u32)
 }
 
-/// Does `cp` participate in a Mongolian word run: a letter, an FVS, MVS, NNBSP, nirugu or ZWJ?
+/// Does `cp` participate in a Mongolian word run: a letter, an FVS, MVS, NNBSP, nirugu, ZWJ or
+/// ZWNJ?
 pub(crate) const fn is_mongolian_word_char_cp(cp: u32) -> bool {
-    is_mongolian_letter_cp(cp) || is_fvs(cp) || matches!(cp, MVS | NNBSP | NIRUGU | ZWJ)
+    is_mongolian_letter_cp(cp) || is_fvs(cp) || matches!(cp, MVS | NNBSP | NIRUGU | ZWJ | ZWNJ)
 }
 
-/// Does `c` participate in a Mongolian word run: a letter, an FVS, MVS, NNBSP, nirugu or ZWJ?
+/// Does `c` participate in a Mongolian word run: a letter, an FVS, MVS, NNBSP, nirugu, ZWJ or
+/// ZWNJ?
 ///
 /// Strict word validation ([`Shaper::shape`](crate::Shaper::shape) /
 /// [`Shaper::normalize`](crate::Shaper::normalize)) and mixed-text segmentation
@@ -85,18 +89,21 @@ mod tests {
         }
         assert!(!is_mongolian_letter('a'));
         assert!(!is_mongolian_letter('\u{200D}'));
+        assert!(!is_mongolian_letter('\u{200C}'));
         assert!(!is_mongolian_letter('\u{202F}'));
     }
 
     #[test]
     fn word_chars() {
-        for cp in [0x1820, 0x180B, 0x180F, 0x180E, 0x202F, 0x180A, 0x200D] {
+        for cp in [
+            0x1820, 0x180B, 0x180F, 0x180E, 0x202F, 0x180A, 0x200D, 0x200C,
+        ] {
             assert!(
                 is_mongolian_word_char(char::from_u32(cp).unwrap()),
                 "U+{cp:04X}"
             );
         }
-        for c in [' ', 'a', '\u{200C}', '\u{1800}', '\u{1810}', ','] {
+        for c in [' ', 'a', '\u{200B}', '\u{1800}', '\u{1810}', ','] {
             assert!(!is_mongolian_word_char(c), "{c:?}");
         }
     }
@@ -104,7 +111,7 @@ mod tests {
     #[test]
     fn check_word_chars_reports_the_first_offender() {
         assert_eq!(
-            check_word_chars("\u{1820}\u{180B}\u{180E}\u{180A}\u{200D}\u{202F}"),
+            check_word_chars("\u{1820}\u{180B}\u{180E}\u{180A}\u{200D}\u{202F}\u{200C}"),
             Ok(())
         );
         assert_eq!(check_word_chars(""), Ok(()));

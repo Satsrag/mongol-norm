@@ -59,7 +59,7 @@ shaper.shape_str("ᠰᠠᠢᠨ")                    # → 'S+A+I+I+A'
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
-shaper.canonical_version                    # → 'mng-canonical/3'
+shaper.canonical_version                    # → 'mng-canonical/4'
 
 # Deduplicate
 {shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}

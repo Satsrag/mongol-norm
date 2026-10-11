@@ -1,4 +1,4 @@
-{"canonical_version":"mng-canonical/3","locale":"MNG","schema":"mongol-norm-canonical-golden/1","type":"manifest"}
+{"canonical_version":"mng-canonical/4","locale":"MNG","schema":"mongol-norm-canonical-golden/1","type":"manifest"}
 {"id":"shape-0001","input_cps":[6155,6156,6157],"normalized_cps":[],"shape":[],"type":"vector"}
 {"id":"shape-0002","input_cps":[6176,6155],"normalized_cps":[6176,6155],"shape":["A"],"type":"vector"}
 {"id":"shape-0003","input_cps":[6176],"normalized_cps":[6176,6155,6176,6156],"shape":["A","A"],"type":"vector"}

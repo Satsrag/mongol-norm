@@ -18,9 +18,12 @@ __all__ = ["MongolianShaper", "NormalizationFallbackError", "main"]
 MVS_CP = 0x180E
 NIRUGU_CP = 0x180A
 ZWJ_CP = 0x200D
+ZWNJ_CP = 0x200C
 # shape_detailed() reports structural tokens with these aliases (letters use
 # their locale alias, or "" when the letter has none).
-_STRUCTURAL_ALIASES = {MVS_CP: "mvs", NIRUGU_CP: "nirugu", ZWJ_CP: "zwj"}
+_STRUCTURAL_ALIASES = {
+    MVS_CP: "mvs", NIRUGU_CP: "nirugu", ZWJ_CP: "zwj", ZWNJ_CP: "zwnj",
+}
 _POSITIONED_UNIT_POSITIONS = frozenset({
     "isol", "init", "medi", "fina", "control",
 })
@@ -113,19 +116,33 @@ class MongolianShaper:
         连写形与非连写形同形(见 ``docs/internals.md`` 的表)的 ZWJ 在统一重复编码前去掉;
         MVS 是段边缘,紧挨 MVS 的 ZWJ 按词首/词尾规则处理。``Mvs`` 和 ``Nirugu`` 总是原样输出。
 
+        A ZWNJ (U+200C) breaks the cursive chain — the letter before it is written
+        ``fina``/``isol``, the letter after it ``init``/``isol`` — while the context
+        rules (vowel harmony, gender markers, chachlag, particles) look through it,
+        as the reference font does. It appears as ``Zwnj`` only where the break
+        changes the ink: it is dropped iff the shape is the same without it (unit for
+        unit, the units beside the break in the reviewed Hudum classes for their new
+        positions, the ZWJ filter and duplicate unification re-run over the joined
+        segment). Repeated ZWNJs collapse to one; a lone ZWNJ is kept like a lone ZWJ.
+        ZWNJ(U+200C)打断连写:其前字母取 ``fina``/``isol``、其后字母取 ``init``/``isol``,
+        而上下文规则(元音和谐、阴阳标记、chachlag、虚词)像参考字体一样穿过它。只有
+        改变字形时才作为 ``Zwnj`` 出现;去掉后 shape 相同的 ZWNJ 会被去掉。重复的 ZWNJ
+        合并为一个;孤立的 ZWNJ 像孤立的 ZWJ 一样保留。
+
         Raises ValueError on characters outside the Mongolian word alphabet
-        (letters, FVS, MVS, NNBSP, Nirugu, ZWJ); use :meth:`normalize_text`
+        (letters, FVS, MVS, NNBSP, Nirugu, ZWJ, ZWNJ); use :meth:`normalize_text`
         for mixed-script input.
         """
         return self._native.shape(text)
 
     def _shape_raw(self, text):
         """
-        The engine's own written-unit sequence, before redundant ZWJs are dropped and the
-        nine duplicate encodings are unified — the sequence UTN #57 / GB/T 25914-2023
-        describe, in which all nine and every ZWJ of the input still appear.
-        引擎自身的书写单元序列(未去冗余 ZWJ、未统一重复编码),即 UTN #57 / GB/T 25914-2023
-        所描述的序列。
+        The engine's own written-unit sequence, before redundant ZWJs and ZWNJs are
+        dropped and the nine duplicate encodings are unified — the sequence UTN #57 /
+        GB/T 25914-2023 describe, in which all nine and every ZWJ and ZWNJ of the input
+        still appear.
+        引擎自身的书写单元序列(未去冗余 ZWJ/ZWNJ、未统一重复编码),即 UTN #57 /
+        GB/T 25914-2023 所描述的序列。
 
         NOT part of the public contract (hence the leading underscore, mirroring the Rust
         crate's ``#[doc(hidden)] Shaper::shape_raw``): it exists so the conformance suites
@@ -225,25 +242,25 @@ class MongolianShaper:
         将有序书写单元序列编码为 canonical MNG Unicode。
 
         ``written_units`` may be the direct output of :meth:`shape`. Structural
-        written-unit names are PascalCase: ``Mvs``, ``Nirugu``, and ``Zwj``. Letter
-        positions are inferred from sequence order and structural controls; this
-        API does not accept explicit position records or infer/insert controls.
-        ZWJ is emitted only when ``Zwj`` is present in the request. An
-        empty sequence returns an empty string.
+        written-unit names are PascalCase: ``Mvs``, ``Nirugu``, ``Zwj`` and ``Zwnj``.
+        Letter positions are inferred from sequence order and structural controls;
+        this API does not accept explicit position records or infer/insert controls.
+        ZWJ is emitted only when ``Zwj`` is present in the request, ZWNJ only when
+        ``Zwnj`` is. An empty sequence returns an empty string.
         ``written_units`` 可直接使用 :meth:`shape` 的输出。外部调用方也可将结构
-        token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``。字母位置由序列顺序
-        与结构 control 推导；本 API 不接受显式位置 record，也不推断或插入
-        control。只有请求含 ``Zwj`` 时才输出
-        ZWJ；空序列返回空字符串。
+        token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``、``Zwnj``。字母位置由序列
+        顺序与结构 control 推导；本 API 不接受显式位置 record，也不推断或插入
+        control。只有请求含 ``Zwj`` 时才输出 ZWJ，含 ``Zwnj`` 时才输出 ZWNJ；
+        空序列返回空字符串。
 
-        The request goes through the same redundant-ZWJ filter and duplicate
+        The request goes through the same redundant-ZWJ/ZWNJ filter and duplicate
         unification as :meth:`shape`, so ``["L", "I", "Zwj", "Aa"]`` is encoded as
-        ``L G`` — exactly like the text ᠯᠢ + ZWJ + ᠡ᠋ — and a ``Zwj`` that changes
-        no glyph is not emitted. The result is accepted only when it reshapes to
-        that folded sequence. An unknown/malformed unit or an unencodable sequence
-        raises instead of guessing or returning a partial result.
-        请求先经过与 :meth:`shape` 相同的冗余 ZWJ 过滤和重复编码统一(``L I Zwj Aa``
-        编码为 ``L G``),不改变字形的 ``Zwj`` 不会输出。仅当输出重新 shape 后与
+        ``L G`` — exactly like the text ᠯᠢ + ZWJ + ᠡ᠋ — and a ``Zwj`` or ``Zwnj``
+        that changes no glyph is not emitted. The result is accepted only when it
+        reshapes to that folded sequence. An unknown/malformed unit or an unencodable
+        sequence raises instead of guessing or returning a partial result.
+        请求先经过与 :meth:`shape` 相同的冗余 ZWJ/ZWNJ 过滤和重复编码统一(``L I Zwj Aa``
+        编码为 ``L G``),不改变字形的 ``Zwj``/``Zwnj`` 不会输出。仅当输出重新 shape 后与
         折叠后的序列完全一致时才接受。未知/非法 unit 或无法编码的序列会抛出异常,
         不猜测,也不返回部分结果。
 
@@ -283,8 +300,10 @@ class MongolianShaper:
         ``I:init`` and ``O:init``, whose bare letter would read back as another
         record, receive a trailing ZWJ. Single
         ``medi`` and ``fina`` records receive the joining context their positions
-        need. ``Mvs`` and ``Nirugu`` require ``control``; explicit ``Zwj`` input is
-        rejected.
+        need. ``Mvs``, ``Nirugu`` and ``Zwnj`` require ``control``; explicit ``Zwj``
+        input is rejected. A ``Zwnj`` control ends the chain on both sides like
+        ``Mvs`` and, like ``Mvs``, is no joiner: a ``medi``/``fina`` record right
+        after it still gets its implicit ZWJ.
 
         每项必须严格为内建 ``{"unit": str, "position": str}`` dict。字母position
         是权威HUD written-unit position：``isol``/``init``/``medi``/``fina``。
@@ -292,7 +311,7 @@ class MongolianShaper:
         到``fina``结束；边界不完整时自动补ZWJ。单个``init``在裸字母能读回
         同一record时不补ZWJ（所有辅音）；``A:init``、``I:init``、``O:init``裸写会读回
         成别的record，在末尾补ZWJ。单个``medi``和``fina``补足其位置所需的连接
-        上下文。``Mvs``与``Nirugu``使用``control``；显式``Zwj``输入被拒绝。
+        上下文。``Mvs``、``Nirugu``与``Zwnj``使用``control``；显式``Zwj``输入被拒绝。
 
         This word-level API accepts at most 1024 records.
 
@@ -339,7 +358,7 @@ class MongolianShaper:
             return ""
         positioned_units_inventory = self._positioned_units()
         for index, (unit, position) in enumerate(records):
-            if unit in ("Mvs", "Nirugu"):
+            if unit in ("Mvs", "Nirugu", "Zwnj"):
                 if position != "control":
                     raise ValueError(
                         f"positioned_units[{index}] control {unit!r} "

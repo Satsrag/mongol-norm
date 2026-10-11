@@ -23,7 +23,7 @@ function renderCodepoints(target, text) {
     const cp = char.codePointAt(0);
     const label = controls.get(cp);
     const tag = document.createElement("span");
-    tag.className = "codepoint" + (label ? " control" : "") + (cp === 0x200c ? " unsupported" : "");
+    tag.className = "codepoint" + (label ? " control" : "");
     const hex = `U+${cp.toString(16).toUpperCase().padStart(4, "0")}`;
     tag.textContent = label ? `${hex} ${label}` : hex;
     tag.title = label || char;

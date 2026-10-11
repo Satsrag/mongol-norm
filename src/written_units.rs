@@ -8,7 +8,7 @@ use crate::tables::{Position, UnitPosition};
 use crate::Error;
 
 /// One record of [`Shaper::normalize_positioned_written_units`]: a written unit with its
-/// authoritative HUD inventory position (`Control` for `Mvs` / `Nirugu`).
+/// authoritative HUD inventory position (`Control` for `Mvs` / `Nirugu` / `Zwnj`).
 ///
 /// This is an *input* type: both fields are public and it is deliberately not
 /// `#[non_exhaustive]` (unlike the crate's result types), so callers can build records with a
@@ -51,6 +51,11 @@ impl Shaper {
     /// [`Shaper::shape`], so `[L, I, Zwj, Aa]` is encoded as `L G`, exactly like the text
     /// `ᠯᠢ\u{200D}ᠡ᠋`. The result is accepted only if it reshapes to that folded sequence.
     ///
+    /// A `Zwnj` is encoded as U+200C and ends the joining chain on both sides, like `Mvs`; a
+    /// redundant one — a break the word is the same shape without (`redundant_zwnj.rs`) — is
+    /// dropped by the same fold, so `[Zwnj, B, Aa]` is encoded as `b a`, exactly like the text
+    /// `\u{200C}ᠪᠠ`.
+    ///
     /// An empty sequence returns `""` — without consulting the table, so it succeeds on every
     /// locale.
     ///
@@ -89,9 +94,10 @@ impl Shaper {
     /// record — every consonant, whose isolated form is its initial unit — and takes a trailing
     /// ZWJ where it would not: `A` and `I`, which the inventory also carries at `isol`, and `O`,
     /// which has no bare spelling; single `medi` / `fina` records get the joining context their
-    /// position needs. `Mvs` and
-    /// `Nirugu` require `Control`; explicit `Zwj` is rejected; at most
-    /// [`MAX_POSITIONED_RECORDS`] records.
+    /// position needs. `Mvs`, `Nirugu` and `Zwnj` require `Control`; explicit `Zwj` is rejected;
+    /// at most [`MAX_POSITIONED_RECORDS`] records. A `Zwnj` control ends the chain on both sides
+    /// like `Mvs` does, and like `Mvs` it is no joiner: a `medi`/`fina` record right after it
+    /// still gets its implicit ZWJ, which then joins across nothing but the requested break.
     ///
     /// # Validation order
     ///
@@ -105,8 +111,9 @@ impl Shaper {
     /// 3. empty request — returns `""` before the table is consulted, so it succeeds on every
     ///    locale;
     /// 4. the normalize table;
-    /// 5. per record, the control/inventory check (`Mvs` and `Nirugu` need `Control`; every other
-    ///    `(unit, position)` must be in the HUD inventory), reporting the first offender;
+    /// 5. per record, the control/inventory check (`Mvs`, `Nirugu` and `Zwnj` need `Control`;
+    ///    every other `(unit, position)` must be in the HUD inventory), reporting the first
+    ///    offender;
     /// 6. per multi-record chain, that the declared positions match the padded chain;
     /// 7. delegation to [`Shaper::normalize_written_units`].
     ///
@@ -135,7 +142,10 @@ impl Shaper {
         }
         let table = self.table()?;
         for (index, record) in records.iter().enumerate() {
-            if matches!(record.unit, WrittenUnit::Mvs | WrittenUnit::Nirugu) {
+            if matches!(
+                record.unit,
+                WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwnj
+            ) {
                 if record.position != UnitPosition::Control {
                     return Err(Error::ControlRequiresControlPosition {
                         index,
@@ -287,7 +297,7 @@ impl Shaper {
 
 impl Shaper {
     /// Every written unit this shaper's normalize table can encode, plus the structural
-    /// controls (`Mvs`, `Nirugu`, `Zwj`), sorted by name.
+    /// controls (`Mvs`, `Nirugu`, `Zwj`, `Zwnj`), sorted by name.
     ///
     /// These are exactly the names [`Shaper::normalize_written_units`] accepts; the Python
     /// bindings use the list to validate their input with Python-formatted messages.

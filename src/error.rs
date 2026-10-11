@@ -10,7 +10,7 @@ use crate::{Locale, UnitPosition, WrittenUnit};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     /// `shape()` / `normalize()` input contains a character that is not a Mongolian letter,
-    /// FVS, MVS, NNBSP, nirugu or ZWJ. `index` is a `char` index (not a byte offset).
+    /// FVS, MVS, NNBSP, nirugu, ZWJ or ZWNJ. `index` is a `char` index (not a byte offset).
     NonMongolianChar {
         /// The offending character.
         ch: char,
@@ -31,7 +31,7 @@ pub enum Error {
         locale: Locale,
     },
     /// `parse_written_units`: a name that is neither a unit known to the normalize table nor
-    /// `Mvs`/`Nirugu`/`Zwj`.
+    /// `Mvs`/`Nirugu`/`Zwj`/`Zwnj`.
     UnknownWrittenUnit {
         /// Index of the unit in the parsed sequence.
         index: usize,
@@ -50,7 +50,8 @@ pub enum Error {
     NoCanonicalEncoding,
     /// `normalize_positioned_written_units`: explicit `Zwj` records are rejected.
     ExplicitZwj,
-    /// `normalize_positioned_written_units`: `Mvs` / `Nirugu` need [`UnitPosition::Control`].
+    /// `normalize_positioned_written_units`: `Mvs` / `Nirugu` / `Zwnj` need
+    /// [`UnitPosition::Control`].
     ControlRequiresControlPosition {
         /// Index of the record.
         index: usize,
@@ -96,7 +97,7 @@ impl fmt::Display for Error {
             Error::NonMongolianChar { ch, index } => write!(
                 f,
                 "non-Mongolian character '{}' (U+{:04X}) at index {}: shape() / normalize() \
-                 accept only Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script \
+                 accept only Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ/ZWNJ. For mixed-script \
                  input use normalize_text().",
                 ch.escape_debug(),
                 *ch as u32,
@@ -173,14 +174,14 @@ mod tests {
         assert_eq!(
             Error::NonMongolianChar { ch: 'x', index: 3 }.to_string(),
             "non-Mongolian character 'x' (U+0078) at index 3: shape() / normalize() accept only \
-             Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script input use \
+             Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ/ZWNJ. For mixed-script input use \
              normalize_text()."
         );
         // Python's `{ch!r}` escapes a control character; so must ours (`repr('\n')` == r"'\n'").
         assert_eq!(
             Error::NonMongolianChar { ch: '\n', index: 4 }.to_string(),
             "non-Mongolian character '\\n' (U+000A) at index 4: shape() / normalize() accept only \
-             Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script input use \
+             Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ/ZWNJ. For mixed-script input use \
              normalize_text()."
         );
         assert_eq!(
