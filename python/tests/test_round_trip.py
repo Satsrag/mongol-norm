@@ -45,7 +45,7 @@ _ALIAS_TO_CP = {
     'lh': 'ᡀ', 'zr': 'ᡁ', 'cr': 'ᡂ',
     'mvs': '᠎', 'fvs1': '᠋', 'fvs2': '᠌',
     'fvs3': '᠍', 'fvs4': '᠏', 'nnbsp': ' ',
-    'nirugu': '᠊', 'zwj': '‍',
+    'nirugu': '᠊', 'zwj': '‍', 'zwnj': '\u200C',
 }
 
 
