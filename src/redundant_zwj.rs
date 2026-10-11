@@ -16,18 +16,20 @@
 //! # Rules (left to right, repeated until nothing changes)
 //!
 //! Everything here is about written units: a "letter unit" is any unit other than the structural
-//! `Mvs`, `Nirugu` and `Zwj` ([`WrittenUnit::is_structural`]), and `U` names one such unit.
+//! `Mvs`, `Nirugu`, `Zwj` and `Zwnj` ([`WrittenUnit::is_structural`]), and `U` names one such
+//! unit. A segment edge is the start or end of the word, an `Mvs` or a `Zwnj` — the three places
+//! the position assignment breaks the joining chain.
 //!
 //! | ZWJ context | result |
 //! |---|---|
 //! | `Zwj Zwj` | one copy survives (then judged like a single one) |
 //! | next to a `Nirugu`, on either side | dropped — the nirugu already joins |
 //! | between two letter units (segment interior) | dropped |
-//! | segment-initial (start of word or directly after an `Mvs`), before a letter unit `U` | dropped iff `U:init` is accepted as the same shape as `U:medi` |
+//! | segment-initial (start of word or directly after an `Mvs`/`Zwnj`), before a letter unit `U` | dropped iff `U:init` is accepted as the same shape as `U:medi` |
 //! | segment-initial, before a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:fina` |
-//! | segment-final (end of word or directly before an `Mvs`), after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
+//! | segment-final (end of word or directly before an `Mvs`/`Zwnj`), after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
 //! | segment-final, after a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:init` |
-//! | no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`) | dropped — it has nothing to join |
+//! | no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`, `Zwj Zwnj…`) | dropped — it has nothing to join |
 //! | a lone `Zwj` | kept (it is the whole shape) |
 //!
 //! The four edge tables are the maintainer's reviewed equivalence classes for Hudum, selected on
@@ -48,6 +50,11 @@
 //! `ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`. A ZWJ whose only neighbours are MVS or the word boundary joins nothing: on the
 //! reference font every such pair renders the same glyphs at the same positions, MVS included.
 //!
+//! A `Zwnj` is a segment edge on both sides for the same reason an `Mvs` is: the letter before it
+//! takes its `fina` (or `isol`) form and the letter after it its `init` (or `isol`) form, so a
+//! ZWJ beside it asks the word-edge question. The ZWNJ filter itself lives in
+//! `redundant_zwnj.rs`, which reuses the four edge tables through [`zwnj_join_keeps_shape`].
+//!
 //! The pass is a fixed point of left-to-right single removals, so `Zwj B Zwj` first loses the
 //! leading joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one
 //! (`B:init` ≡ `B:isol`). Applying the filter to its own output changes nothing, which is what
@@ -56,8 +63,8 @@
 use crate::generated::enums::WrittenUnit;
 
 use WrittenUnit::{
-    Aa, Ch, Cr, Dd, Gx, Hx, Mvs, Nirugu, Rh, Sh, Zr, Zwj, B, C, D, F, G, H, I, K, K2, L, M, N, O,
-    P, R, S, T, U, W, Y, Z,
+    Aa, Ch, Cr, Dd, Gx, Hx, Mvs, Nirugu, Rh, Sh, Zr, Zwj, Zwnj, B, C, D, F, G, H, I, K, K2, L, M,
+    N, O, P, R, S, T, U, W, Y, Z,
 };
 
 /// Segment-initial `Zwj U X…` → `U X…` (`U:medi` ≡ `U:init`); at the start of the word or after an MVS.
@@ -106,6 +113,11 @@ fn is_letter(unit: WrittenUnit) -> bool {
     !unit.is_structural()
 }
 
+/// Does `unit` end a segment the way the word boundary does — an `Mvs` or a `Zwnj`?
+fn is_edge(unit: WrittenUnit) -> bool {
+    matches!(unit, Mvs | Zwnj)
+}
+
 /// Is the `Zwj` at `units[index]` redundant? `units` holds no repeated `Zwj`.
 fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool {
     let prev = index.checked_sub(1).map(|i| units[i]);
@@ -113,12 +125,12 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
     match (prev, next) {
         (Some(Nirugu), _) | (_, Some(Nirugu)) => true,
         (Some(p), Some(n)) if is_letter(p) && is_letter(n) => true,
-        (None | Some(Mvs), Some(n)) if is_letter(n) => {
-            // An MVS starts the segment like the start of the word: `n` is `init` (or `isol`).
-            // The far side of `n`: another letter or a joiner keeps `n` joined onward, so
-            // dropping the ZWJ turns `n:medi` into `n:init`; nothing (or an MVS) leaves a lone
-            // `n`, `fina` → `isol`.
-            let alone = matches!(units.get(index + 2), None | Some(Mvs));
+        (None | Some(Mvs | Zwnj), Some(n)) if is_letter(n) => {
+            // An MVS or ZWNJ starts the segment like the start of the word: `n` is `init` (or
+            // `isol`). The far side of `n`: another letter or a joiner keeps `n` joined onward,
+            // so dropping the ZWJ turns `n:medi` into `n:init`; nothing (or an edge) leaves a
+            // lone `n`, `fina` → `isol`.
+            let alone = units.get(index + 2).map_or(true, |&unit| is_edge(unit));
             let same_shape = if alone {
                 INITIAL_ALONE
             } else {
@@ -126,9 +138,10 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
             };
             hudum_edges && same_shape.contains(&n)
         }
-        (Some(p), None | Some(Mvs)) if is_letter(p) => {
-            // An MVS ends the segment like the end of the word: `p` is `fina` (or `isol`) either way.
-            let alone = index < 2 || units[index - 2] == Mvs;
+        (Some(p), None | Some(Mvs | Zwnj)) if is_letter(p) => {
+            // An MVS or ZWNJ ends the segment like the end of the word: `p` is `fina` (or
+            // `isol`) either way.
+            let alone = index < 2 || is_edge(units[index - 2]);
             let same_shape = if alone {
                 FINAL_ALONE
             } else {
@@ -138,9 +151,57 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
         }
         // A lone `Zwj` is the whole shape.
         (None, None) => false,
-        // Only MVS or the word boundary around it: the joiner has nothing to join.
+        // Only edges or the word boundary around it: the joiner has nothing to join.
         _ => true,
     }
+}
+
+/// Would taking the `Zwnj` at `units[index]` out — so that its two sides join — leave every
+/// letter unit at the same shape? Only the units right beside the break change form, and only
+/// when the other side is something they would join: a letter unit or a joiner (`Nirugu`,
+/// `Zwj`). The unit before the break goes `fina` → `medi`, or `isol` → `init` when it is alone
+/// in its segment; the unit after it goes `init` → `medi`, or `isol` → `fina` when alone —
+/// the very pairs the four edge tables were reviewed for, so this is one question per side with
+/// the same lists `is_redundant` uses for a ZWJ at that edge (and `false` outside Hudum).
+///
+/// The caller has already established that the unit *names* are the same with and without the
+/// break; this settles whether the changed joining positions are accepted as the same ink.
+pub(crate) fn zwnj_join_keeps_shape(
+    units: &[WrittenUnit],
+    index: usize,
+    hudum_edges: bool,
+) -> bool {
+    debug_assert_eq!(units[index], Zwnj);
+    let prev = index.checked_sub(1).map(|i| units[i]);
+    let next = units.get(index + 1).copied();
+    let joins = |unit: Option<WrittenUnit>| unit.is_some_and(|unit| !is_edge(unit));
+    if let Some(p) = prev.filter(|&p| is_letter(p)) {
+        if joins(next) {
+            let alone = index < 2 || is_edge(units[index - 2]);
+            let same_shape = if alone {
+                FINAL_ALONE
+            } else {
+                FINAL_AFTER_LETTER
+            };
+            if !(hudum_edges && same_shape.contains(&p)) {
+                return false;
+            }
+        }
+    }
+    if let Some(n) = next.filter(|&n| is_letter(n)) {
+        if joins(prev) {
+            let alone = units.get(index + 2).map_or(true, |&unit| is_edge(unit));
+            let same_shape = if alone {
+                INITIAL_ALONE
+            } else {
+                INITIAL_BEFORE_LETTER
+            };
+            if !(hudum_edges && same_shape.contains(&n)) {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 #[cfg(test)]
@@ -248,6 +309,54 @@ mod tests {
         assert_eq!(drop(&[Zwj, A, Zwj]), [Zwj, A, Zwj]);
         // O: leading drops (O:medi ≡ O:init); then `O Zwj` is a lone O:init, not equivalent.
         assert_eq!(drop(&[Zwj, O, Zwj]), [O, Zwj]);
+    }
+
+    #[test]
+    fn zwnj_is_a_segment_edge_for_the_zwj_rules() {
+        // Before a ZWNJ: the word-final question.
+        assert_eq!(drop(&[B, Zwj, Zwnj, A, A]), [B, Zwnj, A, A]); // lone: B:init ≡ B:isol
+        assert_eq!(drop(&[A, Zwj, Zwnj, B]), [A, Zwj, Zwnj, B]); // lone: A:init ≠ A:isol
+        assert_eq!(drop(&[A, O, Zwj, Zwnj, B]), [A, O, Zwnj, B]); // O:medi ≡ O:fina
+        assert_eq!(drop(&[A, L, Zwj, Zwnj, B]), [A, L, Zwj, Zwnj, B]); // L:medi ≠ L:fina
+                                                                       // After a ZWNJ: the word-initial question.
+        assert_eq!(drop(&[A, Zwnj, Zwj, B, Aa]), [A, Zwnj, B, Aa]); // B:medi ≡ B:init
+        assert_eq!(drop(&[A, Zwnj, Zwj, N, A]), [A, Zwnj, Zwj, N, A]); // N:medi ≠ N:init
+        assert_eq!(drop(&[A, Zwnj, Zwj, Aa]), [A, Zwnj, Aa]); // lone: Aa:fina ≡ Aa:isol
+        assert_eq!(drop(&[A, Zwnj, Zwj, A]), [A, Zwnj, Zwj, A]); // lone: A:fina ≠ the suffix a
+                                                                 // A ZWNJ counts as the far edge when deciding "alone".
+        assert_eq!(drop(&[Zwnj, B, Zwj, Zwnj]), [Zwnj, B, Zwnj]); // lone B between two breaks
+        assert_eq!(drop(&[Zwj, B, Zwnj, A]), [Zwj, B, Zwnj, A]); // lone: B:fina ≠ B:isol
+                                                                 // No letter beside it.
+        assert_eq!(drop(&[Zwj, Zwnj, N, A]), [Zwnj, N, A]);
+        assert_eq!(drop(&[N, A, Zwnj, Zwj]), [N, A, Zwnj]);
+        assert_eq!(drop(&[Zwnj, Zwj, Zwnj]), [Zwnj, Zwnj]);
+        assert_eq!(drop(&[Mvs, Zwj, Zwnj]), [Mvs, Zwnj]);
+    }
+
+    #[test]
+    fn zwnj_join_follows_the_edge_tables() {
+        // Both sides change: `B:isol` → `B:init` and `Aa:isol` → `Aa:fina`, both reviewed.
+        assert!(zwnj_join_keeps_shape(&[B, Zwnj, Aa], 1, true));
+        // `A:isol` → `A:fina` is not.
+        assert!(!zwnj_join_keeps_shape(&[B, Zwnj, A], 1, true));
+        // Letters on the far sides: `B:fina` → `B:medi` is not reviewed as the same shape…
+        assert!(!zwnj_join_keeps_shape(&[A, B, Zwnj, B, Aa], 2, true));
+        // …but `O:fina` → `O:medi` and `B:init` → `B:medi` are.
+        assert!(zwnj_join_keeps_shape(&[A, O, Zwnj, B, Aa], 2, true));
+        // A joiner on the far side joins the letter too: `N:isol` → `N:init` (reviewed).
+        assert!(zwnj_join_keeps_shape(&[N, Zwnj, Nirugu], 1, true));
+        assert!(zwnj_join_keeps_shape(&[N, Zwnj, Zwj, A], 1, true));
+        // A kept ZWJ beside the break already joins its letter: nothing changes on that side.
+        assert!(zwnj_join_keeps_shape(&[A, Zwj, Zwnj, B, Aa], 2, true));
+        // An edge or the word boundary on the other side: nothing changes at all.
+        assert!(zwnj_join_keeps_shape(&[Zwnj, N, A], 0, true));
+        assert!(zwnj_join_keeps_shape(&[N, A, Zwnj], 2, true));
+        assert!(zwnj_join_keeps_shape(&[A, A, Zwnj, Mvs, Aa], 2, true));
+        assert!(zwnj_join_keeps_shape(&[Mvs, Zwnj, Aa], 1, true));
+        assert!(zwnj_join_keeps_shape(&[A, A, Zwnj, Zwnj, B], 2, true));
+        // The tables are Hudum data; elsewhere a changed position is never the same shape.
+        assert!(!zwnj_join_keeps_shape(&[B, Zwnj, Aa], 1, false));
+        assert!(zwnj_join_keeps_shape(&[Zwnj, N, A], 0, false));
     }
 
     #[test]

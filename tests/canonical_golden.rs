@@ -58,7 +58,7 @@ fn fixture_metadata() {
     assert_eq!(manifest.index("locale").as_str(), "MNG");
     assert_eq!(
         manifest.index("canonical_version").as_str(),
-        "mng-canonical/3"
+        "mng-canonical/4"
     );
     assert_eq!(
         Shaper::new(Locale::Mng).canonical_version(),
