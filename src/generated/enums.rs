@@ -3,6 +3,7 @@
 // Source: python/mongol_norm/data/TOD.json (sha256 36a25a2f6a53a0d8)
 // Source: python/mongol_norm/data/SIB.json (sha256 97551f578d67b2b1)
 // Source: python/mongol_norm/data/MCH.json (sha256 e1e00127e0812ecb)
+// Source: fonts/unified.glyphs.txt (sha256 8fd594fc08a21ca1)
 
 use std::fmt;
 use std::str::FromStr;
@@ -16,18 +17,32 @@ use crate::Error;
 pub enum WrittenUnit {
     /// Written unit `A`.
     A,
+    /// Written unit `A2` (shown by the bundled shaping font only).
+    A2,
     /// Written unit `Aa`.
     Aa,
     /// Written unit `Ah`.
     Ah,
     /// Written unit `Ai`.
     Ai,
+    /// Written unit `Anusvara` (shown by the bundled shaping font only).
+    Anusvara,
     /// Written unit `At`.
     At,
+    /// Written unit `Aw` (shown by the bundled shaping font only).
+    Aw,
     /// Written unit `B`.
     B,
     /// Written unit `B2`.
     B2,
+    /// Written unit `Baluda` (shown by the bundled shaping font only).
+    Baluda,
+    /// Written unit `Bc` (shown by the bundled shaping font only).
+    Bc,
+    /// Written unit `Bg` (shown by the bundled shaping font only).
+    Bg,
+    /// Written unit `Bh` (shown by the bundled shaping font only).
+    Bh,
     /// Written unit `C`.
     C,
     /// Written unit `Cc`.
@@ -38,10 +53,20 @@ pub enum WrittenUnit {
     Cp,
     /// Written unit `Cr`.
     Cr,
+    /// Written unit `Cr2` (shown by the bundled shaping font only).
+    Cr2,
     /// Written unit `Cs`.
     Cs,
+    /// Written unit `Ct` (shown by the bundled shaping font only).
+    Ct,
+    /// Written unit `Cx` (shown by the bundled shaping font only).
+    Cx,
     /// Written unit `D`.
     D,
+    /// Written unit `Dagalga` (shown by the bundled shaping font only).
+    Dagalga,
+    /// Written unit `Damaru` (shown by the bundled shaping font only).
+    Damaru,
     /// Written unit `Db`.
     Db,
     /// Written unit `Dd`.
@@ -50,8 +75,24 @@ pub enum WrittenUnit {
     Dh,
     /// Written unit `Dp`.
     Dp,
+    /// Written unit `Dq` (shown by the bundled shaping font only).
+    Dq,
+    /// Written unit `Dr` (shown by the bundled shaping font only).
+    Dr,
+    /// Written unit `Ds` (shown by the bundled shaping font only).
+    Ds,
     /// Written unit `Dt`.
     Dt,
+    /// Written unit `Dv` (shown by the bundled shaping font only).
+    Dv,
+    /// Written unit `Dw` (shown by the bundled shaping font only).
+    Dw,
+    /// Written unit `Dx` (shown by the bundled shaping font only).
+    Dx,
+    /// Written unit `Dy` (shown by the bundled shaping font only).
+    Dy,
+    /// Written unit `Dz` (shown by the bundled shaping font only).
+    Dz,
     /// Written unit `E`.
     E,
     /// Written unit `F`.
@@ -80,6 +121,8 @@ pub enum WrittenUnit {
     Hc,
     /// Written unit `Hh`.
     Hh,
+    /// Written unit `Hh2` (shown by the bundled shaping font only).
+    Hh2,
     /// Written unit `Hp`.
     Hp,
     /// Written unit `Hr`.
@@ -88,14 +131,30 @@ pub enum WrittenUnit {
     Hx,
     /// Written unit `Hx2`.
     Hx2,
+    /// Written unit `Hy` (shown by the bundled shaping font only).
+    Hy,
+    /// Written unit `Hy2` (shown by the bundled shaping font only).
+    Hy2,
     /// Written unit `I`.
     I,
     /// Written unit `I3`.
     I3,
+    /// Written unit `I4` (shown by the bundled shaping font only).
+    I4,
     /// Written unit `Ic`.
     Ic,
+    /// Written unit `Ih` (shown by the bundled shaping font only).
+    Ih,
+    /// Written unit `Invubadama` (shown by the bundled shaping font only).
+    Invubadama,
     /// Written unit `Ip`.
     Ip,
+    /// Written unit `Iq` (shown by the bundled shaping font only).
+    Iq,
+    /// Written unit `Ir` (shown by the bundled shaping font only).
+    Ir,
+    /// Written unit `It` (shown by the bundled shaping font only).
+    It,
     /// Written unit `Ix`.
     Ix,
     /// Written unit `Iy`.
@@ -108,6 +167,12 @@ pub enum WrittenUnit {
     Jb,
     /// Written unit `Jc`.
     Jc,
+    /// Written unit `Jh` (shown by the bundled shaping font only).
+    Jh,
+    /// Written unit `Jq` (shown by the bundled shaping font only).
+    Jq,
+    /// Written unit `Jt` (shown by the bundled shaping font only).
+    Jt,
     /// Written unit `K`.
     K,
     /// Written unit `K2`.
@@ -120,18 +185,26 @@ pub enum WrittenUnit {
     Kp,
     /// Written unit `L`.
     L,
+    /// Written unit `L2` (shown by the bundled shaping font only).
+    L2,
+    /// Written unit `Lc` (shown by the bundled shaping font only).
+    Lc,
     /// Written unit `Lv`.
     Lv,
     /// Written unit `M`.
     M,
     /// Written unit `M2`.
     M2,
+    /// Written unit `M3` (shown by the bundled shaping font only).
+    M3,
     /// Structural token: Mongolian vowel separator U+180E (NNBSP U+202F is folded into it).
     Mvs,
     /// Written unit `N`.
     N,
     /// Written unit `N2`.
     N2,
+    /// Written unit `Nb` (shown by the bundled shaping font only).
+    Nb,
     /// Structural token: nirugu U+180A, the visible stem extender.
     Nirugu,
     /// Written unit `Nx`.
@@ -152,8 +225,14 @@ pub enum WrittenUnit {
     P,
     /// Written unit `Pb`.
     Pb,
+    /// Written unit `Pg` (shown by the bundled shaping font only).
+    Pg,
+    /// Written unit `Ph` (shown by the bundled shaping font only).
+    Ph,
     /// Written unit `Pp`.
     Pp,
+    /// Written unit `Q` (shown by the bundled shaping font only).
+    Q,
     /// Written unit `R`.
     R,
     /// Written unit `R2`.
@@ -162,14 +241,30 @@ pub enum WrittenUnit {
     R3,
     /// Written unit `Rh`.
     Rh,
+    /// Written unit `Rh2` (shown by the bundled shaping font only).
+    Rh2,
     /// Written unit `Rr`.
     Rr,
+    /// Written unit `Rz` (shown by the bundled shaping font only).
+    Rz,
     /// Written unit `S`.
     S,
+    /// Written unit `S3` (shown by the bundled shaping font only).
+    S3,
+    /// Written unit `Sc` (shown by the bundled shaping font only).
+    Sc,
     /// Written unit `Sh`.
     Sh,
     /// Written unit `Sp`.
     Sp,
+    /// Written unit `St` (shown by the bundled shaping font only).
+    St,
+    /// Written unit `St2` (shown by the bundled shaping font only).
+    St2,
+    /// Written unit `Sx` (shown by the bundled shaping font only).
+    Sx,
+    /// Written unit `Sx2` (shown by the bundled shaping font only).
+    Sx2,
     /// Written unit `Sz`.
     Sz,
     /// Written unit `T`.
@@ -180,10 +275,18 @@ pub enum WrittenUnit {
     Th,
     /// Written unit `Tp`.
     Tp,
+    /// Written unit `Tribaluda` (shown by the bundled shaping font only).
+    Tribaluda,
+    /// Written unit `Ts` (shown by the bundled shaping font only).
+    Ts,
     /// Written unit `Tt`.
     Tt,
+    /// Written unit `Tx` (shown by the bundled shaping font only).
+    Tx,
     /// Written unit `U`.
     U,
+    /// Written unit `Ubadama` (shown by the bundled shaping font only).
+    Ubadama,
     /// Written unit `Ue`.
     Ue,
     /// Written unit `Uh`.
@@ -194,10 +297,22 @@ pub enum WrittenUnit {
     Ux,
     /// Written unit `V`.
     V,
+    /// Written unit `Vi` (shown by the bundled shaping font only).
+    Vi,
+    /// Written unit `Visarga` (shown by the bundled shaping font only).
+    Visarga,
     /// Written unit `W`.
     W,
     /// Written unit `Wb`.
     Wb,
+    /// Written unit `Wc` (shown by the bundled shaping font only).
+    Wc,
+    /// Written unit `Wd` (shown by the bundled shaping font only).
+    Wd,
+    /// Written unit `Wn` (shown by the bundled shaping font only).
+    Wn,
+    /// Written unit `Wp` (shown by the bundled shaping font only).
+    Wp,
     /// Written unit `Y`.
     Y,
     /// Written unit `Yp`.
@@ -208,39 +323,67 @@ pub enum WrittenUnit {
     Zc,
     /// Written unit `Zr`.
     Zr,
+    /// Written unit `Zr2` (shown by the bundled shaping font only).
+    Zr2,
     /// Written unit `Zs`.
     Zs,
     /// Written unit `Zs2`.
     Zs2,
+    /// Written unit `Zt` (shown by the bundled shaping font only).
+    Zt,
     /// Structural token: zero width joiner U+200D.
     Zwj,
     /// Written unit `Zz`.
     Zz,
+    /// Written unit `Zz2` (shown by the bundled shaping font only).
+    Zz2,
+    /// Written unit `Zz3` (shown by the bundled shaping font only).
+    Zz3,
 }
 
 #[rustfmt::skip]
 impl WrittenUnit {
     /// Every variant, in declaration (sorted contract-name) order.
-    pub const ALL: [WrittenUnit; 101] = [
+    pub const ALL: [WrittenUnit; 162] = [
         WrittenUnit::A,
+        WrittenUnit::A2,
         WrittenUnit::Aa,
         WrittenUnit::Ah,
         WrittenUnit::Ai,
+        WrittenUnit::Anusvara,
         WrittenUnit::At,
+        WrittenUnit::Aw,
         WrittenUnit::B,
         WrittenUnit::B2,
+        WrittenUnit::Baluda,
+        WrittenUnit::Bc,
+        WrittenUnit::Bg,
+        WrittenUnit::Bh,
         WrittenUnit::C,
         WrittenUnit::Cc,
         WrittenUnit::Ch,
         WrittenUnit::Cp,
         WrittenUnit::Cr,
+        WrittenUnit::Cr2,
         WrittenUnit::Cs,
+        WrittenUnit::Ct,
+        WrittenUnit::Cx,
         WrittenUnit::D,
+        WrittenUnit::Dagalga,
+        WrittenUnit::Damaru,
         WrittenUnit::Db,
         WrittenUnit::Dd,
         WrittenUnit::Dh,
         WrittenUnit::Dp,
+        WrittenUnit::Dq,
+        WrittenUnit::Dr,
+        WrittenUnit::Ds,
         WrittenUnit::Dt,
+        WrittenUnit::Dv,
+        WrittenUnit::Dw,
+        WrittenUnit::Dx,
+        WrittenUnit::Dy,
+        WrittenUnit::Dz,
         WrittenUnit::E,
         WrittenUnit::F,
         WrittenUnit::G,
@@ -255,32 +398,48 @@ impl WrittenUnit {
         WrittenUnit::Hb,
         WrittenUnit::Hc,
         WrittenUnit::Hh,
+        WrittenUnit::Hh2,
         WrittenUnit::Hp,
         WrittenUnit::Hr,
         WrittenUnit::Hx,
         WrittenUnit::Hx2,
+        WrittenUnit::Hy,
+        WrittenUnit::Hy2,
         WrittenUnit::I,
         WrittenUnit::I3,
+        WrittenUnit::I4,
         WrittenUnit::Ic,
+        WrittenUnit::Ih,
+        WrittenUnit::Invubadama,
         WrittenUnit::Ip,
+        WrittenUnit::Iq,
+        WrittenUnit::Ir,
+        WrittenUnit::It,
         WrittenUnit::Ix,
         WrittenUnit::Iy,
         WrittenUnit::J,
         WrittenUnit::J2,
         WrittenUnit::Jb,
         WrittenUnit::Jc,
+        WrittenUnit::Jh,
+        WrittenUnit::Jq,
+        WrittenUnit::Jt,
         WrittenUnit::K,
         WrittenUnit::K2,
         WrittenUnit::Kc,
         WrittenUnit::Kh,
         WrittenUnit::Kp,
         WrittenUnit::L,
+        WrittenUnit::L2,
+        WrittenUnit::Lc,
         WrittenUnit::Lv,
         WrittenUnit::M,
         WrittenUnit::M2,
+        WrittenUnit::M3,
         WrittenUnit::Mvs,
         WrittenUnit::N,
         WrittenUnit::N2,
+        WrittenUnit::Nb,
         WrittenUnit::Nirugu,
         WrittenUnit::Nx,
         WrittenUnit::Ny,
@@ -291,62 +450,107 @@ impl WrittenUnit {
         WrittenUnit::Ot,
         WrittenUnit::P,
         WrittenUnit::Pb,
+        WrittenUnit::Pg,
+        WrittenUnit::Ph,
         WrittenUnit::Pp,
+        WrittenUnit::Q,
         WrittenUnit::R,
         WrittenUnit::R2,
         WrittenUnit::R3,
         WrittenUnit::Rh,
+        WrittenUnit::Rh2,
         WrittenUnit::Rr,
+        WrittenUnit::Rz,
         WrittenUnit::S,
+        WrittenUnit::S3,
+        WrittenUnit::Sc,
         WrittenUnit::Sh,
         WrittenUnit::Sp,
+        WrittenUnit::St,
+        WrittenUnit::St2,
+        WrittenUnit::Sx,
+        WrittenUnit::Sx2,
         WrittenUnit::Sz,
         WrittenUnit::T,
         WrittenUnit::Tb,
         WrittenUnit::Th,
         WrittenUnit::Tp,
+        WrittenUnit::Tribaluda,
+        WrittenUnit::Ts,
         WrittenUnit::Tt,
+        WrittenUnit::Tx,
         WrittenUnit::U,
+        WrittenUnit::Ubadama,
         WrittenUnit::Ue,
         WrittenUnit::Uh,
         WrittenUnit::Up,
         WrittenUnit::Ux,
         WrittenUnit::V,
+        WrittenUnit::Vi,
+        WrittenUnit::Visarga,
         WrittenUnit::W,
         WrittenUnit::Wb,
+        WrittenUnit::Wc,
+        WrittenUnit::Wd,
+        WrittenUnit::Wn,
+        WrittenUnit::Wp,
         WrittenUnit::Y,
         WrittenUnit::Yp,
         WrittenUnit::Z,
         WrittenUnit::Zc,
         WrittenUnit::Zr,
+        WrittenUnit::Zr2,
         WrittenUnit::Zs,
         WrittenUnit::Zs2,
+        WrittenUnit::Zt,
         WrittenUnit::Zwj,
         WrittenUnit::Zz,
+        WrittenUnit::Zz2,
+        WrittenUnit::Zz3,
     ];
 
     /// The contract name used by the Python API, the CLI and the data files.
     pub const fn as_str(self) -> &'static str {
         match self {
             WrittenUnit::A => "A",
+            WrittenUnit::A2 => "A2",
             WrittenUnit::Aa => "Aa",
             WrittenUnit::Ah => "Ah",
             WrittenUnit::Ai => "Ai",
+            WrittenUnit::Anusvara => "Anusvara",
             WrittenUnit::At => "At",
+            WrittenUnit::Aw => "Aw",
             WrittenUnit::B => "B",
             WrittenUnit::B2 => "B2",
+            WrittenUnit::Baluda => "Baluda",
+            WrittenUnit::Bc => "Bc",
+            WrittenUnit::Bg => "Bg",
+            WrittenUnit::Bh => "Bh",
             WrittenUnit::C => "C",
             WrittenUnit::Cc => "Cc",
             WrittenUnit::Ch => "Ch",
             WrittenUnit::Cp => "Cp",
             WrittenUnit::Cr => "Cr",
+            WrittenUnit::Cr2 => "Cr2",
             WrittenUnit::Cs => "Cs",
+            WrittenUnit::Ct => "Ct",
+            WrittenUnit::Cx => "Cx",
             WrittenUnit::D => "D",
+            WrittenUnit::Dagalga => "Dagalga",
+            WrittenUnit::Damaru => "Damaru",
             WrittenUnit::Db => "Db",
             WrittenUnit::Dd => "Dd",
             WrittenUnit::Dh => "Dh",
             WrittenUnit::Dp => "Dp",
+            WrittenUnit::Dq => "Dq",
+            WrittenUnit::Dr => "Dr",
+            WrittenUnit::Ds => "Ds",
             WrittenUnit::Dt => "Dt",
+            WrittenUnit::Dv => "Dv",
+            WrittenUnit::Dw => "Dw",
+            WrittenUnit::Dx => "Dx",
+            WrittenUnit::Dy => "Dy",
+            WrittenUnit::Dz => "Dz",
             WrittenUnit::E => "E",
             WrittenUnit::F => "F",
             WrittenUnit::G => "G",
@@ -361,32 +565,48 @@ impl WrittenUnit {
             WrittenUnit::Hb => "Hb",
             WrittenUnit::Hc => "Hc",
             WrittenUnit::Hh => "Hh",
+            WrittenUnit::Hh2 => "Hh2",
             WrittenUnit::Hp => "Hp",
             WrittenUnit::Hr => "Hr",
             WrittenUnit::Hx => "Hx",
             WrittenUnit::Hx2 => "Hx2",
+            WrittenUnit::Hy => "Hy",
+            WrittenUnit::Hy2 => "Hy2",
             WrittenUnit::I => "I",
             WrittenUnit::I3 => "I3",
+            WrittenUnit::I4 => "I4",
             WrittenUnit::Ic => "Ic",
+            WrittenUnit::Ih => "Ih",
+            WrittenUnit::Invubadama => "Invubadama",
             WrittenUnit::Ip => "Ip",
+            WrittenUnit::Iq => "Iq",
+            WrittenUnit::Ir => "Ir",
+            WrittenUnit::It => "It",
             WrittenUnit::Ix => "Ix",
             WrittenUnit::Iy => "Iy",
             WrittenUnit::J => "J",
             WrittenUnit::J2 => "J2",
             WrittenUnit::Jb => "Jb",
             WrittenUnit::Jc => "Jc",
+            WrittenUnit::Jh => "Jh",
+            WrittenUnit::Jq => "Jq",
+            WrittenUnit::Jt => "Jt",
             WrittenUnit::K => "K",
             WrittenUnit::K2 => "K2",
             WrittenUnit::Kc => "Kc",
             WrittenUnit::Kh => "Kh",
             WrittenUnit::Kp => "Kp",
             WrittenUnit::L => "L",
+            WrittenUnit::L2 => "L2",
+            WrittenUnit::Lc => "Lc",
             WrittenUnit::Lv => "Lv",
             WrittenUnit::M => "M",
             WrittenUnit::M2 => "M2",
+            WrittenUnit::M3 => "M3",
             WrittenUnit::Mvs => "Mvs",
             WrittenUnit::N => "N",
             WrittenUnit::N2 => "N2",
+            WrittenUnit::Nb => "Nb",
             WrittenUnit::Nirugu => "Nirugu",
             WrittenUnit::Nx => "Nx",
             WrittenUnit::Ny => "Ny",
@@ -397,38 +617,63 @@ impl WrittenUnit {
             WrittenUnit::Ot => "Ot",
             WrittenUnit::P => "P",
             WrittenUnit::Pb => "Pb",
+            WrittenUnit::Pg => "Pg",
+            WrittenUnit::Ph => "Ph",
             WrittenUnit::Pp => "Pp",
+            WrittenUnit::Q => "Q",
             WrittenUnit::R => "R",
             WrittenUnit::R2 => "R2",
             WrittenUnit::R3 => "R3",
             WrittenUnit::Rh => "Rh",
+            WrittenUnit::Rh2 => "Rh2",
             WrittenUnit::Rr => "Rr",
+            WrittenUnit::Rz => "Rz",
             WrittenUnit::S => "S",
+            WrittenUnit::S3 => "S3",
+            WrittenUnit::Sc => "Sc",
             WrittenUnit::Sh => "Sh",
             WrittenUnit::Sp => "Sp",
+            WrittenUnit::St => "St",
+            WrittenUnit::St2 => "St2",
+            WrittenUnit::Sx => "Sx",
+            WrittenUnit::Sx2 => "Sx2",
             WrittenUnit::Sz => "Sz",
             WrittenUnit::T => "T",
             WrittenUnit::Tb => "Tb",
             WrittenUnit::Th => "Th",
             WrittenUnit::Tp => "Tp",
+            WrittenUnit::Tribaluda => "Tribaluda",
+            WrittenUnit::Ts => "Ts",
             WrittenUnit::Tt => "Tt",
+            WrittenUnit::Tx => "Tx",
             WrittenUnit::U => "U",
+            WrittenUnit::Ubadama => "Ubadama",
             WrittenUnit::Ue => "Ue",
             WrittenUnit::Uh => "Uh",
             WrittenUnit::Up => "Up",
             WrittenUnit::Ux => "Ux",
             WrittenUnit::V => "V",
+            WrittenUnit::Vi => "Vi",
+            WrittenUnit::Visarga => "Visarga",
             WrittenUnit::W => "W",
             WrittenUnit::Wb => "Wb",
+            WrittenUnit::Wc => "Wc",
+            WrittenUnit::Wd => "Wd",
+            WrittenUnit::Wn => "Wn",
+            WrittenUnit::Wp => "Wp",
             WrittenUnit::Y => "Y",
             WrittenUnit::Yp => "Yp",
             WrittenUnit::Z => "Z",
             WrittenUnit::Zc => "Zc",
             WrittenUnit::Zr => "Zr",
+            WrittenUnit::Zr2 => "Zr2",
             WrittenUnit::Zs => "Zs",
             WrittenUnit::Zs2 => "Zs2",
+            WrittenUnit::Zt => "Zt",
             WrittenUnit::Zwj => "Zwj",
             WrittenUnit::Zz => "Zz",
+            WrittenUnit::Zz2 => "Zz2",
+            WrittenUnit::Zz3 => "Zz3",
         }
     }
 
@@ -445,24 +690,44 @@ impl FromStr for WrittenUnit {
     fn from_str(name: &str) -> Result<WrittenUnit, Error> {
         match name {
             "A" => Ok(WrittenUnit::A),
+            "A2" => Ok(WrittenUnit::A2),
             "Aa" => Ok(WrittenUnit::Aa),
             "Ah" => Ok(WrittenUnit::Ah),
             "Ai" => Ok(WrittenUnit::Ai),
+            "Anusvara" => Ok(WrittenUnit::Anusvara),
             "At" => Ok(WrittenUnit::At),
+            "Aw" => Ok(WrittenUnit::Aw),
             "B" => Ok(WrittenUnit::B),
             "B2" => Ok(WrittenUnit::B2),
+            "Baluda" => Ok(WrittenUnit::Baluda),
+            "Bc" => Ok(WrittenUnit::Bc),
+            "Bg" => Ok(WrittenUnit::Bg),
+            "Bh" => Ok(WrittenUnit::Bh),
             "C" => Ok(WrittenUnit::C),
             "Cc" => Ok(WrittenUnit::Cc),
             "Ch" => Ok(WrittenUnit::Ch),
             "Cp" => Ok(WrittenUnit::Cp),
             "Cr" => Ok(WrittenUnit::Cr),
+            "Cr2" => Ok(WrittenUnit::Cr2),
             "Cs" => Ok(WrittenUnit::Cs),
+            "Ct" => Ok(WrittenUnit::Ct),
+            "Cx" => Ok(WrittenUnit::Cx),
             "D" => Ok(WrittenUnit::D),
+            "Dagalga" => Ok(WrittenUnit::Dagalga),
+            "Damaru" => Ok(WrittenUnit::Damaru),
             "Db" => Ok(WrittenUnit::Db),
             "Dd" => Ok(WrittenUnit::Dd),
             "Dh" => Ok(WrittenUnit::Dh),
             "Dp" => Ok(WrittenUnit::Dp),
+            "Dq" => Ok(WrittenUnit::Dq),
+            "Dr" => Ok(WrittenUnit::Dr),
+            "Ds" => Ok(WrittenUnit::Ds),
             "Dt" => Ok(WrittenUnit::Dt),
+            "Dv" => Ok(WrittenUnit::Dv),
+            "Dw" => Ok(WrittenUnit::Dw),
+            "Dx" => Ok(WrittenUnit::Dx),
+            "Dy" => Ok(WrittenUnit::Dy),
+            "Dz" => Ok(WrittenUnit::Dz),
             "E" => Ok(WrittenUnit::E),
             "F" => Ok(WrittenUnit::F),
             "G" => Ok(WrittenUnit::G),
@@ -477,32 +742,48 @@ impl FromStr for WrittenUnit {
             "Hb" => Ok(WrittenUnit::Hb),
             "Hc" => Ok(WrittenUnit::Hc),
             "Hh" => Ok(WrittenUnit::Hh),
+            "Hh2" => Ok(WrittenUnit::Hh2),
             "Hp" => Ok(WrittenUnit::Hp),
             "Hr" => Ok(WrittenUnit::Hr),
             "Hx" => Ok(WrittenUnit::Hx),
             "Hx2" => Ok(WrittenUnit::Hx2),
+            "Hy" => Ok(WrittenUnit::Hy),
+            "Hy2" => Ok(WrittenUnit::Hy2),
             "I" => Ok(WrittenUnit::I),
             "I3" => Ok(WrittenUnit::I3),
+            "I4" => Ok(WrittenUnit::I4),
             "Ic" => Ok(WrittenUnit::Ic),
+            "Ih" => Ok(WrittenUnit::Ih),
+            "Invubadama" => Ok(WrittenUnit::Invubadama),
             "Ip" => Ok(WrittenUnit::Ip),
+            "Iq" => Ok(WrittenUnit::Iq),
+            "Ir" => Ok(WrittenUnit::Ir),
+            "It" => Ok(WrittenUnit::It),
             "Ix" => Ok(WrittenUnit::Ix),
             "Iy" => Ok(WrittenUnit::Iy),
             "J" => Ok(WrittenUnit::J),
             "J2" => Ok(WrittenUnit::J2),
             "Jb" => Ok(WrittenUnit::Jb),
             "Jc" => Ok(WrittenUnit::Jc),
+            "Jh" => Ok(WrittenUnit::Jh),
+            "Jq" => Ok(WrittenUnit::Jq),
+            "Jt" => Ok(WrittenUnit::Jt),
             "K" => Ok(WrittenUnit::K),
             "K2" => Ok(WrittenUnit::K2),
             "Kc" => Ok(WrittenUnit::Kc),
             "Kh" => Ok(WrittenUnit::Kh),
             "Kp" => Ok(WrittenUnit::Kp),
             "L" => Ok(WrittenUnit::L),
+            "L2" => Ok(WrittenUnit::L2),
+            "Lc" => Ok(WrittenUnit::Lc),
             "Lv" => Ok(WrittenUnit::Lv),
             "M" => Ok(WrittenUnit::M),
             "M2" => Ok(WrittenUnit::M2),
+            "M3" => Ok(WrittenUnit::M3),
             "Mvs" => Ok(WrittenUnit::Mvs),
             "N" => Ok(WrittenUnit::N),
             "N2" => Ok(WrittenUnit::N2),
+            "Nb" => Ok(WrittenUnit::Nb),
             "Nirugu" => Ok(WrittenUnit::Nirugu),
             "Nx" => Ok(WrittenUnit::Nx),
             "Ny" => Ok(WrittenUnit::Ny),
@@ -513,38 +794,63 @@ impl FromStr for WrittenUnit {
             "Ot" => Ok(WrittenUnit::Ot),
             "P" => Ok(WrittenUnit::P),
             "Pb" => Ok(WrittenUnit::Pb),
+            "Pg" => Ok(WrittenUnit::Pg),
+            "Ph" => Ok(WrittenUnit::Ph),
             "Pp" => Ok(WrittenUnit::Pp),
+            "Q" => Ok(WrittenUnit::Q),
             "R" => Ok(WrittenUnit::R),
             "R2" => Ok(WrittenUnit::R2),
             "R3" => Ok(WrittenUnit::R3),
             "Rh" => Ok(WrittenUnit::Rh),
+            "Rh2" => Ok(WrittenUnit::Rh2),
             "Rr" => Ok(WrittenUnit::Rr),
+            "Rz" => Ok(WrittenUnit::Rz),
             "S" => Ok(WrittenUnit::S),
+            "S3" => Ok(WrittenUnit::S3),
+            "Sc" => Ok(WrittenUnit::Sc),
             "Sh" => Ok(WrittenUnit::Sh),
             "Sp" => Ok(WrittenUnit::Sp),
+            "St" => Ok(WrittenUnit::St),
+            "St2" => Ok(WrittenUnit::St2),
+            "Sx" => Ok(WrittenUnit::Sx),
+            "Sx2" => Ok(WrittenUnit::Sx2),
             "Sz" => Ok(WrittenUnit::Sz),
             "T" => Ok(WrittenUnit::T),
             "Tb" => Ok(WrittenUnit::Tb),
             "Th" => Ok(WrittenUnit::Th),
             "Tp" => Ok(WrittenUnit::Tp),
+            "Tribaluda" => Ok(WrittenUnit::Tribaluda),
+            "Ts" => Ok(WrittenUnit::Ts),
             "Tt" => Ok(WrittenUnit::Tt),
+            "Tx" => Ok(WrittenUnit::Tx),
             "U" => Ok(WrittenUnit::U),
+            "Ubadama" => Ok(WrittenUnit::Ubadama),
             "Ue" => Ok(WrittenUnit::Ue),
             "Uh" => Ok(WrittenUnit::Uh),
             "Up" => Ok(WrittenUnit::Up),
             "Ux" => Ok(WrittenUnit::Ux),
             "V" => Ok(WrittenUnit::V),
+            "Vi" => Ok(WrittenUnit::Vi),
+            "Visarga" => Ok(WrittenUnit::Visarga),
             "W" => Ok(WrittenUnit::W),
             "Wb" => Ok(WrittenUnit::Wb),
+            "Wc" => Ok(WrittenUnit::Wc),
+            "Wd" => Ok(WrittenUnit::Wd),
+            "Wn" => Ok(WrittenUnit::Wn),
+            "Wp" => Ok(WrittenUnit::Wp),
             "Y" => Ok(WrittenUnit::Y),
             "Yp" => Ok(WrittenUnit::Yp),
             "Z" => Ok(WrittenUnit::Z),
             "Zc" => Ok(WrittenUnit::Zc),
             "Zr" => Ok(WrittenUnit::Zr),
+            "Zr2" => Ok(WrittenUnit::Zr2),
             "Zs" => Ok(WrittenUnit::Zs),
             "Zs2" => Ok(WrittenUnit::Zs2),
+            "Zt" => Ok(WrittenUnit::Zt),
             "Zwj" => Ok(WrittenUnit::Zwj),
             "Zz" => Ok(WrittenUnit::Zz),
+            "Zz2" => Ok(WrittenUnit::Zz2),
+            "Zz3" => Ok(WrittenUnit::Zz3),
             _ => Err(Error::UnknownName { kind: "written unit", name: name.to_owned() }),
         }
     }

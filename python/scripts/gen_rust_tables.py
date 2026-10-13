@@ -6,10 +6,13 @@ Generate the static Rust data tables for the Rust core (the crate at the reposit
 Reads the language-agnostic JSON in `python/mongol_norm/data/` -- the same files the
 Python tooling (`mongol_norm._data`) loads -- and emits `src/generated/*.rs`:
 
-  enums.rs            WrittenUnit / Condition / Alias enums (union over all locales)
+  enums.rs            WrittenUnit / Condition / Alias enums (union over all locales; the
+                      WrittenUnit enum also takes the units of the bundled shaping font,
+                      read off fonts/unified.glyphs.txt -- see gen_font_shaper.py)
   mng.rs tod.rs ...   per-locale shaping tables (letters, variants, categories, particles)
   mng_normalize.rs    the MNG normalize table
-  mod.rs              module declarations
+  mod.rs              module declarations (font_unified.rs, which gen_font_shaper.py
+                      writes into the same directory, is declared under the `font` feature)
 
 The output is deterministic (no timestamps, stable ordering), so `--check`
 regenerates into memory and fails when any committed file differs.
@@ -27,10 +30,16 @@ import re
 import sys
 from pathlib import Path
 
+import _font_glyphs
+
 # The repository root is the crate root: python/scripts/<this file> -> two levels up.
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "python" / "mongol_norm" / "data"
 OUT = ROOT / "src" / "generated"
+# The glyph order of the bundled shaping font (gen_font_shaper.py): its units join WrittenUnit.
+FONT_GLYPHS = ROOT / "fonts" / "unified.glyphs.txt"
+# Generated files in OUT that another generator owns: declared by mod.rs, not checked here.
+FOREIGN = {"font_unified.rs": ('#[cfg(feature = "font")]', "python/scripts/gen_font_shaper.py")}
 
 LOCALES = ("MNG", "TOD", "SIB", "MCH")
 NORMALIZE_LOCALES = ("MNG",)
@@ -306,10 +315,18 @@ def render_enums(rules):
             for variant in letter["variants"]:
                 units.update(variant["written"])
                 conditions.update(variant["conditions"])
+    # The font backend reports the units of the unified shaping font, which also writes the
+    # Ali Gali extensions the rule data does not cover: those units join the enum here.
+    try:
+        font_units = _font_glyphs.font_units(_font_glyphs.read_glyph_order(FONT_GLYPHS))
+    except (OSError, ValueError) as error:
+        die("cannot read {}: {}".format(FONT_GLYPHS.relative_to(ROOT).as_posix(), error))
     unit_entries = [
         (unit_variant(unit), unit,
-         STRUCTURAL_DOCS.get(unit, "Written unit `{}`.".format(unit)))
-        for unit in sorted(units)
+         STRUCTURAL_DOCS.get(unit, "Written unit `{}`.".format(unit)
+                             if unit in units else
+                             "Written unit `{}` (shown by the bundled shaping font only).".format(unit)))
+        for unit in sorted(units | font_units)
     ]
     condition_entries = [
         (condition_variant(name), name, "Shaping condition `{}`.".format(name))
@@ -330,7 +347,7 @@ def render_enums(rules):
         "        matches!(self, WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwj)\n"
         "    }\n"
     )
-    out = [HEADER, provenance([DATA / (locale + ".json") for locale in LOCALES]), "\n"]
+    out = [HEADER, provenance([DATA / (locale + ".json") for locale in LOCALES] + [FONT_GLYPHS]), "\n"]
     out.append("use std::fmt;\nuse std::str::FromStr;\n\nuse crate::Error;\n\n")
     out.append(render_enum(
         "WrittenUnit",
@@ -469,6 +486,9 @@ def render_mod(files):
     out = [HEADER, "\n"]
     for name in sorted(files):
         out.append("pub mod {};\n".format(name))
+    for name, (cfg, generator) in sorted(FOREIGN.items()):
+        out.append("// {} is written by {}.\n".format(name, generator))
+        out.append("{}\npub(crate) mod {};\n".format(cfg, name[:-3]))
     return "".join(out)
 
 
@@ -500,7 +520,7 @@ def main():
                 stale.append("stale:   " + path.relative_to(ROOT).as_posix())
         if OUT.exists():
             for path in sorted(OUT.glob("*.rs")):
-                if path.name not in files:
+                if path.name not in files and path.name not in FOREIGN:
                     stale.append("unexpected: " + path.relative_to(ROOT).as_posix())
         if stale:
             print("\n".join(stale))

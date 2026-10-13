@@ -1,0 +1,172 @@
+# regular test
+
+sbm-1	k u i sbm i	G O I I A I
+
+a-1	a	A A
+a-1	a n a k ue	A A N A H Ue
+a-1	b a h i y a	B A Gc I Y A
+a-1	a m b a	A A M B Aa
+
+e-1	e	A
+e-2	a i b i d e	A A I I B I Dt A
+e-3	a i s e m e	A A I I S Ah M Ah
+e-4	e i t e r e ch i b e	A Ni I I Db A R Ah Ch I B At
+e-5	e n t e h e	A Ni A Db A Gc Aa
+
+i-1	i	A I
+i-2	i s i n a m b i	A I S I N A M B I
+i-3	a i s i n	A A I I S I A
+i-4	m i y o o z i	M I Y O O Zs Iy
+
+ii-1	s ii ch u w a n	S Ai Ch Oh W A A
+ii-2	a l i n mvs i space h i s ii	A A L I A - I - Gc I S Ai
+
+o-1	o	A O
+o-2	o n d o n ch e o	A O A Dh O A Ch Ah U
+o-3	o b o	A O B O
+
+u-1	u	A Oh
+u-2	u n u r t u	A Oh N Oh R Db U
+u-3	t u s u	Tb O S Uh
+u-4	t u h e b u k u	Tb O Gc A B Oh G O
+u-5	a m b u	A A M B Oh
+
+ue-1	ue	A Ue
+ue-2	ue l e n	A O I L Ah A
+ue-3	a n a h ue n j a n	A A N A Hc O I A J A A
+ue-4	a n a k ue	A A N A H Ue
+
+n-1	n e n d e n	N Ah A Dt A A
+n-2	k a n a g a n	H A N A Hh A A
+n-3	h a n fvs1	Hc A N
+
+ng-1	a i b i ng g e	A A I I B I A G Gh Aa
+ng-2	b e g i ng	B Ah Gh I A G
+
+k-1	k a k ue r	H A H O I R2
+k-2	k a k s a h a	H A Hx S A Hc A
+k-3	u k e k	A Oh G A G4
+k-4	k e i f u	G A I I W Uh
+k-5	s u r u k	S Oh R Oh Hx2
+
+g-1	g a n i o ng g a	Hh A N I O A G Hh A
+g-2	g e b g e	Gh A B Gh Aa
+
+h-1	h a i h a n	Hc A I I Hc A A
+h-2	h e i h e r i	Gc A I I Gc A R I
+
+b-1	b e b u l i	B Ah B Oh L I
+b-2	gh a l a b	Kh A L A B
+
+p-1	p a m p u	Pb A M Pb Oh
+
+s-1	s a s u r i	S A S Oh R I
+s-2	h o r g o s	Hc O R Hh O S
+
+sh-1	sh a k sh a n	Sp A Hx Sp A A
+sh-2	p u r i y o o sh	Pb Oh R I Y O O Sp
+
+t-1	t a t a l a	T A D A L A
+t-2	t e t e l e	Tb A Db A L Ah
+t-3	j a l a i t	I A L A I I Dd
+t-4	u t b a l a	A Oh Dd B A L A
+
+d-1	d a d a r i	Th A Dh A R I
+d-2	d e d u n	Tt A Dt O A
+
+l-1	l a l a n j i	L A L A A J I
+l-2	ch i g a l	Ch I Hh A L
+
+m-1	m a n a m b i	M A N A M B I
+m-2	s a i r i m	S A I I R I M3
+
+ch-1	ch i r ch a n	Ch I R Ch A A
+
+j-1	j a k a n j a m b i	I A H A A J A M B I
+
+y-1	y a y a	Y A Y A
+
+r-1	r a k ch a	R A Hx Ch A
+r-2	f a k i r i	V A G I R I
+r-3	a b a g a n a r	A A B A Hh A N A R2
+
+f-1	f a f a k a	V A V A H A
+f-2	f u f u n	W Oh W Oh A
+
+w-1	w e s i b u n	W Ah S I B Oh A
+w-2	g ue w a	Hh O I W A
+
+kh-1	kh a d a o	K2 A Dh A U
+kh-2	y u m kh a	Y Oh M K2 Aa
+
+gh-1	gh a n j u r	Kh A A J Oh R2
+gh-2	a gh a r u	A A Kh A R Uh
+
+hh-1	hh a	Kc Aa
+hh-2	g u hh a ng	Gh O Kc A A G
+
+c-1	c u r c u ng	Cs Oh R Cs Oh A G
+
+z-1	z a n a n	Zs A N A A
+z-2	a b i z i	A A B I Zs Iy
+
+rh-1	rh i n z u ng	Rr I A Zs Oh A G
+rh-2	j u rh e n	I Oh Rr Ah A
+
+cr-1	cr i l e m b i	Cc I L Ah M B I
+cr-2	m a h a space gh o cr i l a	M A Hc A - Kh O Cc I L A
+
+zr-1	zr i l i	Ic I L I
+zr-2	d u d u space t u ng zr i	Tt O Dt U - Tb O A G Jc I
+
+# Mongolian specific
+
+syllabic-o/u-1	n o space n u	N O - N Oh
+syllabic-o/u-2	b o space b u	B O - B Oh
+
+syllabic-f-1	f a space f e space f i	V A - V Ah - W I
+syllabic-f-2	f o space f u space f ue	W O - W Oh - W Ue
+
+syllabic-i-1	z i space a z i	Zs Iy - A A Zs Iy
+
+syllabic-e/u-1	t e space d e	Tb A - Tt A
+syllabic-e/u-2	k e space g e space h e	G Aa - Gh Aa - Gc Aa
+syllabic-e/u-3	t u space d u	Tb O - Tt O
+syllabic-e/u-4	k u space g u space h u	G O - Gh O - Gc O
+
+syllabic-n-1	n a n e n i n o n u	N A N Ah N I N O N Uh
+syllabic-n-2	a n b a n p a n	A A A B A A Pb A A
+
+syllabic-t/d-1	t a space t e space t i	T A - Tb A - T I
+syllabic-t/d-2	t o space t u space t ue	T O - Tb O - Tb Ue
+syllabic-t/d-3	d a space d e space d i	Th A - Tt A - Th I
+syllabic-t/d-4	d o space d u space d ue	Th O - Tt O - Tt Ue
+syllabic-t/d-5	a t n a	A A Dd N A
+
+syllabic-k/g/h-1	k a space k e space k i	H A - G Aa - G I
+syllabic-k/g/h-2	k o space k u space k ue	H O - G O - H Ue
+syllabic-k/g/h-3	g a space g e space g i	Hh A - Gh Aa - Gh I
+syllabic-k/g/h-4	g o space g u space g ue	Hh O - Gh O - Hh Ue
+syllabic-k/g/h-5	h a space h e space h i	Hc A - Gc Aa - Gc I
+syllabic-k/g/h-6	h o space h u space h ue	Hc O - Gc O - Hc Ue
+syllabic-k/g/h-7	t e k space d e k space n e k	Tb A Hx2 - Tt A G4 - N Ah G4
+syllabic-k/g/h-8	k u k space g u k space h u k	G O G4 - Gh O G4 - Gc O G4
+syllabic-k/g/h-9	k e k space l e k space s e k	G A G4 - L Ah G4 - S Ah G4
+syllabic-k/g/h-10	s ue k space d ue k space ch ue k	S O I G4 - Tt O I G4 - Ch O I G4
+syllabic-k/g/h-11	s a k space s i k space s o k	S A Hx2 - S I Hx2 - S O Hx2
+
+particle-1	a n mvs i	A A A - I
+
+devsger-1	b a i b e i n	B A I I B Ah I I A
+devsger-2	b o i b u i n	B O I I B Oh I I A
+
+bowed-1	b a space p a	B Aa - Pb Aa
+bowed-2	kh a space gh a space hh a	K2 Aa - Kh Aa - Kc Aa
+bowed-3	b o space p o	B O - Pb O
+bowed-4	kh o space gh o space hh o	K2 O - Kh O - Kc O
+bowed-5	b e space p e space g e	B At - Pb At - Gh Aa
+bowed-6	k e space k fvs2 e space h e	G Aa - Gx Aa - Gc Aa
+bowed-7	b u space p u space g u	B Oh - Pb Oh - Gh O
+bowed-8	k u space k fvs2 u space h u	G O - Gx O - Gc O
+bowed-9	b i space p i space g i	B I - Pb I - Gh I
+bowed-10	k i space k fvs2 i space h i	G I - Gx I - Gc I

@@ -1,0 +1,159 @@
+# regular test
+
+a-1	a	A A
+a-2	a fvs1	A
+a-3	a n a h u	A A N A Hx Up
+a-4	sh a r a	Sh A R A
+a-5	g a b a	Hb A B Aa
+# a-6	b u y a n zwj a r b i n	B Op I A A A A R B Ip A
+
+e-1	e	A E
+e-2	e r t e	A E R Tp E
+e-3	e n e l g e n	A E N E L G E A
+# e-4	h i sh i g zwj e r d e n i	K Ip Sh Ip Hp A E R Dp E N Ip
+
+i-1	i	A Ip
+i-2	i sh i	A Ip Sh Ip
+i-3	sh i l b i	Sh Ip L B Ip
+i-4	s a i n	S A A Ip A
+
+o-1	o	A Ob
+o-2	o g t o	A Ob Hp Tp Ob
+o-3	o m o g	A Ob M Ob Hp
+# o-4	a l t a n zwj o r g i l	A A L Tp A A A Ob R G Ip L
+
+u-1	u	A Up
+u-2	u fvs1	A Op
+u-3	u n u h u	A Op N Op Hx Up
+# u-4	h a r a zwj u s u n	Hx2 A R A A Op S Op A
+u-5	g a sh u u n	Hb A Sh Op O A
+u-6	t a t u u	Tp A Tp Op U
+
+oe-1	oe	A Ot
+oe-2	oe m oe n oe	A Ot M Ot N Ot
+# oe-3	h oe h ue zwj oe n d oe r	K Ot K O A Ot A Dp Ot R
+
+ue-1	ue	A U
+ue-2	ue fvs1	A O
+ue-3	ue g e i g ue ue	A O G E A Ip G O U
+ue-4	ue z ue ue l h ue	A O Ch O O L K O
+# ue-5	ch i ng zwj ue n e n	Jb Ip A G A O N E A
+
+lvs-1	a lvs sh i	A A Lv Sh Ip
+lvs-2	o b o lvs	A Ob B Ob Lv
+
+n-1	n a n d i n	N A A Dp Ip A
+n-2	e n e r g i	A E N E R G Ip
+n-3	b e lvs j i n mvs n i	B E Lv Cp Ip A - N2 Ip
+
+ng-1/p-1	p i ng p a ng	Pp Ip A G Pp A A G2
+
+b-1	b o r d o b u r i	B Ob R Dp Ob B Op R Ip
+b-2	e l d e b	A E L Dp E B2
+
+p-2	t a i p	Tp A A Ip Pp
+
+h-1	h a h a h u	Hx2 A Hx A Hx Up
+h-2	h e h e r e h ue	K E K E R E K O
+h-3	b a h	B A K
+
+g-1	g a g c a	Hb A Hp J A
+g-2	z u ng g a g	Ch Op A G Hb A Hp
+g-3	g e g e lvs n	G E G E Lv A
+
+m-1	m a l t a m a l	M A L Tp A M A L
+m-2	b a r d a m	B A R Dp A M2
+
+l-1	l a b l a l t u	L A B L A L Tp Up
+l-2	d a r u l a l	Dp A R Op L A L
+
+s-1	s a g s a g a r	S A Hp S A Hb A R
+s-2	t e ng g e s	Tp E A G G E S
+
+sh-1	sh a m sh i h u	Sh A M Sh Ip Hx Up
+sh-2	h e i sh	K E A Ip Sh
+
+t-1	t a t a h u	Tp A Tp A Hx Up
+t-2	f r o n t	W R Ob A Tp
+
+d-1	d a r d a ng	Dp A R Dp A A G2
+d-2	b a g a ch u u d	B A Hb A Jb Op O Dp
+
+ch-1	ch a l ch i h u	Jb A L Jb Ip Hx Up
+ch-2	h a r a ch	Hx2 A R A Jb
+
+j-1	j a j i l a h u	Cp A Cp Ip L A Hx Up
+j-2	j o r j	Cp Ob R Cp
+
+z-1	z a r u c a	Ch A R Op J A
+z-2	g a z a lvs g u u r	Hb A Ch A Lv Hb Op O R
+z-3	a i z	A A A Ip Ch
+
+c-1	c a c u g	J A J Op Hp
+c-2	t a n c	Tp A A J
+
+y-1	y a ng y ue	I A A G I U
+
+r-1	r a d i y o	R A Dp Ip I Ob
+r-2	h a sh i r	Hx2 A Sh Ip R
+r-3	b ue r i n	B O R Ip A
+
+w-1	w i t a m i n	Wb Ip Tp A M Ip A
+w-2	sh u w a zr i	Sh Op Wb A Zz Ip
+w-3	s l a w	S L A Wb
+
+f-1	f a sh i s t	W A Sh Ip S Tp
+f-2	a f r i kh a	A A W R Ip Kp Aa
+f-3	h a n i f	Hx2 A N Ip W
+
+kh-1	kh a w a	Kp A Wb A
+kh-2	m o s kh o w a	M Ob S Kp Ob Wb A
+kh-3	zr o ng kh a b a	Zz Ob A G Kp A B Aa
+kh-4	z o kh o lvs l	Ch Ob Kp Ob Lv L
+kh-5	t a kh a lvs	Tp A Kp Aa Lv
+kh-6	d o kh o lvs	Dp Ob Kp Ob Lv
+kh-7	t a n kh	Tp A A Kp
+
+gh-1	gh u ng sh e	Gp Op A G Sh E
+gh-2	d a gh u ng	Dp A Gp Op A G2
+
+hh-1	hh l o r	A Hr L Ob R
+hh-2	b u d d hh a	B Op Dp Dp A Hr A
+hh-3	t e hh e n i g	Tp E A Hr E N Ip Hp
+hh-4	w e i hh	Wb E A Ip A Hr
+
+jy-1	jy a ng g a r	B Yp A A G Hb A R
+jy-2	jy i b	B Yp Ip B2
+jy-3	jy a m c a	B Yp A M J A
+jy-4	d o m jy a b	Dp Ob M B Yp A B2
+
+ny-1	ny i m i	Ny Ip M Ip
+ny-2	j i ny o	Cp Ip Ny Ob
+
+zr-1	zr a n d a n	Zz A A Dp A A
+zr-2	t a i zr i	Tp A A Ip Zz Ip
+zr-3	d a n zr	Dp A A Zz
+
+lh-1	lh a r a m b a	L Hr A R A M B Aa
+lh-2	lh a s a	L Hr A S A
+lh-3	lh a g b a	L Hr A Hp B Aa
+lh-4	oe lh d oe r	A Ot L Hr Dp Ot R
+
+# Mongolian specific
+
+syllabic-n-1	a n a h u	A A N A Hx Up
+syllabic-n-2	a n d a h u	A A A Dp A Hx Up
+
+syllabic-h/g-1	h a g a c a h u	Hx2 A Hb A J A Hx Up
+syllabic-h/g-2	h i g e lvs d	K Ip G E Lv Dp
+syllabic-h/g-3	e l e g d e h ue	A E L E Hp Dp E K O
+
+particle-1	mvs n i	- N2 Ip
+
+devsger-1	s a i n	S A A Ip A
+devsger-2	a d u u n	A A Dp Op O A
+
+bowed-1	a l i b a	A A L Ip B Aa
+bowed-2	t a n i i h i	Tp A N Ip A Ip K Ip
+bowed-3	a lvs b u	A A Lv B Op
+bowed-4	i r e h ue	A Ip R E K O
