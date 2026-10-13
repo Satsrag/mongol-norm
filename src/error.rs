@@ -17,9 +17,9 @@ pub enum Error {
         /// Its `char` index in the input.
         index: usize,
     },
-    /// `FontShaper::shape`: a character the bundled shaping font has no written form for — an
-    /// unassigned code point of the block, or a letter at a position the font draws no form of
-    /// (an isolated U+1878 or U+1898). `index` is a `char` index.
+    /// `FontShaper::shape`: a character of the Mongolian block the bundled Hudum font has no
+    /// glyph for — a letter of another writing system, an Ali Gali sign, an unassigned code
+    /// point. `index` is a `char` index.
     UnsupportedChar {
         /// The offending character.
         ch: char,

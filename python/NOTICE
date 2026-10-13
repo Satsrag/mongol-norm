@@ -37,16 +37,16 @@ mongfontbuilder is distributed under the MIT License:
 
 Source: https://github.com/Kushim-Jiang/mongfontbuilder
 
-The `font` feature bundles the unified font mongfontbuilder composes
-(`fonts/unified.otf`, outlines removed; `fonts/mongfontbuilder.json` pins the
+The `font` feature bundles the Hudum font mongfontbuilder composes
+(`fonts/hudum.otf`, outlines removed; `fonts/mongfontbuilder.json` pins the
 commit), with its OpenType Layout rules under the same MIT License.
 
 ================================================================================
 Noto Sans Mongolian (the bundled shaping font's source)
 ================================================================================
 
-`fonts/unified.otf` is composed from mongfontbuilder's test source
-`tests/fonts/unified.ufo`, whose drawings derive from Noto Sans Mongolian. The
+`fonts/hudum.otf` is composed from mongfontbuilder's test source
+`tests/fonts/hudum.ufo`, whose drawings derive from Noto Sans Mongolian. The
 bundled font carries none of the drawings — only the layout tables — and keeps
 the source's licence:
 

@@ -1,9 +1,9 @@
-//! The font backend (Cargo feature `font`): shaping with the bundled mongfontbuilder font
+//! The font backend (Cargo feature `font`): shaping with the bundled mongfontbuilder Hudum font
 //! through harfrust, the Rust port of HarfBuzz, instead of the ported rules.
 //!
 //! See [`FontShaper`] for the contract. The glyph → written-unit table this reads is generated
-//! from the font's glyph names (`src/generated/font_unified.rs`, by
-//! `python/scripts/gen_font_shaper.py`); the font itself is `fonts/unified.otf`, pinned to an
+//! from the font's glyph names (`src/generated/font_hudum.rs`, by
+//! `python/scripts/gen_font_shaper.py`); the font itself is `fonts/hudum.otf`, pinned to an
 //! upstream commit by `fonts/mongfontbuilder.json`.
 
 use std::sync::OnceLock;
@@ -14,28 +14,20 @@ use harfrust::{
 };
 
 use crate::duplicates::collapse;
-use crate::generated::font_unified::GLYPHS;
+use crate::generated::font_hudum::GLYPHS;
 use crate::redundant_zwj::drop_redundant_zwj;
-use crate::unicode::is_mongolian_word_char_cp;
-use crate::{Error, Locale, Position, WrittenUnit};
+use crate::unicode::check_word_chars;
+use crate::{Error, Position, WrittenUnit};
 
-/// The bundled shaping font: mongfontbuilder's unified font without its outlines (GSUB, GDEF,
+/// The bundled shaping font: mongfontbuilder's Hudum font without its outlines (GSUB, GDEF,
 /// cmap and the sfnt skeleton). `fonts/mongfontbuilder.json` names the commit it was built at.
-static FONT_DATA: &[u8] = include_bytes!("../fonts/unified.otf");
+static FONT_DATA: &[u8] = include_bytes!("../fonts/hudum.otf");
 
 /// The parsed font, shared by every `FontShaper`: read-fonts caches the layout tables on it.
 static FONT: OnceLock<Font> = OnceLock::new();
 
 fn font() -> &'static Font {
-    FONT.get_or_init(|| Font::new(FONT_DATA, 0).expect("fonts/unified.otf is a valid font"))
-}
-
-/// U+1807 MONGOLIAN SIBE SYLLABLE BOUNDARY MARKER: punctuation to Unicode, a letter to the
-/// Sibe and Manchu rules (and to the font), so the font backend accepts it in a word.
-const SIBE_SYLLABLE_BOUNDARY_MARKER: u32 = 0x1807;
-
-fn is_word_char(c: char) -> bool {
-    is_mongolian_word_char_cp(c as u32) || c as u32 == SIBE_SYLLABLE_BOUNDARY_MARKER
+    FONT.get_or_init(|| Font::new(FONT_DATA, 0).expect("fonts/hudum.otf is a valid font"))
 }
 
 /// Characters HarfBuzz skips when it forms a ligature (marks to the font): the four FVS, ZWJ
@@ -47,22 +39,15 @@ fn is_skipped(c: char) -> bool {
     )
 }
 
-/// The BCP 47 language harfrust maps to the font's language system for a locale (`MNG `,
-/// `TOD `, `SIB `, `MCH `), which selects the writing system's own letterforms (`locl`).
-fn language(locale: Locale) -> Language {
-    let tag = match locale {
-        Locale::Mng => "mn",
-        Locale::Tod => "xwo",
-        Locale::Sib => "sjo",
-        Locale::Mch => "mnc",
-    };
-    Language::new(tag).expect("a non-empty language tag")
+/// The BCP 47 language harfrust maps to the font's one language system, `MNG `.
+fn language() -> Language {
+    Language::new("mn").expect("a non-empty language tag")
 }
 
 /// What a glyph of the bundled font contributes to a shaped run (the generated table's entry type).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Kind {
-    /// A letter variant, a ligature or an Ali Gali sign: `units` is what it shows.
+    /// A letter variant or a ligature: `units` is what it shows.
     Letters,
     /// An MVS or NNBSP, in any of its drawings (the space of a separator that separates
     /// nothing included — its second, silent glyph is `Silent`).
@@ -72,12 +57,10 @@ pub(crate) enum Kind {
     /// A ZWJ.
     Zwj,
     /// Ink or no ink, nothing the crate reports: an FVS (valid or not — the font draws an
-    /// invalid one as a placeholder), the silent half of an idle MVS, the stem extender the
-    /// font inserts after a bowed letter, a dotted circle under a lone mark, a composer marker.
+    /// invalid one as a placeholder), the silent half of an idle MVS, a composer marker.
     Silent,
-    /// A glyph no shaped word may contain: `.notdef`, a letter's bare nominal glyph (the font
-    /// has no form for it at that position: U+1878 and U+1898 alone), punctuation, the
-    /// composer's building blocks.
+    /// A glyph no shaped word may contain: `.notdef` (a character the font has no glyph for),
+    /// punctuation, the composer's building blocks.
     Unsupported,
 }
 
@@ -118,16 +101,6 @@ impl Glyph {
         }
     }
 
-    pub(crate) const fn mark(units: &'static [WrittenUnit]) -> Glyph {
-        Glyph {
-            kind: Kind::Letters,
-            units,
-            letters: 1,
-            form: None,
-            joining: None,
-        }
-    }
-
     pub(crate) const fn mvs() -> Glyph {
         Glyph::control(Kind::Mvs, &[WrittenUnit::Mvs])
     }
@@ -153,7 +126,7 @@ impl Glyph {
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ShapedGlyph {
-    /// The glyph id in `fonts/unified.otf`; `fonts/unified.glyphs.txt` names it.
+    /// The glyph id in `fonts/hudum.otf`; `fonts/hudum.glyphs.txt` names it.
     pub glyph: u16,
     /// The `char` index of the input character the glyph comes from — for a ligature, of its
     /// first letter.
@@ -161,7 +134,7 @@ pub struct ShapedGlyph {
     /// The written units the glyph shows; empty for a silent glyph (an FVS, the silent half of
     /// an idle MVS, …).
     pub units: &'static [WrittenUnit],
-    /// The position of the written form the glyph draws; `None` for a control or a sign.
+    /// The position of the written form the glyph draws; `None` for a control.
     pub form: Option<Position>,
     /// The joining position the glyph serves. Differs from `form` where a position borrows
     /// another's form — an isolated `N` is drawn with `N:init`, so `form` is `Init` and
@@ -174,24 +147,22 @@ pub struct ShapedGlyph {
     pub skipped: bool,
 }
 
-/// Shapes with the bundled mongfontbuilder font through HarfBuzz rules — the font backend of
-/// the crate (Cargo feature `font`), an alternative to the rule engine [`Shaper`](crate::Shaper).
+/// Shapes Hudum with the bundled mongfontbuilder font through HarfBuzz rules — the font backend
+/// of the crate (Cargo feature `font`), an alternative to the rule engine
+/// [`Shaper`](crate::Shaper).
 ///
-/// harfrust (the Rust port of HarfBuzz) runs the unified font that mongfontbuilder — the
-/// reference implementation of UTN #57 — composes: every writing system of the Mongolian
-/// block in one font, with the OpenType rules the composer generates. The crate reads the
-/// written units off the glyphs the font chose. The font is bundled without its outlines
-/// (`fonts/unified.otf`, 69 KB: GSUB, GDEF, cmap and the sfnt skeleton), and the glyph →
-/// written-unit table is generated from its glyph names.
+/// harfrust (the Rust port of HarfBuzz) runs the Hudum font that mongfontbuilder — the
+/// reference implementation of UTN #57 — composes, with the OpenType rules the composer
+/// generates. The crate reads the written units off the glyphs the font chose. The font is
+/// bundled without its outlines (`fonts/hudum.otf`, 30 KB: GSUB, GDEF, cmap and the sfnt
+/// skeleton), and the glyph → written-unit table is generated from its glyph names.
 ///
 /// Compared with the rule engine:
 /// * the rules are the font's, at the mongfontbuilder commit `fonts/mongfontbuilder.json`
 ///   pins — not a port. Where the two disagree, this is what the font draws;
-/// * every writing system the font writes is available — Hudum, Todo, Sibe and Manchu through
-///   [`Locale`], which selects the writing system's own letterforms, and their Ali Gali
-///   extensions under the same locales (the font declares no language system of their own);
 /// * there is no `trace` or `shape_detailed`: the font's lookups are not the crate's rules.
 ///   The glyph-level view is [`FontShaper::shape_glyphs`];
+/// * there is no `normalize`: the normalizer is built on the rule engine;
 /// * it costs harfrust and its crates, Rust 1.85, and a few microseconds per word.
 ///
 /// # Output contract
@@ -206,49 +177,45 @@ pub struct ShapedGlyph {
 /// * an MVS that separates nothing is drawn as a space plus a silent glyph: one `Mvs`. An
 ///   NNBSP is an `Mvs`, as in the rule engine;
 /// * a ZWJ between two letters the font ligates comes out of HarfBuzz after the ligature.
-///   [`FontShaper::shape_raw`] keeps it there; `shape` drops it (see [`ShapedGlyph::skipped`]);
-/// * the Ali Gali signs U+1880–U+1886 and U+18A9 are units of their own (`Anusvara`, `Visarga`,
-///   `Damaru`, `Ubadama`, `Invubadama`, `Baluda`, `Tribaluda`, `Dagalga`), and the dotted
-///   circle HarfBuzz draws under a lone sign is not reported;
-/// * U+1807 SIBE SYLLABLE BOUNDARY MARKER is accepted as a letter, as the Sibe and Manchu
-///   rules treat it.
+///   [`FontShaper::shape_raw`] keeps it there; `shape` drops it (see [`ShapedGlyph::skipped`]).
 ///
 /// # Errors
 ///
 /// [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS, NNBSP, nirugu and
-/// ZWJ (the rule engine's rule, plus U+1807); [`Error::UnsupportedChar`] on a character the
-/// font has no written form for — an unassigned code point of the block, or a letter at a
-/// position the font draws no form of (U+1878 and U+1898 have no isolated form). The rule
-/// engine shapes those to nothing; the font would draw its `.notdef` box or the bare nominal
-/// glyph, so this backend refuses them instead.
+/// ZWJ — the rule engine's rule; [`Error::UnsupportedChar`] on a character of the block the
+/// font has no glyph for: a letter of another writing system (Todo, Sibe, Manchu, Ali Gali),
+/// an Ali Gali sign, an unassigned code point. The rule engine shapes those to nothing; the
+/// font would draw its `.notdef` box, so this backend refuses them instead.
 ///
 /// # Example
 ///
 /// ```
 /// use mongol_norm::{FontShaper, Locale, Shaper};
 ///
-/// let font = FontShaper::new(Locale::Mng);
+/// let font = FontShaper::new();
 /// let rules = Shaper::new(Locale::Mng);
 /// assert_eq!(font.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
 /// assert_eq!(font.shape("ᠰᠠᠢᠨ")?, rules.shape("ᠰᠠᠢᠨ")?);
-///
-/// // Sibe draws the final m with its own tail (`M3`), under the SIB language system.
-/// assert_eq!(FontShaper::new(Locale::Sib).shape_str("ᠠᠮ")?, "A+A+M3");
 /// # Ok::<(), mongol_norm::Error>(())
 /// ```
 pub struct FontShaper {
-    locale: Locale,
     language: Language,
     plan: ShapePlan,
 }
 
+impl Default for FontShaper {
+    fn default() -> FontShaper {
+        FontShaper::new()
+    }
+}
+
 impl FontShaper {
-    /// A shaper for `locale`, over the bundled font.
+    /// A shaper over the bundled font.
     ///
-    /// The font is parsed once per process and shared; a shaper holds the shape plan of its
-    /// locale, so it is cheap to keep and shapes without further setup.
-    pub fn new(locale: Locale) -> FontShaper {
-        let language = language(locale);
+    /// The font is parsed once per process and shared; a shaper holds its shape plan, so it is
+    /// cheap to keep and shapes without further setup.
+    pub fn new() -> FontShaper {
+        let language = language();
         let plan = ShapePlan::new(
             font(),
             Direction::LeftToRight,
@@ -256,16 +223,7 @@ impl FontShaper {
             Some(&language),
             &[],
         );
-        FontShaper {
-            locale,
-            language,
-            plan,
-        }
-    }
-
-    /// The locale this shaper selects the font's letterforms for.
-    pub fn locale(&self) -> Locale {
-        self.locale
+        FontShaper { language, plan }
     }
 
     /// Shape `text` into its written-unit sequence, on the same contract as
@@ -278,10 +236,7 @@ impl FontShaper {
             .filter(|glyph| !glyph.skipped)
             .flat_map(|glyph| glyph.units.iter().copied())
             .collect();
-        Ok(collapse(&drop_redundant_zwj(
-            &raw,
-            self.locale == Locale::Mng,
-        )))
+        Ok(collapse(&drop_redundant_zwj(&raw, true)))
     }
 
     /// The written units of the glyphs the font chose, in glyph order, before the shared
@@ -323,10 +278,8 @@ impl FontShaper {
     }
 
     fn run(&self, text: &str) -> Result<Vec<ShapedGlyph>, Error> {
+        check_word_chars(text)?;
         let chars: Vec<char> = text.chars().collect();
-        if let Some((index, &ch)) = chars.iter().enumerate().find(|(_, c)| !is_word_char(**c)) {
-            return Err(Error::NonMongolianChar { ch, index });
-        }
 
         let mut buffer = Buffer::new();
         // One cluster per character, never merged: the cluster of a glyph is the index of the
@@ -402,7 +355,7 @@ fn span_end(chars: &[char], start: usize, letters: u8) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generated::font_unified::GLYPH_COUNT;
+    use crate::generated::font_hudum::GLYPH_COUNT;
 
     #[test]
     fn the_table_covers_the_font() {

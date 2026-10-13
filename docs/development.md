@@ -16,13 +16,13 @@ mongol-norm/
 │   ├── font.rs         FontShaper — the font backend (feature `font`: harfrust + fonts/)
 │   ├── cli.rs          the mongol-norm command (src/bin/mongol-norm.rs is a shim)
 │   └── generated/      tables generated from the JSON — never hand-edited
-│                       (font_unified.rs: the font's glyph table, from fonts/unified.glyphs.txt)
-├── fonts/              the font backend's shaping font: unified.otf (mongfontbuilder's unified
-│                       font, outlines removed), unified.glyphs.txt, mongfontbuilder.json (the
+│                       (font_hudum.rs: the font's glyph table, from fonts/hudum.glyphs.txt)
+├── fonts/              the font backend's shaping font: hudum.otf (mongfontbuilder's Hudum
+│                       font, outlines removed), hudum.glyphs.txt, mongfontbuilder.json (the
 │                       pinned upstream commit + checksums), NOTICE.txt, OFL.txt
 ├── tests/              the crate's integration tests and the shared fixtures
 │   ├── data/           core-hud.tsv, eac-hud.tsv — vendored from mongfontbuilder
-│   │   └── mongfontbuilder/  every upstream suite + aliases.json, at the pinned commit
+│   │   └── mongfontbuilder/  core-hudum.tsv, eac-hudum.tsv at the pinned commit
 │   │                   (the font backend's fixtures: tests/font_*.rs)
 │   └── golden/         mng-canonical-v1.jsonl, mng-phase-trace-v1.json
 ├── README.md           the GitHub landing page, the crates.io README, and a doctest
@@ -56,8 +56,8 @@ Rust, from the repository root:
 
 ```bash
 cargo test --workspace --locked   # 256 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
-cargo test -p mongol-norm --features font --locked   # + the font backend (Rust 1.85): 8 upstream suites,
-                                                     #   font-vs-engine, its own contract, fuzz
+cargo test -p mongol-norm --features font --locked   # + the font backend (Rust 1.85): the upstream Hudum
+                                                     #   suites, font-vs-engine, its own contract, fuzz
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all --check
 cargo package -p mongol-norm      # what crates.io would receive (fonts/ included)
@@ -98,14 +98,14 @@ mongfontbuilder — nothing of mongfontbuilder is distributed, only the stripped
 
 ```bash
 python3 python/scripts/gen_font_shaper.py --commit <full SHA>   # clone, build, strip, regenerate
-python3 python/scripts/gen_rust_tables.py                        # the font's units join WrittenUnit
 cargo test -p mongol-norm --features font
 ```
 
-It rewrites `fonts/`, `src/generated/font_unified.rs` and `tests/data/mongfontbuilder/`. Review the
-diff of `fonts/unified.glyphs.txt` (new or renamed written units) and of the suites, then update
-the expected-failure list in `tests/font_suites.rs` and the pinned disagreements in
-`tests/font_vs_engine.rs` where the run tells you to.
+It rewrites `fonts/`, `src/generated/font_hudum.rs` and `tests/data/mongfontbuilder/`, and refuses a
+font that shows a written unit the rule data (`MNG.json`) does not have. Review the diff of
+`fonts/hudum.glyphs.txt` and of the suites, then update the expected-failure list in
+`tests/font_suites.rs` and the pinned disagreements in `tests/font_vs_engine.rs` where the run
+tells you to.
 
 Current totals: **256 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
 1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest) and **253 Python

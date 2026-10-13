@@ -109,17 +109,15 @@ Full API on [docs.rs](https://docs.rs/mongol-norm).
 
 **Font backend** (`features = ["font"]`, Rust 1.85): the same `shape`, but computed by
 [harfrust](https://github.com/harfbuzz/harfrust) (the Rust port of HarfBuzz) running the
-unified font mongfontbuilder composes — every writing system of the block, bundled without its
-outlines (69 KB) — instead of the ported rules. What the reference font draws, for Hudum, Todo,
-Sibe, Manchu and their Ali Gali extensions:
+Hudum font mongfontbuilder composes, bundled without its outlines (30 KB), instead of the
+ported rules — what the reference font draws:
 
 ```rust
 # #[cfg(feature = "font")] {
-use mongol_norm::{FontShaper, Locale};
+use mongol_norm::FontShaper;
 
-let font = FontShaper::new(Locale::Mng);
+let font = FontShaper::new();
 assert_eq!(font.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
-assert_eq!(FontShaper::new(Locale::Sib).shape_str("ᠠᠮ")?, "A+A+M3");
 # }
 # Ok::<(), mongol_norm::Error>(())
 ```
@@ -164,9 +162,9 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
   guessed; `normalize_allow_fallback` (Python: `strict=False`) returns it unchanged instead.
 - Shaping passes 100% of mongfontbuilder's `core-hud` and GB/T 25914-2023 `eac-hud` suites;
   normalization round-trips every corpus word (`shape(normalize(x)) == shape(x)`). The font
-  backend passes every mongfontbuilder suite of the commit it is pinned to (Hudum, Todo, Sibe,
-  Manchu and their Ali Gali extensions), with the same EAC rows mongfontbuilder itself marks
-  as expected failures.
+  backend passes the Hudum suites of the mongfontbuilder commit it is pinned to, with the EAC
+  rows mongfontbuilder itself marks as expected failures, and shapes every corpus word like the
+  rule engine but one (`XIM11-46`, one of those rows).
 - This project was written with [Claude Code](https://claude.ai/code); tests and core code were
   reviewed by hand. Please report problems as [issues](https://github.com/Satsrag/mongol-norm/issues).
 
@@ -313,8 +311,8 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
 - 整形 100% 通过 mongfontbuilder 的 `core-hud` 与 GB/T 25914-2023 `eac-hud` 测试集；规范化对全部语料词
   满足 `shape(normalize(x)) == shape(x)`。字体后端（Rust feature `font`，需要 Rust 1.85）用
   [harfrust](https://github.com/harfbuzz/harfrust)（HarfBuzz 的 Rust 移植）跑 mongfontbuilder 生成的
-  unified 字体（去掉轮廓，69 KB），结果就是参照字体画出来的写法，覆盖回鹘式、托忒、锡伯、满文及其阿礼嘎礼
-  扩展；通过所钉住的 mongfontbuilder 提交的全部测试集。`normalize` 始终用规则引擎。
+  回鹘式字体（去掉轮廓，30 KB），结果就是参照字体画出来的写法；通过所钉住的 mongfontbuilder 提交的回鹘式
+  测试集，全部语料词与规则引擎一致（仅 `XIM11-46` 一处不同，上游也标为预期失败）。`normalize` 始终用规则引擎。
 - 本项目用 [Claude Code](https://claude.ai/code) 编写，测试与核心代码经人工审核。遇到问题请提
   [issue](https://github.com/Satsrag/mongol-norm/issues)。
 

@@ -288,60 +288,12 @@ pub fn all_corpus_words() -> Vec<String> {
 
 // ── the font backend's fixtures (tests/data/mongfontbuilder/) ──────────────────────────────
 //
-// mongfontbuilder's conformance suites and the alias tables they are written in, vendored at
-// the upstream commit `fonts/mongfontbuilder.json` pins (python/scripts/gen_font_shaper.py).
+// mongfontbuilder's Hudum conformance suites, vendored at the upstream commit
+// `fonts/mongfontbuilder.json` pins (python/scripts/gen_font_shaper.py). They use the same
+// aliases as `core-hud.tsv` / `eac-hud.tsv`.
 
-/// The letter aliases of one locale, as mongfontbuilder's harness resolves them.
-pub struct FontAliases {
-    table: Vec<(String, char)>,
-}
-
-impl FontAliases {
-    /// The alias table of `locale` (`MNG`, `MNGx`, `TOD`, `TODx`, `SIB`, `MCH`, `MCHx`).
-    pub fn load(locale: &str) -> FontAliases {
-        let doc = json::Json::parse(&read_fixture("data/mongfontbuilder/aliases.json"));
-        let table = match doc.index(locale) {
-            json::Json::Object(fields) => fields
-                .iter()
-                .map(|(alias, cp)| {
-                    let cp = u32::from_str_radix(cp.as_str(), 16).expect("hex code point");
-                    (alias.clone(), char::from_u32(cp).expect("a scalar value"))
-                })
-                .collect(),
-            other => panic!("aliases.json[{locale}] is not an object: {other:?}"),
-        };
-        FontAliases { table }
-    }
-
-    pub fn char(&self, alias: &str) -> char {
-        self.table
-            .iter()
-            .find(|(name, _)| name == alias)
-            .map(|(_, c)| *c)
-            .unwrap_or_else(|| panic!("unknown alias {alias:?}"))
-    }
-
-    /// Every letter the table names (the controls included).
-    pub fn chars(&self) -> Vec<char> {
-        self.table.iter().map(|(_, c)| *c).collect()
-    }
-
-    /// The words of a `space`-separated alias row.
-    pub fn words(&self, aliases: &str) -> Vec<String> {
-        let mut words = vec![String::new()];
-        for token in aliases.split_whitespace() {
-            if token == "space" {
-                words.push(String::new());
-            } else {
-                words.last_mut().unwrap().push(self.char(token));
-            }
-        }
-        words
-    }
-}
-
-/// A suite's expected column in the crate's terms: `_` / `-` (the font's narrow and wide
-/// spaces) and `Nnbsp` are `Mvs`, `Ni` is `Nirugu`, the joining marks `<` / `>` and the
+/// A suite's expected column in the font backend's terms: `_` / `-` (the font's narrow and
+/// wide spaces) and `Nnbsp` are `Mvs`, `Ni` is `Nirugu`, the joining marks `<` / `>` and the
 /// placeholder of an invalid FVS (`Fvs1`…`Fvs4`) are not units the crate reports.
 pub fn normalize_font_expected(expected: &str) -> Vec<String> {
     expected
@@ -358,12 +310,11 @@ pub fn normalize_font_expected(expected: &str) -> Vec<String> {
 /// Shape each word of an alias row with `shape_word`, the words joined with `Mvs` (the
 /// suites write a `space` between words and expect the font's space glyph there).
 pub fn shape_font_row(
-    aliases: &FontAliases,
     row: &str,
     shape_word: impl Fn(&str) -> Vec<WrittenUnit>,
 ) -> Vec<WrittenUnit> {
     let mut out = Vec::new();
-    for (i, word) in aliases.words(row).iter().enumerate() {
+    for (i, word) in aliases_to_words(row).iter().enumerate() {
         if i > 0 {
             out.push(WrittenUnit::Mvs);
         }

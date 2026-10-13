@@ -1,18 +1,16 @@
-unified.otf
-===========
+hudum.otf
+=========
 
-The shaping font of mongol-norm's `font` feature: the unified font that
-mongfontbuilder (https://github.com/Kushim-Jiang/mongolian) composes for
-every writing system of the Mongolian block — Hudum, Todo, Sibe, Manchu and
-their Ali Gali extensions — built at the commit `mongfontbuilder.json` pins
-with
+The shaping font of mongol-norm's `font` feature: the Hudum font that
+mongfontbuilder (https://github.com/Kushim-Jiang/mongolian) composes, built at
+the commit `mongfontbuilder.json` pins with
 
-    cd mongfontbuilder && uv run python tests/build.py --only unified
+    cd mongfontbuilder && uv run python tests/build.py --only hudum
 
 and then stripped of everything that is not shaping: the outlines (CFF), the
 metrics, the names, GPOS and the debugging table are removed; GSUB, GDEF, cmap
 and the sfnt skeleton remain, advances are zeroed and `post` is cut to format
-3. The glyph names are kept beside it in `unified.glyphs.txt`, and
+3. The glyph names are kept beside it in `hudum.glyphs.txt`, and
 `python/scripts/gen_font_shaper.py` regenerates all of it. The checksums of
 the font as built and as bundled are in `mongfontbuilder.json`.
 
@@ -20,7 +18,7 @@ Nothing else of mongfontbuilder is distributed: the crate carries this font and
 a table that names the written units of its glyphs.
 
 The font is composed from mongfontbuilder's test source
-`mongfontbuilder/tests/fonts/unified.ufo`, whose drawings derive from Noto Sans
+`mongfontbuilder/tests/fonts/hudum.ufo`, whose drawings derive from Noto Sans
 Mongolian, and the source carries:
 
     Copyright 2023 The Noto Project Authors

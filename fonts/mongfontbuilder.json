@@ -3,26 +3,20 @@
   "commit": "c662fba7395d6abff735a91d861532c57e61feb0",
   "committed": "2026-10-13T13:57:35+08:00",
   "mongfontbuilder_version": "0.15.3",
-  "build": "cd mongfontbuilder && uv run python tests/build.py --only unified",
+  "build": "cd mongfontbuilder && uv run python tests/build.py --only hudum",
   "source": {
-    "path": "mongfontbuilder/temp/unified.otf",
-    "sha256": "6624dfed07c1b9cec695638f4299cf390140cc5afcc64f8ffa06d85f1dee37ae",
-    "bytes": 650896
+    "path": "mongfontbuilder/temp/hudum.otf",
+    "sha256": "cd07f6b352225729fcea16080a482a07f50b22d678f0f428e1ecfccd1c069e14",
+    "bytes": 191196
   },
   "font": {
-    "path": "fonts/unified.otf",
-    "sha256": "b5709aed7fb52a01548b98bc7f435ea02c1fdafbb262eebddc237cfe0d8788f1",
-    "bytes": 68632,
-    "glyphs": 3402
+    "path": "fonts/hudum.otf",
+    "sha256": "c8d7fc12283571d2c736772f3b78d578c0c4f39080e897dc2414b9381aab7cf3",
+    "bytes": 30288,
+    "glyphs": 976
   },
   "suites": [
-    "core-hudum-ali-gali.tsv",
     "core-hudum.tsv",
-    "core-manchu-ali-gali.tsv",
-    "core-manchu.tsv",
-    "core-sibe.tsv",
-    "core-todo-ali-gali.tsv",
-    "core-todo.tsv",
     "eac-hudum.tsv"
   ]
 }

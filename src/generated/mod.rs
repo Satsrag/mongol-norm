@@ -6,6 +6,6 @@ pub mod mng;
 pub mod mng_normalize;
 pub mod sib;
 pub mod tod;
-// font_unified.rs is written by python/scripts/gen_font_shaper.py.
+// font_hudum.rs is written by python/scripts/gen_font_shaper.py.
 #[cfg(feature = "font")]
-pub(crate) mod font_unified;
+pub(crate) mod font_hudum;

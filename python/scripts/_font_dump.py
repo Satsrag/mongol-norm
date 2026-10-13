@@ -5,33 +5,24 @@ The half of `gen_font_shaper.py` that runs inside a mongfontbuilder checkout's e
 
     uv run python <this file> SOURCE_OTF OUT_DIR
 
-It needs fontTools and the `mongfontbuilder` package, which that environment has and this
-repository's tooling does not — `gen_font_shaper.py` runs it with `uv run` from the checkout.
-It writes into OUT_DIR:
+It needs fontTools, which that environment has and this repository's tooling does not —
+`gen_font_shaper.py` runs it with `uv run` from the checkout. It writes into OUT_DIR:
 
-  unified.otf          SOURCE_OTF with everything that is not shaping removed: the outlines
-                       (CFF), the metrics and names, GPOS and the debugging table go; GSUB,
-                       GDEF, cmap and the sfnt skeleton stay. Advances are zeroed and `post`
-                       is cut to format 3 (no glyph names; `unified.glyphs.txt` has them).
-  unified.glyphs.txt   the glyph order, one name per line
-  aliases.json         {locale: {alias: "XXXX"}} — the letter aliases the test suites are
-                       written in, per locale, as the upstream harness resolves them
-  suites/*.tsv         mongfontbuilder's conformance suites, copied verbatim
+  hudum.otf          SOURCE_OTF with everything that is not shaping removed: the outlines (CFF),
+                     the metrics and names, GPOS and the debugging table go; GSUB, GDEF, cmap and
+                     the sfnt skeleton stay. Advances are zeroed and `post` is cut to format 3
+                     (no glyph names; `hudum.glyphs.txt` has them).
+  hudum.glyphs.txt   the glyph order, one name per line
 
 and prints a JSON object with the checksums and counts the pin file records.
 """
 import hashlib
 import json
-import shutil
 import sys
-import unicodedata
+from importlib.metadata import version
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
-
-from mongfontbuilder import data
-from mongfontbuilder.testSuites import testSuitesDir
-from mongfontbuilder.utils import namespaceFromLocale
 
 DROP_TABLES = ("CFF ", "Debg", "GPOS", "VORG", "name", "OS/2", "vhea", "vmtx")
 
@@ -55,49 +46,21 @@ def strip(source, target):
     return order
 
 
-def aliases():
-    """{locale: {alias: "XXXX"}} for every locale, from mongfontbuilder's alias data."""
-    out = {}
-    for locale in data.locales:
-        namespace = namespaceFromLocale(locale)
-        table = {}
-        for char_name, alias in data.aliases.items():
-            if isinstance(alias, dict):
-                alias = alias.get(namespace)
-                if alias is None:
-                    continue
-            table[alias] = "{:04X}".format(ord(unicodedata.lookup(char_name)))
-        out[locale] = dict(sorted(table.items()))
-    return out
-
-
 def main():
     source = Path(sys.argv[1])
     out = Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
 
-    order = strip(source, out / "unified.otf")
-    (out / "unified.glyphs.txt").write_text("\n".join(order) + "\n", encoding="utf-8")
-    (out / "aliases.json").write_text(
-        json.dumps(aliases(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    suites = out / "suites"
-    suites.mkdir(exist_ok=True)
-    names = []
-    for entry in sorted(Path(str(testSuitesDir)).glob("*.tsv")):
-        shutil.copyfile(entry, suites / entry.name)
-        names.append(entry.name)
-
-    from importlib.metadata import version
+    order = strip(source, out / "hudum.otf")
+    (out / "hudum.glyphs.txt").write_text("\n".join(order) + "\n", encoding="utf-8")
 
     print(json.dumps({
         "mongfontbuilder_version": version("mongfontbuilder"),
         "source_sha256": sha256(source),
         "source_bytes": source.stat().st_size,
-        "font_sha256": sha256(out / "unified.otf"),
-        "font_bytes": (out / "unified.otf").stat().st_size,
+        "font_sha256": sha256(out / "hudum.otf"),
+        "font_bytes": (out / "hudum.otf").stat().st_size,
         "glyphs": len(order),
-        "suites": names,
     }))
     return 0
 

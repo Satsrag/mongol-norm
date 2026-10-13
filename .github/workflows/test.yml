@@ -91,7 +91,7 @@ jobs:
       - name: Generated artifacts are fresh
         # The bundled normalize table, the Rust tables and the compat goldens are
         # generated from python/mongol_norm/data/*.json, and the font backend's glyph
-        # table from fonts/unified.glyphs.txt; each script's --check fails when the
+        # table from fonts/hudum.glyphs.txt; each script's --check fails when the
         # committed file differs from what it would generate now. The scripts locate
         # the repository from their own path; run them from the root.
         run: |
