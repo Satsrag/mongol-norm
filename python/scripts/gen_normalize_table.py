@@ -97,9 +97,7 @@ class LocaleData:
 
     def __init__(self, locale):
         self.rules = load_rules(locale)
-        # Alias: cp ↔ alias string for this locale (aliases are locale-dependent
-        # because the same codepoint may represent different phonemes in MNG vs
-        # TOD vs SIB). / 别名是区域相关的。
+        # Alias: cp ↔ alias string for this locale. / 字母别名。
         self.cp_to_alias = {}
         self.alias_to_cp = {}
         for letter in self.rules["letters"]:

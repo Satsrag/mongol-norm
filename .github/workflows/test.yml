@@ -90,13 +90,15 @@ jobs:
 
       - name: Generated artifacts are fresh
         # The bundled normalize table, the Rust tables and the compat goldens are
-        # generated from python/mongol_norm/data/*.json; each script's --check fails
-        # when the committed file differs from what it would generate now. The
-        # scripts locate the repository from their own path; run them from the root.
+        # generated from python/mongol_norm/data/*.json, and the font backend's glyph
+        # table from fonts/hudum.glyphs.txt; each script's --check fails when the
+        # committed file differs from what it would generate now. The scripts locate
+        # the repository from their own path; run them from the root.
         run: |
           python python/scripts/gen_rust_tables.py --check
           python python/scripts/gen_normalize_table.py --check
           python python/scripts/gen_compat_goldens.py --check
+          python python/scripts/gen_font_shaper.py --check
 
   rust:
     name: Rust
@@ -131,14 +133,20 @@ jobs:
       # The remaining steps are core-crate only (-p mongol-norm): the binding crate
       # needs Rust 1.83 and a Python interpreter, has no wasm32 story and is not
       # published to crates.io.
-      - name: Build the core library for wasm32-unknown-unknown
-        run: cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked
+      - name: Test the font backend (feature `font`; needs Rust 1.85)
+        run: cargo test -p mongol-norm --features font --locked
+
+      - name: Build the core library for wasm32-unknown-unknown (with and without the font backend)
+        run: |
+          cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked
+          cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --features font --locked
 
       - name: Rustdoc (broken intra-doc links are errors)
-        run: cargo doc -p mongol-norm --no-deps --locked
+        run: cargo doc -p mongol-norm --no-deps --all-features --locked
         env:
           RUSTDOCFLAGS: -D warnings
 
+      # Without the font feature: harfrust needs 1.85, the default build keeps 1.82.
       - name: Test the core crate on its MSRV (1.82.0)
         run: |
           rustup toolchain install 1.82.0 --profile minimal

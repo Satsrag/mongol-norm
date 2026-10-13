@@ -396,12 +396,16 @@ fn test_shape_normalize_and_normalize_text_smoke() {
 
 #[test]
 fn test_locale_option_help_and_version() {
-    let tod = run(&["--locale", "TOD", "shape", "\u{1820}"], None);
-    assert_eq!(tod.code, 0, "{}", tod.stderr);
-    assert_clean_failure(
-        &run(&["--locale", "XX", "shape", "\u{1820}"], None),
-        "unknown locale",
-    );
+    let mng = run(&["--locale", "MNG", "shape", "\u{1820}"], None);
+    assert_eq!(mng.code, 0, "{}", mng.stderr);
+    assert_eq!(mng.stdout, run(&["shape", "\u{1820}"], None).stdout);
+    // Hudum is the only locale: the others are unknown names now.
+    for gone in ["TOD", "SIB", "MCH", "XX"] {
+        assert_clean_failure(
+            &run(&["--locale", gone, "shape", "\u{1820}"], None),
+            "unknown locale",
+        );
+    }
     let help = run(&["--help"], None);
     assert_eq!(help.code, 0);
     assert!(help.stdout.contains("normalize-written-units"));
@@ -414,8 +418,8 @@ fn test_locale_option_help_and_version() {
 
 #[test]
 fn test_locale_equals_form_and_short_version_flag() {
-    let equals = run(&["--locale=TOD", "shape", "\u{1820}"], None);
-    let spaced = run(&["--locale", "TOD", "shape", "\u{1820}"], None);
+    let equals = run(&["--locale=MNG", "shape", "\u{1820}"], None);
+    let spaced = run(&["--locale", "MNG", "shape", "\u{1820}"], None);
     assert_eq!(equals.code, 0, "{}", equals.stderr);
     assert_eq!(equals.stdout, spaced.stdout);
     assert_clean_failure(

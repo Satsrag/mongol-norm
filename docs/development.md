@@ -13,10 +13,17 @@ mongol-norm/
 │   ├── shaper.rs       variant resolution: shape / same_shape / shape_detailed / trace
 │   ├── normalize.rs    the canonical normalizer
 │   ├── written_units.rs  the written-unit and positioned-written-unit encoders
+│   ├── font.rs         FontShaper — the font backend (feature `font`: harfrust + fonts/)
 │   ├── cli.rs          the mongol-norm command (src/bin/mongol-norm.rs is a shim)
 │   └── generated/      tables generated from the JSON — never hand-edited
+│                       (font_hudum.rs: the font's glyph table, from fonts/hudum.glyphs.txt)
+├── fonts/              the font backend's shaping font: hudum.otf (mongfontbuilder's Hudum
+│                       font, outlines removed), hudum.glyphs.txt, mongfontbuilder.json (the
+│                       pinned upstream commit + checksums), NOTICE.txt, OFL.txt
 ├── tests/              the crate's integration tests and the shared fixtures
 │   ├── data/           core-hud.tsv, eac-hud.tsv — vendored from mongfontbuilder
+│   │   └── mongfontbuilder/  core-hudum.tsv, eac-hudum.tsv at the pinned commit
+│   │                   (the font backend's fixtures: tests/font_*.rs)
 │   └── golden/         mng-canonical-v1.jsonl, mng-phase-trace-v1.json
 ├── README.md           the GitHub landing page, the crates.io README, and a doctest
 ├── LICENSE  NOTICE     the crate's own licence files
@@ -35,6 +42,7 @@ mongol-norm/
     │   └── data/       the shaping + normalize JSON: input of the table generator,
     │                   shipped in the wheel for tooling
     ├── scripts/        gen_rust_tables.py, gen_normalize_table.py, gen_compat_goldens.py,
+    │                   gen_font_shaper.py (+ _font_glyphs.py, _font_dump.py),
     │                   preprocess.py, check_dist_metadata.py
     └── tests/          the Python suite; reads the fixtures from ../../tests/{data,golden}
 ```
@@ -47,10 +55,12 @@ The browser playground has separate build prerequisites and browser tests; see
 Rust, from the repository root:
 
 ```bash
-cargo test --workspace --locked   # 256 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
+cargo test --workspace --locked   # 301 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
+cargo test -p mongol-norm --features font --locked   # + the font backend (Rust 1.85): the upstream Hudum
+                                                     #   suites, font-vs-engine, its own contract, fuzz
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all --check
-cargo package -p mongol-norm      # what crates.io would receive
+cargo package -p mongol-norm      # what crates.io would receive (fonts/ included)
 ```
 
 Python, from `python/` — the suite drives the compiled extension, so build it into a virtualenv
@@ -63,7 +73,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install 'maturin>=1.15,<2'
 maturin develop --locked --features testing        # builds mongol_norm/_native
 
-python -m unittest discover -s tests -p 'test_*.py'   # 253 tests
+python -m unittest discover -s tests -p 'test_*.py'   # 278 tests
 python -m unittest tests.test_shaper -v               # shape / same_shape / normalize
 python -m unittest tests.test_round_trip              # round-trip + canonicity + prefix-stability
 python -m unittest tests.test_core_hud tests.test_eac_hud   # the upstream TSV suites
@@ -71,15 +81,33 @@ python -m unittest tests.test_rust_twin               # tables fresh, versions i
 ```
 
 The generators are run from the repository root; each `--check` fails when the committed output
-differs from what it would generate now (all three run in CI):
+differs from what it would generate now (all four run in CI):
 
 ```bash
 python python/scripts/gen_rust_tables.py --check
 python python/scripts/gen_normalize_table.py --check
 python python/scripts/gen_compat_goldens.py --check
+python python/scripts/gen_font_shaper.py --check
 ```
 
-Current totals: **256 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
-1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest) and **253 Python
-tests**, green on Rust stable / 1.82 (the core crate's MSRV; the binding crate needs 1.83) and
-CPython 3.9 – 3.14.
+### Updating the bundled shaping font
+
+The font backend tracks one upstream commit, pinned in `fonts/mongfontbuilder.json`. To move it
+(needs `git`, `uv` and network access; the checkout's own environment supplies fontTools and
+mongfontbuilder — nothing of mongfontbuilder is distributed, only the stripped font):
+
+```bash
+python3 python/scripts/gen_font_shaper.py --commit <full SHA>   # clone, build, strip, regenerate
+cargo test -p mongol-norm --features font
+```
+
+It rewrites `fonts/`, `src/generated/font_hudum.rs` and `tests/data/mongfontbuilder/`, and refuses a
+font that shows a written unit the rule data (`MNG.json`) does not have. Review the diff of
+`fonts/hudum.glyphs.txt` and of the suites, then update the expected-failure list in
+`tests/font_suites.rs` and the pinned disagreements in `tests/font_vs_engine.rs` where the run
+tells you to.
+
+Current totals: **301 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
+1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest; the `font` feature
+adds 18) and **278 Python tests**, green on Rust stable / 1.82 (the core crate's MSRV; the binding
+crate needs 1.83, the `font` feature 1.85) and CPython 3.9 – 3.14.

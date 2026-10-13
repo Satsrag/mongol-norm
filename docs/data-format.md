@@ -19,15 +19,12 @@ The rules are derived from:
 ```
 python/mongol_norm/data/
 ├── MNG.json            — Hudum (Traditional Mongolian) shape rules
-├── MNG.normalize.json  — Hudum normalize table (see below)
-├── TOD.json            — Todo
-├── SIB.json            — Sibe
-└── MCH.json            — Manchu
+└── MNG.normalize.json  — Hudum normalize table (see below)
 ```
 
-Each `<LOCALE>.json` is self-contained: one JSON document with every piece of data needed to shape that locale. A `<LOCALE>.normalize.json` (currently `MNG` only) additionally supports *normalization* — see [Normalize table](#normalize-table-mngnormalizejson).
+Hudum (`MNG`) is the only locale. `MNG.json` is self-contained: one JSON document with every piece of data needed to shape it. `MNG.normalize.json` additionally supports *normalization* — see [Normalize table](#normalize-table-mngnormalizejson).
 
-Size: shape rules 45–60 KB each; the normalize table ~16 KB.
+Size: shape rules ~94 KB; the normalize table ~21 KB.
 
 ## Getting the JSON
 
@@ -124,7 +121,7 @@ empty or contain surrounding whitespace.
 The Rust crate at the repository root ([`src/`](../src/)) — the engine the Python
 package runs — does not read the JSON at runtime. `python/scripts/gen_rust_tables.py` turns these
 files into static Rust tables (`src/generated/*.rs`: the `WrittenUnit` /
-`Condition` / `Alias` enums, the per-locale shaping tables and the MNG normalize table), and
+`Condition` / `Alias` enums, the Hudum shaping tables and the MNG normalize table), and
 `python/tests/test_rust_twin.py` fails the Python suite whenever the committed tables are stale:
 
 ```sh
@@ -161,7 +158,7 @@ Bundle the file with your package. Parse with any JSON library.
 | field | type | meaning |
 |---|---|---|
 | `schema_version` | int | Increments on incompatible schema changes. Current: `1`. |
-| `locale` | string | One of `MNG`, `TOD`, `SIB`, `MCH`. |
+| `locale` | string | `MNG`. |
 | `generated_from` | object | Provenance — which mongfontbuilder version produced this file. |
 | `letters` | array | Per-letter data (see below). |
 | `categories` | object | Phonological categories for vowel-harmony and consonant logic. |
@@ -206,7 +203,7 @@ Bundle the file with your package. Parse with any JSON library.
 | `position` | string | One of `isol`, `init`, `medi`, `fina`. |
 | `fvs` | int | `0` = no FVS; `1..4` = FVS1..FVS4 (Unicode U+180B, U+180C, U+180D, U+180F). |
 | `written` | array of string | The sequence of **written units** this variant renders to. Written units are opaque identifiers for glyph atoms (e.g. `"A"`, `"Aa"`, `"Bg"`, `"Ix"`). Your shaper does not need to interpret them — they're compared/concatenated as strings. |
-| `positioned_written` | array of record\|missing | For MNG normalization, the same resolved units with their authoritative HUD positions preserved. References retain the referenced position, so FA `isol` has `[{"unit":"F","position":"init"}]`, not a fabricated `F:isol`. Other locales currently omit this normalization-only field. |
+| `positioned_written` | array of record\|missing | For MNG normalization, the same resolved units with their authoritative HUD positions preserved. References retain the referenced position, so FA `isol` has `[{"unit":"F","position":"init"}]`, not a fabricated `F:isol`. |
 | `default` | bool | `true` if this is the variant used when no FVS/condition applies. Exactly one default per `(cp, position)`. |
 | `conditions` | array of string | Named shaping conditions that select this variant. See [Conditions](#conditions) below. |
 | `archaic` | bool | Variant is archaic per UTN #57. Skip when computing the reverse map (normalizer). |
@@ -264,8 +261,6 @@ particle              — set by step 3 from particle dictionary
 post_bowed            — vowel after a bowed consonant (G, B, K, P, F)
 ```
 
-Other locales may expose a different subset.
-
 ---
 
 ## Algorithm
@@ -306,7 +301,7 @@ The reference implementation builds them in two steps: `python/scripts/gen_rust_
 
 ## Normalize table (`MNG.normalize.json`)
 
-Alongside the shape rules, `python/mongol_norm/data/` ships a **normalize table** for locales that support normalization (currently `MNG`). Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
+Alongside the shape rules, `python/mongol_norm/data/` ships a **normalize table**. Where the shape rules drive *letter → glyph*, this table drives the reverse used by canonicalization: *written-unit → the one `(letter, FVS)` that renders it independent of context*.
 
 It exists so other languages can implement mongol-norm's `normalize` for covered written-unit chains (same supported shape → same Unicode) with **only a JSON parser** — no shaping engine, no search. mongol-norm's own engine consumes this exact file too, compiled into `src/generated/mng_normalize.rs` by `python/scripts/gen_rust_tables.py`. An uncovered chain is outside this table contract; the Python API raises `NormalizationFallbackError` by default and preserves the input only when called explicitly with `strict=False` (the Rust API: `Error::NormalizationFallback`, or `normalize_allow_fallback`).
 
@@ -402,8 +397,7 @@ Shape rules (when bumping `mongfontbuilder`):
 
 ```sh
 pip install 'mongfontbuilder>=0.10.6'          # the [preprocess] extra
-python python/scripts/preprocess.py            # all locales
-python python/scripts/preprocess.py MNG TOD    # specific
+python python/scripts/preprocess.py
 ```
 
 The script reads `mongfontbuilder/lib/mongfontbuilder/data/*.json` directly (bypassing cattrs, which would strip the `unrecommended` field from `VariantLocaleData`). Output goes to `python/mongol_norm/data/`.
@@ -413,8 +407,7 @@ dependency, it drives the package's own shaper, i.e. the compiled engine, so reb
 extension first when the shaping rules changed):
 
 ```sh
-python python/scripts/gen_normalize_table.py        # all locales
-python python/scripts/gen_normalize_table.py MNG    # specific
+python python/scripts/gen_normalize_table.py
 ```
 
 Rust tables (after any JSON change — regenerate them, rebuild the extension with

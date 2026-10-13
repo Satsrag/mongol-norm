@@ -113,19 +113,13 @@ fn test_pascal_case_controls_reuse_structural_chain_encoding() {
 }
 
 #[test]
-fn test_rejects_unknown_unit_with_its_index() {
-    // `E` is a Todo written unit — unknown to the MNG normalize table.
-    let error = shaper()
-        .normalize_written_units(&[WrittenUnit::B, WrittenUnit::E])
-        .unwrap_err();
-    assert_eq!(
-        error,
-        Error::UnsupportedWrittenUnit {
-            index: 1,
-            unit: WrittenUnit::E
-        }
-    );
-    assert_eq!(error.to_string(), "written_units[1] is unknown: 'E'");
+fn test_the_table_knows_every_written_unit() {
+    // Hudum is the only locale, so every `WrittenUnit` is in the normalize table's vocabulary
+    // and `UnsupportedWrittenUnit` cannot come from real data (src/written_units.rs tests it
+    // on an empty table).
+    let mut all: Vec<WrittenUnit> = WrittenUnit::ALL.to_vec();
+    all.sort_by_key(|unit| unit.as_str());
+    assert_eq!(shaper().known_written_units().unwrap(), all);
 }
 
 #[test]
@@ -227,10 +221,10 @@ fn test_parse_written_units_forms() {
     }
 }
 
-/// A name may be a `WrittenUnit` variant and still be outside this locale's table (`E` is Todo).
-/// Python rejects the FIRST such name, so `parse_written_units` must test the table's vocabulary
-/// rather than the enum — otherwise the reported index drifts past it to a later offender.
-/// Differentially verified against `shaper.py::_parse_written_units` + `normalize_written_units`.
+/// Python rejects the FIRST name outside the table, so `parse_written_units` must report that
+/// index, not a later offender's (`E` — a Todo unit the crate no longer knows — and `Unknown`
+/// are both outside it). Differentially verified against `shaper.py::_parse_written_units` +
+/// `normalize_written_units`.
 #[test]
 fn test_parse_rejects_units_outside_this_locales_table_at_pythons_index() {
     let shaper = shaper();

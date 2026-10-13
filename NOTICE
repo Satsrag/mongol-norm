@@ -37,6 +37,30 @@ mongfontbuilder is distributed under the MIT License:
 
 Source: https://github.com/Kushim-Jiang/mongfontbuilder
 
+The `font` feature bundles the Hudum font mongfontbuilder composes
+(`fonts/hudum.otf`, outlines removed; `fonts/mongfontbuilder.json` pins the
+commit), with its OpenType Layout rules under the same MIT License.
+
+================================================================================
+Noto Sans Mongolian (the bundled shaping font's source)
+================================================================================
+
+`fonts/hudum.otf` is composed from mongfontbuilder's test source
+`tests/fonts/hudum.ufo`, whose drawings derive from Noto Sans Mongolian. The
+bundled font carries none of the drawings — only the layout tables — and keeps
+the source's licence:
+
+    Copyright 2023 The Noto Project Authors
+    (https://github.com/notofonts/mongolian)
+
+    This Font Software is licensed under the SIL Open Font License,
+    Version 1.1. This license is available with a FAQ at:
+    https://scripts.sil.org/OFL
+
+    Noto is a trademark of Google Inc.
+
+The licence text is in `fonts/OFL.txt`; `fonts/NOTICE.txt` describes the font.
+
 ================================================================================
 UTN #57 / Unicode
 ================================================================================

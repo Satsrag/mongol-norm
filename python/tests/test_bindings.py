@@ -23,10 +23,6 @@ from tests._support import empty_table_shaper, needs_testing_hook, run_cli
 
 SAIN = "ᠰᠠᠢᠨ"
 MONGGOL = "ᠮᠣᠩᠭᠣᠯ"
-_NO_TABLE_MESSAGE = (
-    "no bundled normalize table for locale 'TOD'; "
-    "generate it with scripts/gen_normalize_table.py"
-)
 
 
 class TestShapeDetailed(unittest.TestCase):
@@ -200,24 +196,15 @@ class TestErrorMapping(unittest.TestCase):
         self.assertEqual(raised.exception.text, SAIN)
         self.assertEqual(raised.exception.written_units, ("S", "A", "I", "I", "A"))
 
-    def test_locales_without_a_table_raise_runtime_error(self):
-        tod = MongolianShaper("TOD")
-        self.assertEqual(tod.locale, "TOD")
-        self.assertTrue(tod.shape("ᠠ"))  # shaping needs no table
-        with self.assertRaises(RuntimeError) as raised:
-            tod.canonical_version
-        self.assertEqual(str(raised.exception), _NO_TABLE_MESSAGE)
-        with self.assertRaises(RuntimeError) as raised:
-            tod.normalize_written_units(["A"])
-        self.assertEqual(str(raised.exception), _NO_TABLE_MESSAGE)
-        with self.assertRaises(RuntimeError) as raised:
-            tod.normalize("ᠠ")
-        self.assertEqual(str(raised.exception), _NO_TABLE_MESSAGE)
-
     def test_unknown_locale_is_a_value_error(self):
         with self.assertRaises(ValueError) as raised:
             MongolianShaper("XX")
         self.assertEqual(str(raised.exception), "unknown locale 'XX'")
+        # Hudum is the only locale: Todo, Sibe and Manchu are unknown names.
+        for gone in ("TOD", "SIB", "MCH"):
+            with self.assertRaises(ValueError) as raised:
+                MongolianShaper(gone)
+            self.assertEqual(str(raised.exception), "unknown locale '{}'".format(gone))
 
     def test_default_locale_is_mng(self):
         self.assertEqual(MongolianShaper().locale, "MNG")

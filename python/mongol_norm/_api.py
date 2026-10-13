@@ -361,7 +361,7 @@ class MongolianShaper:
         """
         return self._native.parse_written_units(text)
 
-    # ── Inventories (cached; RuntimeError for locales without a table) ──
+    # ── Inventories (cached) ──
 
     def _known_units(self):
         try:

@@ -60,8 +60,7 @@ a consonant's isolated form *is* its initial unit). `A`, `N`, `L`, `M`, `H` and 
 visibly between `init` and `medi` (crown, tooth count) and keep their word-initial ZWJ; every
 ordinary unit grows a tail at the end of a word and keeps its word-final ZWJ after another
 letter. "Lone" means the unit is the only letter of its segment — nothing, or an `Mvs`, on the far
-side; segments are split at MVS exactly as the position assignment splits them. The lists are
-Hudum data, so they apply to MNG only; the structural rows hold for every locale.
+side; segments are split at MVS exactly as the position assignment splits them.
 
 An MVS is a segment edge on both sides, and both sides behave like the word edge. The font gives
 the letter before an MVS its `fina` (or `isol`) form, so `ᠠᠣ‍᠎ᠠ` vs `ᠠᠣ᠋᠎ᠠ` is the very
@@ -74,7 +73,7 @@ ink, so the word-initial lists decide: `ᠠ᠎‍ᠶᠢᠨ` = `ᠠ᠎ᠶ᠌ᠢ�
 `ᠲᠠᠯ᠎‍ᠠ` keeps its `Zwj` (`A:fina` is not the suffix `a`). A ZWJ whose only neighbours are MVS
 or the word boundary joins nothing at all: on the reference font every such pair renders the
 same glyphs at the same positions, MVS included, so it is dropped like the other structural
-cases, in every locale.
+cases.
 
 The pass is a fixed point of left-to-right single removals: `Zwj B Zwj` first loses the leading
 joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one (`B:init` ≡ `B:isol`).
@@ -207,10 +206,53 @@ duplicate encodings changes canonical text: comparing current output against the
 merge into **1990** groups. Rebuild any stored normalized key. The context correction also
 invalidates pre-fix PR #26 output; this is not a new release or a claim that old test suites were rerun.
 
+## The font backend (feature `font`)
+
+`FontShaper` is a second implementation of `shape`, with the rules taken from the reference font
+instead of ported by hand. [harfrust](https://github.com/harfbuzz/harfrust) (the Rust port of
+HarfBuzz) runs the Hudum font that mongfontbuilder composes for its own tests, with the OpenType
+rules the composer generates, and the crate reads the written units off the glyphs the font chose:
+mongfontbuilder names every glyph after what it draws (`u182A_u1823.BO.init` = the ligature of b
+and o, written units `B O`, initial form), so the glyph order *is* the glyph → unit mapping. The
+font shows exactly the written units of the rule data — the generator refuses a font that brings
+another — so `WrittenUnit` needs nothing of its own for it.
+
+What ships: `fonts/hudum.otf`, the font stripped of its outlines, metrics, names and GPOS (GSUB,
+GDEF, cmap and the sfnt skeleton remain: 30 KB, 976 glyphs); `fonts/hudum.glyphs.txt`, its glyph
+order; and `src/generated/font_hudum.rs`, the mapping as a static table. Nothing of mongfontbuilder
+itself. `fonts/mongfontbuilder.json` pins the upstream commit the font was built at and the
+checksums; `python/scripts/gen_font_shaper.py` rebuilds all of it from a clone of that commit (see
+[`development.md`](development.md#updating-the-bundled-shaping-font)).
+
+Shaping a word: validate the characters as the rule engine does, push them into a HarfBuzz buffer
+one cluster per character, shape under the font's `MNG` language system, map each glyph through the
+table, then run the same two post-passes as the rule engine — the redundant-ZWJ filter and
+duplicate unification — so `FontShaper::shape` and `Shaper::shape` are comparable unit for unit. A
+character of the block the font has no glyph for (a letter of another writing system, an Ali Gali
+sign, an unassigned code point) is `Error::UnsupportedChar`, where the rule engine shapes it to
+nothing. The reading of the controls follows the rule engine: an FVS is never a
+unit (the font draws an invalid one as a visible placeholder; the standard's unit streams do not
+list it), an idle MVS (drawn as a space plus a silent glyph) is one `Mvs`, NNBSP is an `Mvs`, a
+nirugu is verbatim. The one HarfBuzz artefact to undo: a ZWJ between two letters the font ligates
+comes out after the ligature; it is recognised by its character index against the ligature's
+letters and dropped from the public shape, as the redundant-ZWJ pass drops any joiner between two
+joined letter units.
+
+The two backends disagree exactly where the font and the ported rules do. On every fixture word
+(the Hudum corpora and goldens) the only disagreement is `e n fvs3 mvs e` (EAC `XIM11-46`): the
+font draws the form the FVS3 selects, the EAC suite and the engine read the FVS3 as invalid —
+mongfontbuilder marks the row as an expected failure (`tests/font_vs_engine.rs` pins it). On
+random strings the backends part on about 0.7% of inputs, in edge rules the corpora do not reach
+(`FontShaper` is what the font draws there).
+
+Cost: harfrust and its crates (18), Rust 1.85, ~4.4 µs per word against ~0.8 µs for the rule
+engine (release, Apple silicon), and several hundred KB more wasm. The default build has none of
+it.
+
 ## Data and fixtures
 
 The shaping and normalize rules are flat, language-agnostic JSON in `python/mongol_norm/data/`
-(`MNG.json`, `TOD.json`, `SIB.json`, `MCH.json` and `MNG.normalize.json`). Nothing reads it at
+(`MNG.json` and `MNG.normalize.json` — Hudum is the only locale). Nothing reads it at
 runtime: `python/scripts/gen_rust_tables.py` compiles it into the static Rust tables in
 `src/generated/`, which is what both the crate and the wheel carry. The wheel still ships the JSON
 for tooling. The schema and the consuming algorithm are documented in
@@ -225,6 +267,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
 | `tests/golden/mng-canonical-v1.jsonl` | 1988 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
+| `tests/data/mongfontbuilder/*.tsv` | the font backend's suites: mongfontbuilder's `core-hudum` and `eac-hudum` at the pinned commit |
 
 Because the corpus and golden tests read that directory, `cargo test` needs a repository checkout —
 the published crate does not include the fixtures.

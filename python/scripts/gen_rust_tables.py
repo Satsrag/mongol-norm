@@ -6,10 +6,11 @@ Generate the static Rust data tables for the Rust core (the crate at the reposit
 Reads the language-agnostic JSON in `python/mongol_norm/data/` -- the same files the
 Python tooling (`mongol_norm._data`) loads -- and emits `src/generated/*.rs`:
 
-  enums.rs            WrittenUnit / Condition / Alias enums (union over all locales)
-  mng.rs tod.rs ...   per-locale shaping tables (letters, variants, categories, particles)
+  enums.rs            WrittenUnit / Condition / Alias enums
+  mng.rs              the Hudum shaping tables (letters, variants, categories, particles)
   mng_normalize.rs    the MNG normalize table
-  mod.rs              module declarations
+  mod.rs              module declarations (font_hudum.rs, which gen_font_shaper.py
+                      writes into the same directory, is declared under the `font` feature)
 
 The output is deterministic (no timestamps, stable ordering), so `--check`
 regenerates into memory and fails when any committed file differs.
@@ -31,8 +32,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "python" / "mongol_norm" / "data"
 OUT = ROOT / "src" / "generated"
+# Generated files in OUT that another generator owns: declared by mod.rs, not checked here.
+FOREIGN = {"font_hudum.rs": ('#[cfg(feature = "font")]', "python/scripts/gen_font_shaper.py")}
 
-LOCALES = ("MNG", "TOD", "SIB", "MCH")
+LOCALES = ("MNG",)
 NORMALIZE_LOCALES = ("MNG",)
 STRUCTURAL_UNITS = ("Mvs", "Nirugu", "Zwj")
 POSITIONS = ("isol", "init", "medi", "fina")
@@ -469,6 +472,9 @@ def render_mod(files):
     out = [HEADER, "\n"]
     for name in sorted(files):
         out.append("pub mod {};\n".format(name))
+    for name, (cfg, generator) in sorted(FOREIGN.items()):
+        out.append("// {} is written by {}.\n".format(name, generator))
+        out.append("{}\npub(crate) mod {};\n".format(cfg, name[:-3]))
     return "".join(out)
 
 
@@ -500,7 +506,7 @@ def main():
                 stale.append("stale:   " + path.relative_to(ROOT).as_posix())
         if OUT.exists():
             for path in sorted(OUT.glob("*.rs")):
-                if path.name not in files:
+                if path.name not in files and path.name not in FOREIGN:
                     stale.append("unexpected: " + path.relative_to(ROOT).as_posix())
         if stale:
             print("\n".join(stale))

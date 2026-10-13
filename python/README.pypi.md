@@ -69,7 +69,7 @@ shaper.canonical_version                    # → 'mng-canonical/3'
   `normalize_text` for sentences and mixed-script text.
 - A shape the built-in table cannot encode raises `NormalizationFallbackError` (a `ValueError`,
   with `.text` and `.written_units`). Pass `strict=False` to get the input back unchanged instead.
-- Locales: `"MNG"` (Hudum), `"TOD"`, `"SIB"`, `"MCH"`. Only `MNG` normalizes; the others shape only.
+- Locale: `"MNG"` (Hudum), the only one. Todo, Sibe and Manchu are not supported.
 
 Written-unit input, if you already have a shape:
 
@@ -158,6 +158,6 @@ shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ
 - `shape` / `normalize` 只处理**单个词**，遇到非蒙古文字符抛 `ValueError`；句子或混合文本用 `normalize_text`。
 - 内置表无法编码的 shape 抛 `NormalizationFallbackError`（`ValueError` 子类，带 `.text`、`.written_units`）；
   传 `strict=False` 则原样返回。
-- locale：`"MNG"`（回鹘式）、`"TOD"`、`"SIB"`、`"MCH"`，只有 `MNG` 支持规范化。
+- locale：只有 `"MNG"`（回鹘式），不支持托忒文、锡伯文、满文。
 
 书写单元输入、调试接口和命令行见上方英文部分，用法相同。

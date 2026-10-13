@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use crate::{Locale, UnitPosition, WrittenUnit};
+use crate::{UnitPosition, WrittenUnit};
 
 /// Everything that can go wrong in this crate.
 #[non_exhaustive]
@@ -17,6 +17,15 @@ pub enum Error {
         /// Its `char` index in the input.
         index: usize,
     },
+    /// `FontShaper::shape`: a character of the Mongolian block the bundled Hudum font has no
+    /// glyph for — a letter of another writing system, an Ali Gali sign, an unassigned code
+    /// point. `index` is a `char` index.
+    UnsupportedChar {
+        /// The offending character.
+        ch: char,
+        /// Its `char` index in the input.
+        index: usize,
+    },
     /// Strict normalization found no canonical encoding for the written-unit shape
     /// (Python `NormalizationFallbackError`).
     NormalizationFallback {
@@ -24,11 +33,6 @@ pub enum Error {
         text: String,
         /// Its shape, which the normalize table could not encode.
         written_units: Vec<WrittenUnit>,
-    },
-    /// The locale ships no normalize table (only `MNG` has one).
-    NormalizeUnsupported {
-        /// The shaper's locale.
-        locale: Locale,
     },
     /// `parse_written_units`: a name that is neither a unit known to the normalize table nor
     /// `Mvs`/`Nirugu`/`Zwj`.
@@ -102,6 +106,14 @@ impl fmt::Display for Error {
                 *ch as u32,
                 index
             ),
+            Error::UnsupportedChar { ch, index } => write!(
+                f,
+                "unsupported character '{}' (U+{:04X}) at index {}: the shaping font has no \
+                 written form for it",
+                ch.escape_debug(),
+                *ch as u32,
+                index
+            ),
             Error::NormalizationFallback { written_units, .. } => {
                 let names: Vec<&str> = written_units.iter().map(|u| u.as_str()).collect();
                 write!(
@@ -110,13 +122,6 @@ impl fmt::Display for Error {
                     names.join("+")
                 )
             }
-            // Python appends "; generate it with scripts/gen_normalize_table.py"; deliberately
-            // dropped here because the Rust tables are compiled in, not generated on demand.
-            Error::NormalizeUnsupported { locale } => write!(
-                f,
-                "no bundled normalize table for locale '{}'",
-                locale.as_str()
-            ),
             Error::UnknownWrittenUnit { index, unit } => {
                 // `unit` is arbitrary user text (Python renders it with `repr()`), so escape it —
                 // a control character must never reach a terminal raw. Printable ASCII, which
@@ -183,6 +188,26 @@ mod tests {
              Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script input use \
              normalize_text()."
         );
+        // An unassigned code point is not printable, so `escape_debug` spells it out (as
+        // Python's `repr` would, with its own `\u181a` spelling).
+        assert_eq!(
+            Error::UnsupportedChar {
+                ch: '\u{181A}',
+                index: 2
+            }
+            .to_string(),
+            "unsupported character '\\u{181a}' (U+181A) at index 2: the shaping font has no \
+             written form for it"
+        );
+        assert_eq!(
+            Error::UnsupportedChar {
+                ch: '\u{1878}',
+                index: 0
+            }
+            .to_string(),
+            "unsupported character '\u{1878}' (U+1878) at index 0: the shaping font has no written \
+             form for it"
+        );
         assert_eq!(
             Error::NormalizationFallback {
                 text: "t".into(),
@@ -196,13 +221,6 @@ mod tests {
             }
             .to_string(),
             "normalization fallback: no canonical encoding for written units S+A+I+I+A"
-        );
-        assert_eq!(
-            Error::NormalizeUnsupported {
-                locale: Locale::Tod
-            }
-            .to_string(),
-            "no bundled normalize table for locale 'TOD'"
         );
         assert_eq!(
             Error::UnknownWrittenUnit {
@@ -224,10 +242,10 @@ mod tests {
         assert_eq!(
             Error::UnsupportedWrittenUnit {
                 index: 1,
-                unit: WrittenUnit::E
+                unit: WrittenUnit::B
             }
             .to_string(),
-            "written_units[1] is unknown: 'E'"
+            "written_units[1] is unknown: 'B'"
         );
         assert_eq!(
             Error::NoCanonicalEncoding.to_string(),

@@ -285,3 +285,42 @@ pub fn all_corpus_words() -> Vec<String> {
     }
     words
 }
+
+// ── the font backend's fixtures (tests/data/mongfontbuilder/) ──────────────────────────────
+//
+// mongfontbuilder's Hudum conformance suites, vendored at the upstream commit
+// `fonts/mongfontbuilder.json` pins (python/scripts/gen_font_shaper.py). They use the same
+// aliases as `core-hud.tsv` / `eac-hud.tsv`.
+
+/// A suite's expected column in the font backend's terms: `_` / `-` (the font's narrow and
+/// wide spaces) and `Nnbsp` are `Mvs`, `Ni` is `Nirugu`, the joining marks `<` / `>` and the
+/// placeholder of an invalid FVS (`Fvs1`…`Fvs4`) are not units the crate reports.
+pub fn normalize_font_expected(expected: &str) -> Vec<String> {
+    expected
+        .split_whitespace()
+        .filter_map(|token| match token {
+            "_" | "-" | "Mvs" | "Nnbsp" => Some("Mvs".to_owned()),
+            "Ni" => Some("Nirugu".to_owned()),
+            "<" | ">" | "Fvs1" | "Fvs2" | "Fvs3" | "Fvs4" => None,
+            other => Some(other.to_owned()),
+        })
+        .collect()
+}
+
+/// Shape each word of an alias row with `shape_word`, the words joined with `Mvs` (the
+/// suites write a `space` between words and expect the font's space glyph there).
+pub fn shape_font_row(
+    row: &str,
+    shape_word: impl Fn(&str) -> Vec<WrittenUnit>,
+) -> Vec<WrittenUnit> {
+    let mut out = Vec::new();
+    for (i, word) in aliases_to_words(row).iter().enumerate() {
+        if i > 0 {
+            out.push(WrittenUnit::Mvs);
+        }
+        if !word.is_empty() {
+            out.extend(shape_word(word));
+        }
+    }
+    out
+}

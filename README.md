@@ -107,6 +107,23 @@ fn main() -> Result<(), Error> {
 
 Full API on [docs.rs](https://docs.rs/mongol-norm).
 
+**Font backend** (`features = ["font"]`, Rust 1.85): the same `shape`, but computed by
+[harfrust](https://github.com/harfbuzz/harfrust) (the Rust port of HarfBuzz) running the
+Hudum font mongfontbuilder composes, bundled without its outlines (30 KB), instead of the
+ported rules — what the reference font draws:
+
+```rust
+# #[cfg(feature = "font")] {
+use mongol_norm::FontShaper;
+
+let font = FontShaper::new();
+assert_eq!(font.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
+# }
+# Ok::<(), mongol_norm::Error>(())
+```
+
+The default build stays dependency-free; `normalize` always uses the rule engine.
+
 ### Python
 
 ```python
@@ -139,12 +156,14 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
 
 ### Notes
 
-- Normalization covers **MNG (Hudum)** only. Todo, Sibe and Manchu (`TOD`/`SIB`/`MCH`) shape but
-  do not normalize yet.
+- **Hudum** (`MNG`) only. Todo, Sibe and Manchu are not supported.
 - A word whose shape the built-in table cannot encode fails with an error rather than being
   guessed; `normalize_allow_fallback` (Python: `strict=False`) returns it unchanged instead.
 - Shaping passes 100% of mongfontbuilder's `core-hud` and GB/T 25914-2023 `eac-hud` suites;
-  normalization round-trips every corpus word (`shape(normalize(x)) == shape(x)`).
+  normalization round-trips every corpus word (`shape(normalize(x)) == shape(x)`). The font
+  backend passes the Hudum suites of the mongfontbuilder commit it is pinned to, with the EAC
+  rows mongfontbuilder itself marks as expected failures, and shapes every corpus word like the
+  rule engine but one (`XIM11-46`, one of those rows).
 - This project was written with [Claude Code](https://claude.ai/code); tests and core code were
   reviewed by hand. Please report problems as [issues](https://github.com/Satsrag/mongol-norm/issues).
 
@@ -160,8 +179,9 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
 MIT — see [LICENSE](https://github.com/Satsrag/mongol-norm/blob/main/LICENSE). Shaping rules and
 data are derived from [UTN #57](https://www.unicode.org/notes/tn57/tn57-4.html) and
 [mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder) (MIT) by Kushim Jiang; test
-suites from mongfontbuilder and GB/T 25914-2023. Notices in
-[NOTICE](https://github.com/Satsrag/mongol-norm/blob/main/NOTICE).
+suites from mongfontbuilder and GB/T 25914-2023. The bundled shaping font is composed by
+mongfontbuilder from a source derived from Noto Sans Mongolian (OFL 1.1, outlines not included).
+Notices in [NOTICE](https://github.com/Satsrag/mongol-norm/blob/main/NOTICE).
 
 ---
 
@@ -285,10 +305,13 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
 
 ### 说明
 
-- 规范化目前只支持 **MNG（回鹘式）**。托忒文、锡伯文、满文（`TOD`/`SIB`/`MCH`）只能整形。
+- 只支持 **回鹘式**（`MNG`），不支持托忒文、锡伯文、满文。
 - 内置表无法编码的 shape 会报错而不是乱猜；`normalize_allow_fallback`（Python：`strict=False`）则原样返回。
 - 整形 100% 通过 mongfontbuilder 的 `core-hud` 与 GB/T 25914-2023 `eac-hud` 测试集；规范化对全部语料词
-  满足 `shape(normalize(x)) == shape(x)`。
+  满足 `shape(normalize(x)) == shape(x)`。字体后端（Rust feature `font`，需要 Rust 1.85）用
+  [harfrust](https://github.com/harfbuzz/harfrust)（HarfBuzz 的 Rust 移植）跑 mongfontbuilder 生成的
+  回鹘式字体（去掉轮廓，30 KB），结果就是参照字体画出来的写法；通过所钉住的 mongfontbuilder 提交的回鹘式
+  测试集，全部语料词与规则引擎一致（仅 `XIM11-46` 一处不同，上游也标为预期失败）。`normalize` 始终用规则引擎。
 - 本项目用 [Claude Code](https://claude.ai/code) 编写，测试与核心代码经人工审核。遇到问题请提
   [issue](https://github.com/Satsrag/mongol-norm/issues)。
 
@@ -302,4 +325,5 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
 MIT，见 [LICENSE](https://github.com/Satsrag/mongol-norm/blob/main/LICENSE)。整形规则与数据源自
 [UTN #57](https://www.unicode.org/notes/tn57/tn57-4.html) 和 Kushim Jiang 的
 [mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)（MIT）；测试集来自 mongfontbuilder 与
-GB/T 25914-2023。声明见 [NOTICE](https://github.com/Satsrag/mongol-norm/blob/main/NOTICE)。
+GB/T 25914-2023。内置整形字体由 mongfontbuilder 从 Noto Sans Mongolian 派生的源文件生成（OFL 1.1，不含轮廓）。
+声明见 [NOTICE](https://github.com/Satsrag/mongol-norm/blob/main/NOTICE)。

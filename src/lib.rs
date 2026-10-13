@@ -21,10 +21,14 @@
 //! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —
 //!   encode written units directly
 //! * [`Shaper::trace`] — per-rule condition transitions, for debugging and the golden fixtures
+//! * [`FontShaper`] (Cargo feature `font`) — the same `shape` through HarfBuzz rules: harfrust
+//!   running mongfontbuilder's unified font, bundled without its outlines, for every writing
+//!   system of the block
 //!
-//! The crate has no dependencies and builds for `wasm32-unknown-unknown`. Its data tables are
-//! generated from the repository's JSON by `python/scripts/gen_rust_tables.py`, and the Python
-//! package of the same version calls straight into this crate. Design:
+//! The crate has no dependencies by default and builds for `wasm32-unknown-unknown` (the `font`
+//! feature adds harfrust and needs Rust 1.85). Its data tables are generated from the
+//! repository's JSON by `python/scripts/gen_rust_tables.py`, and the Python package of the same
+//! version calls straight into this crate. Design:
 //! <https://github.com/Satsrag/mongol-norm/blob/main/docs/superpowers/specs/2026-09-01-rust-core-design.md>.
 
 /// The crate README is compiled and run as a doctest, so its example cannot rot.
@@ -34,6 +38,8 @@ struct ReadmeDoctests;
 
 mod duplicates;
 mod error;
+#[cfg(feature = "font")]
+mod font;
 // clippy::all silences style lints on generated code (see the design doc).
 #[allow(clippy::all)]
 mod generated;
@@ -50,6 +56,8 @@ mod written_units;
 pub mod cli;
 
 pub use error::Error;
+#[cfg(feature = "font")]
+pub use font::{FontShaper, ShapedGlyph};
 pub use generated::enums::{Alias, Condition, WrittenUnit};
 pub use shaper::{ConditionChange, RuleTransition, ShapeTrace, Shaper, TokenDetail};
 pub use tables::{Fvs, Locale, Position, UnitPosition};
