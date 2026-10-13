@@ -107,6 +107,37 @@ font that shows a written unit the rule data (`MNG.json`) does not have. Review 
 `tests/font_suites.rs` and the pinned disagreements in `tests/font_vs_engine.rs` where the run
 tells you to.
 
+### Comparing the two shapers
+
+`tests/font_vs_engine.rs` holds the two backends to the same shape on every fixture word. To see
+where they part on anything else — random strings, or the words of your own text — run the
+`compare` example (release mode: the font backend is slow unoptimized):
+
+```bash
+cargo run --release --example compare --features font -- --random 100000         # random strings
+cargo run --release --example compare --features font -- corpus.txt --tsv diff.tsv  # a text file
+echo 'ᠹᠲ᠍ᠺ ᠰᠠᠢᠨ' | cargo run --release --example compare --features font            # stdin
+```
+
+The report goes to stdout: how many words differ, the differences grouped by the units the two
+shapers disagree on (the part between the common prefix and suffix, `T` vs `D` for `F+T+K2` vs
+`F+D+K2`) with an example word each, and the first differing words with both shapes and their
+code points. `--tsv FILE` also writes every differing word to FILE (columns `word`,
+`code_points`, `font`, `engine`, `font_part`, `engine_part`); a word only one side shapes — a
+letter the font has no glyph for — is listed with the error. `--seed`, `--max-len`, `--limit` and
+`--groups` tune the run; `--help` lists them.
+
+CI runs it on every push, on 100k random strings with a fixed seed (the Rust job's "Compare the
+font backend with the rule engine" step). It never fails the build; it reports:
+
+- a **warning annotation** on the run — the number of differing strings and the five largest
+  groups, shown in the run's *Annotations* and on the pull request's checks;
+- the **report in the job summary** (`--markdown "$GITHUB_STEP_SUMMARY"`) — the counts, every
+  group with an example, and the first 100 differing words;
+- every differing word in the **`font-vs-engine` artifact** (the TSV), kept for 14 days.
+
+The seed is fixed, so the numbers change only when one of the backends does.
+
 Current totals: **301 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
 1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest; the `font` feature
 adds 18) and **278 Python tests**, green on Rust stable / 1.82 (the core crate's MSRV; the binding
