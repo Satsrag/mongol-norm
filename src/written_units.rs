@@ -51,21 +51,20 @@ impl Shaper {
     /// [`Shaper::shape`], so `[L, I, Zwj, Aa]` is encoded as `L G`, exactly like the text
     /// `ᠯᠢ\u{200D}ᠡ᠋`. The result is accepted only if it reshapes to that folded sequence.
     ///
-    /// An empty sequence returns `""` — without consulting the table, so it succeeds on every
-    /// locale.
+    /// An empty sequence returns `""`.
     ///
     /// # Errors
     ///
-    /// - [`Error::NormalizeUnsupported`] — this locale has no bundled normalize table.
-    /// - [`Error::UnsupportedWrittenUnit`] — `units[index]` is outside the table's vocabulary
-    ///   (for example the Todo unit `E` on an MNG shaper). The first offender is reported.
+    /// - [`Error::UnsupportedWrittenUnit`] — `units[index]` is outside the table's vocabulary.
+    ///   The first offender is reported. Every [`WrittenUnit`] is in the bundled table, so this
+    ///   is a guard rather than an expected outcome.
     /// - [`Error::NoCanonicalEncoding`] — the table covers every unit, but the sequence has no
     ///   encoding that reshapes back to it.
     pub fn normalize_written_units(&self, units: &[WrittenUnit]) -> Result<String, Error> {
         if units.is_empty() {
             return Ok(String::new());
         }
-        let table = self.table()?;
+        let table = self.table();
         for (index, unit) in units.iter().enumerate() {
             if !table.known_units.contains(unit) {
                 return Err(Error::UnsupportedWrittenUnit { index, unit: *unit });
@@ -99,20 +98,17 @@ impl Shaper {
     /// dispatch on the variant, so the *first* failing check decides which one they see:
     ///
     /// 1. record limit — 2000 records containing a `Zwj` is [`Error::TooManyRecords`], not
-    ///    [`Error::ExplicitZwj`], and an over-limit request on a table-less locale is
-    ///    [`Error::TooManyRecords`], not [`Error::NormalizeUnsupported`];
+    ///    [`Error::ExplicitZwj`];
     /// 2. explicit `Zwj` anywhere in the request;
-    /// 3. empty request — returns `""` before the table is consulted, so it succeeds on every
-    ///    locale;
-    /// 4. the normalize table;
-    /// 5. per record, the control/inventory check (`Mvs` and `Nirugu` need `Control`; every other
+    /// 3. empty request — returns `""`;
+    /// 4. per record, the control/inventory check (`Mvs` and `Nirugu` need `Control`; every other
     ///    `(unit, position)` must be in the HUD inventory), reporting the first offender;
-    /// 6. per multi-record chain, that the declared positions match the padded chain;
-    /// 7. delegation to [`Shaper::normalize_written_units`].
+    /// 5. per multi-record chain, that the declared positions match the padded chain;
+    /// 6. delegation to [`Shaper::normalize_written_units`].
     ///
     /// # Errors
     ///
-    /// - [`Error::TooManyRecords`], [`Error::ExplicitZwj`], [`Error::NormalizeUnsupported`],
+    /// - [`Error::TooManyRecords`], [`Error::ExplicitZwj`],
     ///   [`Error::ControlRequiresControlPosition`], [`Error::UnsupportedPositionedUnit`],
     ///   [`Error::ChainPositionMismatch`] — as numbered above.
     /// - Anything [`Shaper::normalize_written_units`] returns. **Its indices point into the
@@ -133,7 +129,7 @@ impl Shaper {
         if records.is_empty() {
             return Ok(String::new());
         }
-        let table = self.table()?;
+        let table = self.table();
         for (index, record) in records.iter().enumerate() {
             if matches!(record.unit, WrittenUnit::Mvs | WrittenUnit::Nirugu) {
                 if record.position != UnitPosition::Control {
@@ -251,19 +247,17 @@ impl Shaper {
     /// (`BZwj`). One trailing newline is tolerated; an ambiguous compact string is rejected.
     ///
     /// Every name — explicit or compact — must belong to *this shaper's normalize table*, not
-    /// merely to [`WrittenUnit`]: `E` is a Todo unit, so an MNG shaper rejects it. That keeps the
-    /// reported index identical to Python's, which defers the same check to
-    /// `normalize_written_units`.
+    /// merely to [`WrittenUnit`]. That keeps the reported index identical to Python's, which
+    /// defers the same check to `normalize_written_units`.
     ///
     /// # Errors
     ///
-    /// - [`Error::NormalizeUnsupported`] — this locale has no bundled normalize table.
     /// - [`Error::InvalidUnitSpec`] — the spec contains whitespace or an empty `+` field, or the
     ///   compact string has more than one segmentation.
     /// - [`Error::UnknownWrittenUnit`] — a name is outside the table's vocabulary; on the compact
     ///   path an unsegmentable string is reported whole, at index 0.
     pub fn parse_written_units(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
-        let table = self.table()?;
+        let table = self.table();
         parse_unit_names(text, &table.sorted_vocabulary)?
             .into_iter()
             .enumerate()
@@ -271,8 +265,8 @@ impl Shaper {
                 // Membership is tested against the TABLE's vocabulary, not merely "is this a
                 // `WrittenUnit` variant": Python leaves every name unresolved here and lets
                 // `normalize_written_units` reject the first one missing from `known_units`, so a
-                // unit the enum knows but this locale's table does not (e.g. the Todo unit `E`)
-                // must fail at Python's index too. — see shaper.py::normalize_written_units
+                // unit the enum knows but the table does not must fail at Python's index too.
+                // — see shaper.py::normalize_written_units
                 name.parse::<WrittenUnit>()
                     .ok()
                     .filter(|unit| table.known_units.contains(unit))
@@ -294,9 +288,10 @@ impl Shaper {
     ///
     /// # Errors
     ///
-    /// [`Error::NormalizeUnsupported`] — this locale has no bundled normalize table.
+    /// None: the `Result` remains from the locales without a normalize table the crate used to
+    /// have.
     pub fn known_written_units(&self) -> Result<Vec<WrittenUnit>, Error> {
-        let table = self.table()?;
+        let table = self.table();
         let mut units: Vec<WrittenUnit> = table.known_units.iter().copied().collect();
         units.sort_by_key(|unit| unit.as_str());
         Ok(units)
@@ -309,9 +304,10 @@ impl Shaper {
     ///
     /// # Errors
     ///
-    /// [`Error::NormalizeUnsupported`] — this locale has no bundled normalize table.
+    /// None: the `Result` remains from the locales without a normalize table the crate used to
+    /// have.
     pub fn positioned_written_units(&self) -> Result<Vec<(WrittenUnit, Position)>, Error> {
-        let table = self.table()?;
+        let table = self.table();
         let mut records: Vec<(WrittenUnit, Position)> =
             table.positioned_units.iter().copied().collect();
         records.sort_by_key(|(unit, position)| (unit.as_str(), position.as_str()));
@@ -425,6 +421,25 @@ pub(crate) fn parse_unit_names<'v>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Locale;
+
+    #[test]
+    fn a_unit_outside_the_table_is_rejected_with_its_index() {
+        // Every `WrittenUnit` is in the bundled table, so the guard is exercised on the empty
+        // test table (which knows only the structural units).
+        let shaper = Shaper::with_empty_normalize_table(Locale::Mng);
+        let error = shaper
+            .normalize_written_units(&[WrittenUnit::Mvs, WrittenUnit::B])
+            .unwrap_err();
+        assert_eq!(
+            error,
+            Error::UnsupportedWrittenUnit {
+                index: 1,
+                unit: WrittenUnit::B
+            }
+        );
+        assert_eq!(error.to_string(), "written_units[1] is unknown: 'B'");
+    }
 
     #[test]
     fn ambiguous_compact_units_require_plus_separators() {

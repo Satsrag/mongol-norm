@@ -58,7 +58,7 @@ Mongolian shaping / normalization tool (UTN #57 v4 + GB/T 25914-2023).
 options:
   -h, --help            show this help and exit
   -V, --version         print the version and exit
-  --locale LOCALE       MNG (default), TOD, SIB or MCH (also --locale=LOCALE)
+  --locale LOCALE       MNG, the default and only locale (also --locale=LOCALE)
 
 commands:
   shape                   Return the '+'-joined written-unit sequence

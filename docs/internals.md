@@ -60,8 +60,7 @@ a consonant's isolated form *is* its initial unit). `A`, `N`, `L`, `M`, `H` and 
 visibly between `init` and `medi` (crown, tooth count) and keep their word-initial ZWJ; every
 ordinary unit grows a tail at the end of a word and keeps its word-final ZWJ after another
 letter. "Lone" means the unit is the only letter of its segment — nothing, or an `Mvs`, on the far
-side; segments are split at MVS exactly as the position assignment splits them. The lists are
-Hudum data, so they apply to MNG only; the structural rows hold for every locale.
+side; segments are split at MVS exactly as the position assignment splits them.
 
 An MVS is a segment edge on both sides, and both sides behave like the word edge. The font gives
 the letter before an MVS its `fina` (or `isol`) form, so `ᠠᠣ‍᠎ᠠ` vs `ᠠᠣ᠋᠎ᠠ` is the very
@@ -74,7 +73,7 @@ ink, so the word-initial lists decide: `ᠠ᠎‍ᠶᠢᠨ` = `ᠠ᠎ᠶ᠌ᠢ�
 `ᠲᠠᠯ᠎‍ᠠ` keeps its `Zwj` (`A:fina` is not the suffix `a`). A ZWJ whose only neighbours are MVS
 or the word boundary joins nothing at all: on the reference font every such pair renders the
 same glyphs at the same positions, MVS included, so it is dropped like the other structural
-cases, in every locale.
+cases.
 
 The pass is a fixed point of left-to-right single removals: `Zwj B Zwj` first loses the leading
 joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one (`B:init` ≡ `B:isol`).
@@ -253,7 +252,7 @@ it.
 ## Data and fixtures
 
 The shaping and normalize rules are flat, language-agnostic JSON in `python/mongol_norm/data/`
-(`MNG.json`, `TOD.json`, `SIB.json`, `MCH.json` and `MNG.normalize.json`). Nothing reads it at
+(`MNG.json` and `MNG.normalize.json` — Hudum is the only locale). Nothing reads it at
 runtime: `python/scripts/gen_rust_tables.py` compiles it into the static Rust tables in
 `src/generated/`, which is what both the crate and the wheel carry. The wheel still ships the JSON
 for tooling. The schema and the consuming algorithm are documented in

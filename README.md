@@ -156,8 +156,7 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
 
 ### Notes
 
-- Normalization covers **MNG (Hudum)** only. Todo, Sibe and Manchu (`TOD`/`SIB`/`MCH`) shape but
-  do not normalize yet.
+- **Hudum** (`MNG`) only. Todo, Sibe and Manchu are not supported.
 - A word whose shape the built-in table cannot encode fails with an error rather than being
   guessed; `normalize_allow_fallback` (Python: `strict=False`) returns it unchanged instead.
 - Shaping passes 100% of mongfontbuilder's `core-hud` and GB/T 25914-2023 `eac-hud` suites;
@@ -306,7 +305,7 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
 
 ### 说明
 
-- 规范化目前只支持 **MNG（回鹘式）**。托忒文、锡伯文、满文（`TOD`/`SIB`/`MCH`）只能整形。
+- 只支持 **回鹘式**（`MNG`），不支持托忒文、锡伯文、满文。
 - 内置表无法编码的 shape 会报错而不是乱猜；`normalize_allow_fallback`（Python：`strict=False`）则原样返回。
 - 整形 100% 通过 mongfontbuilder 的 `core-hud` 与 GB/T 25914-2023 `eac-hud` 测试集；规范化对全部语料词
   满足 `shape(normalize(x)) == shape(x)`。字体后端（Rust feature `font`，需要 Rust 1.85）用

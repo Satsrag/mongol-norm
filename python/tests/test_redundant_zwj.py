@@ -169,15 +169,6 @@ class TestWrittenUnitApis(_Base):
         self.assertEqual(len(trace['positions']), 2)
         self.assertEqual(trace['shape'], self.s.shape(ZWJ + D))
 
-    def test_edge_equivalences_are_hudum_only(self):
-        # (`n` is a letter in every locale; Todo has no `b`.)
-        for locale in ('TOD', 'SIB', 'MCH'):
-            with self.subTest(locale=locale):
-                shaper = MongolianShaper(locale=locale)
-                self.assertIn('Zwj', shaper.shape(N + ZWJ))
-                self.assertNotIn('Zwj', shaper.shape(N + A + ZWJ + N + A))
-                self.assertNotIn('Zwj', shaper.shape(N + MVS + ZWJ + MVS + A))
-
 
 if __name__ == '__main__':
     unittest.main()

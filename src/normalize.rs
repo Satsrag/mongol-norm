@@ -311,17 +311,16 @@ fn apply_velar_fem(
 }
 
 impl Shaper {
-    /// The normalize table, or [`Error::NormalizeUnsupported`] for locales without one.
-    pub(crate) fn table(&self) -> Result<&NormalizeTable, Error> {
-        self.normalize.as_ref().ok_or(Error::NormalizeUnsupported {
-            locale: self.locale(),
-        })
+    /// The normalize table.
+    pub(crate) fn table(&self) -> &NormalizeTable {
+        &self.normalize
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/3"` for MNG; `None`
-    /// for locales without a normalize table). Persist it next to stored normalized keys.
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/3"`). Persist it next
+    /// to stored normalized keys. Always `Some`: the `Option` remains from the locales without
+    /// a normalize table the crate used to have.
     pub fn canonical_version(&self) -> Option<&'static str> {
-        self.normalize.as_ref().map(|table| table.canonical_version)
+        Some(self.normalize.canonical_version)
     }
 
     /// Python `_canonical_for_shape`: encode a full shape (chains right-to-left so each chain is
@@ -352,7 +351,7 @@ impl Shaper {
                     suffix_target.insert(0, *unit);
                 }
                 Part::Chain(body) => {
-                    let table = self.table()?;
+                    let table = self.table();
                     // Context = the full run of structural tokens right before this chain, not
                     // just the adjacent one: an MVS behind a nirugu still matters, because
                     // chachlag looks through nirugu. — see shaper.py::_canonical_for_shape
@@ -603,28 +602,12 @@ mod tests {
     }
 
     #[test]
-    fn locales_without_a_table_reject_normalization_of_letters() {
-        let shaper = Shaper::new(Locale::Tod);
-        assert_eq!(shaper.canonical_version(), None);
+    fn empty_and_structural_shapes_normalize_without_a_letter() {
+        let shaper = Shaper::new(Locale::Mng);
+        assert_eq!(shaper.canonical_version(), Some("mng-canonical/3"));
         assert_eq!(shaper.normalize("").unwrap(), "");
         assert_eq!(shaper.normalize("\u{180B}").unwrap(), ""); // FVS only: empty shape short-circuits
-        assert_eq!(shaper.normalize("\u{180A}").unwrap(), "\u{180A}"); // structural-only shape needs no table (Python parity)
-        assert_eq!(
-            shaper.normalize("\u{1820}"),
-            Err(Error::NormalizeUnsupported {
-                locale: Locale::Tod
-            })
-        );
-        assert_eq!(
-            shaper.normalize_written_units(&[WrittenUnit::Mvs]),
-            Err(Error::NormalizeUnsupported {
-                locale: Locale::Tod
-            })
-        );
-        assert_eq!(
-            Shaper::new(Locale::Mng).canonical_version(),
-            Some("mng-canonical/3")
-        );
+        assert_eq!(shaper.normalize("\u{180A}").unwrap(), "\u{180A}"); // structural-only shape
     }
 
     #[test]

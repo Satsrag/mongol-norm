@@ -236,7 +236,7 @@ impl FontShaper {
             .filter(|glyph| !glyph.skipped)
             .flat_map(|glyph| glyph.units.iter().copied())
             .collect();
-        Ok(collapse(&drop_redundant_zwj(&raw, true)))
+        Ok(collapse(&drop_redundant_zwj(&raw)))
     }
 
     /// The written units of the glyphs the font chose, in glyph order, before the shared

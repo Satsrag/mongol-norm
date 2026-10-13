@@ -11,7 +11,7 @@
 use std::str::FromStr;
 
 use mongol_norm::{Error, Locale, PositionedWrittenUnit, Shaper, UnitPosition, WrittenUnit};
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 pyo3::create_exception!(
@@ -45,16 +45,11 @@ fn names(units: &[WrittenUnit]) -> Names {
 
 /// Map a core error onto the exception the pure-Python API raised for it.
 fn to_py(err: Error) -> PyErr {
-    let unsupported = matches!(err, Error::NormalizeUnsupported { .. });
     match err {
         Error::NormalizationFallback {
             text,
             written_units,
         } => FallbackError::new_err((text, names(&written_units))),
-        // The pure-Python API pointed at the generator script; keep that hint.
-        other if unsupported => PyRuntimeError::new_err(format!(
-            "{other}; generate it with scripts/gen_normalize_table.py"
-        )),
         other => PyValueError::new_err(other.to_string()),
     }
 }
@@ -80,13 +75,10 @@ impl PyShaper {
         self.inner.locale().as_str()
     }
 
-    /// `RuntimeError` for locales without a bundled normalize table (Python parity).
-    fn canonical_version(&self) -> PyResult<&'static str> {
-        self.inner.canonical_version().ok_or_else(|| {
-            to_py(Error::NormalizeUnsupported {
-                locale: self.inner.locale(),
-            })
-        })
+    fn canonical_version(&self) -> &'static str {
+        self.inner
+            .canonical_version()
+            .expect("the Hudum shaper has a normalize table")
     }
 
     fn rule_names(&self) -> Names {

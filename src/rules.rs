@@ -22,11 +22,10 @@ pub(crate) struct Rule {
     pub apply: fn(&mut [Token], &Shaper),
 }
 
-/// The rule table of a locale (only MNG has rules, exactly as in Python).
+/// The rule table of a locale.
 pub(crate) fn rules_for(locale: Locale) -> &'static [Rule] {
     match locale {
         Locale::Mng => RULES_MNG,
-        Locale::Tod | Locale::Sib | Locale::Mch => &[],
     }
 }
 

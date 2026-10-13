@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::duplicates::collapse;
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
+use crate::generated::mng;
 use crate::generated::mng_normalize;
-use crate::generated::{mch, mng, sib, tod};
 use crate::normalize::NormalizeTable;
 use crate::redundant_zwj::drop_redundant_zwj;
 use crate::rules::{self, Rule};
@@ -72,7 +72,8 @@ pub struct ShapeTrace {
     pub shape: Vec<WrittenUnit>,
 }
 
-/// The UTN #57 shaping engine (and, for MNG, the canonical normalizer) for one locale.
+/// The UTN #57 shaping engine and the canonical normalizer for Hudum ([`Locale::Mng`], the only
+/// locale).
 ///
 /// Construction is cheap (microseconds) and the value is `Send + Sync`, so one instance can be
 /// shared behind a reference for the lifetime of a program.
@@ -88,7 +89,7 @@ pub struct Shaper {
     neuter: HashSet<Alias>,
     particles: HashMap<&'static [ParticleSym], &'static [usize]>,
     rules: &'static [Rule],
-    pub(crate) normalize: Option<NormalizeTable>,
+    pub(crate) normalize: NormalizeTable,
 }
 
 /// `Shaper` holds only owned tables and `&'static` data, so sharing one behind a reference
@@ -118,11 +119,8 @@ impl std::fmt::Debug for Shaper {
 impl Shaper {
     /// Build the shaper for `locale` from the generated tables.
     pub fn new(locale: Locale) -> Shaper {
-        let data: &'static LocaleData = match locale {
-            Locale::Mng => &mng::DATA,
-            Locale::Tod => &tod::DATA,
-            Locale::Sib => &sib::DATA,
-            Locale::Mch => &mch::DATA,
+        let (data, normalize): (&'static LocaleData, _) = match locale {
+            Locale::Mng => (&mng::DATA, &mng_normalize::DATA),
         };
         let mut letters = HashMap::new();
         let mut variants = HashMap::new();
@@ -153,10 +151,7 @@ impl Shaper {
                 .map(|particle| (particle.key, particle.indices))
                 .collect(),
             rules: rules::rules_for(locale),
-            normalize: match locale {
-                Locale::Mng => Some(NormalizeTable::new(&mng_normalize::DATA)),
-                Locale::Tod | Locale::Sib | Locale::Mch => None,
-            },
+            normalize: NormalizeTable::new(normalize),
         }
     }
 
@@ -167,11 +162,7 @@ impl Shaper {
     #[doc(hidden)]
     pub fn with_empty_normalize_table(locale: Locale) -> Shaper {
         let mut shaper = Shaper::new(locale);
-        let version = shaper
-            .normalize
-            .as_ref()
-            .map_or("mng-canonical/3", |table| table.canonical_version);
-        shaper.normalize = Some(NormalizeTable::empty(version));
+        shaper.normalize = NormalizeTable::empty(shaper.normalize.canonical_version);
         shaper
     }
 
@@ -180,7 +171,7 @@ impl Shaper {
         self.locale
     }
 
-    /// The names of the shaping rules, in the order they run (empty for locales without rules).
+    /// The names of the shaping rules, in the order they run.
     pub fn rule_names(&self) -> Vec<&'static str> {
         self.rules.iter().map(|rule| rule.name).collect()
     }
@@ -429,15 +420,14 @@ impl Shaper {
     /// duplicate encodings unified — in that order, so a joiner that separated `I Aa` no longer
     /// blocks the `G` contraction. Shared by [`Shaper::shape`], [`Shaper::trace`] and the
     /// written-unit encoders, which is what keeps `normalize_written_units([L, I, Zwj, Aa])` and
-    /// `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one contract. The reviewed edge equivalences are Hudum
-    /// data, so they apply to MNG only.
+    /// `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one contract.
     pub(crate) fn canonical_units(&self, raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
         collapse(&self.without_redundant_zwj(raw))
     }
 
-    /// The redundant-ZWJ filter alone (no duplicate unification), with this locale's tables.
+    /// The redundant-ZWJ filter alone (no duplicate unification).
     pub(crate) fn without_redundant_zwj(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
-        drop_redundant_zwj(units, self.locale == Locale::Mng)
+        drop_redundant_zwj(units)
     }
 
     /// The engine's written-unit sequence before redundant ZWJs are dropped and duplicate
@@ -661,10 +651,6 @@ mod tests {
             shaper.shape("\u{1820} "),
             Err(Error::NonMongolianChar { ch: ' ', index: 1 })
         );
-        for locale in [Locale::Tod, Locale::Sib, Locale::Mch] {
-            assert!(!Shaper::new(locale).shape("\u{1820}").unwrap().is_empty());
-            assert!(Shaper::new(locale).rule_names().is_empty());
-        }
     }
 
     #[test]

@@ -106,22 +106,3 @@ fn never_panics_and_strict_normalization_round_trips() {
         "too few strict normalizations succeeded: {normalized}"
     );
 }
-
-#[test]
-fn other_locales_never_panic() {
-    // A fixed seed per locale, so each locale gets its own reproducible stream and adding a
-    // locale cannot shift the inputs the others see.
-    for (locale, seed) in [
-        (Locale::Tod, 0x2545_F491_4F6C_DD1D_u64),
-        (Locale::Sib, 0x1D8E_4E27_C47D_124F),
-        (Locale::Mch, 0x0F1E_2D3C_4B5A_6978),
-    ] {
-        let shaper = Shaper::new(locale);
-        let mut rng = XorShift(seed);
-        for _ in 0..2_000 {
-            let text = random_text(&mut rng);
-            let other = random_text(&mut rng);
-            exercise(&shaper, &mut rng, &text, &other);
-        }
-    }
-}

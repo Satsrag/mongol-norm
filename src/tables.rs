@@ -10,32 +10,22 @@ use crate::Error;
 
 /// A script locale: which data tables and shaping rules a [`Shaper`](crate::Shaper) uses.
 ///
-/// Only `Mng` (Hudum, Traditional Mongolian) has shaping rules and a normalize table; the other
-/// three load their variant data and shape default/FVS forms only — exactly like the Python
-/// implementation.
+/// Hudum (Traditional Mongolian) is the only one: the crate shapes and normalizes Hudum and
+/// nothing else.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Locale {
     /// Hudum — Traditional Mongolian (`"MNG"`).
     Mng,
-    /// Todo (`"TOD"`).
-    Tod,
-    /// Sibe (`"SIB"`).
-    Sib,
-    /// Manchu (`"MCH"`).
-    Mch,
 }
 
 impl Locale {
     /// Every locale.
-    pub const ALL: [Locale; 4] = [Locale::Mng, Locale::Tod, Locale::Sib, Locale::Mch];
+    pub const ALL: [Locale; 1] = [Locale::Mng];
 
     /// The contract name used by the Python API, the CLI and the data files.
     pub const fn as_str(self) -> &'static str {
         match self {
             Locale::Mng => "MNG",
-            Locale::Tod => "TOD",
-            Locale::Sib => "SIB",
-            Locale::Mch => "MCH",
         }
     }
 }
@@ -352,6 +342,9 @@ mod tests {
         }
         assert!("MNGx".parse::<Locale>().is_err());
         assert!("mng".parse::<Locale>().is_err());
+        for gone in ["TOD", "SIB", "MCH"] {
+            assert!(gone.parse::<Locale>().is_err(), "{gone}");
+        }
     }
 
     #[test]
@@ -422,29 +415,22 @@ mod tests {
             mng_normalize::DATA.masc_to_fem,
             &[(0x1820, 0x1821), (0x1823, 0x1825), (0x1824, 0x1826)]
         );
-        // Every (cp, position) has exactly one default, in every locale.
-        for data in [
-            &crate::generated::mng::DATA,
-            &crate::generated::tod::DATA,
-            &crate::generated::sib::DATA,
-            &crate::generated::mch::DATA,
-        ] {
-            for letter in data.letters {
-                for position in Position::ALL {
-                    let defaults = letter
-                        .variants
-                        .iter()
-                        .filter(|v| v.position == position && v.default)
-                        .count();
-                    let any = letter.variants.iter().any(|v| v.position == position);
-                    assert_eq!(
-                        defaults,
-                        usize::from(any),
-                        "U+{:04X} {:?}",
-                        letter.cp,
-                        position
-                    );
-                }
+        // Every (cp, position) has exactly one default.
+        for letter in mng::DATA.letters {
+            for position in Position::ALL {
+                let defaults = letter
+                    .variants
+                    .iter()
+                    .filter(|v| v.position == position && v.default)
+                    .count();
+                let any = letter.variants.iter().any(|v| v.position == position);
+                assert_eq!(
+                    defaults,
+                    usize::from(any),
+                    "U+{:04X} {:?}",
+                    letter.cp,
+                    position
+                );
             }
         }
     }

@@ -23,7 +23,7 @@ from typing import Any, Dict
 
 # Bump on incompatible changes to the shaping-rules JSON schema.
 SCHEMA_VERSION = 1
-SUPPORTED_LOCALES = ("MNG", "MNGx", "TOD", "TODx", "SIB", "MCH", "MCHx")
+SUPPORTED_LOCALES = ("MNG",)
 
 # Plain filesystem path (not importlib.resources): wheel/sdist installs unpack
 # to a real directory anyway.
@@ -31,19 +31,15 @@ SUPPORTED_LOCALES = ("MNG", "MNGx", "TOD", "TODx", "SIB", "MCH", "MCHx")
 _DATA = Path(__file__).parent / "data"
 
 
-def _base(locale: str) -> str:
-    return locale[:-1] if locale.endswith("x") else locale
-
-
 def load_rules(locale: str) -> Dict[str, Any]:
     """Load the flat shaping-rules JSON for `locale`."""
-    with (_DATA / f"{_base(locale)}.json").open(encoding="utf-8") as f:
+    with (_DATA / f"{locale}.json").open(encoding="utf-8") as f:
         return json.load(f)
 
 
 def rules_path(locale: str):
     """Filesystem path to the shaping-rules JSON for `locale`."""
-    return _DATA / f"{_base(locale)}.json"
+    return _DATA / f"{locale}.json"
 
 
 def load_normalize_table(locale: str) -> Dict[str, Any]:
@@ -52,10 +48,10 @@ def load_normalize_table(locale: str) -> Dict[str, Any]:
     if it has not been generated yet (the shaper then falls back to running the
     context-independence battery in-process).
     """
-    with (_DATA / f"{_base(locale)}.normalize.json").open(encoding="utf-8") as f:
+    with (_DATA / f"{locale}.normalize.json").open(encoding="utf-8") as f:
         return json.load(f)
 
 
 def normalize_table_path(locale: str):
     """Filesystem path to the normalize-table JSON for `locale`."""
-    return _DATA / f"{_base(locale)}.normalize.json"
+    return _DATA / f"{locale}.normalize.json"

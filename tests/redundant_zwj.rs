@@ -287,21 +287,3 @@ fn shape_raw_and_diagnostics_keep_every_zwj() {
     assert_eq!(trace.positions.len(), 2);
     assert_eq!(trace.shape, shaper.shape(&format!("{ZWJ}{D}")).unwrap());
 }
-
-#[test]
-fn edge_equivalences_are_hudum_only() {
-    // The structural rules hold everywhere; the reviewed edge table is MNG data.
-    // (`n` is a letter in every locale; Todo has no `b`.)
-    for locale in [Locale::Tod, Locale::Sib, Locale::Mch] {
-        let shaper = Shaper::new(locale);
-        let with = unit_names(&shaper.shape(&format!("{N}{ZWJ}")).unwrap());
-        assert!(with.contains(&"Zwj".to_owned()), "{locale:?}: {with:?}");
-        let interior = unit_names(&shaper.shape(&format!("{N}{A}{ZWJ}{N}{A}")).unwrap());
-        assert!(
-            !interior.contains(&"Zwj".to_owned()),
-            "{locale:?}: {interior:?}"
-        );
-        let bare = unit_names(&shaper.shape(&format!("{N}{MVS}{ZWJ}{MVS}{A}")).unwrap());
-        assert!(!bare.contains(&"Zwj".to_owned()), "{locale:?}: {bare:?}");
-    }
-}

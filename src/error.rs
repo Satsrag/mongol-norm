@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use crate::{Locale, UnitPosition, WrittenUnit};
+use crate::{UnitPosition, WrittenUnit};
 
 /// Everything that can go wrong in this crate.
 #[non_exhaustive]
@@ -33,11 +33,6 @@ pub enum Error {
         text: String,
         /// Its shape, which the normalize table could not encode.
         written_units: Vec<WrittenUnit>,
-    },
-    /// The locale ships no normalize table (only `MNG` has one).
-    NormalizeUnsupported {
-        /// The shaper's locale.
-        locale: Locale,
     },
     /// `parse_written_units`: a name that is neither a unit known to the normalize table nor
     /// `Mvs`/`Nirugu`/`Zwj`.
@@ -127,13 +122,6 @@ impl fmt::Display for Error {
                     names.join("+")
                 )
             }
-            // Python appends "; generate it with scripts/gen_normalize_table.py"; deliberately
-            // dropped here because the Rust tables are compiled in, not generated on demand.
-            Error::NormalizeUnsupported { locale } => write!(
-                f,
-                "no bundled normalize table for locale '{}'",
-                locale.as_str()
-            ),
             Error::UnknownWrittenUnit { index, unit } => {
                 // `unit` is arbitrary user text (Python renders it with `repr()`), so escape it —
                 // a control character must never reach a terminal raw. Printable ASCII, which
@@ -235,13 +223,6 @@ mod tests {
             "normalization fallback: no canonical encoding for written units S+A+I+I+A"
         );
         assert_eq!(
-            Error::NormalizeUnsupported {
-                locale: Locale::Tod
-            }
-            .to_string(),
-            "no bundled normalize table for locale 'TOD'"
-        );
-        assert_eq!(
             Error::UnknownWrittenUnit {
                 index: 1,
                 unit: "Unknown".into()
@@ -261,10 +242,10 @@ mod tests {
         assert_eq!(
             Error::UnsupportedWrittenUnit {
                 index: 1,
-                unit: WrittenUnit::E
+                unit: WrittenUnit::B
             }
             .to_string(),
-            "written_units[1] is unknown: 'E'"
+            "written_units[1] is unknown: 'B'"
         );
         assert_eq!(
             Error::NoCanonicalEncoding.to_string(),

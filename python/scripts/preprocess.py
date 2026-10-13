@@ -3,12 +3,12 @@
 Generate flat, language-agnostic shape-rules JSON from mongfontbuilder data.
 
 Run once per mongfontbuilder upgrade. Commit the output into
-`python/mongol_norm/data/<LOCALE>.json` so downstream consumers (the Rust
-tables, JS/Dart/Java ports) don't need mongfontbuilder installed.
+`python/mongol_norm/data/MNG.json` so downstream consumers (the Rust
+tables, JS/Dart/Java ports) don't need mongfontbuilder installed. Hudum (MNG)
+is the only locale mongol-norm supports.
 
 Usage (from the repository root):
-    python python/scripts/preprocess.py            # generate all supported locales
-    python python/scripts/preprocess.py MNG TOD    # generate specific locales
+    python python/scripts/preprocess.py
 """
 import argparse
 import json
@@ -29,7 +29,7 @@ def _mfb_version() -> str:
         return "unknown"
 
 SCHEMA_VERSION = 1
-LOCALES = ("MNG", "TOD", "SIB", "MCH")
+LOCALES = ("MNG",)
 POSITIONS = ("isol", "init", "medi", "fina")
 
 

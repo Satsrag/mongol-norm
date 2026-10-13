@@ -33,9 +33,8 @@
 //! The four edge tables are the maintainer's reviewed equivalence classes for Hudum, selected on
 //! issue #33 from an ink comparison of every unit on the reference font (mongfontbuilder
 //! `hudum.otf`): each listed pair was encoded with `normalize_written_units`, rendered with
-//! HarfBuzz, and compared outline-against-outline. They are **Hudum (MNG) only**; the other
-//! locales get the structural rules alone. "Lone" means the unit is the only letter of its
-//! segment: nothing, or an `Mvs`, on the far side.
+//! HarfBuzz, and compared outline-against-outline. "Lone" means the unit is the only letter of
+//! its segment: nothing, or an `Mvs`, on the far side.
 //!
 //! An `Mvs` splits segments exactly as the position assignment splits them, and the reference
 //! font agrees on both sides: the letter before an MVS takes its `fina` (or `isol`) form and the
@@ -77,8 +76,7 @@ const FINAL_ALONE: &[WrittenUnit] = &[
 ];
 
 /// Remove every redundant `Zwj` from a written-unit sequence (see the module docs).
-/// `hudum_edges` enables the reviewed word-edge equivalences, which hold for MNG only.
-pub(crate) fn drop_redundant_zwj(shape: &[WrittenUnit], hudum_edges: bool) -> Vec<WrittenUnit> {
+pub(crate) fn drop_redundant_zwj(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
     let mut units: Vec<WrittenUnit> = Vec::with_capacity(shape.len());
     for &unit in shape {
         if unit == Zwj && units.last() == Some(&Zwj) {
@@ -90,7 +88,7 @@ pub(crate) fn drop_redundant_zwj(shape: &[WrittenUnit], hudum_edges: bool) -> Ve
         let before = units.len();
         let mut index = 0;
         while index < units.len() {
-            if units[index] == Zwj && is_redundant(&units, index, hudum_edges) {
+            if units[index] == Zwj && is_redundant(&units, index) {
                 units.remove(index);
             } else {
                 index += 1;
@@ -107,7 +105,7 @@ fn is_letter(unit: WrittenUnit) -> bool {
 }
 
 /// Is the `Zwj` at `units[index]` redundant? `units` holds no repeated `Zwj`.
-fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool {
+fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
     let prev = index.checked_sub(1).map(|i| units[i]);
     let next = units.get(index + 1).copied();
     match (prev, next) {
@@ -124,7 +122,7 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
             } else {
                 INITIAL_BEFORE_LETTER
             };
-            hudum_edges && same_shape.contains(&n)
+            same_shape.contains(&n)
         }
         (Some(p), None | Some(Mvs)) if is_letter(p) => {
             // An MVS ends the segment like the end of the word: `p` is `fina` (or `isol`) either way.
@@ -134,7 +132,7 @@ fn is_redundant(units: &[WrittenUnit], index: usize, hudum_edges: bool) -> bool 
             } else {
                 FINAL_AFTER_LETTER
             };
-            hudum_edges && same_shape.contains(&p)
+            same_shape.contains(&p)
         }
         // A lone `Zwj` is the whole shape.
         (None, None) => false,
@@ -149,7 +147,7 @@ mod tests {
     use WrittenUnit::A;
 
     fn drop(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
-        drop_redundant_zwj(shape, true)
+        drop_redundant_zwj(shape)
     }
 
     #[test]
@@ -197,8 +195,6 @@ mod tests {
         assert_eq!(drop(&[A, Mvs, Zwj, Mvs, Aa]), [A, Mvs, Mvs, Aa]);
         assert_eq!(drop(&[Mvs, Zwj]), [Mvs]);
         assert_eq!(drop(&[Zwj, Mvs]), [Mvs]);
-        // Structural, so it holds without the Hudum edge tables too.
-        assert_eq!(drop_redundant_zwj(&[Zwj, Mvs, Aa], false), [Mvs, Aa]);
     }
 
     #[test]
@@ -251,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn idempotent_and_edge_tables_are_hudum_only() {
+    fn idempotent() {
         for shape in [
             vec![Zwj, B, Zwj],
             vec![Zwj, N, A, Zwj],
@@ -261,10 +257,6 @@ mod tests {
         ] {
             let once = drop(&shape);
             assert_eq!(drop(&once), once, "{shape:?}");
-            let structural = drop_redundant_zwj(&shape, false);
-            assert_eq!(drop_redundant_zwj(&structural, false), structural);
         }
-        assert_eq!(drop_redundant_zwj(&[Zwj, B, Zwj], false), [Zwj, B, Zwj]);
-        assert_eq!(drop_redundant_zwj(&[L, I, Zwj, Aa], false), [L, I, Aa]);
     }
 }

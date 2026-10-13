@@ -317,11 +317,11 @@ fn test_controls_require_control_position_and_letters_reject_it() {
 #[test]
 fn test_rejects_unknown_unit_position_pair() {
     let shaper = shaper();
-    // `E` is a Todo unit, never in the HUD inventory.
-    let error = positioned(&shaper, &[rec(WrittenUnit::E, UnitPosition::Isol)]).unwrap_err();
+    // Isolated FA borrows `F:init`: `F:isol` is not in the HUD inventory.
+    let error = positioned(&shaper, &[rec(WrittenUnit::F, UnitPosition::Isol)]).unwrap_err();
     assert_eq!(
         error.to_string(),
-        "unsupported positioned written unit 'E:isol'"
+        "unsupported positioned written unit 'F:isol'"
     );
 }
 

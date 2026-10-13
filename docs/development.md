@@ -55,7 +55,7 @@ The browser playground has separate build prerequisites and browser tests; see
 Rust, from the repository root:
 
 ```bash
-cargo test --workspace --locked   # 256 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
+cargo test --workspace --locked   # 301 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
 cargo test -p mongol-norm --features font --locked   # + the font backend (Rust 1.85): the upstream Hudum
                                                      #   suites, font-vs-engine, its own contract, fuzz
 cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -73,7 +73,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install 'maturin>=1.15,<2'
 maturin develop --locked --features testing        # builds mongol_norm/_native
 
-python -m unittest discover -s tests -p 'test_*.py'   # 253 tests
+python -m unittest discover -s tests -p 'test_*.py'   # 278 tests
 python -m unittest tests.test_shaper -v               # shape / same_shape / normalize
 python -m unittest tests.test_round_trip              # round-trip + canonicity + prefix-stability
 python -m unittest tests.test_core_hud tests.test_eac_hud   # the upstream TSV suites
@@ -107,7 +107,7 @@ font that shows a written unit the rule data (`MNG.json`) does not have. Review 
 `tests/font_suites.rs` and the pinned disagreements in `tests/font_vs_engine.rs` where the run
 tells you to.
 
-Current totals: **256 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
-1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest) and **253 Python
-tests**, green on Rust stable / 1.82 (the core crate's MSRV; the binding crate needs 1.83) and
-CPython 3.9 – 3.14.
+Current totals: **301 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
+1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest; the `font` feature
+adds 18) and **278 Python tests**, green on Rust stable / 1.82 (the core crate's MSRV; the binding
+crate needs 1.83, the `font` feature 1.85) and CPython 3.9 – 3.14.
