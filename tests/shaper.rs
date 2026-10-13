@@ -165,6 +165,19 @@ fn test_step2_vowel_fvs_default() {
 }
 
 #[test]
+fn test_step2_medial_vowel_fvs_default() {
+    // An FVS after a MEDIAL vowel resets marked too, even one that selects nothing there
+    // (FVS4): GB/T 25914-2023 table B.14's medial marked rule `[MICCS] + ue + [ExtMCS]` needs
+    // a letter right after the vowel, so the vowel keeps its first form, the default `O` —
+    // as mongfontbuilder's font draws it.
+    assert_shape(&mgl("h ue fvs4 p"), &["G", "O", "P"]);
+    assert_shape(&mgl("t oe fvs4 l"), &["T", "O", "L"]);
+    assert_shape(&mgl("t oe l"), &["T", "O", "I", "L"]);
+    // An FVS BEFORE a medial vowel (on the consonant) does not: that resets final vowels only.
+    assert_shape(&mgl("h fvs3 ue p"), &["H", "O", "I", "P"]);
+}
+
+#[test]
 fn test_step2_oe_ue_fina_hg_init_fvs_marked() {
     // Per GB/T 25914-2023 table E.3 (U+182C) / E.4 (U+182D): oe/ue.fina preceded by h/g AT
     // INIT POSITION with FVS2/FVS4 -> marked (exception). UTN #57 and the mongfontbuilder
