@@ -5,12 +5,13 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Shape-aware normalizer for Traditional Mongolian script: the UTN #57 v4 shaping engine and FVS-pinned canonical normalizer, pure Rust with zero dependencies."
+description = "Shape-aware normalizer for Traditional Mongolian script: the UTN #57 v4 shaping engine and FVS-pinned canonical normalizer, pure Rust with zero dependencies (optional font backend)."
 readme = "README.md"
 keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
 categories = ["text-processing", "internationalization"]
 # The corpus/golden tests read tests/{data,golden} at test time, so they are not packaged.
-include = ["src/**", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+# fonts/ is the bundled shaping font of the `font` feature, with its notices and pin.
+include = ["src/**", "fonts/**", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
 
 [lib]
 name = "mongol_norm"
@@ -23,8 +24,16 @@ path = "src/bin/mongol-norm.rs"
 # Exposes `Shaper::with_empty_normalize_table` for the Python bindings' test-suite
 # (`python/`); never enable it in a published dependent.
 testing = []
+# `FontShaper`: shaping with the bundled mongfontbuilder font through harfrust (the Rust port
+# of HarfBuzz) instead of the ported rules. Pulls in harfrust and its crates; needs Rust 1.85.
+# The default build stays dependency-free.
+font = ["dep:harfrust"]
 
 [dependencies]
+harfrust = { version = "0.14.0", optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
 
 # The crate is the workspace root; the PyO3 binding crate (`python/`, published to PyPI
 # as `mongol-norm`, not to crates.io) is the only other member.

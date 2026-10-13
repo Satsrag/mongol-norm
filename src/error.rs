@@ -17,6 +17,15 @@ pub enum Error {
         /// Its `char` index in the input.
         index: usize,
     },
+    /// `FontShaper::shape`: a character the bundled shaping font has no written form for — an
+    /// unassigned code point of the block, or a letter at a position the font draws no form of
+    /// (an isolated U+1878 or U+1898). `index` is a `char` index.
+    UnsupportedChar {
+        /// The offending character.
+        ch: char,
+        /// Its `char` index in the input.
+        index: usize,
+    },
     /// Strict normalization found no canonical encoding for the written-unit shape
     /// (Python `NormalizationFallbackError`).
     NormalizationFallback {
@@ -102,6 +111,14 @@ impl fmt::Display for Error {
                 *ch as u32,
                 index
             ),
+            Error::UnsupportedChar { ch, index } => write!(
+                f,
+                "unsupported character '{}' (U+{:04X}) at index {}: the shaping font has no \
+                 written form for it",
+                ch.escape_debug(),
+                *ch as u32,
+                index
+            ),
             Error::NormalizationFallback { written_units, .. } => {
                 let names: Vec<&str> = written_units.iter().map(|u| u.as_str()).collect();
                 write!(
@@ -182,6 +199,26 @@ mod tests {
             "non-Mongolian character '\\n' (U+000A) at index 4: shape() / normalize() accept only \
              Mongolian letters + FVS/MVS/NNBSP/Nirugu/ZWJ. For mixed-script input use \
              normalize_text()."
+        );
+        // An unassigned code point is not printable, so `escape_debug` spells it out (as
+        // Python's `repr` would, with its own `\u181a` spelling).
+        assert_eq!(
+            Error::UnsupportedChar {
+                ch: '\u{181A}',
+                index: 2
+            }
+            .to_string(),
+            "unsupported character '\\u{181a}' (U+181A) at index 2: the shaping font has no \
+             written form for it"
+        );
+        assert_eq!(
+            Error::UnsupportedChar {
+                ch: '\u{1878}',
+                index: 0
+            }
+            .to_string(),
+            "unsupported character '\u{1878}' (U+1878) at index 0: the shaping font has no written \
+             form for it"
         );
         assert_eq!(
             Error::NormalizationFallback {
