@@ -128,10 +128,19 @@ fn iii2a_o_u_oe_ue_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper
 
 per_token!(iii2a_o_u_oe_ue_marked_gb_a => iii2a_o_u_oe_ue_marked_gb_a_at);
 
-/// GB.A: an FVS directly before or after the vowel resets `marked` — observed only on
-/// fina-position vowels (verified against DraftNew-Regular.otf: `h fvs3 oe` resets, `h fvs3 oe l`
-/// stays marked), so the position gate is load-bearing — see
-/// rules.py::_iii2a_o_u_oe_ue_marked_gb_a_at.
+/// GB.A: an FVS next to the vowel resets `marked`. The two sides differ:
+///
+/// * an FVS *after* the vowel (its own) resets it at any position — medial too: `h ue fvs4 p`
+///   is `G O P`, not `G O I P`. In GB/T 25914-2023 Table B.14 the medial marked rule is
+///   `[MICCS] + ü + [ExtMCS]`, which needs a letter right after the vowel, so an FVS that
+///   selects nothing (FVS4) leaves the position's first form, the default `O`. mongfontbuilder
+///   resets medial and final vowels alike (`III.o_u_oe_ue.marked.GB.A`, checked on the pinned
+///   hudum.otf);
+/// * an FVS *before* the vowel (on the preceding letter) resets it at final position only —
+///   verified against DraftNew-Regular.otf: `h fvs3 oe` resets, `h fvs3 oe l` stays marked.
+///
+/// A marked vowel follows a consonant, so it is never `isol` or `init`. The FVS's own variant
+/// still wins where the FVS is valid; the reset only shows where it selects nothing.
 fn iii2a_o_u_oe_ue_marked_gb_a_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if !tok.is_letter {
@@ -143,11 +152,11 @@ fn iii2a_o_u_oe_ue_marked_gb_a_at(tokens: &mut [Token], index: usize, _shaper: &
     if tok.condition != Some(Condition::Marked) {
         return;
     }
-    if tok.position != Position::Fina {
-        return;
-    }
     if tok.has_fvs {
         tokens[index].condition = None;
+        return;
+    }
+    if tok.position != Position::Fina {
         return;
     }
     if let Some(prev) = prev_letter(tokens, index) {

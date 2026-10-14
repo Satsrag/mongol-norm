@@ -133,6 +133,16 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("d fvs1 ue")), ["D", "U"])    # ᠳ᠋ᠦ
         self.assertEqual(self.s.shape(_mgl("d fvs1 u")),  ["D", "U"])    # ᠳ᠋ᠤ
 
+    # 2-1b'  an FVS after a MEDIAL vowel resets marked too, even one that selects
+    # nothing there (FVS4): GB/T 25914-2023 表 B.14 词中 marked 规则
+    # [MICCS] + ü + [ExtMCS] 要求元音后紧跟字母，否则取第一形式 O（与字体一致）。
+    # An FVS BEFORE a medial vowel does not: that resets final vowels only.
+    def test_step2_medial_vowel_fvs_default(self):
+        self.assertEqual(self.s.shape(_mgl("h ue fvs4 p")), ["G", "O", "P"])        # ᠬᠦ᠏ᠫ
+        self.assertEqual(self.s.shape(_mgl("t oe fvs4 l")), ["T", "O", "L"])        # ᠲᠥ᠏ᠯ
+        self.assertEqual(self.s.shape(_mgl("t oe l")), ["T", "O", "I", "L"])        # ᠲᠥᠯ
+        self.assertEqual(self.s.shape(_mgl("h fvs3 ue p")), ["H", "O", "I", "P"])   # ᠬ᠍ᠦᠫ
+
     # 2-1c  oe/ue.fina preceded by h/g(INIT)+FVS2/FVS4 → marked (exception)
     # Per GB/T 25914-2023 表 E.3 (U+182C) / 表 E.4 (U+182D): this rule applies
     # ONLY when h/g is at initial position. UTN #57 and the mongfontbuilder
