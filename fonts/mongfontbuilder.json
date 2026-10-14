@@ -1,18 +1,18 @@
 {
   "repository": "https://github.com/Kushim-Jiang/mongolian",
-  "commit": "c662fba7395d6abff735a91d861532c57e61feb0",
-  "committed": "2026-10-13T13:57:35+08:00",
+  "commit": "b4151ff923092a3af1c138890d8898a708fa75dc",
+  "committed": "2026-10-14T16:59:14+08:00",
   "mongfontbuilder_version": "0.15.3",
   "build": "cd mongfontbuilder && uv run python tests/build.py --only hudum",
   "source": {
     "path": "mongfontbuilder/temp/hudum.otf",
-    "sha256": "cd07f6b352225729fcea16080a482a07f50b22d678f0f428e1ecfccd1c069e14",
-    "bytes": 191196
+    "sha256": "b1e5fcf53ac40228c095c77718de65bbbfd99fbb0b9d5d40116d41ac7b8f596c",
+    "bytes": 191204
   },
   "font": {
     "path": "fonts/hudum.otf",
-    "sha256": "c8d7fc12283571d2c736772f3b78d578c0c4f39080e897dc2414b9381aab7cf3",
-    "bytes": 30288,
+    "sha256": "e8fc7972c2228df70b3c6eb3701709c4f61baafcf736fe6c30513a6f42ad6513",
+    "bytes": 30296,
     "glyphs": 976
   },
   "suites": [
