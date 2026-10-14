@@ -702,6 +702,20 @@ fn test_step5_no_post_bowed_medi() {
     assert_shape(&mgl("g e r"), &["G", "A", "R"]);
 }
 
+#[test]
+fn test_step5_no_post_bowed_after_ng() {
+    // ŋ is written `A G`, ending in the unit G, but it is no bowed consonant: bowedG is a letter
+    // written as nothing but G/Gx (mongfontbuilder's `writtens("MNG", ["G", "Gx"])`), and
+    // GB/T 25914-2023 lists ŋ as a non-combining consonant (NCC). A final vowel after it keeps
+    // its first form, as the font draws it.
+    assert_shape(&mgl("ch ng o"), &["Ch", "A", "G", "U"]);
+    assert_shape(&mgl("sh ng e"), &["Sh", "A", "G", "A"]);
+    assert_shape(&mgl("ch ng ue"), &["Ch", "A", "G", "U"]);
+    assert_shape(&mgl("ng e"), &["A", "G", "A"]);
+    // The usual spelling ŋ + g: the vowel follows g's own G, which is bowed.
+    assert_shape(&mgl("e ng g e"), &["A", "A", "G", "G", "Aa"]);
+}
+
 // ── Position assignment ──
 
 #[test]
