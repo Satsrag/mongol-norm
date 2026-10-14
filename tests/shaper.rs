@@ -450,6 +450,24 @@ fn test_step2_sh_dotless() {
 }
 
 #[test]
+fn test_step2_invalid_fvs_keeps_context() {
+    // An FVS that selects no variant at the letter's position is transparent to the context
+    // rules (GB/T 25914-2023: the FVS passes grammatical context both ways; the font carries it
+    // as `fvsN.ignored`). t.medi and sh have FVS1/FVS2 only, g.fina FVS1-3.
+    // t devsger (after a consonant: after a vowel III.2e already looked through the FVS)
+    assert_shape(&mgl("a s t fvs3 r a"), &["A", "A", "S", "T", "R", "A"]);
+    assert_shape(&mgl("sh fvs4 i l"), &["S", "I", "L"]); // sh dotless
+    assert_shape(&mgl("a g fvs4"), &["A", "A", "H"]); // h/g harmony
+    assert_shape(&mgl("s u i fvs4 l"), &["S", "O", "I", "I", "L"]); // vowel devsger
+                                                                    // A valid FVS still picks its own variant.
+    assert_shape(&mgl("a s t fvs2 l a"), &["A", "A", "S", "D", "L", "A"]);
+    assert_shape(&mgl("s u i fvs3 l"), &["S", "O", "I", "L"]);
+    // Before an MVS, GB writes the FVS out (`n + FVS1 + MVS`, `n + FVS2 + MVS`), so any other
+    // FVS breaks the rule and n keeps its first form (EAC XIM11-46).
+    assert_shape(&mgl("a n fvs3 mvs e"), &["A", "A", "A", "Mvs", "Aa"]);
+}
+
+#[test]
 fn test_step2_g_dotless() {
     // iii2g.g.dotless has two precise sub-rules — both require s/d before g — and OVERRIDE
     // whatever condition iii2f.h_g.harmony or iii2c.chachlag_onset set earlier (the OpenType

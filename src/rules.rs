@@ -5,6 +5,16 @@
 //! Every rule is *first-writer-wins* (`if tok.condition.is_some() { return }`) except
 //! `III.2g.g.dotless` and `III.5.post_bowed`, which override earlier conditions to mirror
 //! OpenType class-membership semantics (see the Python comments for the font verification).
+//!
+//! An FVS locks a letter against the context rules only when it selects a variant there
+//! ([`Shaper::has_valid_fvs`]), and that variant wins whatever condition a rule sets. An FVS that
+//! selects nothing is transparent: GB/T 25914-2023 gives the FVS "双向传递语法上下文特性" (it
+//! passes grammatical context both ways) except where Appendix B writes it out, and shows an
+//! invalid one as an error glyph; the font carries it through phase III as `fvsN.ignored`.
+//! So `a s t fvs3 r a` is `A A S T R A`, as without the FVS. The rules that read an FVS as a signal
+//! of their own still count any FVS: III.1 chachlag, III.2c before an MVS (Appendix B writes
+//! out `n + FVS1 + MVS` and `n + FVS2 + MVS`; EAC XIM11-46 keeps `a n fvs3 mvs e` at the first
+//! form), GB.A/GB.B, the cluster and d.marked rules, and the particles.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::shaper::{
@@ -371,7 +381,10 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if tok.condition.is_some() {
         return;
     }
-    if !tok.is_letter || !matches!(tok.alias, Some(Alias::H | Alias::G)) || tok.has_fvs {
+    if !tok.is_letter
+        || !matches!(tok.alias, Some(Alias::H | Alias::G))
+        || shaper.has_valid_fvs(&tokens[index])
+    {
         return;
     }
     let next = next_adjacent_letter(tokens, index);
@@ -438,7 +451,7 @@ fn iii2g_t_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if tok.condition.is_some() {
         return;
     }
-    if !tok.is_letter || tok.alias != Some(Alias::T) || tok.has_fvs {
+    if !tok.is_letter || tok.alias != Some(Alias::T) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(next) = next_letter(tokens, index) else {
@@ -453,12 +466,12 @@ per_token!(iii2g_sh_dotless => iii2g_sh_dotless_at);
 
 /// sh before i → `dotless` (the dot would collide with the following i) — see
 /// rules.py::_iii2g_sh_dotless_at.
-fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
+fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
         return;
     }
-    if !tok.is_letter || tok.alias != Some(Alias::Sh) || tok.has_fvs {
+    if !tok.is_letter || tok.alias != Some(Alias::Sh) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(next) = next_letter(tokens, index) else {
@@ -485,7 +498,7 @@ per_token!(iii2g_g_dotless => iii2g_g_dotless_at);
 /// see rules.py::_iii2g_g_dotless_at.
 fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
-    if !tok.is_letter || tok.alias != Some(Alias::G) || tok.has_fvs {
+    if !tok.is_letter || tok.alias != Some(Alias::G) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(prev) = prev_letter(tokens, index) else {
@@ -619,7 +632,7 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !tok.is_letter || tok.alias != Some(Alias::I) || tok.position != Position::Medi {
         return;
     }
-    if tok.has_fvs {
+    if shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(prev) = prev_letter(tokens, index) else {

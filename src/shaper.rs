@@ -268,6 +268,17 @@ impl Shaper {
                 .is_some_and(|alias| self.consonants.contains(&alias))
     }
 
+    /// One of the letter's FVSes selects a variant at its position — the one
+    /// [`Shaper::resolve_written`] takes. An FVS that selects nothing locks nothing: the font
+    /// carries it through phase III as `fvsN.ignored`, a mark the context lookups skip.
+    pub(crate) fn has_valid_fvs(&self, token: &Token) -> bool {
+        token.is_letter()
+            && token.fvs.iter().any(|&fvs| {
+                self.variants
+                    .contains_key(&(token.cp, token.position, Some(fvs)))
+            })
+    }
+
     pub(crate) fn is_masc_vowel(&self, token: &Token) -> bool {
         token
             .alias

@@ -489,6 +489,36 @@ class TestShape(unittest.TestCase):
         # ᠰᠧ - sh.init + ee (ee is not in the rule's input set)
         self.assertEqual(self.s.shape(_mgl("sh ee")), ["Sh", "W"])
 
+    # 2-10b An FVS that selects no variant at the letter's position is
+    # transparent to the context rules (GB/T 25914-2023: the FVS passes
+    # grammatical context both ways; the font carries it as `fvsN.ignored`).
+    # t.medi and sh have FVS1/FVS2 only, g.fina FVS1-3.
+    def test_step2_invalid_fvs_keeps_context(self):
+        # ᠠᠰᠲ᠍ᠷᠠ - t devsger (after a consonant: after a vowel
+        # III.2e already looked through the FVS)
+        self.assertEqual(
+            self.s.shape(_mgl("a s t fvs3 r a")),
+            ["A", "A", "S", "T", "R", "A"],
+        )
+        # ᠱ᠏ᠢᠯ - sh dotless
+        self.assertEqual(self.s.shape(_mgl("sh fvs4 i l")), ["S", "I", "L"])
+        # ᠠᠭ᠏ - h/g harmony
+        self.assertEqual(self.s.shape(_mgl("a g fvs4")), ["A", "A", "H"])
+        # ᠰᠤᠢ᠏ᠯ - vowel devsger
+        self.assertEqual(self.s.shape(_mgl("s u i fvs4 l")), ["S", "O", "I", "I", "L"])
+        # A valid FVS still picks its own variant.
+        self.assertEqual(
+            self.s.shape(_mgl("a s t fvs2 l a")),
+            ["A", "A", "S", "D", "L", "A"],
+        )
+        self.assertEqual(self.s.shape(_mgl("s u i fvs3 l")), ["S", "O", "I", "L"])
+        # Before an MVS, GB writes the FVS out (n + FVS1 + MVS, n + FVS2 + MVS),
+        # so any other FVS breaks the rule and n keeps its first form (EAC XIM11-46).
+        self.assertEqual(
+            self.s.shape(_mgl("a n fvs3 mvs e")),
+            ["A", "A", "A", "Mvs", "Aa"],
+        )
+
     # 2-11  g: dotless. iii2g.g.dotless (iii.py:764-776) has two precise
     # sub-rules — both require `s/d` before g — and OVERRIDES whatever
     # condition iii2f.h_g.harmony or iii2c.chachlag_onset set earlier
