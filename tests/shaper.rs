@@ -142,6 +142,18 @@ fn test_step1_chachlag_mvs_a_fvs_default() {
     assert_shape(&mgl("t a l mvs a fvs1"), &["T", "A", "L", "Mvs", "A"]);
 }
 
+#[test]
+fn test_step1_chachlag_fvs_after_mvs() {
+    // a/e after an MVS (or NNBSP) take chachlag; an FVS right after the MVS does not stop it
+    // (the font's lookup ignores it), only one on the vowel does.
+    assert_shape(&mgl("ch mvs a"), &["Ch", "Mvs", "Aa"]);
+    assert_shape(&mgl("ch nnbsp a"), &["Ch", "Mvs", "Aa"]);
+    assert_shape(&mgl("ch mvs e"), &["Ch", "Mvs", "Aa"]);
+    assert_shape(&mgl("ch mvs fvs1 a"), &["Ch", "Mvs", "Aa"]);
+    assert_shape(&mgl("ch mvs fvs2 a"), &["Ch", "Mvs", "Aa"]);
+    assert_shape(&mgl("ch mvs a fvs1"), &["Ch", "Mvs", "A"]);
+}
+
 // ── Step 2 · Syllabic — consonant/vowel context rules ──
 
 #[test]
@@ -550,6 +562,20 @@ fn test_step3_particle_acha() {
 fn test_step3_particle_i() {
     // tal + MVS + i -- i.isol at idx 1 -> particle
     assert_shape(&mgl("t a l mvs i"), &["T", "A", "L", "Mvs", "I"]);
+}
+
+#[test]
+fn test_step3_particle_blocked_by_fvs_after_mvs() {
+    // An FVS right after the MVS breaks the particle: GB/T 25914-2023 B.6 gives `MVS + CTL` a
+    // case of its own, and the font's particle lookup filters FVS. The vowel stays a plain
+    // isolated letter.
+    assert_shape(&mgl("mvs i"), &["Mvs", "I"]);
+    assert_shape(&mgl("mvs fvs2 i"), &["Mvs", "A", "I"]);
+    assert_shape(&mgl("ch mvs fvs2 ue"), &["Ch", "Mvs", "A", "Ue"]);
+    assert_shape(
+        &mgl("t a l nnbsp fvs1 i"),
+        &["T", "A", "L", "Mvs", "A", "I"],
+    );
 }
 
 #[test]
