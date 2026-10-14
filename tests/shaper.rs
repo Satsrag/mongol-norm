@@ -432,6 +432,29 @@ fn test_step2_t_devsger_before_ee() {
 }
 
 #[test]
+fn test_step2_t_before_final_joiner_keeps_default() {
+    // A medial t joined to nothing but a ZWJ or a nirugu closes no syllable, so it takes no
+    // devsger and keeps its default `D`, as the font draws it (its devsger needs a following
+    // consonant; GB/T 25914-2023 B.26 gives `t + NIRUGU` the first form).
+    assert_shape("\u{1820}\u{1832}\u{200D}", &["A", "A", "D", "Zwj"]);
+    assert_shape("\u{1820}\u{1832}\u{180A}", &["A", "A", "D", "Nirugu"]);
+    // A letter after the joiner still decides: a consonant gives devsger, a vowel onset.
+    assert_shape(
+        "\u{1820}\u{1832}\u{180A}\u{182F}\u{1820}",
+        &["A", "A", "T", "Nirugu", "L", "A"],
+    );
+    assert_shape(
+        "\u{1820}\u{1832}\u{180A}\u{1820}",
+        &["A", "A", "D", "Nirugu", "A"],
+    );
+    // An MVS ends the segment: a consonant after it does not count.
+    assert_shape(
+        "\u{1820}\u{1832}\u{180A}\u{180E}\u{182F}\u{1820}",
+        &["A", "A", "D", "Nirugu", "Mvs", "L", "A"],
+    );
+}
+
+#[test]
 fn test_step2_sh_dotless() {
     // iii2g.sh.dotless: (1) sh.init + i.medi -> dotless; (2) sh.medi + i.{medi,fina} ->
     // dotless. Verified against DraftNew-Regular.otf (u1831.S.init is the dotless variant of

@@ -467,6 +467,29 @@ class TestShape(unittest.TestCase):
         # d.medi.onset = D (same as default) — visually identical
         self.assertEqual(self.s.shape(_mgl("a d ee n")), ["A", "A", "D", "W", "A"])
 
+    # 2-9b  a medial t joined to nothing but a ZWJ or a nirugu closes no
+    # syllable: no devsger, so it keeps its default "D", as the font draws it
+    # (its devsger needs a following consonant; GB/T 25914-2023 B.26 gives
+    # t + NIRUGU the first form).
+    def test_step2_t_before_final_joiner_keeps_default(self):
+        # a t zwj / a t nirugu
+        self.assertEqual(self.s.shape("\u1820\u1832\u200d"), ["A", "A", "D", "Zwj"])
+        self.assertEqual(self.s.shape("\u1820\u1832\u180a"), ["A", "A", "D", "Nirugu"])
+        # A letter after the joiner still decides: consonant → devsger, vowel → onset
+        self.assertEqual(
+            self.s.shape("\u1820\u1832\u180a\u182f\u1820"),
+            ["A", "A", "T", "Nirugu", "L", "A"],
+        )
+        self.assertEqual(
+            self.s.shape("\u1820\u1832\u180a\u1820"),
+            ["A", "A", "D", "Nirugu", "A"],
+        )
+        # An MVS ends the segment: a consonant after it does not count
+        self.assertEqual(
+            self.s.shape("\u1820\u1832\u180a\u180e\u182f\u1820"),
+            ["A", "A", "D", "Nirugu", "Mvs", "L", "A"],
+        )
+
     # 2-10  sh: dotless. iii2g.sh.dotless has two clauses (iii.py:754-763):
     #   (1) sh.init + i.medi          → dotless
     #   (2) sh.medi + i.{medi, fina}  → dotless
