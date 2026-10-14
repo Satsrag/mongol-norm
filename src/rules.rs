@@ -329,8 +329,23 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper)
 
 per_token!(iii2e_n_t_d_onset_devsger => iii2e_n_t_d_onset_devsger_at);
 
+/// The next letter before the segment ends at an MVS; ZWJ and nirugu are transparent.
+fn next_letter_in_segment(tokens: &[Token], index: usize) -> Option<usize> {
+    tokens[index + 1..]
+        .iter()
+        .take_while(|token| !token.is_mvs())
+        .position(Token::is_letter)
+        .map(|offset| index + 1 + offset)
+}
+
 /// n/t/d: `onset` before a vowel, `devsger` after one — see
 /// rules.py::_iii2e_n_t_d_onset_devsger_at.
+///
+/// A medial one with no letter after it in its segment (only a ZWJ or a nirugu, then the word
+/// end or an MVS) takes neither: it closes no syllable. The font's devsger needs a following
+/// consonant, and GB/T 25914-2023 B.26 gives `t + NIRUGU` the first form, so `a t zwj` is
+/// `A A D Zwj`, not `A A T Zwj` (n and d look the same either way: their devsger form is
+/// their default).
 fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -350,6 +365,9 @@ fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Sha
             set(tokens, index, Condition::Onset);
             return;
         }
+    }
+    if tok.position == Position::Medi && next_letter_in_segment(tokens, index).is_none() {
+        return;
     }
     if let Some(prev) = prev_letter(tokens, index) {
         if shaper.is_vowel(&tokens[prev]) {
@@ -446,7 +464,8 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 per_token!(iii2g_t_devsger => iii2g_t_devsger_at);
 
 /// t before `ee` or a consonant → `devsger` (it also owns the `t + ee` case III.2e skips) —
-/// see rules.py::_iii2g_t_devsger_at.
+/// see rules.py::_iii2g_t_devsger_at. The consonant must be in t's own segment: the font's
+/// lookup does not see past an MVS, so `a t nirugu mvs l a` keeps the default `D`.
 fn iii2g_t_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -455,7 +474,7 @@ fn iii2g_t_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !tok.is_letter || tok.alias != Some(Alias::T) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
-    let Some(next) = next_letter(tokens, index) else {
+    let Some(next) = next_letter_in_segment(tokens, index) else {
         return;
     };
     if tokens[next].alias == Some(Alias::Ee) || shaper.is_consonant(&tokens[next]) {
