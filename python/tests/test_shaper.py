@@ -110,6 +110,18 @@ class TestShape(unittest.TestCase):
             ["T", "A", "L", "Mvs", "A"],
         )
 
+    # 1-3  a/e after an MVS (or NNBSP) take chachlag; an FVS right after the MVS
+    # does not stop it (the font's lookup ignores it), only one on the vowel does.
+    def test_step1_chachlag_fvs_after_mvs(self):
+        # ᠴ᠎ᠠ - ch + MVS + a
+        self.assertEqual(self.s.shape(_mgl("ch mvs a")), ["Ch", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("ch nnbsp a")), ["Ch", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("ch mvs e")), ["Ch", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("ch mvs fvs1 a")), ["Ch", "Mvs", "Aa"])
+        # ᠴ᠎᠌ᠠ - ch + MVS + FVS2 + a
+        self.assertEqual(self.s.shape(_mgl("ch mvs fvs2 a")), ["Ch", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("ch mvs a fvs1")), ["Ch", "Mvs", "A"])
+
     # ══════════════════════════════════════════════════════════
     # Step 2 · Syllabic — consonant/vowel context rules
     # ══════════════════════════════════════════════════════════
@@ -620,6 +632,21 @@ class TestShape(unittest.TestCase):
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs i")),
             ["T", "A", "L", "Mvs", "I"],
+        )
+
+    # 3-1d  An FVS right after the MVS breaks the particle: GB/T 25914-2023 B.6
+    # gives MVS + CTL a case of its own, and the font's particle lookup filters
+    # FVS. The vowel stays a plain isolated letter.
+    def test_step3_particle_blocked_by_fvs_after_mvs(self):
+        self.assertEqual(self.s.shape(_mgl("mvs i")), ["Mvs", "I"])
+        self.assertEqual(self.s.shape(_mgl("mvs fvs2 i")), ["Mvs", "A", "I"])
+        self.assertEqual(
+            self.s.shape(_mgl("ch mvs fvs2 ue")),
+            ["Ch", "Mvs", "A", "Ue"],
+        )
+        self.assertEqual(
+            self.s.shape(_mgl("t a l nnbsp fvs1 i")),
+            ["T", "A", "L", "Mvs", "A", "I"],
         )
 
     def test_step3_particle_iyar(self):

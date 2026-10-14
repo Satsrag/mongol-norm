@@ -91,6 +91,10 @@ per_token!(iii1_chachlag => iii1_chachlag_at);
 
 /// Isolated a/e directly after an MVS take `chachlag`; a GB carve-out lets an FVS on the vowel
 /// cancel it so the MVS shaping is postponed to III.3 — see rules.py::_iii1_chachlag_at.
+/// An FVS right after the MVS (kept on the MVS token) does not: the font's lookup ignores it,
+/// so `ch mvs fvs2 a` is `Ch Mvs Aa` like `ch mvs a`. It does stop a particle (III.3), as in
+/// the font, although GB/T 25914-2023 writes both rules alike (`[MVS] + a`, `[MVS] + i`): the
+/// engine follows the reference font here and will follow it if that changes.
 fn iii1_chachlag_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if !tok.is_letter {
@@ -577,11 +581,9 @@ fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
         let Some(particle_indices) = particle_indices else {
             continue;
         };
-        // UseMarkFilteringSet @fvs: any FVS in the segment breaks base-glyph adjacency.
-        if indices
-            .iter()
-            .any(|&idx| tokens[idx].is_letter() && tokens[idx].has_fvs())
-        {
+        // UseMarkFilteringSet @fvs: any FVS in the matched run breaks base-glyph adjacency,
+        // one right after its MVS too (`mvs fvs2 i` is no particle: `Mvs A I`).
+        if used.iter().any(|&idx| tokens[idx].has_fvs()) {
             continue;
         }
         // The lookup keys on position-specific classes: a nirugu between mvs and the first

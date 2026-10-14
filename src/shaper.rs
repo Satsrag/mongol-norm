@@ -24,7 +24,7 @@ pub struct TokenDetail {
     pub alias: Option<Alias>,
     /// Structural position (`Isol` for structural tokens).
     pub position: Position,
-    /// The first FVS attached to the letter (Python reports only the first one).
+    /// The first FVS attached to the letter or MVS (Python reports only the first one).
     pub fvs: Option<Fvs>,
     /// The condition assigned by the rule pipeline.
     pub condition: Option<Condition>,

@@ -1,5 +1,5 @@
-//! Tokens of the shaping pipeline: one per letter (with its trailing FVS run), MVS, nirugu or
-//! ZWJ; plus tokenization and structural position assignment.
+//! Tokens of the shaping pipeline: one per letter or MVS (each with its trailing FVS run),
+//! nirugu or ZWJ; plus tokenization and structural position assignment.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::tables::{Fvs, Position};
@@ -29,7 +29,7 @@ pub(crate) struct Token {
     /// The letter's alias in the shaper's locale; `None` for structural tokens and for letters
     /// this locale does not know (they shape to nothing).
     pub alias: Option<Alias>,
-    /// Every FVS directly following the letter, in stream order.
+    /// Every FVS directly following the letter (or the MVS), in stream order.
     pub fvs: Vec<Fvs>,
     /// Structural position; stays `Isol` for non-letters.
     pub position: Position,
@@ -85,8 +85,10 @@ impl Token {
     }
 }
 
-/// Split text into tokens. Letters absorb every directly following FVS; MVS/NNBSP become `Mvs`;
-/// nirugu and ZWJ become joining tokens; everything else is skipped.
+/// Split text into tokens. Letters absorb every directly following FVS; MVS/NNBSP become `Mvs`
+/// and absorb theirs too (GB/T 25914-2023 B.6 gives `MVS + CTL` a case of its own, and the
+/// font's particle lookup stops at such an FVS); nirugu and ZWJ become joining tokens; an FVS
+/// after anything else, and everything else, is skipped.
 pub(crate) fn tokenize(text: &str, alias_of: impl Fn(u32) -> Option<Alias>) -> Vec<Token> {
     let cps: Vec<u32> = text.chars().map(|c| c as u32).collect();
     let mut tokens = Vec::with_capacity(cps.len());
@@ -103,8 +105,14 @@ pub(crate) fn tokenize(text: &str, alias_of: impl Fn(u32) -> Option<Alias>) -> V
             tokens.push(token);
             i = j;
         } else if cp == MVS || cp == NNBSP {
-            tokens.push(Token::new(TokenKind::Mvs, MVS, None));
-            i += 1;
+            let mut token = Token::new(TokenKind::Mvs, MVS, None);
+            let mut j = i + 1;
+            while let Some(fvs) = cps.get(j).copied().and_then(Fvs::from_cp) {
+                token.fvs.push(fvs);
+                j += 1;
+            }
+            tokens.push(token);
+            i = j;
         } else if cp == NIRUGU {
             tokens.push(Token::new(TokenKind::Nirugu, NIRUGU, None));
             i += 1;
@@ -282,5 +290,14 @@ mod tests {
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0].kind, Letter);
         assert!(!tokens[0].has_fvs());
+
+        // An FVS right after an MVS (or NNBSP) stays with the MVS, not with the next letter.
+        let tokens = tokenize("\u{180E}\u{180C}\u{1822}", no_alias);
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0].kind, Mvs);
+        assert_eq!(tokens[0].fvs, vec![Fvs::Fvs2]);
+        assert!(!tokens[1].has_fvs());
+        let tokens = tokenize("\u{202F}\u{180B}\u{1822}", no_alias);
+        assert_eq!(tokens[0].fvs, vec![Fvs::Fvs1]);
     }
 }
