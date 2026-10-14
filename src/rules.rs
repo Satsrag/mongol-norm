@@ -142,17 +142,43 @@ fn iii2a_o_u_oe_ue_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper
 
 per_token!(iii2a_o_u_oe_ue_marked_gb_a => iii2a_o_u_oe_ue_marked_gb_a_at);
 
+/// An FVS right after the letter as GB.A's lookup sees it: the letter's own, or one carried by a
+/// ZWJ or nirugu right after it (phase III turns the joiners into marks the lookup skips).
+fn fvs_follows(tokens: &[Token], index: usize) -> bool {
+    tokens[index].has_fvs()
+        || tokens[index + 1..]
+            .iter()
+            .take_while(|token| token.is_nirugu())
+            .any(Token::has_fvs)
+}
+
+/// An FVS right before the letter as GB.A's lookup sees it: one carried by a ZWJ or nirugu right
+/// before it, or the previous letter's own.
+fn fvs_precedes(tokens: &[Token], index: usize) -> bool {
+    for token in tokens[..index].iter().rev() {
+        if token.has_fvs() {
+            return token.is_nirugu() || token.is_letter();
+        }
+        if !token.is_nirugu() {
+            return false;
+        }
+    }
+    false
+}
+
 /// GB.A: an FVS next to the vowel resets `marked`. The two sides differ:
 ///
-/// * an FVS *after* the vowel (its own) resets it at any position — medial too: `h ue fvs4 p`
+/// * an FVS *after* the vowel (its own, or one after a ZWJ or nirugu right after it: the
+///   font's lookup skips the joiners) resets it at any position — medial too: `h ue fvs4 p`
 ///   is `G O P`, not `G O I P`. mongfontbuilder resets medial and final vowels alike
 ///   (`III.o_u_oe_ue.marked.GB.A`, checked on the pinned hudum.otf) and documents it as a GB
 ///   requirement (`iii2a`: "the `marked` will be skipped if the vowel precedes or follows an
 ///   FVS"). Under GB/T 25914-2023's general FVS clause an FVS that selects nothing would be
 ///   transparent (see the module docs) and leave the vowel marked; mongfontbuilder reads the
 ///   o/u/oe/ue rules as a case Appendix B writes out, and no EAC row tells the two apart;
-/// * an FVS *before* the vowel (on the preceding letter) resets it at final position only —
-///   verified against DraftNew-Regular.otf: `h fvs3 oe` resets, `h fvs3 oe l` stays marked.
+/// * an FVS *before* the vowel (on the preceding letter, or after a joiner in between) resets
+///   it at final position only — verified against DraftNew-Regular.otf: `h fvs3 oe` resets,
+///   `h fvs3 oe l` stays marked.
 ///
 /// A marked vowel follows a consonant, so it is never `isol` or `init`. The FVS's own variant
 /// still wins where the FVS is valid; the reset only shows where it selects nothing.
@@ -167,17 +193,15 @@ fn iii2a_o_u_oe_ue_marked_gb_a_at(tokens: &mut [Token], index: usize, _shaper: &
     if tok.condition != Some(Condition::Marked) {
         return;
     }
-    if tok.has_fvs {
+    if fvs_follows(tokens, index) {
         tokens[index].condition = None;
         return;
     }
     if tok.position != Position::Fina {
         return;
     }
-    if let Some(prev) = prev_letter(tokens, index) {
-        if tokens[prev].has_fvs() {
-            tokens[index].condition = None;
-        }
+    if fvs_precedes(tokens, index) {
+        tokens[index].condition = None;
     }
 }
 
@@ -224,7 +248,7 @@ fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Sh
     if !matches!(tok.alias, Some(Alias::O | Alias::U | Alias::Oe | Alias::Ue)) {
         return;
     }
-    if tok.position != Position::Medi || tok.has_fvs {
+    if tok.position != Position::Medi || fvs_follows(tokens, index) {
         return;
     }
     let mut j = index;

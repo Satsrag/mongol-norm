@@ -177,6 +177,18 @@ fn test_step2_vowel_fvs_default() {
 }
 
 #[test]
+fn test_step2_gb_a_sees_fvs_after_joiner() {
+    // An FVS after a ZWJ or nirugu stays on the joiner. It selects nothing, but GB.A sees it next
+    // to the vowel, as the font's lookup does (it skips the joiners), and resets `marked`.
+    assert_shape(&mgl("t ue zwj fvs4 l"), &["T", "O", "L"]);
+    assert_shape(&mgl("g oe nirugu fvs3"), &["G", "O", "Nirugu"]);
+    assert_shape(&mgl("ch nirugu fvs4 ue"), &["Ch", "Nirugu", "U"]);
+    // Without the FVS the vowel stays marked.
+    assert_shape(&mgl("g oe nirugu"), &["G", "O", "I", "Nirugu"]);
+    assert_shape(&mgl("ch nirugu ue"), &["Ch", "Nirugu", "Ue"]);
+}
+
+#[test]
 fn test_step2_medial_vowel_fvs_default() {
     // An FVS after a MEDIAL vowel resets marked too, even one that selects nothing there
     // (FVS4), so the vowel keeps its default `O` — as mongfontbuilder's font draws it and its
