@@ -5,6 +5,16 @@
 //! Every rule is *first-writer-wins* (`if tok.condition.is_some() { return }`) except
 //! `III.2g.g.dotless` and `III.5.post_bowed`, which override earlier conditions to mirror
 //! OpenType class-membership semantics (see the Python comments for the font verification).
+//!
+//! An FVS locks a letter against the context rules only when it selects a variant there
+//! ([`Shaper::has_valid_fvs`]), and that variant wins whatever condition a rule sets. An FVS that
+//! selects nothing is transparent: GB/T 25914-2023 gives the FVS "双向传递语法上下文特性" (it
+//! passes grammatical context both ways) except where Appendix B writes it out, and shows an
+//! invalid one as an error glyph; the font carries it through phase III as `fvsN.ignored`.
+//! So `a s t fvs3 r a` is `A A S T R A`, as without the FVS. The rules that read an FVS as a signal
+//! of their own still count any FVS: III.1 chachlag, III.2c before an MVS (Appendix B writes
+//! out `n + FVS1 + MVS` and `n + FVS2 + MVS`; EAC XIM11-46 keeps `a n fvs3 mvs e` at the first
+//! form), GB.A/GB.B, the cluster and d.marked rules, and the particles.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::shaper::{
@@ -131,11 +141,12 @@ per_token!(iii2a_o_u_oe_ue_marked_gb_a => iii2a_o_u_oe_ue_marked_gb_a_at);
 /// GB.A: an FVS next to the vowel resets `marked`. The two sides differ:
 ///
 /// * an FVS *after* the vowel (its own) resets it at any position — medial too: `h ue fvs4 p`
-///   is `G O P`, not `G O I P`. In GB/T 25914-2023 Table B.14 the medial marked rule is
-///   `[MICCS] + ü + [ExtMCS]`, which needs a letter right after the vowel, so an FVS that
-///   selects nothing (FVS4) leaves the position's first form, the default `O`. mongfontbuilder
-///   resets medial and final vowels alike (`III.o_u_oe_ue.marked.GB.A`, checked on the pinned
-///   hudum.otf);
+///   is `G O P`, not `G O I P`. mongfontbuilder resets medial and final vowels alike
+///   (`III.o_u_oe_ue.marked.GB.A`, checked on the pinned hudum.otf) and documents it as a GB
+///   requirement (`iii2a`: "the `marked` will be skipped if the vowel precedes or follows an
+///   FVS"). Under GB/T 25914-2023's general FVS clause an FVS that selects nothing would be
+///   transparent (see the module docs) and leave the vowel marked; mongfontbuilder reads the
+///   o/u/oe/ue rules as a case Appendix B writes out, and no EAC row tells the two apart;
 /// * an FVS *before* the vowel (on the preceding letter) resets it at final position only —
 ///   verified against DraftNew-Regular.otf: `h fvs3 oe` resets, `h fvs3 oe l` stays marked.
 ///
@@ -371,7 +382,10 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if tok.condition.is_some() {
         return;
     }
-    if !tok.is_letter || !matches!(tok.alias, Some(Alias::H | Alias::G)) || tok.has_fvs {
+    if !tok.is_letter
+        || !matches!(tok.alias, Some(Alias::H | Alias::G))
+        || shaper.has_valid_fvs(&tokens[index])
+    {
         return;
     }
     let next = next_adjacent_letter(tokens, index);
@@ -438,7 +452,7 @@ fn iii2g_t_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if tok.condition.is_some() {
         return;
     }
-    if !tok.is_letter || tok.alias != Some(Alias::T) || tok.has_fvs {
+    if !tok.is_letter || tok.alias != Some(Alias::T) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(next) = next_letter(tokens, index) else {
@@ -453,12 +467,12 @@ per_token!(iii2g_sh_dotless => iii2g_sh_dotless_at);
 
 /// sh before i → `dotless` (the dot would collide with the following i) — see
 /// rules.py::_iii2g_sh_dotless_at.
-fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
+fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
         return;
     }
-    if !tok.is_letter || tok.alias != Some(Alias::Sh) || tok.has_fvs {
+    if !tok.is_letter || tok.alias != Some(Alias::Sh) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(next) = next_letter(tokens, index) else {
@@ -485,7 +499,7 @@ per_token!(iii2g_g_dotless => iii2g_g_dotless_at);
 /// see rules.py::_iii2g_g_dotless_at.
 fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
-    if !tok.is_letter || tok.alias != Some(Alias::G) || tok.has_fvs {
+    if !tok.is_letter || tok.alias != Some(Alias::G) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(prev) = prev_letter(tokens, index) else {
@@ -619,7 +633,7 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !tok.is_letter || tok.alias != Some(Alias::I) || tok.position != Position::Medi {
         return;
     }
-    if tok.has_fvs {
+    if shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(prev) = prev_letter(tokens, index) else {
