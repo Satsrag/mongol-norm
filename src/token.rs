@@ -1,5 +1,5 @@
-//! Tokens of the shaping pipeline: one per letter or MVS (each with its trailing FVS run),
-//! nirugu or ZWJ; plus tokenization and structural position assignment.
+//! Tokens of the shaping pipeline: one per letter, MVS, nirugu or ZWJ, each with the FVS run
+//! that follows it; plus tokenization and structural position assignment.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::tables::{Fvs, Position};
@@ -29,7 +29,7 @@ pub(crate) struct Token {
     /// The letter's alias in the shaper's locale; `None` for structural tokens and for letters
     /// this locale does not know (they shape to nothing).
     pub alias: Option<Alias>,
-    /// Every FVS directly following the letter (or the MVS), in stream order.
+    /// Every FVS directly following the token, in stream order.
     pub fvs: Vec<Fvs>,
     /// Structural position; stays `Isol` for non-letters.
     pub position: Position,
@@ -85,43 +85,36 @@ impl Token {
     }
 }
 
-/// Split text into tokens. Letters absorb every directly following FVS; MVS/NNBSP become `Mvs`
-/// and absorb theirs too (GB/T 25914-2023 B.6 gives `MVS + CTL` a case of its own, and the
-/// font's particle lookup stops at such an FVS); nirugu and ZWJ become joining tokens; an FVS
-/// after anything else, and everything else, is skipped.
+/// Split text into tokens: letters, MVS/NNBSP (as `Mvs`), nirugu and ZWJ, each absorbing the
+/// FVS run right after it; a leading FVS and everything else are skipped. Only a letter's FVS
+/// can select a variant. The others are kept for the rules that see them as the font does: an
+/// MVS's stops a particle (GB/T 25914-2023 B.6 gives `MVS + CTL` a case of its own), and a
+/// joiner's counts for GB.A, whose lookup skips the joiners.
 pub(crate) fn tokenize(text: &str, alias_of: impl Fn(u32) -> Option<Alias>) -> Vec<Token> {
     let cps: Vec<u32> = text.chars().map(|c| c as u32).collect();
     let mut tokens = Vec::with_capacity(cps.len());
     let mut i = 0;
     while i < cps.len() {
         let cp = cps[i];
-        if is_mongolian_letter_cp(cp) {
-            let mut token = Token::new(TokenKind::Letter, cp, alias_of(cp));
-            let mut j = i + 1;
-            while let Some(fvs) = cps.get(j).copied().and_then(Fvs::from_cp) {
-                token.fvs.push(fvs);
-                j += 1;
-            }
-            tokens.push(token);
-            i = j;
+        let mut token = if is_mongolian_letter_cp(cp) {
+            Token::new(TokenKind::Letter, cp, alias_of(cp))
         } else if cp == MVS || cp == NNBSP {
-            let mut token = Token::new(TokenKind::Mvs, MVS, None);
-            let mut j = i + 1;
-            while let Some(fvs) = cps.get(j).copied().and_then(Fvs::from_cp) {
-                token.fvs.push(fvs);
-                j += 1;
-            }
-            tokens.push(token);
-            i = j;
+            Token::new(TokenKind::Mvs, MVS, None)
         } else if cp == NIRUGU {
-            tokens.push(Token::new(TokenKind::Nirugu, NIRUGU, None));
-            i += 1;
+            Token::new(TokenKind::Nirugu, NIRUGU, None)
         } else if cp == ZWJ {
-            tokens.push(Token::new(TokenKind::Zwj, ZWJ, None));
-            i += 1;
+            Token::new(TokenKind::Zwj, ZWJ, None)
         } else {
             i += 1;
+            continue;
+        };
+        let mut j = i + 1;
+        while let Some(fvs) = cps.get(j).copied().and_then(Fvs::from_cp) {
+            token.fvs.push(fvs);
+            j += 1;
         }
+        tokens.push(token);
+        i = j;
     }
     tokens
 }
@@ -299,5 +292,14 @@ mod tests {
         assert!(!tokens[1].has_fvs());
         let tokens = tokenize("\u{202F}\u{180B}\u{1822}", no_alias);
         assert_eq!(tokens[0].fvs, vec![Fvs::Fvs1]);
+
+        // So does one right after a nirugu or a ZWJ.
+        let tokens = tokenize("\u{1820}\u{180A}\u{180D}", no_alias);
+        assert_eq!(tokens[1].kind, Nirugu);
+        assert_eq!(tokens[1].fvs, vec![Fvs::Fvs3]);
+        assert!(!tokens[0].has_fvs());
+        let tokens = tokenize("\u{1820}\u{200D}\u{180F}", no_alias);
+        assert_eq!(tokens[1].kind, Zwj);
+        assert_eq!(tokens[1].fvs, vec![Fvs::Fvs4]);
     }
 }

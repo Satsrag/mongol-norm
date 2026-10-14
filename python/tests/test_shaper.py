@@ -35,6 +35,7 @@ _ALIAS_TO_CP = {
     'w': '\u1838', 'f': '\u1839', 'k2': '\u183A', 'k': '\u183B',
     'mvs': '\u180E', 'fvs1': '\u180B', 'fvs2': '\u180C',
     'fvs3': '\u180D', 'fvs4': '\u180F', 'nnbsp': '\u202F',
+    'nirugu': '\u180A', 'zwj': '\u200D',
 }
 
 def _mgl(s):
@@ -144,6 +145,17 @@ class TestShape(unittest.TestCase):
         # FVS on preceding letter → vowel also default
         self.assertEqual(self.s.shape(_mgl("d fvs1 ue")), ["D", "U"])    # ᠳ᠋ᠦ
         self.assertEqual(self.s.shape(_mgl("d fvs1 u")),  ["D", "U"])    # ᠳ᠋ᠤ
+
+    # 2-1b''  An FVS after a ZWJ or nirugu stays on the joiner. It selects nothing,
+    # but GB.A sees it next to the vowel, as the font's lookup does (it skips the
+    # joiners), and resets marked.
+    def test_step2_gb_a_sees_fvs_after_joiner(self):
+        self.assertEqual(self.s.shape(_mgl("t ue zwj fvs4 l")), ["T", "O", "L"])
+        self.assertEqual(self.s.shape(_mgl("g oe nirugu fvs3")), ["G", "O", "Nirugu"])
+        self.assertEqual(self.s.shape(_mgl("ch nirugu fvs4 ue")), ["Ch", "Nirugu", "U"])
+        # Without the FVS the vowel stays marked
+        self.assertEqual(self.s.shape(_mgl("g oe nirugu")), ["G", "O", "I", "Nirugu"])
+        self.assertEqual(self.s.shape(_mgl("ch nirugu ue")), ["Ch", "Nirugu", "Ue"])
 
     # 2-1b'  an FVS after a MEDIAL vowel resets marked too, even one that selects
     # nothing there (FVS4), so the vowel keeps its default O — as mongfontbuilder's
