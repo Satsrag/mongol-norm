@@ -795,6 +795,26 @@ class TestShape(unittest.TestCase):
         # ᠭᠡᠷ - g + e.medi + r → e.medi default (NOT post_bowed Aa)
         self.assertEqual(self.s.shape(_mgl("g e r")), ["G", "A", "R"])
 
+    # 5-6  ŋ is written `A G`, ending in the unit G, but it is no bowed
+    # consonant: bowedG is a letter written as nothing but G/Gx
+    # (mongfontbuilder's `writtens("MNG", ["G", "Gx"])`), and GB/T 25914-2023
+    # lists ŋ as a non-combining consonant (NCC). A final vowel after it
+    # keeps its first form, as the font draws it.
+    def test_step5_no_post_bowed_after_ng(self):
+        # ᠴᠩᠣ - o.fina default "U" (NOT post_bowed "O")
+        self.assertEqual(self.s.shape(_mgl("ch ng o")), ["Ch", "A", "G", "U"])
+        # ᠱᠩᠡ - e.fina default "A" (NOT post_bowed "Aa")
+        self.assertEqual(self.s.shape(_mgl("sh ng e")), ["Sh", "A", "G", "A"])
+        # ᠴᠩᠦ - ue.fina default "U"
+        self.assertEqual(self.s.shape(_mgl("ch ng ue")), ["Ch", "A", "G", "U"])
+        # ᠩᠡ - ŋ.init + e.fina
+        self.assertEqual(self.s.shape(_mgl("ng e")), ["A", "G", "A"])
+        # ᠡᠩᠭᠡ - the usual spelling ŋ + g: e follows g's own G, which is bowed
+        self.assertEqual(
+            self.s.shape(_mgl("e ng g e")),
+            ["A", "A", "G", "G", "Aa"],
+        )
+
     # ══════════════════════════════════════════════════════════
     # Position assignment (observed through shape_detailed(); structural
     # tokens are filtered out so only the letters' positions remain)

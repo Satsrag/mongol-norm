@@ -642,10 +642,16 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 
 per_token!(iii5_post_bowed => iii5_post_bowed_at);
 
-/// A final vowel after a bowed consonant (`G`, `Gx`, `B`, `P`, `F`, `K`, `K2`) takes
-/// `post_bowed`. Like III.2g.g.dotless it OVERRIDES earlier conditions (notably III.3's
-/// `particle`), but it defers to `marked`, mirroring iii.py's leading ignore pattern for the
-/// post-marked oe/ue.fina glyphs — see rules.py::_iii5_post_bowed_at.
+/// A final vowel after a bowed consonant takes `post_bowed`: a letter ending in `B`, `P`, `F`,
+/// `K` or `K2` (b, p, f, k, k2), or one written as nothing but `G`/`Gx` (g, h). Like
+/// III.2g.g.dotless it OVERRIDES earlier conditions (notably III.3's `particle`), but it defers
+/// to `marked`, mirroring iii.py's leading ignore pattern for the post-marked oe/ue.fina glyphs —
+/// see rules.py::_iii5_post_bowed_at.
+///
+/// ŋ (`A G`) ends in the same `G` but is no bowed consonant: mongfontbuilder's class is
+/// `writtens("MNG", ["G", "Gx"])`, the whole written form, and GB/T 25914-2023 (3.21–3.23)
+/// lists ŋ as a non-combining consonant (NCC), after which a final vowel keeps its first form
+/// (`[NCC | Vow | NIRUGU] + e` → `A`, `[ExtMCS] + [Vow | NCC | MCCC] + o` → `U`).
 fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition == Some(Condition::Marked) {
@@ -667,14 +673,14 @@ fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         return;
     };
     shaper.resolve_written(&mut tokens[prev]);
-    let Some(last_unit) = tokens[prev]
-        .written
-        .and_then(|written| written.last().copied())
-    else {
+    let Some(written) = tokens[prev].written else {
+        return;
+    };
+    let Some(&last_unit) = written.last() else {
         return;
     };
     let prev = view(tokens, prev);
-    let is_bowed_g = matches!(last_unit, WrittenUnit::G | WrittenUnit::Gx);
+    let is_bowed_g = matches!(written, [WrittenUnit::G] | [WrittenUnit::Gx]);
     let is_bowed_bk = matches!(
         last_unit,
         WrittenUnit::B | WrittenUnit::P | WrittenUnit::F | WrittenUnit::K | WrittenUnit::K2
