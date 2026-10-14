@@ -141,11 +141,12 @@ per_token!(iii2a_o_u_oe_ue_marked_gb_a => iii2a_o_u_oe_ue_marked_gb_a_at);
 /// GB.A: an FVS next to the vowel resets `marked`. The two sides differ:
 ///
 /// * an FVS *after* the vowel (its own) resets it at any position — medial too: `h ue fvs4 p`
-///   is `G O P`, not `G O I P`. In GB/T 25914-2023 Table B.14 the medial marked rule is
-///   `[MICCS] + ü + [ExtMCS]`, which needs a letter right after the vowel, so an FVS that
-///   selects nothing (FVS4) leaves the position's first form, the default `O`. mongfontbuilder
-///   resets medial and final vowels alike (`III.o_u_oe_ue.marked.GB.A`, checked on the pinned
-///   hudum.otf);
+///   is `G O P`, not `G O I P`. mongfontbuilder resets medial and final vowels alike
+///   (`III.o_u_oe_ue.marked.GB.A`, checked on the pinned hudum.otf) and documents it as a GB
+///   requirement (`iii2a`: "the `marked` will be skipped if the vowel precedes or follows an
+///   FVS"). Under GB/T 25914-2023's general FVS clause an FVS that selects nothing would be
+///   transparent (see the module docs) and leave the vowel marked; mongfontbuilder reads the
+///   o/u/oe/ue rules as a case Appendix B writes out, and no EAC row tells the two apart;
 /// * an FVS *before* the vowel (on the preceding letter) resets it at final position only —
 ///   verified against DraftNew-Regular.otf: `h fvs3 oe` resets, `h fvs3 oe l` stays marked.
 ///

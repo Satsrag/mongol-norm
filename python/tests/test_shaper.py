@@ -134,8 +134,10 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("d fvs1 u")),  ["D", "U"])    # ᠳ᠋ᠤ
 
     # 2-1b'  an FVS after a MEDIAL vowel resets marked too, even one that selects
-    # nothing there (FVS4): GB/T 25914-2023 表 B.14 词中 marked 规则
-    # [MICCS] + ü + [ExtMCS] 要求元音后紧跟字母，否则取第一形式 O（与字体一致）。
+    # nothing there (FVS4), so the vowel keeps its default O — as mongfontbuilder's
+    # font draws it and its iii2a documents as a GB requirement ("the marked will
+    # be skipped if the vowel precedes or follows an FVS").
+    # 依据：mongfontbuilder 注明的 GB 要求（元音前后有 FVS 则不取 marked），与字体一致。
     # An FVS BEFORE a medial vowel does not: that resets final vowels only.
     def test_step2_medial_vowel_fvs_default(self):
         self.assertEqual(self.s.shape(_mgl("h ue fvs4 p")), ["G", "O", "P"])        # ᠬᠦ᠏ᠫ
