@@ -544,6 +544,20 @@ class TestShape(unittest.TestCase):
             ["A", "A", "A", "Mvs", "Aa"],
         )
 
+    # 2-10c Only the FVS right after a letter can select; a further one is a
+    # repeat, invalid in GB/T 25914-2023 and shown as an error glyph
+    # (EAC XIM11-661..672, XIM11-992..1007).
+    def test_stacked_fvs_only_the_first_selects(self):
+        # First one invalid: the letter takes its context form, as without FVSes
+        self.assertEqual(
+            self.s.shape(_mgl("i fvs4 fvs1 ch ng")),
+            ["A", "I", "Ch", "A", "G"],
+        )
+        self.assertEqual(self.s.shape(_mgl("a t fvs3 fvs1 a")), ["A", "A", "D", "A"])
+        # First one valid: it wins, and the repeat changes nothing
+        self.assertEqual(self.s.shape(_mgl("sh fvs2 fvs1 i l")), ["Sh", "I", "L"])
+        self.assertEqual(self.s.shape(_mgl("h fvs4 fvs1 ue")), ["Gx", "Ue"])
+
     # 2-11  g: dotless. iii2g.g.dotless (iii.py:764-776) has two precise
     # sub-rules — both require `s/d` before g — and OVERRIDES whatever
     # condition iii2f.h_g.harmony or iii2c.chachlag_onset set earlier

@@ -491,6 +491,18 @@ fn test_step2_invalid_fvs_keeps_context() {
 }
 
 #[test]
+fn test_stacked_fvs_only_the_first_selects() {
+    // Only the FVS right after a letter can select; a further one is a repeat, invalid in
+    // GB/T 25914-2023 and shown as an error glyph (EAC XIM11-661..672, XIM11-992..1007).
+    // First one invalid: the letter takes its context form, as without FVSes.
+    assert_shape(&mgl("i fvs4 fvs1 ch ng"), &["A", "I", "Ch", "A", "G"]);
+    assert_shape(&mgl("a t fvs3 fvs1 a"), &["A", "A", "D", "A"]);
+    // First one valid: it wins, and the repeat changes nothing.
+    assert_shape(&mgl("sh fvs2 fvs1 i l"), &["Sh", "I", "L"]);
+    assert_shape(&mgl("h fvs4 fvs1 ue"), &["Gx", "Ue"]);
+}
+
+#[test]
 fn test_step2_g_dotless() {
     // iii2g.g.dotless has two precise sub-rules — both require s/d before g — and OVERRIDE
     // whatever condition iii2f.h_g.harmony or iii2c.chachlag_onset set earlier (the OpenType

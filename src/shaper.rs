@@ -211,9 +211,14 @@ impl Shaper {
     }
 
     /// Python `_resolve_token_written` (memoised on the token):
-    /// 1. the first FVS in stream order that names an existing variant,
+    /// 1. the variant the FVS right after the letter names, if it names one,
     /// 2. else the variant carrying the rule-assigned condition,
     /// 3. else the default variant. Structural tokens resolve to nothing.
+    ///
+    /// Only the first FVS of a run can select: GB/T 25914-2023 counts a repeated FVS as invalid
+    /// ("重复使用了规定的自由变体选择符"), EAC XIM11-662 shows `sh fvs3 fvs1` with both FVSes as
+    /// error glyphs although FVS1 alone would be valid, and the font binds only the adjacent one.
+    /// So `i fvs4 fvs1` is a plain `i`, not FVS1's variant.
     ///
     /// The result is memoised on the token and never invalidated: a rule that changes an
     /// already-resolved token's condition has no effect on its written units (Python parity —
@@ -226,13 +231,10 @@ impl Shaper {
             token.written = Some(&[]);
             return;
         }
-        let mut written: Option<&'static [WrittenUnit]> = None;
-        for &fvs in &token.fvs {
-            if let Some(variant) = self.variants.get(&(token.cp, token.position, Some(fvs))) {
-                written = Some(variant.written);
-                break;
-            }
-        }
+        let mut written: Option<&'static [WrittenUnit]> = token
+            .first_fvs()
+            .and_then(|fvs| self.variants.get(&(token.cp, token.position, Some(fvs))))
+            .map(|variant| variant.written);
         if written.is_none() {
             if let Some(condition) = token.condition {
                 if let Some(fvs) = self.condition_fvs(token.cp, token.position, condition) {
@@ -268,12 +270,13 @@ impl Shaper {
                 .is_some_and(|alias| self.consonants.contains(&alias))
     }
 
-    /// One of the letter's FVSes selects a variant at its position — the one
-    /// [`Shaper::resolve_written`] takes. An FVS that selects nothing locks nothing: the font
-    /// carries it through phase III as `fvsN.ignored`, a mark the context lookups skip.
+    /// The FVS right after the letter selects a variant at its position — the one
+    /// [`Shaper::resolve_written`] takes (any further FVS is a repeat and selects nothing). An
+    /// FVS that selects nothing locks nothing: the font carries it through phase III as
+    /// `fvsN.ignored`, a mark the context lookups skip.
     pub(crate) fn has_valid_fvs(&self, token: &Token) -> bool {
         token.is_letter()
-            && token.fvs.iter().any(|&fvs| {
+            && token.first_fvs().is_some_and(|fvs| {
                 self.variants
                     .contains_key(&(token.cp, token.position, Some(fvs)))
             })
