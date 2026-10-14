@@ -577,6 +577,37 @@ fn test_step3_particle_i() {
 }
 
 #[test]
+fn test_step3_particle_needs_its_whole_segment() {
+    // A particle's letters fill their segment: the font keys on position-specific classes and
+    // GB/T 25914-2023 ends the multi-letter particles with [WB]. A nirugu or ZWJ after the last
+    // letter moves it off its position, and the particle no longer fires.
+    assert_shape(
+        &mgl("t a l mvs i nirugu"),
+        &["T", "A", "L", "Mvs", "A", "I", "Nirugu"],
+    );
+    assert_shape(
+        &mgl("t a l mvs i zwj"),
+        &["T", "A", "L", "Mvs", "A", "I", "Zwj"],
+    );
+    assert_shape(
+        &mgl("ch mvs ue nirugu"),
+        &["Ch", "Mvs", "A", "O", "I", "Nirugu"],
+    );
+    assert_shape(
+        &mgl("t a l mvs i y a r nirugu"),
+        &["T", "A", "L", "Mvs", "A", "I", "Y", "A", "R", "Nirugu"],
+    );
+    assert_shape(&mgl("u u nirugu"), &["A", "O", "O", "Nirugu"]);
+    // Without the joiner they are particles.
+    assert_shape(&mgl("ch mvs ue"), &["Ch", "Mvs", "U"]);
+    assert_shape(
+        &mgl("t a l mvs i y a r"),
+        &["T", "A", "L", "Mvs", "I", "I", "A", "R"],
+    );
+    assert_shape(&mgl("u u"), &["O", "U"]);
+}
+
+#[test]
 fn test_step3_particle_blocked_by_fvs_after_mvs() {
     // An FVS right after the MVS breaks the particle: GB/T 25914-2023 B.6 gives `MVS + CTL` a
     // case of its own, and the font's particle lookup filters FVS. The vowel stays a plain

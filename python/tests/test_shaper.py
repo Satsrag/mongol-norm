@@ -646,6 +646,36 @@ class TestShape(unittest.TestCase):
             ["T", "A", "L", "Mvs", "I"],
         )
 
+    # 3-1e  A particle's letters fill their segment: the font keys on
+    # position-specific classes and GB/T 25914-2023 ends the multi-letter
+    # particles with [WB]. A nirugu or ZWJ after the last letter moves it off
+    # its position, and the particle no longer fires.
+    def test_step3_particle_needs_its_whole_segment(self):
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i nirugu")),
+            ["T", "A", "L", "Mvs", "A", "I", "Nirugu"],
+        )
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i zwj")),
+            ["T", "A", "L", "Mvs", "A", "I", "Zwj"],
+        )
+        self.assertEqual(
+            self.s.shape(_mgl("ch mvs ue nirugu")),
+            ["Ch", "Mvs", "A", "O", "I", "Nirugu"],
+        )
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i y a r nirugu")),
+            ["T", "A", "L", "Mvs", "A", "I", "Y", "A", "R", "Nirugu"],
+        )
+        self.assertEqual(self.s.shape(_mgl("u u nirugu")), ["A", "O", "O", "Nirugu"])
+        # Without the joiner they are particles
+        self.assertEqual(self.s.shape(_mgl("ch mvs ue")), ["Ch", "Mvs", "U"])
+        self.assertEqual(
+            self.s.shape(_mgl("t a l mvs i y a r")),
+            ["T", "A", "L", "Mvs", "I", "I", "A", "R"],
+        )
+        self.assertEqual(self.s.shape(_mgl("u u")), ["O", "U"])
+
     # 3-1d  An FVS right after the MVS breaks the particle: GB/T 25914-2023 B.6
     # gives MVS + CTL a case of its own, and the font's particle lookup filters
     # FVS. The vowel stays a plain isolated letter.
