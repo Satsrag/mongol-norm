@@ -14,7 +14,7 @@ use common::{load_tsv, normalize_font_expected, row_hex, shape_font_row, unit_na
 use mongol_norm::FontShaper;
 
 /// (suite file, rows) — the row counts pin the vendored fixtures.
-const SUITES: &[(&str, usize)] = &[("core-hudum", 177), ("eac-hudum", 3512)];
+const SUITES: &[(&str, usize)] = &[("core-hudum", 182), ("eac-hudum", 3512)];
 
 /// The EAC rows the font answers differently from the EAC spec, as mongfontbuilder marks
 /// them (`tests/fixtures.py`, `EAC_XFAIL`); the UTN model is taken as correct there. NNBSP
