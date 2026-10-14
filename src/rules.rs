@@ -610,13 +610,27 @@ fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
         if used.iter().any(|&idx| tokens[idx].has_fvs()) {
             continue;
         }
-        // The lookup keys on position-specific classes: a nirugu between mvs and the first
-        // letter shifts that letter off init/isol and the particle no longer fires.
-        let first_letter = indices.iter().copied().find(|&idx| tokens[idx].is_letter());
-        if let Some(first) = first_letter {
-            if !matches!(tokens[first].position, Position::Init | Position::Isol) {
-                continue;
-            }
+        // The lookup keys on position-specific classes, the particle's letters filling their
+        // segment: a lone letter isol, else init, medi…, fina. A nirugu or ZWJ before the
+        // first letter or after the last shifts it off that position and the particle no
+        // longer fires (`mvs u nirugu` is `Mvs A O Nirugu`).
+        let letters: Vec<usize> = used
+            .iter()
+            .copied()
+            .filter(|&idx| tokens[idx].is_letter())
+            .collect();
+        let expected = |k: usize| match (k, letters.len()) {
+            (_, 1) => Position::Isol,
+            (0, _) => Position::Init,
+            (k, n) if k + 1 == n => Position::Fina,
+            _ => Position::Medi,
+        };
+        if letters
+            .iter()
+            .enumerate()
+            .any(|(k, &idx)| tokens[idx].position != expected(k))
+        {
+            continue;
         }
         for &pidx in particle_indices {
             if pidx >= used.len() {
