@@ -243,7 +243,8 @@ The two backends disagree exactly where the font and the ported rules do. On eve
 font draws the form the FVS3 selects, the EAC suite and the engine read the FVS3 as invalid —
 mongfontbuilder marks the row as an expected failure (`tests/font_vs_engine.rs` pins it). On
 random strings the backends part on about 0.7% of inputs, in edge rules the corpora do not reach
-(`FontShaper` is what the font draws there).
+(`FontShaper` is what the font draws there); `examples/compare.rs` lists them (see
+[`development.md`](development.md#comparing-the-two-shapers)).
 
 Cost: harfrust and its crates (18), Rust 1.85, ~4.4 µs per word against ~0.8 µs for the rule
 engine (release, Apple silicon), and several hundred KB more wasm. The default build has none of

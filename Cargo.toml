@@ -20,6 +20,12 @@ name = "mongol_norm"
 name = "mongol-norm"
 path = "src/bin/mongol-norm.rs"
 
+# `cargo run --release --example compare --features font`: FontShaper vs Shaper, word by word
+# (docs/development.md). Not packaged.
+[[example]]
+name = "compare"
+required-features = ["font"]
+
 [features]
 # Exposes `Shaper::with_empty_normalize_table` for the Python bindings' test-suite
 # (`python/`); never enable it in a published dependent.
