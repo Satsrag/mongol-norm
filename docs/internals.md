@@ -193,12 +193,26 @@ The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is a
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
 
-**`mng-canonical/3` invalidates keys stored under `mng-canonical/2` only where the text contains a
-ZWJ.** Dropping redundant ZWJs (above) changes no canonical text without a ZWJ: of the 1990
-`mng-canonical/2` golden representatives, two merge into groups that already existed
-(`A A R A Zwj O A` into `A A R A O A`, `Zwj O A` into `O A`) and every other vector is unchanged,
-leaving **1988** groups. Keys stored for texts that contain a ZWJ must be rebuilt; all other keys
-are stable.
+**`mng-canonical/3` (0.3.0) invalidates keys stored under `mng-canonical/2` (0.2.x) for some
+texts.** Two kinds of change reach `normalize`:
+
+- **Dropping redundant ZWJs** (above). Of the 1990 `mng-canonical/2` golden representatives, two
+  merge into groups that already existed (`A A R A Zwj O A` into `A A R A O A`, `Zwj O A` into
+  `O A`). Every other vector is unchanged, which leaves **1988** groups.
+- **The shaping fixes made while aligning the engine with the reference font** (#40–#52). They
+  change the shape, and so the key, only of rare input:
+  - an FVS on a medial o, u, ö or ü (it now resets `marked`, as it does at the word end);
+  - an FVS in an unusual place: an invalid one, a second one, one after an MVS, a ZWJ or a
+    nirugu, or one on a vowel after an MVS;
+  - a ZWJ or nirugu at a word or MVS edge, and two MVS in a row;
+  - a particle followed by a joiner;
+  - two spots in plain text: g after a word-initial s or d before a masculine vowel (`s g u s`),
+    and a final vowel after ŋ.
+
+  None of the 1988 golden vectors changes.
+
+Rebuild keys stored for texts that contain a ZWJ, a nirugu, an FVS or two MVS in a row, a
+word-initial s or d before g, or ŋ before a final vowel. All other keys are stable.
 
 **`mng-canonical/2` (0.2.0) invalidates keys stored under `mng-canonical/1`.** Unifying the nine
 duplicate encodings changes canonical text: comparing current output against the base branch's
