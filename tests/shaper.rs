@@ -159,6 +159,8 @@ fn test_step1_chachlag_ignores_invalid_fvs() {
     // The vowel takes chachlag whatever FVS follows it, as in the font. A valid FVS still picks
     // its own variant (GB/T 25914-2023 B.8 gives the isolated a FVS1–3, B.9 the isolated e
     // FVS1–2); any other FVS is transparent, so the chachlag form shows.
+    // The invalid-FVS cases follow the font's code, which disagrees with its own docstring and
+    // UTN #57: `iii1_chachlag_at` in src/rules.rs says what flips if upstream fixes that.
     assert_shape(&mgl("ch mvs a fvs4"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("sh y nnbsp a fvs4"), &["Sh", "I", "Mvs", "Aa"]);
     assert_shape(&mgl("t mvs e fvs3"), &["T", "Mvs", "Aa"]);
@@ -308,6 +310,7 @@ fn test_step2_chachlag_onset_postponed_by_fvs_on_vowel() {
     // chachlag unless a valid FVS picks its own variant.
     assert_shape(&mgl("a n mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
     assert_shape(&mgl("a n mvs a fvs1"), &["A", "A", "A", "Mvs", "A"]);
+    // The `Aa` here and the dotless g at the end follow the font's code (see iii1_chachlag_at).
     assert_shape(&mgl("a n mvs a fvs4"), &["A", "A", "A", "Mvs", "Aa"]);
     assert_shape(&mgl("a j mvs e"), &["A", "A", "I", "Mvs", "Aa"]);
     assert_shape(&mgl("a j mvs e fvs2"), &["A", "A", "J", "Mvs", "A"]);
@@ -316,6 +319,27 @@ fn test_step2_chachlag_onset_postponed_by_fvs_on_vowel() {
     assert_shape(&mgl("a n mvs fvs2 a"), &["A", "A", "N", "Mvs", "Aa"]);
     // III.2g still sees a chachlag a: g after s stays dotless.
     assert_shape(&mgl("s g mvs a fvs1"), &["S", "H", "Mvs", "A"]);
+}
+
+#[test]
+fn test_step2_g_h_before_mvs_and_isolated_a_e_take_no_gender() {
+    // g/h before an MVS and an isolated a/e is III.2c's context, so III.2f gives no gender
+    // there, as in the font. When III.2c does not fire either, g/h keeps its default form. This
+    // follows the font against GB's masculine final g (see `precedes_mvs_and_isolated_a_e`).
+    // An FVS on the vowel:
+    assert_shape(&mgl("a g mvs a fvs1"), &["A", "A", "G", "Mvs", "A"]);
+    assert_shape(&mgl("a g nnbsp e fvs2"), &["A", "A", "G", "Mvs", "A"]);
+    assert_shape(&mgl("o g mvs a fvs4"), &["A", "O", "G", "Mvs", "Aa"]);
+    // A joiner before the MVS (III.2c needs the MVS right after g/h):
+    assert_shape(
+        &mgl("a g nirugu mvs a"),
+        &["A", "A", "G", "Nirugu", "Mvs", "Aa"],
+    );
+    assert_shape(&mgl("a h zwj mvs a"), &["A", "A", "G", "Zwj", "Mvs", "Aa"]);
+    // Controls: III.2c's onset, and the gender before an MVS and a consonant or at the word end.
+    assert_shape(&mgl("a g mvs a"), &["A", "A", "Hx", "Mvs", "Aa"]);
+    assert_shape(&mgl("a g mvs n"), &["A", "A", "H", "Mvs", "N"]);
+    assert_shape(&mgl("a g"), &["A", "A", "H"]);
 }
 
 #[test]
