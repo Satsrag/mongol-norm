@@ -11,7 +11,11 @@ keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
 categories = ["text-processing", "internationalization"]
 # The corpus/golden tests read tests/{data,golden} at test time, so they are not packaged.
 # fonts/ is the bundled shaping font of the `font` feature, with its notices and pin.
-include = ["src/**", "fonts/**", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+# examples/ is packaged although nothing builds it from the package: maturin's sdist of the
+# Python package (python/) carries this manifest as written, and cargo rejects a manifest whose
+# `[[example]]` file is missing, so pip could not build the sdist (0.3.0 failed on PyPI so).
+# The leading `/` keeps a pattern at the root; a bare `README.md` matched web/README.md too.
+include = ["/src/**", "/fonts/**", "/examples/**", "/Cargo.toml", "/README.md", "/LICENSE", "/NOTICE"]
 
 [lib]
 name = "mongol_norm"
@@ -21,7 +25,7 @@ name = "mongol-norm"
 path = "src/bin/mongol-norm.rs"
 
 # `cargo run --release --example compare --features font`: FontShaper vs Shaper, word by word
-# (docs/development.md). Not packaged.
+# (docs/development.md). Packaged only to keep the manifest valid in the sdist (see `include`).
 [[example]]
 name = "compare"
 required-features = ["font"]
@@ -51,7 +55,7 @@ members = ["python"]
 # package (python/pyproject.toml has `dynamic = ["version"]`), and mongol_norm.__version__
 # reports it at runtime (checked by python/tests/test_rust_twin.py).
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"

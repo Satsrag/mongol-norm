@@ -60,10 +60,14 @@ in a fresh virtual environment — and to rehearse a release before tagging.
 
 1. Bump `[workspace.package] version` in `Cargo.toml` (see above) and commit: this is the
    release commit.
-2. Merge the tested release commit to `main`.
-3. Create and publish a GitHub Release whose tag is exactly `vX.Y.Z`, matching the
+2. Rehearse it: run **Build and publish to PyPI** on the release branch (`workflow_dispatch`,
+   see above) and wait until every job passes. It builds and smoke-tests every distribution
+   and never publishes. Test builds the sdist on every push, but only the rehearsal builds
+   the wheel matrix.
+3. Merge the tested release commit to `main`.
+4. Create and publish a GitHub Release whose tag is exactly `vX.Y.Z`, matching the
    workspace version. A draft release does not publish.
-4. `publish.yml` runs from the tagged commit:
+5. `publish.yml` runs from the tagged commit:
    - `verify` checks that the tag equals `v` + the workspace version and that the commit
      is an ancestor of `main`, builds the extension in place from `python/` (`maturin
      develop`), checks `mongol_norm.__version__` against the workspace version, and runs
@@ -78,13 +82,15 @@ in a fresh virtual environment — and to rehearse a release before tagging.
      `python/README.pypi.md`) and installs it with pip, compiling the extension the way
      a user without a wheel would.
 
-   If any of these fails, nothing is published.
-5. The `publish` job enters the protected `pypi` environment, downloads all
+   If any of these fails, nothing reaches PyPI. The other two workflows do not wait for
+   them: 0.3.0 reached crates.io and the playground while its sdist failed here, which is
+   what step 2 is for.
+6. The `publish` job enters the protected `pypi` environment, downloads all
    distributions into one `dist/`, checks that the set is complete (7 wheels + 1 sdist),
    runs the same metadata validation over all of them, and exchanges its GitHub OIDC identity for a short-lived PyPI credential
    (`pypa/gh-action-pypi-publish`, which also attaches PEP 740 attestations).
-6. `publish-crate.yml` runs in parallel from the same release (see below).
-7. `deploy-web.yml` builds and browser-tests the web playground, then deploys it to
+7. `publish-crate.yml` runs in parallel from the same release (see below).
+8. `deploy-web.yml` builds and browser-tests the web playground, then deploys it to
    <https://www.satsrag.dev/norm/> (see below). Its build and deployment are independent
    of the PyPI and crates.io publication jobs.
 
@@ -116,12 +122,16 @@ sdist, which needs a Rust toolchain ≥ 1.83 on the machine; pip fetches maturin
 
 Because the binding crate depends on the workspace-root engine crate, maturin roots the
 sdist at the workspace root. It carries exactly what pip needs to build the package: the
-root `Cargo.toml` + `Cargo.lock` + `src/` + `LICENSE`/`NOTICE`/`README.md`, the binding
+root crate's packaged files (its `include`: `Cargo.toml`, `src/`, `fonts/`, `examples/`,
+`LICENSE`/`NOTICE`/`README.md`) + `Cargo.lock`, the binding
 crate as `python/` (with its own `LICENSE`/`NOTICE`/`README.pypi.md`), and — re-rooted to
 the archive root — `pyproject.toml` (rewritten to `manifest-path = "python/Cargo.toml"`),
 `README.pypi.md` and `mongol_norm/`. `python/tests` and `python/scripts` are dropped by
 `[tool.maturin] exclude`: the suite and the generators need the repository checkout and
 its shared fixtures under `tests/`, so the sdist is buildable but not self-testable.
+maturin keeps the root manifest as written, where `cargo package` drops a target whose file
+it does not pack, so `include` must cover every file the manifest names: `examples/` is
+packaged only for the `[[example]]`.
 
 The PyPI long description comes from `python/README.pypi.md`, deliberately *not* named
 `README.md`: the re-rooted `pyproject.toml` sits next to the crate's own `README.md` in

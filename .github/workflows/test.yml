@@ -12,8 +12,9 @@ name: Test
 # and the newest supported CPython and runs the unittest suite, which covers all
 # shaping logic, the normalize round-trip / canonicity / prefix-stability
 # properties, the normalize-table export, the mongfontbuilder core-hud / eac-hud
-# TSV regression sets and the binding layer. The Rust job checks the whole
-# workspace on stable and the core crate's MSRV / wasm32 / packaging guarantees.
+# TSV regression sets and the binding layer; on 3.14 it also builds the sdist and
+# installs it with pip. The Rust job checks the whole workspace on stable and the
+# core crate's MSRV / wasm32 / packaging guarantees.
 # The fresh-sample job compares the two shaping backends on new random strings
 # every run and only reports.
 
@@ -103,6 +104,23 @@ jobs:
           python python/scripts/gen_normalize_table.py --check
           python python/scripts/gen_compat_goldens.py --check
           python python/scripts/gen_font_shaper.py --check
+
+      # What `pip install mongol-norm` does where no wheel fits, so a broken sdist fails here
+      # and not at release time (publish.yml repeats it there): build the sdist, install it in
+      # a fresh environment, which compiles the extension, then import and shape a word. It
+      # has to build: 0.3.0's sdist carried a manifest naming an example the archive lacked,
+      # which `cargo metadata` accepts. The archive is the same for every interpreter.
+      - name: Build the sdist and install it with pip (import, shape a word)
+        if: matrix.python-version == '3.14'
+        working-directory: python
+        env:
+          PYTHONUTF8: '1'
+        run: |
+          maturin sdist --out "$RUNNER_TEMP/sdist"
+          python -m venv "$RUNNER_TEMP/sdist-env"
+          "$RUNNER_TEMP/sdist-env/bin/python" -m pip install "$RUNNER_TEMP"/sdist/*.tar.gz
+          cd "$RUNNER_TEMP"
+          sdist-env/bin/python -c "import mongol_norm; assert mongol_norm.MongolianShaper().shape('ᠰᠠᠢᠨ') == ['S', 'A', 'I', 'I', 'A']"
 
   rust:
     name: Rust
