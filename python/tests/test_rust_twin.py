@@ -96,13 +96,14 @@ class TestRustTwin(unittest.TestCase):
 
     def test_crate_package_includes_the_license_files(self):
         # The crate is the repository root, so `cargo package` ships the repository's
-        # own LICENSE / NOTICE / README.md: they must stay in the `include` list.
+        # own LICENSE / NOTICE / README.md: they must stay in the `include` list,
+        # anchored at the root (a bare `README.md` also matches web/README.md).
         package = _toml_section(REPO_ROOT / "Cargo.toml", "package")
         match = re.search(r"^include\s*=\s*\[([^\]]*)\]", package, re.MULTILINE)
         self.assertIsNotNone(match, "the root Cargo.toml [package] must list `include`")
         included = set(re.findall(r'"([^"]+)"', match.group(1)))
         for name in ("README.md", "LICENSE", "NOTICE"):
-            self.assertIn(name, included, "Cargo.toml `include` must list {}".format(name))
+            self.assertIn("/" + name, included, "Cargo.toml `include` must list /{}".format(name))
             self.assertTrue((REPO_ROOT / name).is_file(), "{} is missing".format(name))
 
     def test_python_license_files_are_copies_of_the_root_files(self):
