@@ -730,15 +730,19 @@
       "expected": {
         "final_conditions": [
           null,
+          null,
           "dotless",
           null
         ],
         "positions": [
           "init",
           "medi",
+          "medi",
           "fina"
         ],
         "shape": [
+          "A",
+          "A",
           "S",
           "A",
           "A",
@@ -750,7 +754,7 @@
               {
                 "after": "masculine_onset",
                 "before": null,
-                "token": 1
+                "token": 2
               }
             ],
             "rule": "III.2f.h_g.harmony"
@@ -760,13 +764,17 @@
               {
                 "after": "dotless",
                 "before": "masculine_onset",
-                "token": 1
+                "token": 2
               }
             ],
             "rule": "III.2g.g.dotless"
           }
         ],
         "written_by_token": [
+          [
+            "A",
+            "A"
+          ],
           [
             "S"
           ],
@@ -779,8 +787,9 @@
         ]
       },
       "id": "iii2g-g-dotless",
-      "input_aliases": "s g a",
+      "input_aliases": "a s g a",
       "input_cps": [
+        6176,
         6192,
         6189,
         6176

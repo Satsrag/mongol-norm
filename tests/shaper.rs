@@ -531,19 +531,23 @@ fn test_step2_g_dotless() {
     // iii2g.g.dotless has two precise sub-rules — both require s/d before g — and OVERRIDE
     // whatever condition iii2f.h_g.harmony or iii2c.chachlag_onset set earlier (the OpenType
     // class-membership trick).
-    // Rule 1: s/d + g.medi + masc vowel -> dotless "H" (overrides masculine_onset "Hx").
+    // Rule 1: medial s/d + g.medi + masc vowel -> dotless "H" (overrides masculine_onset "Hx").
     // Raw: the dotless "H" is medial here, and the public shape folds `H:medi` to `A A`.
-    assert_shape_raw(&mgl("s g a"), &["S", "H", "A"]);
-    assert_shape_raw(&mgl("d g a"), &["T", "H", "A"]);
     assert_shape_raw(&mgl("a s g a"), &["A", "A", "S", "H", "A"]);
+    assert_shape_raw(&mgl("a d g a"), &["A", "A", "Dd", "H", "A"]);
+    assert_shape_raw(&mgl("d a s g a"), &["T", "A", "S", "H", "A"]);
+    // A word-initial s/d keeps the dotted "Hx": GB/T 25914-2023 B.21 puts [ExtMCS] before it.
+    assert_shape_raw(&mgl("s g a"), &["S", "Hx", "A"]);
+    assert_shape_raw(&mgl("d g a"), &["T", "Hx", "A"]);
+    assert_shape_raw(&mgl("s g u s"), &["S", "Hx", "O", "S"]);
     // Rule 2: s/d + g.fina + MVS + chachlag a.isol -> dotless "H" (overrides chachlag_onset
-    // "Hx").
+    // "Hx"). A word-initial s/d counts here: B.21 puts [ExtMCS | WB] before it.
     assert_shape(&mgl("s g mvs a"), &["S", "H", "Mvs", "Aa"]);
     assert_shape(&mgl("d g mvs a"), &["T", "H", "Mvs", "Aa"]);
     // Negative: rule 1 needs a masc vowel — fem/neut/consonant don't fire.
-    assert_shape(&mgl("s g i"), &["S", "G", "I"]); // neut i
-    assert_shape(&mgl("s g e"), &["S", "G", "Aa"]); // fem e (iii2f -> feminine = G)
-    assert_shape(&mgl("s g n"), &["S", "G", "A"]); // consonant n
+    assert_shape(&mgl("a s g i"), &["A", "A", "S", "G", "I"]); // neut i
+    assert_shape(&mgl("a s g e"), &["A", "A", "S", "G", "Aa"]); // fem e (iii2f -> feminine = G)
+    assert_shape(&mgl("a s g n"), &["A", "A", "S", "G", "A"]); // consonant n
 
     // Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire.
     assert_shape(&mgl("s g"), &["S", "G"]);
