@@ -199,7 +199,7 @@ texts.** Two kinds of change reach `normalize`:
 - **Dropping redundant ZWJs** (above). Of the 1990 `mng-canonical/2` golden representatives, two
   merge into groups that already existed (`A A R A Zwj O A` into `A A R A O A`, `Zwj O A` into
   `O A`). Every other vector is unchanged, which leaves **1988** groups.
-- **The shaping fixes made while aligning the engine with the reference font** (#40–#52). They
+- **The shaping fixes made while aligning the engine with the reference font** (#40–#52, #55). They
   change the shape, and so the key, only of rare input:
   - an FVS on a medial o, u, ö or ü (it now resets `marked`, as it does at the word end);
   - an FVS in an unusual place: an invalid one, a second one, one after an MVS, a ZWJ or a
