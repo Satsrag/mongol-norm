@@ -18,9 +18,9 @@
 //! passes grammatical context both ways) except where Appendix B writes it out, and shows an
 //! invalid one as an error glyph; the font carries it through phase III as `fvsN.ignored`.
 //! So `a s t fvs3 r a` is `A A S T R A`, as without the FVS. The rules that read an FVS as a signal
-//! of their own still count any FVS: III.2c, for an FVS on the consonant before an MVS
-//! (Appendix B writes out `n + FVS1 + MVS` and `n + FVS2 + MVS`; EAC XIM11-46 keeps
-//! `a n fvs3 mvs e` at the first form) and on the vowel after it (GB postpones the MVS
+//! of their own still count any FVS: III.2c, for an FVS on an n/h/g before an MVS (their
+//! Appendix B tables write out `n + FVS1 + MVS` and the like; EAC XIM11-46 keeps
+//! `a n fvs3 mvs e` at the first form) and on the vowel after the MVS (GB postpones the MVS
 //! shaping), GB.A/GB.B, the cluster and d.marked rules, and the particles.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
@@ -355,9 +355,25 @@ per_token!(iii2c_chachlag_onset => iii2c_chachlag_onset_at);
 /// → `A A B O - A A`, so the vowel is not a separated final vowel there. UTN #57 Table 6
 /// (step 2) does not mention the case. The vowel must follow the MVS directly
 /// (`letter_after_mvs`): `a n mvs mvs a` keeps the default n, as in the font.
-fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
+///
+/// An FVS on the consonant itself depends on the letter. GB/T 25914-2023 writes out an FVS
+/// before the MVS for n, h and g (B.16 `n + FVS1 + MVS + a/e`, B.20 `h + FVS1 + MVS`, B.21
+/// `g + FVS3 + MVS` and `g + FVS1 + MVS`). There the FVS is one of the cases "附录 B 中明确定义的",
+/// so any FVS counts: an undefined one matches no rule, and the letter falls back to its first
+/// form (EAC XIM11-46: `e n fvs3 mvs e` → `A A Fvs3 _ Aa`). B.29 (j) and B.32 (w) write no
+/// such rule, so the FVS clause applies and only a valid FVS counts: `a j fvs3 mvs a` takes the
+/// onset `I`, as in the font. The font counts only a valid FVS for every letter; mongfontbuilder
+/// marks XIM11-46 xfail.
+fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
-    if tok.condition.is_some() || !tok.is_letter || tok.has_fvs {
+    if tok.condition.is_some() || !tok.is_letter {
+        return;
+    }
+    let fvs_blocks = match tok.alias {
+        Some(Alias::J | Alias::W) => shaper.has_valid_fvs(&tokens[index]),
+        _ => tok.has_fvs,
+    };
+    if fvs_blocks {
         return;
     }
     let Some(next) = next_tok(tokens, index) else {
@@ -787,11 +803,47 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !shaper.is_vowel(&tokens[prev]) {
         return;
     }
+    // GB's table (`III.i.devsger.MNG.GB`): after a medial oe/ue, FVS3 gives the double tooth and
+    // FVS1/FVS2 the single one; after an initial ue, FVS1 gives the double tooth and FVS2 the
+    // single one. With an FVS carried by a joiner after the vowel the font still applies it:
+    // `ue nirugu fvs1 i e ue` has `I I`, like `ue fvs1 i e ue`.
+    if let Some(fvs) = joiner_fvs_after_oe_ue(tokens, prev, index) {
+        let ue_init =
+            tokens[prev].alias == Some(Alias::Ue) && tokens[prev].position == Position::Init;
+        let devsger = match (tokens[prev].position, fvs) {
+            (Position::Medi, Fvs::Fvs3) => Some(true),
+            (Position::Medi, Fvs::Fvs1 | Fvs::Fvs2) => Some(false),
+            (Position::Init, Fvs::Fvs1) if ue_init => Some(true),
+            (Position::Init, Fvs::Fvs2) if ue_init => Some(false),
+            _ => None,
+        };
+        if let Some(devsger) = devsger {
+            if devsger {
+                set(tokens, index, Condition::VowelDevsger);
+            }
+            return;
+        }
+    }
     shaper.resolve_written(&mut tokens[prev]);
     if tokens[prev].written_ends_with(WrittenUnit::I) {
         return; // already ends in I, no double tooth needed
     }
     set(tokens, index, Condition::VowelDevsger);
+}
+
+/// The FVS that the font's `III.i.devsger.MNG.GB` (UseMarkFilteringSet @fvs) sees after the oe/ue
+/// at `vowel` when the vowel has none of its own: the single FVS carried by the joiners between
+/// it and the `i` at `index`. Phase III turns the joiners into marks the lookup skips, as for GB.A
+/// (`fvs_follows`). The vowel's own FVS needs no help: it already shows in its written form.
+fn joiner_fvs_after_oe_ue(tokens: &[Token], vowel: usize, index: usize) -> Option<Fvs> {
+    if !matches!(tokens[vowel].alias, Some(Alias::Oe | Alias::Ue)) || tokens[vowel].has_fvs() {
+        return None;
+    }
+    let mut carried = tokens[vowel + 1..index]
+        .iter()
+        .flat_map(|token| token.fvs.iter().copied());
+    let fvs = carried.next()?;
+    carried.next().is_none().then_some(fvs)
 }
 
 // ═══════════════════════════════════════════════════════════════════════

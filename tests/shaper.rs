@@ -322,6 +322,25 @@ fn test_step2_chachlag_onset_postponed_by_fvs_on_vowel() {
 }
 
 #[test]
+fn test_step2_chachlag_onset_fvs_on_consonant() {
+    // An FVS on the consonant before the MVS. GB writes out such FVS rules for n, h and g, so any
+    // FVS counts there (EAC XIM11-46). For j and w it writes none, so only a valid FVS counts and
+    // an invalid one is transparent, as in the font.
+    assert_shape(&mgl("a j fvs3 mvs a"), &["A", "A", "I", "Mvs", "Aa"]);
+    assert_shape(&mgl("a w fvs4 mvs e"), &["A", "A", "U", "Mvs", "Aa"]);
+    assert_shape(
+        &mgl("ue t j fvs4 nnbsp a"),
+        &["A", "O", "I", "T", "I", "Mvs", "Aa"],
+    );
+    assert_shape(&mgl("a j fvs1 mvs a"), &["A", "A", "I", "Mvs", "Aa"]); // valid: its own form
+                                                                         // n and g: an undefined FVS gives the first form. The font, which counts only a valid FVS for
+                                                                         // every letter, gives `N` and `Hx` here.
+    assert_shape(&mgl("e n fvs3 mvs e"), &["A", "A", "Mvs", "Aa"]);
+    assert_shape(&mgl("a g fvs4 mvs a"), &["A", "A", "G", "Mvs", "Aa"]);
+    assert_shape(&mgl("a n fvs1 mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
+}
+
+#[test]
 fn test_step2_g_h_before_mvs_and_isolated_a_e_take_no_gender() {
     // g/h before an MVS and an isolated a/e is III.2c's context, so III.2f gives no gender
     // there, as in the font. When III.2c does not fire either, g/h keeps its default form. This
@@ -887,6 +906,28 @@ fn test_step4_no_devsger_naima_fvs3() {
     // i has explicit FVS3 -> devsger rule skipped -> i.medi.fvs3 = "I" (default). Without the
     // FVS3 this would be naima (n a i m a) -> i.medi devsger = "II".
     assert_shape(&mgl("n a i fvs3 m a"), &["N", "A", "I", "M", "A"]);
+}
+
+#[test]
+fn test_step4_vowel_devsger_sees_fvs_after_joiner() {
+    // After oe/ue the font decides the i by GB's table (`III.i.devsger.MNG.GB`) and, as for GB.A,
+    // reads an FVS carried by a joiner after the vowel as the vowel's own.
+    assert_shape(
+        &mgl("ue nirugu fvs1 i e ue"),
+        &["A", "O", "I", "Nirugu", "I", "I", "A", "U"],
+    );
+    assert_shape(
+        &mgl("b oe nirugu fvs1 i l"),
+        &["B", "O", "Nirugu", "I", "L"],
+    );
+    assert_shape_raw(&mgl("t ue zwj fvs2 i n"), &["T", "O", "Zwj", "I", "A"]);
+    assert_shape_raw(&mgl("t oe zwj fvs3 i n"), &["T", "O", "Zwj", "I", "I", "A"]);
+    // Without the FVS the vowel's own form decides.
+    assert_shape(
+        &mgl("ue nirugu i e ue"),
+        &["A", "O", "I", "Nirugu", "I", "A", "U"],
+    );
+    assert_shape_raw(&mgl("t ue zwj i n"), &["T", "O", "I", "Zwj", "I", "A"]);
 }
 
 // ── Step 5 · Post-bowed — vowels after bowed consonants ──
