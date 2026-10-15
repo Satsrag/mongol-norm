@@ -528,6 +528,11 @@ fn write_markdown(out: &mut impl Write, report: &Report, options: &Options) -> i
     Ok(())
 }
 
+/// The CI artifact a TSV is uploaded as: its file name without the extension.
+fn artifact_name(path: &str) -> Option<&str> {
+    std::path::Path::new(path).file_stem()?.to_str()
+}
+
 /// A GitHub Actions workflow-command value: `%`, CR and LF escaped (and, in a property, `:`
 /// and `,` too).
 fn escape_command(text: &str, property: bool) -> String {
@@ -547,7 +552,7 @@ fn escape_command(text: &str, property: bool) -> String {
 
 /// One annotation for the whole run: a warning that names the largest groups when any word
 /// differs (or only one side shapes it), a notice when the shapers agree on every word.
-fn github_annotation(report: &Report, fail_on_diff: bool) -> String {
+fn github_annotation(report: &Report, fail_on_diff: bool, artifact: Option<&str>) -> String {
     let title = format!(
         "FontShaper vs Shaper: {} of {} differ ({:.2}%)",
         report.differences.len(),
@@ -582,7 +587,12 @@ fn github_annotation(report: &Report, fail_on_diff: bool) -> String {
             report.rejected.len()
         ));
     }
-    message.push_str("\nFull report: the job summary; every word: the font-vs-engine artifact.");
+    match artifact {
+        Some(name) => message.push_str(&format!(
+            "\nFull report: the job summary; every word: the {name} artifact."
+        )),
+        None => message.push_str("\nFull report: the job summary."),
+    }
     let level = if fail_on_diff { "error" } else { "warning" };
     format!(
         "::{level} title={}::{}",
@@ -648,7 +658,12 @@ fn run(options: &Options, words: &[String]) -> io::Result<bool> {
         writeln!(out, "appended the Markdown report to {path}")?;
     }
     if options.github_warning {
-        writeln!(out, "{}", github_annotation(&report, options.fail_on_diff))?;
+        let artifact = options.tsv.as_deref().and_then(artifact_name);
+        writeln!(
+            out,
+            "{}",
+            github_annotation(&report, options.fail_on_diff, artifact)
+        )?;
     }
     out.flush()?;
     Ok(report.differences.is_empty() && report.rejected.is_empty())

@@ -206,6 +206,34 @@ fn test_step2_gb_a_sees_fvs_after_joiner() {
 }
 
 #[test]
+fn test_step2_d_marked_sees_fvs_on_joiner() {
+    // An FVS carried by a joiner between an initial d and its final vowel cancels `marked` too:
+    // the font's reset (`III.d.marked.GB`) skips the joiners.
+    assert_shape(&mgl("d nirugu fvs4 ue"), &["T", "Nirugu", "U"]);
+    assert_shape(&mgl("d zwj fvs2 a"), &["T", "A"]);
+    assert_shape(
+        &mgl("a mvs d nirugu fvs1 i"),
+        &["A", "A", "Mvs", "T", "Nirugu", "I"],
+    );
+    assert_shape(&mgl("d nirugu ue"), &["D", "Nirugu", "Ue"]);
+    // Two FVS there: neither context of the font's reset matches and `D` stays. The engine
+    // follows the font, against GB, which cancels for any FVS (`iii2a_d_marked_at`).
+    assert_shape(&mgl("d fvs3 fvs2 oe"), &["D", "U"]);
+    assert_shape(&mgl("d nirugu fvs1 zwj fvs2 a"), &["D", "Nirugu", "A"]);
+}
+
+#[test]
+fn test_step2_gb_b_sees_fvs_on_joiner() {
+    // An initial h/g with FVS2/FVS4 keeps a final oe/ue marked. GB.B reads the one FVS between
+    // them, on a joiner too; III.5's rule G reads the first FVS right after the h/g.
+    assert_shape(&mgl("g zwj fvs4 ue"), &["G", "Ue"]);
+    assert_shape(&mgl("h nirugu fvs2 oe"), &["G", "Nirugu", "Ue"]);
+    assert_shape(&mgl("g fvs2 fvs4 ue"), &["G", "Ue"]);
+    assert_shape(&mgl("g fvs1 fvs2 ue"), &["H", "U"]);
+    assert_shape(&mgl("g zwj ue"), &["G", "Ue"]);
+}
+
+#[test]
 fn test_step2_medial_vowel_fvs_default() {
     // An FVS after a MEDIAL vowel resets marked too, even one that selects nothing there
     // (FVS4), so the vowel keeps its default `O` — as mongfontbuilder's font draws it and its
@@ -319,25 +347,31 @@ fn test_step2_chachlag_onset_postponed_by_fvs_on_vowel() {
     assert_shape(&mgl("a n mvs fvs2 a"), &["A", "A", "N", "Mvs", "Aa"]);
     // III.2g still sees a chachlag a: g after s stays dotless.
     assert_shape(&mgl("s g mvs a fvs1"), &["S", "H", "Mvs", "A"]);
+    // An FVS on the MVS itself keeps the onset, even with one on the vowel: the font's reset
+    // wants the vowel right after the MVS.
+    assert_shape(&mgl("a g mvs fvs3 a fvs1"), &["A", "A", "Hx", "Mvs", "A"]);
+    assert_shape(&mgl("a n mvs fvs1 a fvs1"), &["A", "A", "N", "Mvs", "A"]);
+    assert_shape(&mgl("a j nnbsp fvs1 e fvs2"), &["A", "A", "I", "Mvs", "A"]);
 }
 
 #[test]
 fn test_step2_chachlag_onset_fvs_on_consonant() {
-    // An FVS on the consonant before the MVS. GB writes out such FVS rules for n, h and g, so any
-    // FVS counts there (EAC XIM11-46). For j and w it writes none, so only a valid FVS counts and
-    // an invalid one is transparent, as in the font.
+    // An FVS on the consonant before the MVS counts only when it selects a variant there, for
+    // every letter, as in the font: an undefined one is transparent, and the onset stays.
     assert_shape(&mgl("a j fvs3 mvs a"), &["A", "A", "I", "Mvs", "Aa"]);
     assert_shape(&mgl("a w fvs4 mvs e"), &["A", "A", "U", "Mvs", "Aa"]);
     assert_shape(
         &mgl("ue t j fvs4 nnbsp a"),
         &["A", "O", "I", "T", "I", "Mvs", "Aa"],
     );
-    assert_shape(&mgl("a j fvs1 mvs a"), &["A", "A", "I", "Mvs", "Aa"]); // valid: its own form
-                                                                         // n and g: an undefined FVS gives the first form. The font, which counts only a valid FVS for
-                                                                         // every letter, gives `N` and `Hx` here.
-    assert_shape(&mgl("e n fvs3 mvs e"), &["A", "A", "Mvs", "Aa"]);
-    assert_shape(&mgl("a g fvs4 mvs a"), &["A", "A", "G", "Mvs", "Aa"]);
+    // n and g too, although GB writes their FVS out before an MVS and EAC XIM11-46 gives them
+    // the first form here (`iii2c_chachlag_onset_at`).
+    assert_shape(&mgl("e n fvs3 mvs e"), &["A", "N", "Mvs", "Aa"]);
+    assert_shape(&mgl("a g fvs4 mvs a"), &["A", "A", "Hx", "Mvs", "Aa"]);
+    // A valid FVS picks its own form.
+    assert_shape(&mgl("a j fvs1 mvs a"), &["A", "A", "I", "Mvs", "Aa"]);
     assert_shape(&mgl("a n fvs1 mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
+    assert_shape(&mgl("a n fvs2 mvs a"), &["A", "A", "A", "Mvs", "Aa"]);
 }
 
 #[test]
@@ -639,9 +673,10 @@ fn test_step2_invalid_fvs_keeps_context() {
                                                                     // A valid FVS still picks its own variant.
     assert_shape(&mgl("a s t fvs2 l a"), &["A", "A", "S", "D", "L", "A"]);
     assert_shape(&mgl("s u i fvs3 l"), &["S", "O", "I", "L"]);
-    // Before an MVS, GB writes the FVS out (`n + FVS1 + MVS`, `n + FVS2 + MVS`), so any other
-    // FVS breaks the rule and n keeps its first form (EAC XIM11-46).
-    assert_shape(&mgl("a n fvs3 mvs e"), &["A", "A", "A", "Mvs", "Aa"]);
+    // Before an MVS too, as in the font: n takes the onset. GB writes `n + FVS1/FVS2 + MVS`
+    // out and EAC XIM11-46 keeps n at its first form there; the engine follows the font
+    // (`iii2c_chachlag_onset_at`).
+    assert_shape(&mgl("a n fvs3 mvs e"), &["A", "A", "N", "Mvs", "Aa"]);
 }
 
 #[test]
@@ -753,6 +788,16 @@ fn test_step3_particle_blocked_by_fvs_after_mvs() {
         &mgl("t a l nnbsp fvs1 i"),
         &["T", "A", "L", "Mvs", "A", "I"],
     );
+}
+
+#[test]
+fn test_step3_particle_blocked_by_fvs_on_joiner() {
+    // An FVS carried by a joiner between the particle's letters breaks it: the lookup reads FVS
+    // and skips the joiners.
+    assert_shape(&mgl("u zwj fvs4 u"), &["A", "O", "U"]);
+    assert_shape(&mgl("ue nirugu fvs2 ue"), &["A", "O", "I", "Nirugu", "U"]);
+    assert_shape(&mgl("u zwj u"), &["O", "U"]);
+    assert_shape(&mgl("u u"), &["O", "U"]);
 }
 
 #[test]
@@ -930,6 +975,21 @@ fn test_step4_vowel_devsger_sees_fvs_after_joiner() {
     assert_shape_raw(&mgl("t ue zwj i n"), &["T", "O", "I", "Zwj", "I", "A"]);
 }
 
+#[test]
+fn test_step4_vowel_devsger_with_stacked_fvs() {
+    // With two FVS after oe/ue GB's table matches nothing. The vowel's form decides as the font
+    // sees it, before any FVS applies.
+    assert_shape(
+        &mgl("t oe fvs2 fvs1 i n"),
+        &["T", "A", "O", "I", "I", "I", "A"],
+    );
+    assert_shape(&mgl("t ue fvs1 fvs3 i n"), &["T", "O", "I", "I", "I", "A"]);
+    assert_shape(&mgl("ue fvs1 fvs2 i n"), &["O", "I", "A"]);
+    // One FVS: GB's table.
+    assert_shape(&mgl("t ue fvs2 i n"), &["T", "A", "O", "I", "I", "A"]);
+    assert_shape(&mgl("t oe i n"), &["T", "O", "I", "I", "A"]);
+}
+
 // ── Step 5 · Post-bowed — vowels after bowed consonants ──
 //
 // Rule (iii.py iii5): vowel.FINA gets `post_bowed` if the preceding consonant renders as a
@@ -1074,6 +1134,14 @@ fn test_utn_g_fvs2_blocks_chachlag_onset() {
     // `b a g fvs2 mvs a` -- UTN: g.fvs2 = G (feminine, user wins). EAC counter-example
     // (XIM11-1012) expects Hx.
     assert_shape(&mgl("b a g fvs2 mvs a"), &["B", "A", "G", "Mvs", "Aa"]);
+}
+
+#[test]
+fn test_utn_n_fvs3_keeps_chachlag_onset() {
+    // XIM11-46: `e n fvs3 mvs e`. FVS3 is undefined for n there. The font (the UTN model) reads
+    // it as transparent and n takes the chachlag onset. EAC expects the first form `A`
+    // (`A A Fvs3 _ Aa`), reading GB's `n + FVS1/FVS2 + MVS` rules as making any FVS count.
+    assert_shape(&mgl("e n fvs3 mvs e"), &["A", "N", "Mvs", "Aa"]);
 }
 
 #[test]

@@ -231,27 +231,24 @@ impl Shaper {
             token.written = Some(&[]);
             return;
         }
-        let mut written: Option<&'static [WrittenUnit]> = token
+        let written = token
             .first_fvs()
             .and_then(|fvs| self.variants.get(&(token.cp, token.position, Some(fvs))))
-            .map(|variant| variant.written);
-        if written.is_none() {
-            if let Some(condition) = token.condition {
-                if let Some(fvs) = self.condition_fvs(token.cp, token.position, condition) {
-                    written = self
-                        .variants
-                        .get(&(token.cp, token.position, fvs))
-                        .map(|variant| variant.written);
-                }
-            }
-        }
-        if written.is_none() {
-            written = self
-                .defaults
-                .get(&(token.cp, token.position))
-                .map(|variant| variant.written);
-        }
-        token.written = Some(written.unwrap_or(&[]));
+            .map(|variant| variant.written)
+            .unwrap_or_else(|| self.contextual_written(token));
+        token.written = Some(written);
+    }
+
+    /// The written units of a letter before any FVS applies: those of its condition, else its
+    /// default. The font's phase III rules see this form, since the font applies an FVS only at
+    /// the end (`III.fvs.MNG`).
+    pub(crate) fn contextual_written(&self, token: &Token) -> &'static [WrittenUnit] {
+        token
+            .condition
+            .and_then(|condition| self.condition_fvs(token.cp, token.position, condition))
+            .and_then(|fvs| self.variants.get(&(token.cp, token.position, fvs)))
+            .or_else(|| self.defaults.get(&(token.cp, token.position)))
+            .map_or(&[], |variant| variant.written)
     }
 
     // ── predicates used by the rules ────────────────────────────────────────────────────────
