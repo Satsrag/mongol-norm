@@ -6,6 +6,12 @@
 //! `III.2g.g.dotless` and `III.5.post_bowed`, which override earlier conditions to mirror
 //! OpenType class-membership semantics (see the Python comments for the font verification).
 //!
+//! Context lookups stay inside the MVS segment. To the font an MVS is a base glyph that no lookup
+//! sees past, while nirugu, ZWJ and FVS are marks it steps over. So `next_letter_in_segment`,
+//! `prev_adjacent_letter` and `next_adjacent_letter` stop at an MVS and step over the joiners.
+//! The rules that do read an MVS name it: III.1 (`prev_tok`), III.2c, III.2f and III.2g's g.dotless
+//! rule (2) (`letter_after_mvs`, the letter right after it) and III.3 (whole segments).
+//!
 //! An FVS locks a letter against the context rules only when it selects a variant there
 //! ([`Shaper::has_valid_fvs`]), and that variant wins whatever condition a rule sets. An FVS that
 //! selects nothing is transparent: GB/T 25914-2023 gives the FVS "双向传递语法上下文特性" (it
@@ -18,10 +24,7 @@
 //! shaping), GB.A/GB.B, the cluster and d.marked rules, and the particles.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
-use crate::shaper::{
-    next_adjacent_letter, next_letter, next_tok, prev_adjacent_letter, prev_letter, prev_tok,
-    Shaper,
-};
+use crate::shaper::{next_adjacent_letter, next_tok, prev_adjacent_letter, prev_tok, Shaper};
 use crate::tables::{Fvs, Locale, ParticleSym, Position};
 use crate::token::Token;
 
@@ -161,7 +164,7 @@ fn iii2a_o_u_oe_ue_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper
     if !matches!(tok.alias, Some(Alias::O | Alias::U | Alias::Oe | Alias::Ue)) {
         return;
     }
-    let Some(prev) = prev_letter(tokens, index) else {
+    let Some(prev) = prev_adjacent_letter(tokens, index) else {
         return;
     };
     if !(shaper.is_consonant(&tokens[prev]) && tokens[prev].position == Position::Init) {
@@ -247,7 +250,7 @@ fn iii2a_o_u_oe_ue_marked_gb_b_at(tokens: &mut [Token], index: usize, _shaper: &
     if !matches!(tok.alias, Some(Alias::Oe | Alias::Ue)) || tok.position != Position::Fina {
         return;
     }
-    let Some(prev) = prev_letter(tokens, index) else {
+    let Some(prev) = prev_adjacent_letter(tokens, index) else {
         return;
     };
     let prev = view(tokens, prev);
@@ -325,7 +328,7 @@ fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if tok.position != Position::Init || tok.has_fvs {
         return;
     }
-    let Some(next) = next_letter(tokens, index) else {
+    let Some(next) = next_letter_in_segment(tokens, index) else {
         return;
     };
     if !(shaper.is_vowel(&tokens[next]) && tokens[next].position == Position::Fina) {
@@ -350,7 +353,8 @@ per_token!(iii2c_chachlag_onset => iii2c_chachlag_onset_at);
 /// this lookup needs, so `a n mvs a fvs1` keeps the default n (`A A A Mvs A`). The EAC suite
 /// backs this: every row with an FVS on that vowel expects the wide MVS, e.g. `a b u mvs a fvs3`
 /// → `A A B O - A A`, so the vowel is not a separated final vowel there. UTN #57 Table 6
-/// (step 2) does not mention the case.
+/// (step 2) does not mention the case. The vowel must follow the MVS directly
+/// (`letter_after_mvs`): `a n mvs mvs a` keeps the default n, as in the font.
 fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter || tok.has_fvs {
@@ -362,7 +366,7 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper)
     if !tokens[next].is_mvs() {
         return;
     }
-    let Some(after) = next_letter(tokens, next) else {
+    let Some(after) = letter_after_mvs(tokens, next) else {
         return;
     };
     let after = view(tokens, after);
@@ -401,6 +405,12 @@ fn next_letter_in_segment(tokens: &[Token], index: usize) -> Option<usize> {
         .map(|offset| index + 1 + offset)
 }
 
+/// The letter right after the MVS at `mvs`. A second MVS in between does not count: the font
+/// matches `mvs` + letter as neighbours, so `g nnbsp nnbsp a` is no chachlag context for g.
+fn letter_after_mvs(tokens: &[Token], mvs: usize) -> Option<usize> {
+    next_tok(tokens, mvs).filter(|&next| tokens[next].is_letter())
+}
+
 /// n/t/d: `onset` before a vowel, `devsger` after one — see
 /// rules.py::_iii2e_n_t_d_onset_devsger_at.
 ///
@@ -409,6 +419,9 @@ fn next_letter_in_segment(tokens: &[Token], index: usize) -> Option<usize> {
 /// consonant, and GB/T 25914-2023 B.26 gives `t + NIRUGU` the first form, so `a t zwj` is
 /// `A A D Zwj`, not `A A T Zwj` (n and d look the same either way: their devsger form is
 /// their default).
+///
+/// Both vowels must be in the letter's own segment: `a d nirugu mvs a` keeps the default `Dd`,
+/// not the onset `D`, as in the font.
 fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -417,7 +430,7 @@ fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Sha
     if !tok.is_letter || !matches!(tok.alias, Some(Alias::N | Alias::T | Alias::D)) {
         return;
     }
-    if let Some(next) = next_letter(tokens, index) {
+    if let Some(next) = next_letter_in_segment(tokens, index) {
         // Carve-out: III.2g.t.devsger owns `t + ee`. In iii.py it overwrites this lookup's
         // substitution through OpenType class membership, which first-writer-wins cannot
         // replicate, so III.2e bows out and falls through to the devsger check below. It is
@@ -432,7 +445,7 @@ fn iii2e_n_t_d_onset_devsger_at(tokens: &mut [Token], index: usize, shaper: &Sha
     if tok.position == Position::Medi && next_letter_in_segment(tokens, index).is_none() {
         return;
     }
-    if let Some(prev) = prev_letter(tokens, index) {
+    if let Some(prev) = prev_adjacent_letter(tokens, index) {
         if shaper.is_vowel(&tokens[prev]) {
             set(tokens, index, Condition::Devsger);
         }
@@ -457,8 +470,8 @@ per_token!(iii2f_h_g_harmony => iii2f_h_g_harmony_at);
 ///
 /// Adjacency is deliberately strict: iii2f runs with `IgnoreMarks` (FVS invisible) but MVS is a
 /// base glyph that breaks adjacency, hence [`prev_adjacent_letter`]/[`next_adjacent_letter`].
-/// Do NOT "simplify" these to `prev_letter`/`next_letter`: an earlier unconstrained scan matched
-/// vowels across MVS word boundaries and caused the `o l g → H` regression.
+/// Do NOT widen them to scan past an MVS: an earlier unconstrained scan matched vowels across
+/// MVS word boundaries and caused the `o l g → H` regression.
 fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -543,7 +556,7 @@ fn precedes_mvs_and_isolated_a_e(tokens: &[Token], index: usize) -> bool {
     if !tokens[mvs].is_mvs() {
         return false;
     }
-    let Some(vowel) = next_letter(tokens, mvs) else {
+    let Some(vowel) = letter_after_mvs(tokens, mvs) else {
         return false;
     };
     let vowel = view(tokens, vowel);
@@ -587,7 +600,7 @@ fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !tok.is_letter || tok.alias != Some(Alias::Sh) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
-    let Some(next) = next_letter(tokens, index) else {
+    let Some(next) = next_letter_in_segment(tokens, index) else {
         return;
     };
     let next = view(tokens, next);
@@ -620,15 +633,15 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !tok.is_letter || tok.alias != Some(Alias::G) || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
-    let Some(prev) = prev_letter(tokens, index) else {
+    let Some(prev) = prev_adjacent_letter(tokens, index) else {
         return;
     };
     if !matches!(tokens[prev].alias, Some(Alias::S | Alias::D)) {
         return;
     }
-    // Rule (1): medial s/d + g.medi + immediately following masc vowel
+    // Rule (1): medial s/d + g.medi + the next letter in g's segment a masc vowel
     if tok.position == Position::Medi && tokens[prev].position == Position::Medi {
-        if let Some(next) = next_letter(tokens, index) {
+        if let Some(next) = next_letter_in_segment(tokens, index) {
             if shaper.is_masc_vowel(&tokens[next]) {
                 set(tokens, index, Condition::Dotless);
                 return;
@@ -643,7 +656,7 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if tok.position == Position::Fina {
         if let Some(next) = next_tok(tokens, index) {
             if tokens[next].is_mvs() {
-                if let Some(after) = next_letter(tokens, next) {
+                if let Some(after) = letter_after_mvs(tokens, next) {
                     let after = view(tokens, after);
                     if after.alias == Some(Alias::A)
                         && after.position == Position::Isol
@@ -755,7 +768,8 @@ fn build_mvs_segments(tokens: &[Token]) -> Vec<(Vec<ParticleSym>, Vec<usize>)> {
 per_token!(iii4_vowel_devsger => iii4_vowel_devsger_at);
 
 /// A medial `i` after a vowel whose shape does not already end in `I` takes the double-tooth
-/// `vowel_devsger` form — see rules.py::_iii4_vowel_devsger_at.
+/// `vowel_devsger` form — see rules.py::_iii4_vowel_devsger_at. The vowel must be in the i's own
+/// segment: `e nnbsp zwj i ue` keeps the single `I`, as in the font.
 fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -767,7 +781,7 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
-    let Some(prev) = prev_letter(tokens, index) else {
+    let Some(prev) = prev_adjacent_letter(tokens, index) else {
         return;
     };
     if !shaper.is_vowel(&tokens[prev]) {
@@ -797,6 +811,9 @@ per_token!(iii5_post_bowed => iii5_post_bowed_at);
 /// `writtens("MNG", ["G", "Gx"])`, the whole written form, and GB/T 25914-2023 (3.21–3.23)
 /// lists ŋ as a non-combining consonant (NCC), after which a final vowel keeps its first form
 /// (`[NCC | Vow | NIRUGU] + e` → `A`, `[ExtMCS] + [Vow | NCC | MCCC] + o` → `U`).
+///
+/// The bowed consonant must be in the vowel's own segment: `b mvs nirugu o` is
+/// `B Mvs Nirugu U`, as in the font.
 fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition == Some(Condition::Marked) {
@@ -814,7 +831,7 @@ fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if tok.position != Position::Fina {
         return;
     }
-    let Some(prev) = prev_letter(tokens, index) else {
+    let Some(prev) = prev_adjacent_letter(tokens, index) else {
         return;
     };
     shaper.resolve_written(&mut tokens[prev]);

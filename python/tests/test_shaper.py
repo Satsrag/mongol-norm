@@ -322,6 +322,39 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("a g mvs n")), ["A", "A", "H", "Mvs", "N"])
         self.assertEqual(self.s.shape(_mgl("a g")), ["A", "A", "H"])
 
+    def test_context_stays_in_the_mvs_segment(self):
+        # The context rules look for neighbours within the MVS segment, as the font does: an
+        # MVS is a base glyph that no lookup sees past, while nirugu and ZWJ are marks it steps
+        # over.
+        # III.2e: the vowel after n/d is across the MVS, so no onset.
+        self.assertEqual(self.s.shape(_mgl("a n nirugu mvs a")), ["A", "A", "A", "Nirugu", "Mvs", "Aa"])
+        self.assertEqual(self.s._shape_raw(_mgl("a d nirugu mvs a")), ["A", "A", "Dd", "Nirugu", "Mvs", "Aa"])
+        # III.2g g.dotless: the masculine vowel, or the s before g, is across the MVS.
+        self.assertEqual(self.s.shape(_mgl("a s g nirugu mvs a")), ["A", "A", "S", "G", "Nirugu", "Mvs", "Aa"])
+        self.assertEqual(
+            self.s.shape(_mgl("a s mvs nirugu g mvs a")),
+            ["A", "A", "S", "Mvs", "Nirugu", "Hx", "Mvs", "Aa"],
+        )
+        # III.2g sh.dotless: the i is across the MVS.
+        self.assertEqual(self.s.shape(_mgl("a sh nirugu mvs i")), ["A", "A", "Sh", "Nirugu", "Mvs", "I"])
+        # III.2a: the initial consonant is across the MVS, so neither marked nor d.marked.
+        self.assertEqual(self.s.shape(_mgl("n nirugu mvs nirugu oe")), ["N", "Nirugu", "Mvs", "Nirugu", "U"])
+        self.assertEqual(self.s.shape(_mgl("d nirugu mvs nirugu a")), ["T", "Nirugu", "Mvs", "Nirugu", "A"])
+        # III.4: the vowel before i is across the MVS.
+        self.assertEqual(self.s.shape(_mgl("a mvs nirugu i a")), ["A", "A", "Mvs", "Nirugu", "I", "A"])
+        # III.5: the bowed consonant is across the MVS.
+        self.assertEqual(self.s.shape(_mgl("b mvs nirugu o")), ["B", "Mvs", "Nirugu", "U"])
+        self.assertEqual(self.s.shape(_mgl("b mvs zwj a")), ["B", "Mvs", "Zwj", "A"])
+        # A second MVS: the a does not follow the consonant's MVS directly (III.2c, III.2f).
+        self.assertEqual(self.s.shape(_mgl("a j mvs mvs a")), ["A", "A", "J", "Mvs", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a g mvs mvs a")), ["A", "A", "H", "Mvs", "Mvs", "Aa"])
+        # Within one segment nothing changes.
+        self.assertEqual(self.s.shape(_mgl("a n mvs a")), ["A", "A", "N", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("b o")), ["B", "O"])
+        self.assertEqual(self.s.shape(_mgl("n oe")), ["N", "Ue"])
+        self.assertEqual(self.s.shape(_mgl("d a")), ["D", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("a s g u")), ["A", "A", "S", "H", "U"])
+
     # 2-7  n/d before vowel → onset; n/t/d after vowel or before consonant → devsger
     #      (t has no observable onset variant in MNG.json — iii2e still tags it
     #       but the resolver falls back to default, so onset is a visual no-op for t.)

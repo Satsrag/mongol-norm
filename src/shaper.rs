@@ -559,16 +559,6 @@ pub(crate) fn flatten(tokens: &[Token]) -> Vec<WrittenUnit> {
 
 // ── context helpers shared with the rules (Python `_prev_letter` & co.), returning indices ──
 
-/// Nearest letter before `index` (structural tokens skipped).
-pub(crate) fn prev_letter(tokens: &[Token], index: usize) -> Option<usize> {
-    (0..index).rev().find(|&j| tokens[j].is_letter())
-}
-
-/// Nearest letter after `index` (structural tokens skipped).
-pub(crate) fn next_letter(tokens: &[Token], index: usize) -> Option<usize> {
-    (index + 1..tokens.len()).find(|&j| tokens[j].is_letter())
-}
-
 /// The token right before `index`. (`_tokens` is unused; it keeps the signature symmetric with
 /// the other context helpers.)
 pub(crate) fn prev_tok(_tokens: &[Token], index: usize) -> Option<usize> {
@@ -827,31 +817,33 @@ mod tests {
     #[test]
     fn memoised_written_is_never_invalidated() {
         let shaper = Shaper::new(Locale::Mng);
-        // `b a MVS nirugu i n`: III.4 resolves the `a` while walking back from the medial `i`,
-        // freezing its written units at the default `A`. III.5 then assigns `post_bowed` to the
-        // same `a`, which no longer has any effect. Python does exactly the same — verified with
-        // `MongolianShaper('MNG').shape_detailed(...)`.
-        let text = "\u{182A}\u{1820}\u{180E}\u{180A}\u{1822}\u{1828}";
-        let details = shaper.shape_detailed(text).unwrap();
-        assert_eq!(details[1].alias, Some(Alias::A));
-        assert_eq!(details[1].condition, Some(Condition::PostBowed));
-        assert_eq!(details[1].written, vec![WrittenUnit::A]);
+        // `resolve_written` memoises: once resolved, a token keeps its written units whatever
+        // condition a later rule sets.
+        let mut token = shaper.tokenize("\u{1820}").remove(0);
+        token.position = Position::Fina;
+        shaper.resolve_written(&mut token);
+        assert_eq!(token.written, Some(&[WrittenUnit::A][..]));
+        token.condition = Some(Condition::PostBowed);
+        shaper.resolve_written(&mut token);
+        assert_eq!(token.written, Some(&[WrittenUnit::A][..]));
+
+        // No rule pair runs into this now that the context lookups stay inside the MVS segment:
+        // III.4 resolves the vowel before a medial `i`, which is never final, and III.5 only
+        // touches final vowels. `b a MVS nirugu i n` used to: III.4 walked back from the `i`
+        // across the MVS, froze the `a` at `A`, and III.5's `post_bowed` came too late. It now
+        // shapes as the font does, with `post_bowed` `Aa` and a single `I`.
         assert_eq!(
-            shaper.shape(text).unwrap(),
+            shaper
+                .shape("\u{182A}\u{1820}\u{180E}\u{180A}\u{1822}\u{1828}")
+                .unwrap(),
             vec![
                 WrittenUnit::B,
-                WrittenUnit::A,
+                WrittenUnit::Aa,
                 WrittenUnit::Mvs,
                 WrittenUnit::Nirugu,
                 WrittenUnit::I,
-                WrittenUnit::I,
                 WrittenUnit::A,
             ]
-        );
-        // Without the mid-pipeline freeze the same `b a` resolves through `post_bowed` to `Aa`.
-        assert_eq!(
-            shaper.shape("\u{182A}\u{1820}").unwrap(),
-            vec![WrittenUnit::B, WrittenUnit::Aa]
         );
     }
 
