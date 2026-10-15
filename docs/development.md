@@ -149,12 +149,14 @@ a case, and the rule's doc says what to change then.
 
 Two more comparisons widen the net:
 
-- **A fresh random sample on every run**: the step "Compare the backends on a fresh random sample
-  (report only)" seeds with the run id, so each run shapes 100k new strings. It never fails the
-  build. A difference shows as a warning annotation that names the seed and the
-  `font-vs-engine-fresh` artifact, and goes into the job summary. Reproduce it with
-  `--random 100000 --seed <seed>`, then fix it or explain it.
-- **The boundary words** (`boundary_words_shape_alike_except_the_deliberate_ones` in
+- **A fresh random sample on every run**: the job "Fresh random sample (report only)" seeds with
+  the run id, so each run shapes 100k new strings. It is a check of its own, so a difference
+  stands out on the pull request: that check fails, with an error annotation that names the seed
+  and the `font-vs-engine-fresh` artifact, and the report goes into its job summary. It never
+  fails the build: the other checks keep their result, and `continue-on-error` keeps the
+  workflow run and the README badge green. Keep it out of any required checks. Reproduce a
+  difference with `--random 100000 --seed <seed>`, then fix it or explain it.
+- **The boundary words** (`boundary_words_shape_alike` in
   `tests/font_vs_engine.rs`, a gate through `cargo test --features font`): about 15k words built
   from templates around an MVS, a joiner or an FVS, the contexts the backends parted on until
   #50–#52 and #55. All of them must shape alike.
@@ -162,4 +164,6 @@ Two more comparisons widen the net:
 Current totals: **301 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
 1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest; the `font` feature
 adds 18) and **278 Python tests**, green on Rust stable / 1.82 (the core crate's MSRV; the binding
-crate needs 1.83, the `font` feature 1.85) and CPython 3.9 – 3.14.
+crate needs 1.83, the `font` feature 1.85) and CPython 3.9 and 3.14 (CI tests the ends of the
+supported range; the extension targets the stable ABI, so the versions in between load the same
+build).
