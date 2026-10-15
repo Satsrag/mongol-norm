@@ -172,6 +172,26 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("g oe nirugu")), ["G", "O", "I", "Nirugu"])
         self.assertEqual(self.s.shape(_mgl("ch nirugu ue")), ["Ch", "Nirugu", "Ue"])
 
+    def test_step2_d_marked_sees_fvs_on_joiner(self):
+        # An FVS carried by a joiner between an initial d and its final vowel cancels `marked`
+        # too: the font's reset (`III.d.marked.GB`) skips the joiners.
+        self.assertEqual(self.s.shape(_mgl("d nirugu fvs4 ue")), ["T", "Nirugu", "U"])
+        self.assertEqual(self.s.shape(_mgl("d zwj fvs2 a")), ["T", "A"])
+        self.assertEqual(self.s.shape(_mgl("a mvs d nirugu fvs1 i")), ["A", "A", "Mvs", "T", "Nirugu", "I"])
+        self.assertEqual(self.s.shape(_mgl("d nirugu ue")), ["D", "Nirugu", "Ue"])
+        # Two FVS there: GB cancels for any FVS and the engine does too. The font's reset
+        # wants exactly one and keeps `D`, a deliberate difference.
+        self.assertEqual(self.s.shape(_mgl("d fvs3 fvs2 oe")), ["T", "U"])
+
+    def test_step2_gb_b_sees_fvs_on_joiner(self):
+        # An initial h/g with FVS2/FVS4 keeps a final oe/ue marked. GB.B reads the one FVS
+        # between them, on a joiner too; III.5's rule G reads the first FVS right after the h/g.
+        self.assertEqual(self.s.shape(_mgl("g zwj fvs4 ue")), ["G", "Ue"])
+        self.assertEqual(self.s.shape(_mgl("h nirugu fvs2 oe")), ["G", "Nirugu", "Ue"])
+        self.assertEqual(self.s.shape(_mgl("g fvs2 fvs4 ue")), ["G", "Ue"])
+        self.assertEqual(self.s.shape(_mgl("g fvs1 fvs2 ue")), ["H", "U"])
+        self.assertEqual(self.s.shape(_mgl("g zwj ue")), ["G", "Ue"])
+
     # 2-1b'  an FVS after a MEDIAL vowel resets marked too, even one that selects
     # nothing there (FVS4), so the vowel keeps its default O — as mongfontbuilder's
     # font draws it and its iii2a documents as a GB requirement ("the marked will
@@ -303,6 +323,11 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("a n mvs fvs2 a")), ["A", "A", "N", "Mvs", "Aa"])
         # III.2g still sees a chachlag a: g after s stays dotless.
         self.assertEqual(self.s.shape(_mgl("s g mvs a fvs1")), ["S", "H", "Mvs", "A"])
+        # An FVS on the MVS itself keeps the onset, even with one on the vowel: the font's
+        # reset wants the vowel right after the MVS.
+        self.assertEqual(self.s.shape(_mgl("a g mvs fvs3 a fvs1")), ["A", "A", "Hx", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("a n mvs fvs1 a fvs1")), ["A", "A", "N", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("a j nnbsp fvs1 e fvs2")), ["A", "A", "I", "Mvs", "A"])
 
     def test_step2_chachlag_onset_fvs_on_consonant(self):
         # An FVS on the consonant before the MVS. GB writes out such FVS rules for n, h and g,
@@ -792,6 +817,14 @@ class TestShape(unittest.TestCase):
             ["T", "A", "L", "Mvs", "A", "I"],
         )
 
+    def test_step3_particle_blocked_by_fvs_on_joiner(self):
+        # An FVS carried by a joiner between the particle's letters breaks it: the lookup reads
+        # FVS and skips the joiners.
+        self.assertEqual(self.s.shape(_mgl("u zwj fvs4 u")), ["A", "O", "U"])
+        self.assertEqual(self.s.shape(_mgl("ue nirugu fvs2 ue")), ["A", "O", "I", "Nirugu", "U"])
+        self.assertEqual(self.s.shape(_mgl("u zwj u")), ["O", "U"])
+        self.assertEqual(self.s.shape(_mgl("u u")), ["O", "U"])
+
     def test_step3_particle_iyar(self):
         # tal + MVS + iyar — i + y at idx 1, 2 → both particle (masc vowel)
         self.assertEqual(
@@ -978,6 +1011,16 @@ class TestShape(unittest.TestCase):
             ["A", "O", "I", "Nirugu", "I", "A", "U"],
         )
         self.assertEqual(self.s._shape_raw(_mgl("t ue zwj i n")), ["T", "O", "I", "Zwj", "I", "A"])
+
+    def test_step4_vowel_devsger_with_stacked_fvs(self):
+        # With two FVS after oe/ue GB's table matches nothing. The vowel's form decides as the
+        # font sees it, before any FVS applies.
+        self.assertEqual(self.s.shape(_mgl("t oe fvs2 fvs1 i n")), ["T", "A", "O", "I", "I", "I", "A"])
+        self.assertEqual(self.s.shape(_mgl("t ue fvs1 fvs3 i n")), ["T", "O", "I", "I", "I", "A"])
+        self.assertEqual(self.s.shape(_mgl("ue fvs1 fvs2 i n")), ["O", "I", "A"])
+        # One FVS: GB's table.
+        self.assertEqual(self.s.shape(_mgl("t ue fvs2 i n")), ["T", "A", "O", "I", "I", "A"])
+        self.assertEqual(self.s.shape(_mgl("t oe i n")), ["T", "O", "I", "I", "A"])
 
     # ══════════════════════════════════════════════════════════
     # Step 5 · Post-bowed — vowels after bowed consonants

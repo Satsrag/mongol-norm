@@ -139,23 +139,30 @@ on all of them, so any string they shape differently fails the build. The step r
 - every differing word in the **`font-vs-engine` artifact** (the TSV), kept for 14 days and
   uploaded when the step fails too.
 
-The seed is fixed, so the result changes only when one of the backends does. There is no
-allowlist: the disagreements the engine takes on purpose (`KNOWN` in `tests/font_vs_engine.rs`)
-do not occur in this sample. If a change brings one in, decide between following the font and
-adding an allowlist.
+The seed is fixed, so the result changes only when one of the backends does.
+
+The engine parts from the font on purpose in two cases, both an FVS it reads as GB/T 25914-2023
+and the EAC suite do:
+
+- an undefined FVS on a final n or g before an MVS and an isolated a/e (EAC XIM11-46);
+- two or more FVS between an initial d and its final vowel (GB cancels the marked d for any FVS,
+  the font's reset only for exactly one).
+
+`compare` recognizes both. It counts them as "on purpose" and lists them apart, with the reason
+in the TSV's `on_purpose` column, and they neither fail the gate nor raise a warning. Any other
+difference does.
 
 Two more comparisons widen the net:
 
 - **A fresh random sample on every run**: the step "Compare the backends on a fresh random sample
   (report only)" seeds with the run id, so each run shapes 100k new strings. It never fails the
-  build. A difference shows as a warning annotation that names the seed, and goes into the job
-  summary and the `font-vs-engine-fresh` artifact. Reproduce it with `--random 100000 --seed
-  <seed>`, then fix it or explain it.
+  build. A difference shows as a warning annotation that names the seed and the
+  `font-vs-engine-fresh` artifact, and goes into the job summary. Reproduce it with
+  `--random 100000 --seed <seed>`, then fix it or explain it.
 - **The boundary words** (`boundary_words_shape_alike_except_the_deliberate_ones` in
-  `tests/font_vs_engine.rs`, a gate through `cargo test --features font`): about 13.5k words built
+  `tests/font_vs_engine.rs`, a gate through `cargo test --features font`): about 15k words built
   from templates around an MVS, a joiner or an FVS, the contexts the backends parted on until
-  #50–#52. The 36 words the engine shapes unlike the font on purpose (an undefined FVS on a final
-  n or g before an MVS, as EAC XIM11-46 expects) are listed and must keep differing.
+  #50–#52 and #55. The 84 words of the two cases above are listed and must keep differing.
 
 Current totals: **301 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
 1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest; the `font` feature

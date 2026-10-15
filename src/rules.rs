@@ -199,6 +199,17 @@ fn fvs_precedes(tokens: &[Token], index: usize) -> bool {
     false
 }
 
+/// The FVS between the letters at `from` and `to`, on the first one or on the joiners between,
+/// when there is exactly one: what a lookup with UseMarkFilteringSet @fvs reads there, the
+/// joiners being marks it skips. With two FVS such a context does not match.
+fn single_fvs_between(tokens: &[Token], from: usize, to: usize) -> Option<Fvs> {
+    let mut fvs = tokens[from..to]
+        .iter()
+        .flat_map(|token| token.fvs.iter().copied());
+    let first = fvs.next()?;
+    fvs.next().is_none().then_some(first)
+}
+
 /// GB.A: an FVS next to the vowel resets `marked`. The two sides differ:
 ///
 /// * an FVS *after* the vowel (its own, or one after a ZWJ or nirugu right after it: the
@@ -242,6 +253,11 @@ per_token!(iii2a_o_u_oe_ue_marked_gb_b => iii2a_o_u_oe_ue_marked_gb_b_at);
 
 /// GB.B: the single exception to GB.A — initial h/g carrying FVS2/FVS4 + final oe/ue stays
 /// `marked` even though an FVS sits between them — see rules.py::_iii2a_o_u_oe_ue_marked_gb_b_at.
+/// The font marks it in two places, and the engine takes either:
+/// - GB.B itself (UseMarkFilteringSet @fvs) reads the one FVS between the h/g and the vowel, so
+///   one carried by a joiner counts too: `g zwj fvs4 ue` is `G Ue`;
+/// - III.5's GB rule G (`III.vowel.post_bowed.MNG.GB`) reads the first FVS right after the h/g,
+///   skipping the rest: `g fvs2 fvs4 ue` is `G Ue` too, although GB.B sees two FVS there.
 fn iii2a_o_u_oe_ue_marked_gb_b_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter {
@@ -250,14 +266,15 @@ fn iii2a_o_u_oe_ue_marked_gb_b_at(tokens: &mut [Token], index: usize, _shaper: &
     if !matches!(tok.alias, Some(Alias::Oe | Alias::Ue)) || tok.position != Position::Fina {
         return;
     }
-    let Some(prev) = prev_adjacent_letter(tokens, index) else {
+    let Some(prev_index) = prev_adjacent_letter(tokens, index) else {
         return;
     };
-    let prev = view(tokens, prev);
+    let prev = view(tokens, prev_index);
     if !matches!(prev.alias, Some(Alias::H | Alias::G)) || prev.position != Position::Init {
         return;
     }
-    if !matches!(prev.first_fvs, Some(Fvs::Fvs2 | Fvs::Fvs4)) {
+    let fvs24 = |fvs: Option<Fvs>| matches!(fvs, Some(Fvs::Fvs2 | Fvs::Fvs4));
+    if !fvs24(single_fvs_between(tokens, prev_index, index)) && !fvs24(prev.first_fvs) {
         return;
     }
     set(tokens, index, Condition::Marked);
@@ -317,6 +334,11 @@ per_token!(iii2a_d_marked => iii2a_d_marked_at);
 /// Gated on d.init (mirrors iii.py / .fea, not the UTN prose: the data ships a marked variant
 /// only for d.init, and without the gate a d.medi would claim the slot and block III.2e's
 /// `onset`) — see rules.py::_iii2a_d_marked_at.
+///
+/// So does an FVS carried by a joiner between them: the font's reset (`III.d.marked.GB`,
+/// UseMarkFilteringSet @fvs) skips the joiners, so `d nirugu fvs4 ue` keeps the default `T`.
+/// The reset wants exactly one FVS there, so the font keeps `D` for two (`d fvs3 fvs2 oe`).
+/// The engine cancels for any FVS, as GB has it, and keeps that difference on purpose.
 fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -334,8 +356,8 @@ fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !(shaper.is_vowel(&tokens[next]) && tokens[next].position == Position::Fina) {
         return;
     }
-    if tokens[next].has_fvs() {
-        return; // GB: FVS on the following vowel also cancels
+    if tokens[index + 1..=next].iter().any(Token::has_fvs) {
+        return; // GB: an FVS on the following vowel, or on a joiner before it, also cancels
     }
     set(tokens, index, Condition::Marked);
 }
@@ -386,7 +408,9 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, shaper: &Shaper) 
         return;
     };
     let after = view(tokens, after);
-    if after.position != Position::Isol || after.has_fvs {
+    // An FVS on the vowel postpones the MVS shaping. One on the MVS itself does not, because
+    // the font's reset reads the vowel right after the MVS: `g mvs fvs3 a fvs1` keeps the onset.
+    if after.position != Position::Isol || (after.has_fvs && !tokens[next].has_fvs()) {
         return;
     }
     if matches!(tok.alias, Some(Alias::N | Alias::J | Alias::W))
@@ -706,9 +730,13 @@ fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
         let Some(particle_indices) = particle_indices else {
             continue;
         };
-        // UseMarkFilteringSet @fvs: any FVS in the matched run breaks base-glyph adjacency,
-        // one right after its MVS too (`mvs fvs2 i` is no particle: `Mvs A I`).
-        if used.iter().any(|&idx| tokens[idx].has_fvs()) {
+        // UseMarkFilteringSet @fvs: any FVS in the matched run breaks base-glyph adjacency:
+        // one right after its MVS (`mvs fvs2 i` is no particle: `Mvs A I`), and one carried
+        // by a joiner between its letters, which the lookup skips (`u zwj fvs4 u`).
+        let (Some(&first), Some(&last)) = (used.first(), used.last()) else {
+            continue;
+        };
+        if tokens[first..=last].iter().any(Token::has_fvs) {
             continue;
         }
         // The lookup keys on position-specific classes, the particle's letters filling their
@@ -803,11 +831,12 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !shaper.is_vowel(&tokens[prev]) {
         return;
     }
-    // GB's table (`III.i.devsger.MNG.GB`): after a medial oe/ue, FVS3 gives the double tooth and
-    // FVS1/FVS2 the single one; after an initial ue, FVS1 gives the double tooth and FVS2 the
-    // single one. With an FVS carried by a joiner after the vowel the font still applies it:
-    // `ue nirugu fvs1 i e ue` has `I I`, like `ue fvs1 i e ue`.
-    if let Some(fvs) = joiner_fvs_after_oe_ue(tokens, prev, index) {
+    // GB's table (`III.i.devsger.MNG.GB`, UseMarkFilteringSet @fvs) reads the one FVS between an
+    // oe/ue and the i, on the vowel or on a joiner: after a medial oe/ue, FVS3 gives the double
+    // tooth and FVS1/FVS2 the single one; after an initial ue, FVS1 gives the double tooth and
+    // FVS2 the single one. So `ue nirugu fvs1 i e ue` has `I I`, like `ue fvs1 i e ue`.
+    let oe_ue = matches!(tokens[prev].alias, Some(Alias::Oe | Alias::Ue));
+    if let Some(fvs) = single_fvs_between(tokens, prev, index).filter(|_| oe_ue) {
         let ue_init =
             tokens[prev].alias == Some(Alias::Ue) && tokens[prev].position == Position::Init;
         let devsger = match (tokens[prev].position, fvs) {
@@ -824,26 +853,12 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
             return;
         }
     }
-    shaper.resolve_written(&mut tokens[prev]);
-    if tokens[prev].written_ends_with(WrittenUnit::I) {
+    // Otherwise the vowel's form decides, as the font sees it before any FVS applies: with two
+    // FVS GB's table matches nothing, and `oe fvs2 fvs1 i` has the double tooth of a bare `oe`.
+    if shaper.contextual_written(&tokens[prev]).last() == Some(&WrittenUnit::I) {
         return; // already ends in I, no double tooth needed
     }
     set(tokens, index, Condition::VowelDevsger);
-}
-
-/// The FVS that the font's `III.i.devsger.MNG.GB` (UseMarkFilteringSet @fvs) sees after the oe/ue
-/// at `vowel` when the vowel has none of its own: the single FVS carried by the joiners between
-/// it and the `i` at `index`. Phase III turns the joiners into marks the lookup skips, as for GB.A
-/// (`fvs_follows`). The vowel's own FVS needs no help: it already shows in its written form.
-fn joiner_fvs_after_oe_ue(tokens: &[Token], vowel: usize, index: usize) -> Option<Fvs> {
-    if !matches!(tokens[vowel].alias, Some(Alias::Oe | Alias::Ue)) || tokens[vowel].has_fvs() {
-        return None;
-    }
-    let mut carried = tokens[vowel + 1..index]
-        .iter()
-        .flat_map(|token| token.fvs.iter().copied());
-    let fvs = carried.next()?;
-    carried.next().is_none().then_some(fvs)
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -926,8 +941,9 @@ fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         }
         // iii.py's remaining GB rules need no code here: B/D (h/g + fvs1/3 → reset) cannot
         // trigger because those render `Hx`/`H`, which are not bowed, so the main rule never
-        // fires; G (h/g.init + fvs2/4 + oe/ue → marked) is already covered by
-        // [`iii2a_o_u_oe_ue_marked_gb_b_at`] — see rules.py::_iii5_post_bowed_at.
+        // fires; G (h/g.init + fvs2/4 + oe/ue → marked) is already covered by GB.B, which takes
+        // the h/g's first FVS as well (`iii2a_o_u_oe_ue_marked_gb_b_at`) — see
+        // rules.py::_iii5_post_bowed_at.
     }
     set(tokens, index, Condition::PostBowed);
 }

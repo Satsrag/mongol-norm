@@ -246,6 +246,8 @@ struct Report {
     input: String,
     total: usize,
     differences: Vec<Difference>,
+    /// Differences the engine takes on purpose, with the reason: not counted as differing.
+    known: Vec<(Difference, &'static str)>,
     rejected: Vec<Rejected>,
     /// Most frequent first.
     groups: Vec<Group>,
@@ -253,7 +255,7 @@ struct Report {
 
 impl Report {
     fn same(&self) -> usize {
-        self.total - self.differences.len() - self.rejected.len()
+        self.total - self.differences.len() - self.known.len() - self.rejected.len()
     }
 
     fn percent(&self, n: usize) -> f64 {
@@ -261,22 +263,39 @@ impl Report {
     }
 }
 
+/// The differences taken on purpose, by reason: how many, and the first word.
+fn known_reasons(report: &Report) -> Vec<(&'static str, usize, &Difference)> {
+    let mut reasons: Vec<(&'static str, usize, &Difference)> = Vec::new();
+    for (difference, reason) in &report.known {
+        match reasons.iter_mut().find(|(seen, _, _)| seen == reason) {
+            Some(entry) => entry.1 += 1,
+            None => reasons.push((reason, 1, difference)),
+        }
+    }
+    reasons
+}
+
 fn compare(options: &Options, words: &[String]) -> Report {
     let font = FontShaper::new();
     let engine = Shaper::new(Locale::Mng);
     let mut differences = Vec::new();
+    let mut known = Vec::new();
     let mut rejected = Vec::new();
     for word in words {
         match (font.shape(word), engine.shape(word)) {
             (Ok(a), Ok(b)) if a == b => {}
             (Ok(a), Ok(b)) => {
                 let (x, y) = middle(&a, &b);
-                differences.push(Difference {
+                let difference = Difference {
                     word: word.clone(),
                     font: joined(&a),
                     engine: joined(&b),
                     group: (joined(x), joined(y)),
-                });
+                };
+                match known_disagreement(word, &difference.group) {
+                    Some(reason) => known.push((difference, reason)),
+                    None => differences.push(difference),
+                }
             }
             (Err(error), Ok(_)) => rejected.push(Rejected {
                 word: word.clone(),
@@ -325,9 +344,99 @@ fn compare(options: &Options, words: &[String]) -> Report {
         input,
         total: words.len(),
         differences,
+        known,
         rejected,
         groups,
     }
+}
+
+const MVS_LIKE: [char; 2] = ['\u{180E}', '\u{202F}'];
+const FVS: [char; 4] = ['\u{180B}', '\u{180C}', '\u{180D}', '\u{180F}'];
+const JOINERS: [char; 2] = ['\u{180A}', '\u{200D}'];
+
+/// Why the engine shapes `word` unlike the font on purpose, if it does. Both cases are an FVS
+/// the engine reads as GB/T 25914-2023 and the EAC suite do, where the font's lookups read it
+/// otherwise (`iii2c_chachlag_onset_at` and `iii2a_d_marked_at` in src/rules.rs; the boundary
+/// words in tests/font_vs_engine.rs pin them). The shapes must part exactly where expected
+/// (`parts`, font vs engine), so another disagreement in the same word still counts.
+fn known_disagreement(word: &str, parts: &(String, String)) -> Option<&'static str> {
+    let chars: Vec<char> = word.chars().collect();
+    let fvs_run = |from: usize| {
+        chars.get(from..).map_or(0, |rest| {
+            rest.iter().take_while(|c| FVS.contains(c)).count()
+        })
+    };
+    let parts = (parts.0.as_str(), parts.1.as_str());
+    for (k, &letter) in chars.iter().enumerate() {
+        // No letter before it in its segment (FVS skipped): it opens the segment.
+        let opens = chars[..k]
+            .iter()
+            .rev()
+            .find(|c| !FVS.contains(c))
+            .is_none_or(|c| MVS_LIKE.contains(c));
+        match letter {
+            // A final n or g whose first FVS its final form does not define (n: FVS3/FVS4,
+            // g: FVS4), before an MVS and an isolated a/e: no onset (EAC XIM11-46).
+            '\u{1828}' | '\u{182D}' if !opens => {
+                let run = fvs_run(k + 1);
+                let undefined = match (letter, chars.get(k + 1)) {
+                    (_, None) => false,
+                    ('\u{1828}', Some(first)) => matches!(first, '\u{180D}' | '\u{180F}'),
+                    (_, Some(first)) => *first == '\u{180F}',
+                };
+                let mvs = k + 1 + run;
+                if run == 0 || !undefined || !chars.get(mvs).is_some_and(|c| MVS_LIKE.contains(c)) {
+                    continue;
+                }
+                let mvs_fvs = fvs_run(mvs + 1);
+                let vowel = mvs + 1 + mvs_fvs;
+                if !chars
+                    .get(vowel)
+                    .is_some_and(|c| matches!(c, '\u{1820}' | '\u{1821}'))
+                {
+                    continue;
+                }
+                let vowel_fvs = fvs_run(vowel + 1);
+                let isolated = chars
+                    .get(vowel + 1 + vowel_fvs)
+                    .is_none_or(|c| MVS_LIKE.contains(c));
+                // An FVS on the vowel alone postpones the MVS shaping on both sides.
+                let postponed = vowel_fvs > 0 && mvs_fvs == 0;
+                if isolated && !postponed && matches!(parts, ("N", "A") | ("Hx", "G") | ("H", "G"))
+                {
+                    return Some("an undefined FVS on a final n or g before an MVS (EAC XIM11-46)");
+                }
+            }
+            // An initial d with two or more FVS before its final vowel, the first not its own
+            // FVS1/FVS2: GB cancels the marked d for any FVS, the font's reset for one only.
+            '\u{1833}' if opens => {
+                if matches!(chars.get(k + 1), Some('\u{180B}' | '\u{180C}')) {
+                    continue;
+                }
+                let mut next = k + 1;
+                let mut count = 0;
+                while let Some(c) = chars.get(next) {
+                    if FVS.contains(c) {
+                        count += 1;
+                    } else if !JOINERS.contains(c) {
+                        break;
+                    }
+                    next += 1;
+                }
+                let vowel = chars
+                    .get(next)
+                    .is_some_and(|c| ('\u{1820}'..='\u{1827}').contains(c));
+                let last = chars
+                    .get(next + 1 + fvs_run(next + 1))
+                    .is_none_or(|c| MVS_LIKE.contains(c));
+                if count >= 2 && vowel && last && parts == ("D", "T") {
+                    return Some("two or more FVS between an initial d and its final vowel");
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn write_text(out: &mut impl Write, report: &Report, options: &Options) -> io::Result<()> {
@@ -339,10 +448,11 @@ fn write_text(out: &mut impl Write, report: &Report, options: &Options) -> io::R
     writeln!(out, "input: {}", report.input)?;
     writeln!(
         out,
-        "same: {}   differ: {} ({:.2}%)   shaped by one side only: {}",
+        "same: {}   differ: {} ({:.2}%)   on purpose: {}   shaped by one side only: {}",
         report.same(),
         report.differences.len(),
         report.percent(report.differences.len()),
+        report.known.len(),
         report.rejected.len()
     )?;
 
@@ -410,6 +520,23 @@ fn write_text(out: &mut impl Write, report: &Report, options: &Options) -> io::R
         }
     }
 
+    if !report.known.is_empty() {
+        writeln!(
+            out,
+            "\nDiffering on purpose ({}; the engine follows GB and the EAC suite there):",
+            report.known.len()
+        )?;
+        for (reason, count, example) in known_reasons(report) {
+            writeln!(
+                out,
+                "  {:>6}  {reason}  e.g. {}  ({})",
+                count,
+                example.word,
+                code_points(&example.word)
+            )?;
+        }
+    }
+
     if !report.rejected.is_empty() {
         writeln!(
             out,
@@ -438,15 +565,19 @@ fn write_markdown(out: &mut impl Write, report: &Report, options: &Options) -> i
         pinned_commit(),
         report.input
     )?;
-    writeln!(out, "| words | same | differ | shaped by one side only |")?;
-    writeln!(out, "|---:|---:|---:|---:|")?;
     writeln!(
         out,
-        "| {} | {} | {} ({:.2}%) | {} |\n",
+        "| words | same | differ | on purpose | shaped by one side only |"
+    )?;
+    writeln!(out, "|---:|---:|---:|---:|---:|")?;
+    writeln!(
+        out,
+        "| {} | {} | {} ({:.2}%) | {} | {} |\n",
         report.total,
         report.same(),
         report.differences.len(),
         report.percent(report.differences.len()),
+        report.known.len(),
         report.rejected.len()
     )?;
 
@@ -505,6 +636,25 @@ fn write_markdown(out: &mut impl Write, report: &Report, options: &Options) -> i
         writeln!(out, "\n</details>\n")?;
     }
 
+    if !report.known.is_empty() {
+        writeln!(out, "### Differing on purpose: {}\n", report.known.len())?;
+        writeln!(
+            out,
+            "Where the engine follows GB/T 25914-2023 and the EAC suite instead of the font.\n"
+        )?;
+        writeln!(out, "| words | why | example | code points |")?;
+        writeln!(out, "|---:|---|---|---|")?;
+        for (reason, count, example) in known_reasons(report) {
+            writeln!(
+                out,
+                "| {count} | {reason} | {} | `{}` |",
+                example.word,
+                code_points(&example.word)
+            )?;
+        }
+        writeln!(out)?;
+    }
+
     if !report.rejected.is_empty() {
         writeln!(
             out,
@@ -528,6 +678,11 @@ fn write_markdown(out: &mut impl Write, report: &Report, options: &Options) -> i
     Ok(())
 }
 
+/// The CI artifact a TSV is uploaded as: its file name without the extension.
+fn artifact_name(path: &str) -> Option<&str> {
+    std::path::Path::new(path).file_stem()?.to_str()
+}
+
 /// A GitHub Actions workflow-command value: `%`, CR and LF escaped (and, in a property, `:`
 /// and `,` too).
 fn escape_command(text: &str, property: bool) -> String {
@@ -547,7 +702,7 @@ fn escape_command(text: &str, property: bool) -> String {
 
 /// One annotation for the whole run: a warning that names the largest groups when any word
 /// differs (or only one side shapes it), a notice when the shapers agree on every word.
-fn github_annotation(report: &Report, fail_on_diff: bool) -> String {
+fn github_annotation(report: &Report, fail_on_diff: bool, artifact: Option<&str>) -> String {
     let title = format!(
         "FontShaper vs Shaper: {} of {} differ ({:.2}%)",
         report.differences.len(),
@@ -555,10 +710,15 @@ fn github_annotation(report: &Report, fail_on_diff: bool) -> String {
         report.percent(report.differences.len())
     );
     if report.differences.is_empty() && report.rejected.is_empty() {
+        let on_purpose = match report.known.len() {
+            0 => String::new(),
+            count => format!(" Another {count} differ on purpose (GB and the EAC suite)."),
+        };
         return format!(
-            "::notice title={}::The two shapers agree on all {}.",
+            "::notice title={}::The two shapers agree on all {}.{}",
             escape_command(&title, true),
-            report.input
+            report.input,
+            escape_command(&on_purpose, false)
         );
     }
     let mut message = format!(
@@ -582,7 +742,12 @@ fn github_annotation(report: &Report, fail_on_diff: bool) -> String {
             report.rejected.len()
         ));
     }
-    message.push_str("\nFull report: the job summary; every word: the font-vs-engine artifact.");
+    match artifact {
+        Some(name) => message.push_str(&format!(
+            "\nFull report: the job summary; every word: the {name} artifact."
+        )),
+        None => message.push_str("\nFull report: the job summary."),
+    }
     let level = if fail_on_diff { "error" } else { "warning" };
     format!(
         "::{level} title={}::{}",
@@ -595,12 +760,16 @@ fn write_tsv(path: &str, report: &Report) -> io::Result<()> {
     let mut tsv = BufWriter::new(File::create(path)?);
     writeln!(
         tsv,
-        "word\tcode_points\tfont\tengine\tfont_part\tengine_part"
+        "word\tcode_points\tfont\tengine\tfont_part\tengine_part\ton_purpose"
     )?;
-    for difference in &report.differences {
+    let known = report
+        .known
+        .iter()
+        .map(|(difference, reason)| (difference, *reason));
+    for (difference, reason) in report.differences.iter().map(|d| (d, "")).chain(known) {
         writeln!(
             tsv,
-            "{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{reason}",
             difference.word,
             code_points(&difference.word),
             difference.font,
@@ -618,7 +787,7 @@ fn write_tsv(path: &str, report: &Report) -> io::Result<()> {
         };
         writeln!(
             tsv,
-            "{}\t{}\t{font}\t{engine}\t\t",
+            "{}\t{}\t{font}\t{engine}\t\t\t",
             rejected.word,
             code_points(&rejected.word)
         )?;
@@ -648,7 +817,12 @@ fn run(options: &Options, words: &[String]) -> io::Result<bool> {
         writeln!(out, "appended the Markdown report to {path}")?;
     }
     if options.github_warning {
-        writeln!(out, "{}", github_annotation(&report, options.fail_on_diff))?;
+        let artifact = options.tsv.as_deref().and_then(artifact_name);
+        writeln!(
+            out,
+            "{}",
+            github_annotation(&report, options.fail_on_diff, artifact)
+        )?;
     }
     out.flush()?;
     Ok(report.differences.is_empty() && report.rejected.is_empty())

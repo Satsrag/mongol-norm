@@ -1,7 +1,7 @@
 #![cfg(feature = "font")]
 //! The font backend against the rule engine, word for word, on every Hudum word the crate's
 //! fixtures hold: the corpora (`core-hud`, `eac-hud`, the inline round-trip cases) and the
-//! canonical golden vectors. A second set spells out ~13.5k words around an MVS, a joiner or an
+//! canonical golden vectors. A second set spells out ~15k words around an MVS, a joiner or an
 //! FVS, where random strings rarely reach (`boundary_words`). The two backends implement the same rules from two sources —
 //! the font at the pinned mongfontbuilder commit, the engine ported from mongfontbuilder
 //! 0.10.6 — so every word they shape differently is pinned here with the reason, and a new
@@ -259,6 +259,47 @@ fn boundary_words() -> Vec<String> {
             FVS,
             &["i", "i n", "i e ue", "i l"],
         ]),
+        // An FVS on a joiner, two FVS, and an FVS on the MVS (#55).
+        combinations(&[
+            &["", "a mvs"],
+            &["d"],
+            &["nirugu fvs1", "nirugu fvs4", "zwj fvs2", "zwj fvs3"],
+            &["a", "e", "o", "u", "oe", "ue", "i"],
+        ]),
+        combinations(&[
+            &["g", "h"],
+            &["", "fvs2", "fvs4", "fvs2 fvs4", "fvs4 fvs1", "fvs1 fvs2"],
+            &["", "zwj fvs4", "nirugu fvs2", "zwj fvs1"],
+            &["oe", "ue"],
+        ]),
+        combinations(&[
+            &["", "a mvs", "ch mvs"],
+            &["u", "ue"],
+            &["zwj fvs4", "nirugu fvs2", "nirugu fvs1"],
+            &["u", "ue"],
+        ]),
+        combinations(&[
+            &["", "t", "b", "a"],
+            &["oe", "ue", "o", "u", "a", "e"],
+            &[
+                "fvs2 fvs1",
+                "fvs1 fvs3",
+                "fvs1 fvs4",
+                "fvs1 fvs2",
+                "fvs3 fvs3",
+            ],
+            &["", "nirugu", "zwj fvs1"],
+            &["i n", "i l"],
+        ]),
+        combinations(&[
+            &["a", "e"],
+            &["n", "j", "w", "g", "h"],
+            &["mvs", "nnbsp"],
+            &["fvs1", "fvs3"],
+            &["a", "e"],
+            &["", "fvs1", "fvs2", "fvs4"],
+        ]),
+        deliberate_d_words(),
     ];
     let mut words: Vec<String> = sets.into_iter().flatten().collect();
     words.sort();
@@ -266,17 +307,34 @@ fn boundary_words() -> Vec<String> {
     words
 }
 
-/// The boundary words the engine shapes unlike the font on purpose: an FVS that GB writes no
-/// rule for, on a final n or g before an MVS (`iii2c_chachlag_onset_at`; EAC XIM11-46).
-fn deliberately_different() -> HashSet<String> {
+/// Two or more FVS between an initial d and its final vowel. GB cancels the marked d for any
+/// FVS and the engine does too (`iii2a_d_marked_at`); the font's reset wants exactly one.
+fn deliberate_d_words() -> Vec<String> {
     combinations(&[
+        &["", "a mvs"],
+        &["d"],
+        &[
+            "fvs3 fvs2",
+            "fvs4 fvs1",
+            "fvs3 nirugu fvs1",
+            "nirugu fvs1 zwj fvs2",
+        ],
+        &["a", "e", "o", "u", "oe", "ue"],
+    ])
+}
+
+/// The boundary words the engine shapes unlike the font on purpose. An FVS that GB writes no
+/// rule for, on a final n or g before an MVS (`iii2c_chachlag_onset_at`; EAC XIM11-46), and the
+/// d words above. The compare example recognizes the same two cases.
+fn deliberately_different() -> HashSet<String> {
+    let mut words = combinations(&[
         &["a", "e", "o"],
         &["n fvs3", "n fvs4", "g fvs4"],
         &["mvs", "nnbsp"],
         &["a", "e"],
-    ])
-    .into_iter()
-    .collect()
+    ]);
+    words.extend(deliberate_d_words());
+    words.into_iter().collect()
 }
 
 #[test]

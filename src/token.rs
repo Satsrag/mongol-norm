@@ -78,11 +78,6 @@ impl Token {
     pub fn first_fvs(&self) -> Option<Fvs> {
         self.fvs.first().copied()
     }
-
-    /// Python `_written_ends_with`: resolved, non-empty, and ending in `unit`.
-    pub fn written_ends_with(&self, unit: WrittenUnit) -> bool {
-        self.written.and_then(<[WrittenUnit]>::last) == Some(&unit)
-    }
 }
 
 /// Split text into tokens: letters, MVS/NNBSP (as `Mvs`), nirugu and ZWJ, each absorbing the
@@ -236,15 +231,6 @@ mod tests {
             positions("\u{200D}\u{1833}"),
             vec![(Zwj, Isol), (Letter, Fina)]
         );
-    }
-
-    #[test]
-    fn written_ends_with_requires_resolution() {
-        let mut token = tokenize("\u{1820}", no_alias).remove(0);
-        assert!(!token.written_ends_with(WrittenUnit::A));
-        token.written = Some(&[WrittenUnit::A, WrittenUnit::A]);
-        assert!(token.written_ends_with(WrittenUnit::A));
-        assert!(!token.written_ends_with(WrittenUnit::I));
     }
 
     #[test]
