@@ -304,6 +304,20 @@ class TestShape(unittest.TestCase):
         # III.2g still sees a chachlag a: g after s stays dotless.
         self.assertEqual(self.s.shape(_mgl("s g mvs a fvs1")), ["S", "H", "Mvs", "A"])
 
+    def test_step2_chachlag_onset_fvs_on_consonant(self):
+        # An FVS on the consonant before the MVS. GB writes out such FVS rules for n, h and g,
+        # so any FVS counts there (EAC XIM11-46). For j and w it writes none, so only a valid
+        # FVS counts and an invalid one is transparent, as in the font.
+        self.assertEqual(self.s.shape(_mgl("a j fvs3 mvs a")), ["A", "A", "I", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a w fvs4 mvs e")), ["A", "A", "U", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("ue t j fvs4 nnbsp a")), ["A", "O", "I", "T", "I", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a j fvs1 mvs a")), ["A", "A", "I", "Mvs", "Aa"])  # valid: its own form
+        # n and g: an undefined FVS gives the first form. The font, which counts only a valid
+        # FVS for every letter, gives `N` and `Hx` here.
+        self.assertEqual(self.s.shape(_mgl("e n fvs3 mvs e")), ["A", "A", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a g fvs4 mvs a")), ["A", "A", "G", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a n fvs1 mvs a")), ["A", "A", "N", "Mvs", "Aa"])
+
     def test_step2_g_h_before_mvs_and_isolated_a_e_take_no_gender(self):
         # g/h before an MVS and an isolated a/e is III.2c's context, so III.2f gives no gender
         # there, as in the font. When III.2c does not fire either, g/h keeps its default form.
@@ -947,6 +961,23 @@ class TestShape(unittest.TestCase):
             self.s.shape(_mgl("n a i fvs3 m a")),
             ["N", "A", "I", "M", "A"],
         )
+
+    def test_step4_vowel_devsger_sees_fvs_after_joiner(self):
+        # After oe/ue the font decides the i by GB's table (`III.i.devsger.MNG.GB`) and, as for
+        # GB.A, reads an FVS carried by a joiner after the vowel as the vowel's own.
+        self.assertEqual(
+            self.s.shape(_mgl("ue nirugu fvs1 i e ue")),
+            ["A", "O", "I", "Nirugu", "I", "I", "A", "U"],
+        )
+        self.assertEqual(self.s.shape(_mgl("b oe nirugu fvs1 i l")), ["B", "O", "Nirugu", "I", "L"])
+        self.assertEqual(self.s._shape_raw(_mgl("t ue zwj fvs2 i n")), ["T", "O", "Zwj", "I", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("t oe zwj fvs3 i n")), ["T", "O", "Zwj", "I", "I", "A"])
+        # Without the FVS the vowel's own form decides.
+        self.assertEqual(
+            self.s.shape(_mgl("ue nirugu i e ue")),
+            ["A", "O", "I", "Nirugu", "I", "A", "U"],
+        )
+        self.assertEqual(self.s._shape_raw(_mgl("t ue zwj i n")), ["T", "O", "I", "Zwj", "I", "A"])
 
     # ══════════════════════════════════════════════════════════
     # Step 5 · Post-bowed — vowels after bowed consonants
