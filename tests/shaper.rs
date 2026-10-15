@@ -145,13 +145,28 @@ fn test_step1_chachlag_mvs_a_fvs_default() {
 #[test]
 fn test_step1_chachlag_fvs_after_mvs() {
     // a/e after an MVS (or NNBSP) take chachlag; an FVS right after the MVS does not stop it
-    // (the font's lookup ignores it), only one on the vowel does.
+    // (the font's lookup ignores it), and a valid one on the vowel picks its own variant.
     assert_shape(&mgl("ch mvs a"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("ch nnbsp a"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("ch mvs e"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("ch mvs fvs1 a"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("ch mvs fvs2 a"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("ch mvs a fvs1"), &["Ch", "Mvs", "A"]);
+}
+
+#[test]
+fn test_step1_chachlag_ignores_invalid_fvs() {
+    // The vowel takes chachlag whatever FVS follows it, as in the font. A valid FVS still picks
+    // its own variant (GB/T 25914-2023 B.8 gives the isolated a FVS1–3, B.9 the isolated e
+    // FVS1–2); any other FVS is transparent, so the chachlag form shows.
+    assert_shape(&mgl("ch mvs a fvs4"), &["Ch", "Mvs", "Aa"]);
+    assert_shape(&mgl("sh y nnbsp a fvs4"), &["Sh", "I", "Mvs", "Aa"]);
+    assert_shape(&mgl("t mvs e fvs3"), &["T", "Mvs", "Aa"]);
+    assert_shape(&mgl("ch mvs e fvs4"), &["Ch", "Mvs", "Aa"]);
+    // A valid FVS still selects its own variant.
+    assert_shape(&mgl("ch mvs a fvs3"), &["Ch", "Mvs", "A", "A"]);
+    assert_shape(&mgl("ch mvs e fvs2"), &["Ch", "Mvs", "A"]);
+    assert_shape(&mgl("t a l mvs a fvs1"), &["T", "A", "L", "Mvs", "A"]);
 }
 
 // ── Step 2 · Syllabic — consonant/vowel context rules ──
@@ -284,6 +299,23 @@ fn test_step2_chachlag_onset_g_a() {
 fn test_step2_chachlag_onset_g_e() {
     // g before MVS + isolated e -> chachlag_onset
     assert_shape(&mgl("e g mvs e"), &["A", "H", "Mvs", "Aa"]);
+}
+
+#[test]
+fn test_step2_chachlag_onset_postponed_by_fvs_on_vowel() {
+    // No chachlag_onset when the vowel after the MVS carries an FVS, valid or not: GB postpones
+    // the MVS shaping then, and the font resets the MVS (`III.a_e.chachlag.GB`). The vowel keeps
+    // chachlag unless a valid FVS picks its own variant.
+    assert_shape(&mgl("a n mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
+    assert_shape(&mgl("a n mvs a fvs1"), &["A", "A", "A", "Mvs", "A"]);
+    assert_shape(&mgl("a n mvs a fvs4"), &["A", "A", "A", "Mvs", "Aa"]);
+    assert_shape(&mgl("a j mvs e"), &["A", "A", "I", "Mvs", "Aa"]);
+    assert_shape(&mgl("a j mvs e fvs2"), &["A", "A", "J", "Mvs", "A"]);
+    assert_shape(&mgl("a w mvs a fvs3"), &["A", "A", "W", "Mvs", "A", "A"]);
+    // An FVS right after the MVS is not on the vowel: the onset stays.
+    assert_shape(&mgl("a n mvs fvs2 a"), &["A", "A", "N", "Mvs", "Aa"]);
+    // III.2g still sees a chachlag a: g after s stays dotless.
+    assert_shape(&mgl("s g mvs a fvs1"), &["S", "H", "Mvs", "A"]);
 }
 
 #[test]

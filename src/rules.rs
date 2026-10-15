@@ -12,9 +12,10 @@
 //! passes grammatical context both ways) except where Appendix B writes it out, and shows an
 //! invalid one as an error glyph; the font carries it through phase III as `fvsN.ignored`.
 //! So `a s t fvs3 r a` is `A A S T R A`, as without the FVS. The rules that read an FVS as a signal
-//! of their own still count any FVS: III.1 chachlag, III.2c before an MVS (Appendix B writes
-//! out `n + FVS1 + MVS` and `n + FVS2 + MVS`; EAC XIM11-46 keeps `a n fvs3 mvs e` at the first
-//! form), GB.A/GB.B, the cluster and d.marked rules, and the particles.
+//! of their own still count any FVS: III.2c, for an FVS on the consonant before an MVS
+//! (Appendix B writes out `n + FVS1 + MVS` and `n + FVS2 + MVS`; EAC XIM11-46 keeps
+//! `a n fvs3 mvs e` at the first form) and on the vowel after it (GB postpones the MVS
+//! shaping), GB.A/GB.B, the cluster and d.marked rules, and the particles.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::shaper::{
@@ -84,17 +85,27 @@ macro_rules! per_token {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Phase III.1 — Chachlag: isolated a/e after MVS; an FVS on the vowel cancels (GB).
+// Phase III.1 — Chachlag: isolated a/e after MVS, whatever FVS follows the vowel.
 // ═══════════════════════════════════════════════════════════════════════
 
 per_token!(iii1_chachlag => iii1_chachlag_at);
 
-/// Isolated a/e directly after an MVS take `chachlag`; a GB carve-out lets an FVS on the vowel
-/// cancel it so the MVS shaping is postponed to III.3 — see rules.py::_iii1_chachlag_at.
-/// An FVS right after the MVS (kept on the MVS token) does not: the font's lookup ignores it,
-/// so `ch mvs fvs2 a` is `Ch Mvs Aa` like `ch mvs a`. It does stop a particle (III.3), as in
-/// the font, although GB/T 25914-2023 writes both rules alike (`[MVS] + a`, `[MVS] + i`): the
-/// engine follows the reference font here and will follow it if that changes.
+/// Isolated a/e directly after an MVS take `chachlag` — see rules.py::_iii1_chachlag_at. An FVS
+/// on the vowel does not stop it, as in the font (`III.a_e.chachlag`):
+/// - a valid FVS still picks its own variant, which wins over any condition: B.8 gives the
+///   isolated a FVS1–3 and B.9 the isolated e FVS1–2;
+/// - any other FVS is transparent like elsewhere, so `mvs a fvs4` and `mvs e fvs3` still read
+///   `[MVS] + a/e` and show the chachlag form.
+///
+/// What an FVS on the vowel changes is the MVS shaping, which GB postpones: the font's
+/// `III.a_e.chachlag.GB` resets the MVS, so the consonant before it takes no `chachlag_onset`
+/// (III.2c). UTN #57 (Table 6) and the docstring of mongfontbuilder's `iii1` also send the vowel
+/// back to its default form there, but the font's code keeps `Aa`; the engine follows the code.
+///
+/// An FVS right after the MVS (kept on the MVS token) changes nothing here: the font's lookup
+/// ignores it, so `ch mvs fvs2 a` is `Ch Mvs Aa` like `ch mvs a`. It does stop a particle (III.3),
+/// as in the font, although GB/T 25914-2023 writes both rules alike (`[MVS] + a`, `[MVS] + i`):
+/// the engine follows the reference font here and will follow it if that changes.
 fn iii1_chachlag_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if !tok.is_letter {
@@ -108,9 +119,6 @@ fn iii1_chachlag_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     };
     if !tokens[prev].is_mvs() {
         return;
-    }
-    if tok.has_fvs {
-        return; // GB: FVS → postpone to the particle step
     }
     set(tokens, index, Condition::Chachlag);
 }
@@ -315,7 +323,9 @@ per_token!(iii2c_chachlag_onset => iii2c_chachlag_onset_at);
 
 /// n/j/w before MVS + isolated a/e, and h/g before MVS + isolated a, take `chachlag_onset`;
 /// `g` before MVS + isolated e takes the GB-specific condition instead — see
-/// rules.py::_iii2c_chachlag_onset_at.
+/// rules.py::_iii2c_chachlag_onset_at. Not when the vowel carries an FVS, valid or not: GB
+/// postpones the MVS shaping then, and the font's `III.a_e.chachlag.GB` resets the narrow MVS
+/// this lookup needs, so `a n mvs a fvs1` keeps the default n (`A A A Mvs A`).
 fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() || !tok.is_letter || tok.has_fvs {
@@ -331,7 +341,7 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, _shaper: &Shaper)
         return;
     };
     let after = view(tokens, after);
-    if after.position != Position::Isol {
+    if after.position != Position::Isol || after.has_fvs {
         return;
     }
     if matches!(tok.alias, Some(Alias::N | Alias::J | Alias::W))
@@ -571,9 +581,9 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         }
     }
     // Rule (2): g.fina + MVS + chachlag a.isol. The chachlag check encodes iii.py's literal
-    // `u1820.Aa.isol` context — the glyph name *after* III.1 fired. An FVS that cancelled
-    // chachlag leaves the default `a.isol` glyph, which iii.py's rule would not match, so this
-    // rule must not fire either — see rules.py::_iii2g_g_dotless_at.
+    // `u1820.Aa.isol` context, which the vowel shows from III.1 on even before an FVS (a valid
+    // FVS picks its variant only at the end, in `III.fvs.MNG`), so `s g mvs a fvs1` is dotless
+    // too, as in the font — see rules.py::_iii2g_g_dotless_at.
     if tok.position == Position::Fina {
         if let Some(next) = next_tok(tokens, index) {
             if tokens[next].is_mvs() {
