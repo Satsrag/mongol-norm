@@ -159,6 +159,25 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      # Not a gate: a new seed every run (the run id, which a re-run keeps) explores strings the
+      # fixed sample never builds. A difference here is a lead to follow up, not a failure. The
+      # warning names the seed, and `--random 100000 --seed <seed>` reproduces it locally.
+      - name: Compare the backends on a fresh random sample (report only)
+        run: >-
+          cargo run -p mongol-norm --example compare --features font --locked --
+          --random 100000 --seed ${{ github.run_id }} --groups 50 --limit 100
+          --markdown "$GITHUB_STEP_SUMMARY" --github-warning
+          --tsv font-vs-engine-fresh.tsv
+
+      - name: Save the words the two backends shape differently on the fresh sample
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: font-vs-engine-fresh
+          path: font-vs-engine-fresh.tsv
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Build the core library for wasm32-unknown-unknown (with and without the font backend)
         run: |
           cargo build -p mongol-norm --lib --target wasm32-unknown-unknown --locked
