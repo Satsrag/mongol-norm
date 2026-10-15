@@ -193,7 +193,7 @@ The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is a
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
 
-**`mng-canonical/3` (0.3.0) invalidates keys stored under `mng-canonical/2` (0.2.x) for some
+**`mng-canonical/3` (0.3.0 on crates.io, 0.3.1 on PyPI) invalidates keys stored under `mng-canonical/2` (0.2.x) for some
 texts.** Two kinds of change reach `normalize`:
 
 - **Dropping redundant ZWJs** (above). Of the 1990 `mng-canonical/2` golden representatives, two
