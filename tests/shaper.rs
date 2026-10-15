@@ -343,6 +343,61 @@ fn test_step2_g_h_before_mvs_and_isolated_a_e_take_no_gender() {
 }
 
 #[test]
+fn test_context_stays_in_the_mvs_segment() {
+    // The context rules look for neighbours within the MVS segment, as the font does: an MVS is
+    // a base glyph that no lookup sees past, while nirugu and ZWJ are marks it steps over.
+    // III.2e: the vowel after n/d is across the MVS, so no onset.
+    assert_shape(
+        &mgl("a n nirugu mvs a"),
+        &["A", "A", "A", "Nirugu", "Mvs", "Aa"],
+    );
+    assert_shape_raw(
+        &mgl("a d nirugu mvs a"),
+        &["A", "A", "Dd", "Nirugu", "Mvs", "Aa"],
+    );
+    // III.2g g.dotless: the masculine vowel, or the s before g, is across the MVS.
+    assert_shape(
+        &mgl("a s g nirugu mvs a"),
+        &["A", "A", "S", "G", "Nirugu", "Mvs", "Aa"],
+    );
+    assert_shape(
+        &mgl("a s mvs nirugu g mvs a"),
+        &["A", "A", "S", "Mvs", "Nirugu", "Hx", "Mvs", "Aa"],
+    );
+    // III.2g sh.dotless: the i is across the MVS.
+    assert_shape(
+        &mgl("a sh nirugu mvs i"),
+        &["A", "A", "Sh", "Nirugu", "Mvs", "I"],
+    );
+    // III.2a: the initial consonant is across the MVS, so neither marked nor d.marked.
+    assert_shape(
+        &mgl("n nirugu mvs nirugu oe"),
+        &["N", "Nirugu", "Mvs", "Nirugu", "U"],
+    );
+    assert_shape(
+        &mgl("d nirugu mvs nirugu a"),
+        &["T", "Nirugu", "Mvs", "Nirugu", "A"],
+    );
+    // III.4: the vowel before i is across the MVS.
+    assert_shape(
+        &mgl("a mvs nirugu i a"),
+        &["A", "A", "Mvs", "Nirugu", "I", "A"],
+    );
+    // III.5: the bowed consonant is across the MVS.
+    assert_shape(&mgl("b mvs nirugu o"), &["B", "Mvs", "Nirugu", "U"]);
+    assert_shape(&mgl("b mvs zwj a"), &["B", "Mvs", "Zwj", "A"]);
+    // A second MVS: the a does not follow the consonant's MVS directly (III.2c, III.2f).
+    assert_shape(&mgl("a j mvs mvs a"), &["A", "A", "J", "Mvs", "Mvs", "Aa"]);
+    assert_shape(&mgl("a g mvs mvs a"), &["A", "A", "H", "Mvs", "Mvs", "Aa"]);
+    // Within one segment nothing changes.
+    assert_shape(&mgl("a n mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
+    assert_shape(&mgl("b o"), &["B", "O"]);
+    assert_shape(&mgl("n oe"), &["N", "Ue"]);
+    assert_shape(&mgl("d a"), &["D", "A"]);
+    assert_shape_raw(&mgl("a s g u"), &["A", "A", "S", "H", "U"]);
+}
+
+#[test]
 fn test_step2_n_onset() {
     // n/d before vowel -> onset; n/t/d after vowel or before consonant -> devsger. (t has no
     // observable onset variant in MNG.json — iii2e still tags it but the resolver falls back
