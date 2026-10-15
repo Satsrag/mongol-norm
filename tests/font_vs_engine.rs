@@ -9,7 +9,7 @@
 mod common;
 
 use common::json::Json;
-use common::{all_corpus_words, hex, unit_names};
+use common::{all_corpus_words, hex, mgl, unit_names};
 use mongol_norm::{FontShaper, Locale, Shaper};
 
 /// The fixture words the two backends shape differently: (code points, font, engine, why).
@@ -23,6 +23,36 @@ const KNOWN: &[(&str, &str, &str, &str)] = &[(
     "A A Mvs Aa",
     "n fvs3 before an MVS: XIM11-46",
 )];
+
+/// Edge cases where the engine follows the font on purpose although GB or UTN #57 read
+/// otherwise (rare input, not reported upstream). They must keep shaping alike: when a font bump
+/// changes one, revisit the rule its note names. That rule's doc says what to change.
+const WATCHED: &[(&str, &str)] = &[
+    (
+        "ch mvs a fvs4",
+        "iii1_chachlag_at: an invalid FVS on the vowel keeps `Aa`",
+    ),
+    (
+        "t mvs e fvs3",
+        "iii1_chachlag_at: an invalid FVS on the vowel keeps `Aa`",
+    ),
+    (
+        "a n mvs a fvs1",
+        "iii2c_chachlag_onset_at: an FVS on the vowel drops the onset",
+    ),
+    (
+        "s g mvs a fvs1",
+        "iii1_chachlag_at: g.dotless rule (2) sees a chachlag vowel",
+    ),
+    (
+        "a g mvs a fvs1",
+        "precedes_mvs_and_isolated_a_e: g takes no gender",
+    ),
+    (
+        "a g nirugu mvs a",
+        "precedes_mvs_and_isolated_a_e: g takes no gender",
+    ),
+];
 
 fn golden_words() -> Vec<String> {
     common::read_fixture("golden/mng-canonical-v1.jsonl")
@@ -81,5 +111,25 @@ fn fixture_words_shape_alike_except_the_known_ones() {
         "\n{} fixture words shape alike, {} known disagreements.",
         words.len() - found.len(),
         found.len()
+    );
+}
+
+#[test]
+fn watched_edge_cases_shape_alike() {
+    let font = FontShaper::new();
+    let engine = Shaper::new(Locale::Mng);
+    let mut drifted = Vec::new();
+    for &(aliases, note) in WATCHED {
+        let word = mgl(aliases);
+        let a = unit_names(&font.shape(&word).unwrap()).join(" ");
+        let b = unit_names(&engine.shape(&word).unwrap()).join(" ");
+        if a != b {
+            drifted.push(format!("{aliases}: font `{a}`, engine `{b}` ({note})"));
+        }
+    }
+    assert!(
+        drifted.is_empty(),
+        "the font changed on a watched edge case:\n{}",
+        drifted.join("\n")
     );
 }
