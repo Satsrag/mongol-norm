@@ -588,24 +588,29 @@ class TestShape(unittest.TestCase):
     # (the OpenType class-membership trick). All values verified against
     # `DraftNew-Regular.otf` via `hb-shape --unicodes=...`.
     #
-    # Rule (1):  s/d + g.medi + masc vowel  → dotless "H"
+    # Rule (1):  medial s/d + g.medi + masc vowel  → dotless "H"
     #            (override target: iii2f masculine_onset "Hx")
     # Rule (2):  s/d + g.fina + MVS + chachlag a.isol  → dotless "H"
     #            (override target: iii2c chachlag_onset "Hx")
     def test_step2_g_dotless(self):
-        # Rule 1 — g.medi + masc vowel (raw: the dotless "H" is medial, so the public
-        # shape folds it to `A A`):
-        self.assertEqual(self.s._shape_raw(_mgl("s g a")), ["S", "H", "A"])
-        self.assertEqual(self.s._shape_raw(_mgl("d g a")), ["T", "H", "A"])
+        # Rule 1 — medial s/d + g.medi + masc vowel (raw: the dotless "H" is medial, so the
+        # public shape folds it to `A A`):
         self.assertEqual(self.s._shape_raw(_mgl("a s g a")), ["A", "A", "S", "H", "A"])
-        # Rule 2 — g.fina + MVS + chachlag a:
+        self.assertEqual(self.s._shape_raw(_mgl("a d g a")), ["A", "A", "Dd", "H", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("d a s g a")), ["T", "A", "S", "H", "A"])
+        # A word-initial s/d keeps the dotted "Hx": GB/T 25914-2023 B.21 puts [ExtMCS] before it.
+        self.assertEqual(self.s._shape_raw(_mgl("s g a")), ["S", "Hx", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("d g a")), ["T", "Hx", "A"])
+        self.assertEqual(self.s._shape_raw(_mgl("s g u s")), ["S", "Hx", "O", "S"])
+        # Rule 2 — g.fina + MVS + chachlag a. A word-initial s/d counts here: B.21 puts
+        # [ExtMCS | WB] before it.
         self.assertEqual(self.s.shape(_mgl("s g mvs a")), ["S", "H", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("d g mvs a")), ["T", "H", "Mvs", "Aa"])
 
         # Negative: rule 1 needs masc vowel — fem/neut/consonant don't fire
-        self.assertEqual(self.s.shape(_mgl("s g i")), ["S", "G", "I"])   # neut i
-        self.assertEqual(self.s.shape(_mgl("s g e")), ["S", "G", "Aa"])  # fem e (iii2f → feminine = G)
-        self.assertEqual(self.s.shape(_mgl("s g n")), ["S", "G", "A"])   # consonant n
+        self.assertEqual(self.s.shape(_mgl("a s g i")), ["A", "A", "S", "G", "I"])   # neut i
+        self.assertEqual(self.s.shape(_mgl("a s g e")), ["A", "A", "S", "G", "Aa"])  # fem e (iii2f → feminine = G)
+        self.assertEqual(self.s.shape(_mgl("a s g n")), ["A", "A", "S", "G", "A"])   # consonant n
         # Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire
         self.assertEqual(self.s.shape(_mgl("s g")), ["S", "G"])
         # Negative: prev letter must be s or d

@@ -53,7 +53,7 @@ PHASE_CASES = [
     ("iii2f-hg-harmony", "g a r", "III.2f.h_g.harmony"),
     ("iii2g-t-devsger", "t ee n", "III.2g.t.devsger"),
     ("iii2g-sh-dotless", "sh i n", "III.2g.sh.dotless"),
-    ("iii2g-g-dotless", "s g a", "III.2g.g.dotless"),
+    ("iii2g-g-dotless", "a s g a", "III.2g.g.dotless"),
     ("iii3-particle", "mvs y i n", "III.3.particle"),
     ("iii4-vowel-devsger", "a i n", "III.4.vowel_devsger"),
     ("iii5-post-bowed", "b a", "III.5.post_bowed"),

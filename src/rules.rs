@@ -540,10 +540,16 @@ fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 
 per_token!(iii2g_g_dotless => iii2g_g_dotless_at);
 
-/// `s/d + g.medi + masc vowel` and `s/d + g.fina + MVS + chachlag a.isol` → `dotless`.
+/// `s/d.medi + g.medi + masc vowel` and `s/d + g.fina + MVS + chachlag a.isol` → `dotless`.
 /// OVERRIDES any earlier condition (no first-writer guard): in iii.py the same effect falls out
 /// of OpenType class membership, which rewrites the glyph III.2c/III.2f already substituted —
 /// see rules.py::_iii2g_g_dotless_at.
+///
+/// GB/T 25914-2023 Table B.21 writes the two cases differently. Before a vowel (medial No. 1 ②)
+/// the s/d follows `[ExtMCS]`, at least one character, so after a word-initial s/d the g keeps
+/// the dotted form of No. 2 ①: `s g u s` is `S Hx O S`. Before an MVS (No. 6 ①) the s/d follows
+/// `[ExtMCS | WB]`, so a word-initial one counts there. mongfontbuilder reads it the same way
+/// since c695f96 (Kushim-Jiang/mongolian#61).
 fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if !tok.is_letter || tok.alias != Some(Alias::G) || shaper.has_valid_fvs(&tokens[index]) {
@@ -555,8 +561,8 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !matches!(tokens[prev].alias, Some(Alias::S | Alias::D)) {
         return;
     }
-    // Rule (1): g.medi + immediately following masc vowel
-    if tok.position == Position::Medi {
+    // Rule (1): medial s/d + g.medi + immediately following masc vowel
+    if tok.position == Position::Medi && tokens[prev].position == Position::Medi {
         if let Some(next) = next_letter(tokens, index) {
             if shaper.is_masc_vowel(&tokens[next]) {
                 set(tokens, index, Condition::Dotless);
