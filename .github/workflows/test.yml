@@ -136,19 +136,22 @@ jobs:
       - name: Test the font backend (feature `font`; needs Rust 1.85)
         run: cargo test -p mongol-norm --features font --locked
 
-      # Not a gate: the two backends are expected to part on some random strings (edge rules
-      # the corpora don't reach; tests/font_vs_engine.rs pins the corpora). The step reports
-      # where: a warning annotation on the run, the full report in the job summary, and every
-      # differing word in the `font-vs-engine` artifact. Seeded, so the numbers only move when a
-      # backend changes. It reuses the debug build of the step above (`cargo test` builds the
-      # examples), which shapes 100k strings in well under a minute.
-      - name: Compare the font backend with the rule engine (report only)
+      # A gate: the two backends agree on all of these seeded random strings (#52), so any
+      # string they shape differently fails the build (tests/font_vs_engine.rs pins the
+      # corpora). The step reports where: an error annotation on the run, the full report in the
+      # job summary, and every differing word in the `font-vs-engine` artifact. Seeded, so the
+      # result only moves when a backend changes. It reuses the debug build of the step above
+      # (`cargo test` builds the examples), which shapes 100k strings in well under a minute.
+      - name: Compare the font backend with the rule engine
         run: >-
           cargo run -p mongol-norm --example compare --features font --locked --
           --random 100000 --groups 50 --limit 100
-          --markdown "$GITHUB_STEP_SUMMARY" --github-warning --tsv font-vs-engine.tsv
+          --markdown "$GITHUB_STEP_SUMMARY" --github-warning --fail-on-diff
+          --tsv font-vs-engine.tsv
 
+      # Also after a failed comparison: the artifact is where the differing words are.
       - name: Save the words the two backends shape differently
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: font-vs-engine

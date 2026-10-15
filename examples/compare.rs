@@ -10,7 +10,8 @@
 //! shapers disagree on (each with an example word), and the first differing words. `--tsv FILE`
 //! also writes every differing word to FILE, tab-separated, for a spreadsheet or `grep`;
 //! `--markdown FILE` appends the report as Markdown (CI points it at the job summary) and
-//! `--github-warning` adds a GitHub Actions annotation. Both shapers are compared on the public
+//! `--github-warning` adds a GitHub Actions annotation. `--fail-on-diff` turns the report into a
+//! gate: the exit status is 1 when any word differs. Both shapers are compared on the public
 //! `shape`; see `docs/development.md`.
 
 use std::collections::{HashMap, HashSet};
@@ -38,12 +39,13 @@ options:
   --groups G        difference groups to list (default 20; 0 lists none)
   --tsv FILE        also write every differing word to FILE (tab-separated, with a header)
   --markdown FILE   also append the report to FILE as Markdown (CI: $GITHUB_STEP_SUMMARY)
-  --github-warning  also print a GitHub Actions annotation: a warning when any word differs,
-                    a notice when none does
+  --github-warning  also print a GitHub Actions annotation: a warning when any word differs
+                    (an error with --fail-on-diff), a notice when none does
+  --fail-on-diff    exit with status 1 when any word differs or is shaped by one side only
   -h, --help        show this help
 
-The exit status is 0 whatever the shapers do (2 on a usage or I/O error): this is a report,
-not a gate.
+The exit status is 0 whatever the shapers do, unless --fail-on-diff is given and they differ
+(1). A usage or I/O error exits with 2.
 ";
 
 struct Options {
@@ -56,6 +58,7 @@ struct Options {
     tsv: Option<String>,
     markdown: Option<String>,
     github_warning: bool,
+    fail_on_diff: bool,
 }
 
 fn parse_args() -> Result<Options, String> {
@@ -69,6 +72,7 @@ fn parse_args() -> Result<Options, String> {
         tsv: None,
         markdown: None,
         github_warning: false,
+        fail_on_diff: false,
     };
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -87,6 +91,7 @@ fn parse_args() -> Result<Options, String> {
             "--tsv" => options.tsv = Some(value("--tsv")?),
             "--markdown" => options.markdown = Some(value("--markdown")?),
             "--github-warning" => options.github_warning = true,
+            "--fail-on-diff" => options.fail_on_diff = true,
             _ if arg.starts_with("--") => return Err(format!("unknown option {arg}")),
             _ => options.files.push(arg),
         }
@@ -542,7 +547,7 @@ fn escape_command(text: &str, property: bool) -> String {
 
 /// One annotation for the whole run: a warning that names the largest groups when any word
 /// differs (or only one side shapes it), a notice when the shapers agree on every word.
-fn github_annotation(report: &Report) -> String {
+fn github_annotation(report: &Report, fail_on_diff: bool) -> String {
     let title = format!(
         "FontShaper vs Shaper: {} of {} differ ({:.2}%)",
         report.differences.len(),
@@ -578,8 +583,9 @@ fn github_annotation(report: &Report) -> String {
         ));
     }
     message.push_str("\nFull report: the job summary; every word: the font-vs-engine artifact.");
+    let level = if fail_on_diff { "error" } else { "warning" };
     format!(
-        "::warning title={}::{}",
+        "::{level} title={}::{}",
         escape_command(&title, true),
         escape_command(&message, false)
     )
@@ -620,7 +626,8 @@ fn write_tsv(path: &str, report: &Report) -> io::Result<()> {
     tsv.flush()
 }
 
-fn run(options: &Options, words: &[String]) -> io::Result<()> {
+/// Writes the report; `Ok(true)` when the shapers agree on every word.
+fn run(options: &Options, words: &[String]) -> io::Result<bool> {
     let report = compare(options, words);
     let stdout = io::stdout();
     let mut out = BufWriter::new(stdout.lock());
@@ -641,9 +648,10 @@ fn run(options: &Options, words: &[String]) -> io::Result<()> {
         writeln!(out, "appended the Markdown report to {path}")?;
     }
     if options.github_warning {
-        writeln!(out, "{}", github_annotation(&report))?;
+        writeln!(out, "{}", github_annotation(&report, options.fail_on_diff))?;
     }
-    out.flush()
+    out.flush()?;
+    Ok(report.differences.is_empty() && report.rejected.is_empty())
 }
 
 fn main() -> ExitCode {
@@ -669,7 +677,8 @@ fn main() -> ExitCode {
         },
     };
     match run(&options, &words) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(agree) if agree || !options.fail_on_diff => ExitCode::SUCCESS,
+        Ok(_) => ExitCode::from(1),
         Err(error) => {
             eprintln!("compare: {error}");
             ExitCode::from(2)

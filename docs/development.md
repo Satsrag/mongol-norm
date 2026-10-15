@@ -128,15 +128,21 @@ letter the font has no glyph for — is listed with the error. `--seed`, `--max-
 `--groups` tune the run; `--help` lists them.
 
 CI runs it on every push, on 100k random strings with a fixed seed (the Rust job's "Compare the
-font backend with the rule engine" step). It never fails the build; it reports:
+font backend with the rule engine" step). It is a gate (`--fail-on-diff`): the two backends agree
+on all of them, so any string they shape differently fails the build. The step reports:
 
-- a **warning annotation** on the run — the number of differing strings and the five largest
-  groups, shown in the run's *Annotations* and on the pull request's checks;
+- an **error annotation** on the run — the number of differing strings and the five largest
+  groups, shown in the run's *Annotations* and on the pull request's checks (a notice when none
+  differs);
 - the **report in the job summary** (`--markdown "$GITHUB_STEP_SUMMARY"`) — the counts, every
   group with an example, and the first 100 differing words;
-- every differing word in the **`font-vs-engine` artifact** (the TSV), kept for 14 days.
+- every differing word in the **`font-vs-engine` artifact** (the TSV), kept for 14 days and
+  uploaded when the step fails too.
 
-The seed is fixed, so the numbers change only when one of the backends does.
+The seed is fixed, so the result changes only when one of the backends does. There is no
+allowlist: the disagreements the engine takes on purpose (`KNOWN` in `tests/font_vs_engine.rs`)
+do not occur in this sample. If a change brings one in, decide between following the font and
+adding an allowlist.
 
 Current totals: **301 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
 1993 canonical and 15 phase-trace golden vectors, fuzz, and the README doctest; the `font` feature
