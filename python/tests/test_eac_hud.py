@@ -119,11 +119,18 @@ _FONT_NAMING_ARTIFACTS = {'<', '>', 'Fvs1', 'Fvs2', 'Fvs3', 'Fvs4', 'Nnbsp'}
 #   an FVS after a letter prevents the MVS shaping step, the MVS is
 #   treated as an NBSP. In this case, the FVS remains valid. The UTN
 #   model considers this test case incorrect."
+#
+# XIM11-46 — EAC reads the undefined FVS3 in `e n fvs3 mvs e` as
+#   blocking n's chachlag onset (GB writes `n + FVS1/FVS2 + MVS` out),
+#   so n keeps its first form `A`. The font takes the undefined FVS as
+#   transparent and draws the onset `N`; mongfontbuilder marks the row
+#   xfail, and the engine follows the font (`iii2c_chachlag_onset_at`).
 _UTN_XFAIL_CASES = frozenset({
     'XIM11-38',    # `nnbsp` alone
     'XIM11-39',    # `b a g nnbsp a`
     'XIM11-40',    # `a b u nnbsp y i n`
     'XIM11-41',    # `a b u nnbsp e j i`
+    'XIM11-46',    # `e n fvs3 mvs e`
     'XIM11-1012',  # `b a g fvs2 mvs a`
 })
 

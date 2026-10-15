@@ -1,5 +1,5 @@
 //! GB/T 25914-2023 EAC compliance suite for Hudum, cross-implementation against mongfontbuilder's
-//! `eac-hud.tsv` (port of `python/tests/test_eac_hud.py`). The 5 UTN-vs-EAC divergences are skipped
+//! `eac-hud.tsv` (port of `python/tests/test_eac_hud.py`). The 6 UTN-vs-EAC divergences are skipped
 //! exactly as mongfontbuilder marks them `xfail`; their UTN-correct shaping is pinned in
 //! `tests/shaper.rs`.
 //!

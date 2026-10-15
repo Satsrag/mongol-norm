@@ -179,9 +179,10 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("d zwj fvs2 a")), ["T", "A"])
         self.assertEqual(self.s.shape(_mgl("a mvs d nirugu fvs1 i")), ["A", "A", "Mvs", "T", "Nirugu", "I"])
         self.assertEqual(self.s.shape(_mgl("d nirugu ue")), ["D", "Nirugu", "Ue"])
-        # Two FVS there: GB cancels for any FVS and the engine does too. The font's reset
-        # wants exactly one and keeps `D`, a deliberate difference.
-        self.assertEqual(self.s.shape(_mgl("d fvs3 fvs2 oe")), ["T", "U"])
+        # Two FVS there: neither context of the font's reset matches and `D` stays. The
+        # engine follows the font, against GB, which cancels for any FVS (iii2a_d_marked_at).
+        self.assertEqual(self.s.shape(_mgl("d fvs3 fvs2 oe")), ["D", "U"])
+        self.assertEqual(self.s.shape(_mgl("d nirugu fvs1 zwj fvs2 a")), ["D", "Nirugu", "A"])
 
     def test_step2_gb_b_sees_fvs_on_joiner(self):
         # An initial h/g with FVS2/FVS4 keeps a final oe/ue marked. GB.B reads the one FVS
@@ -330,18 +331,19 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("a j nnbsp fvs1 e fvs2")), ["A", "A", "I", "Mvs", "A"])
 
     def test_step2_chachlag_onset_fvs_on_consonant(self):
-        # An FVS on the consonant before the MVS. GB writes out such FVS rules for n, h and g,
-        # so any FVS counts there (EAC XIM11-46). For j and w it writes none, so only a valid
-        # FVS counts and an invalid one is transparent, as in the font.
+        # An FVS on the consonant before the MVS counts only when it selects a variant there,
+        # for every letter, as in the font: an undefined one is transparent, and the onset stays.
         self.assertEqual(self.s.shape(_mgl("a j fvs3 mvs a")), ["A", "A", "I", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("a w fvs4 mvs e")), ["A", "A", "U", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("ue t j fvs4 nnbsp a")), ["A", "O", "I", "T", "I", "Mvs", "Aa"])
-        self.assertEqual(self.s.shape(_mgl("a j fvs1 mvs a")), ["A", "A", "I", "Mvs", "Aa"])  # valid: its own form
-        # n and g: an undefined FVS gives the first form. The font, which counts only a valid
-        # FVS for every letter, gives `N` and `Hx` here.
-        self.assertEqual(self.s.shape(_mgl("e n fvs3 mvs e")), ["A", "A", "Mvs", "Aa"])
-        self.assertEqual(self.s.shape(_mgl("a g fvs4 mvs a")), ["A", "A", "G", "Mvs", "Aa"])
+        # n and g too, although GB writes their FVS out before an MVS and EAC XIM11-46 gives
+        # them the first form here (iii2c_chachlag_onset_at).
+        self.assertEqual(self.s.shape(_mgl("e n fvs3 mvs e")), ["A", "N", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a g fvs4 mvs a")), ["A", "A", "Hx", "Mvs", "Aa"])
+        # A valid FVS picks its own form.
+        self.assertEqual(self.s.shape(_mgl("a j fvs1 mvs a")), ["A", "A", "I", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("a n fvs1 mvs a")), ["A", "A", "N", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a n fvs2 mvs a")), ["A", "A", "A", "Mvs", "Aa"])
 
     def test_step2_g_h_before_mvs_and_isolated_a_e_take_no_gender(self):
         # g/h before an MVS and an isolated a/e is III.2c's context, so III.2f gives no gender
@@ -682,11 +684,12 @@ class TestShape(unittest.TestCase):
             ["A", "A", "S", "D", "L", "A"],
         )
         self.assertEqual(self.s.shape(_mgl("s u i fvs3 l")), ["S", "O", "I", "L"])
-        # Before an MVS, GB writes the FVS out (n + FVS1 + MVS, n + FVS2 + MVS),
-        # so any other FVS breaks the rule and n keeps its first form (EAC XIM11-46).
+        # Before an MVS too, as in the font: n takes the onset. GB writes
+        # n + FVS1/FVS2 + MVS out and EAC XIM11-46 keeps n at its first form
+        # there; the engine follows the font (iii2c_chachlag_onset_at).
         self.assertEqual(
             self.s.shape(_mgl("a n fvs3 mvs e")),
-            ["A", "A", "A", "Mvs", "Aa"],
+            ["A", "A", "N", "Mvs", "Aa"],
         )
 
     # 2-10c Only the FVS right after a letter can select; a further one is a
@@ -1203,6 +1206,16 @@ class TestShape(unittest.TestCase):
         self.assertEqual(
             self.s.shape(_mgl("b a g fvs2 mvs a")),
             ["B", "A", "G", "Mvs", "Aa"],
+        )
+
+    def test_utn_n_fvs3_keeps_chachlag_onset(self):
+        # XIM11-46: `e n fvs3 mvs e`. FVS3 is undefined for n there. The font
+        # (the UTN model) reads it as transparent and n takes the chachlag
+        # onset. EAC expects the first form `A` (`A A Fvs3 _ Aa`), reading
+        # GB's n + FVS1/FVS2 + MVS rules as making any FVS count.
+        self.assertEqual(
+            self.s.shape(_mgl("e n fvs3 mvs e")),
+            ["A", "N", "Mvs", "Aa"],
         )
 
     def test_utn_g_fvs3_picks_chachlag_onset(self):

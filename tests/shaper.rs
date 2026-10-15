@@ -216,9 +216,10 @@ fn test_step2_d_marked_sees_fvs_on_joiner() {
         &["A", "A", "Mvs", "T", "Nirugu", "I"],
     );
     assert_shape(&mgl("d nirugu ue"), &["D", "Nirugu", "Ue"]);
-    // Two FVS there: GB cancels for any FVS and the engine does too. The font's reset wants
-    // exactly one and keeps `D`, a deliberate difference.
-    assert_shape(&mgl("d fvs3 fvs2 oe"), &["T", "U"]);
+    // Two FVS there: neither context of the font's reset matches and `D` stays. The engine
+    // follows the font, against GB, which cancels for any FVS (`iii2a_d_marked_at`).
+    assert_shape(&mgl("d fvs3 fvs2 oe"), &["D", "U"]);
+    assert_shape(&mgl("d nirugu fvs1 zwj fvs2 a"), &["D", "Nirugu", "A"]);
 }
 
 #[test]
@@ -355,21 +356,22 @@ fn test_step2_chachlag_onset_postponed_by_fvs_on_vowel() {
 
 #[test]
 fn test_step2_chachlag_onset_fvs_on_consonant() {
-    // An FVS on the consonant before the MVS. GB writes out such FVS rules for n, h and g, so any
-    // FVS counts there (EAC XIM11-46). For j and w it writes none, so only a valid FVS counts and
-    // an invalid one is transparent, as in the font.
+    // An FVS on the consonant before the MVS counts only when it selects a variant there, for
+    // every letter, as in the font: an undefined one is transparent, and the onset stays.
     assert_shape(&mgl("a j fvs3 mvs a"), &["A", "A", "I", "Mvs", "Aa"]);
     assert_shape(&mgl("a w fvs4 mvs e"), &["A", "A", "U", "Mvs", "Aa"]);
     assert_shape(
         &mgl("ue t j fvs4 nnbsp a"),
         &["A", "O", "I", "T", "I", "Mvs", "Aa"],
     );
-    assert_shape(&mgl("a j fvs1 mvs a"), &["A", "A", "I", "Mvs", "Aa"]); // valid: its own form
-                                                                         // n and g: an undefined FVS gives the first form. The font, which counts only a valid FVS for
-                                                                         // every letter, gives `N` and `Hx` here.
-    assert_shape(&mgl("e n fvs3 mvs e"), &["A", "A", "Mvs", "Aa"]);
-    assert_shape(&mgl("a g fvs4 mvs a"), &["A", "A", "G", "Mvs", "Aa"]);
+    // n and g too, although GB writes their FVS out before an MVS and EAC XIM11-46 gives them
+    // the first form here (`iii2c_chachlag_onset_at`).
+    assert_shape(&mgl("e n fvs3 mvs e"), &["A", "N", "Mvs", "Aa"]);
+    assert_shape(&mgl("a g fvs4 mvs a"), &["A", "A", "Hx", "Mvs", "Aa"]);
+    // A valid FVS picks its own form.
+    assert_shape(&mgl("a j fvs1 mvs a"), &["A", "A", "I", "Mvs", "Aa"]);
     assert_shape(&mgl("a n fvs1 mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
+    assert_shape(&mgl("a n fvs2 mvs a"), &["A", "A", "A", "Mvs", "Aa"]);
 }
 
 #[test]
@@ -671,9 +673,10 @@ fn test_step2_invalid_fvs_keeps_context() {
                                                                     // A valid FVS still picks its own variant.
     assert_shape(&mgl("a s t fvs2 l a"), &["A", "A", "S", "D", "L", "A"]);
     assert_shape(&mgl("s u i fvs3 l"), &["S", "O", "I", "L"]);
-    // Before an MVS, GB writes the FVS out (`n + FVS1 + MVS`, `n + FVS2 + MVS`), so any other
-    // FVS breaks the rule and n keeps its first form (EAC XIM11-46).
-    assert_shape(&mgl("a n fvs3 mvs e"), &["A", "A", "A", "Mvs", "Aa"]);
+    // Before an MVS too, as in the font: n takes the onset. GB writes `n + FVS1/FVS2 + MVS`
+    // out and EAC XIM11-46 keeps n at its first form there; the engine follows the font
+    // (`iii2c_chachlag_onset_at`).
+    assert_shape(&mgl("a n fvs3 mvs e"), &["A", "A", "N", "Mvs", "Aa"]);
 }
 
 #[test]
@@ -1131,6 +1134,14 @@ fn test_utn_g_fvs2_blocks_chachlag_onset() {
     // `b a g fvs2 mvs a` -- UTN: g.fvs2 = G (feminine, user wins). EAC counter-example
     // (XIM11-1012) expects Hx.
     assert_shape(&mgl("b a g fvs2 mvs a"), &["B", "A", "G", "Mvs", "Aa"]);
+}
+
+#[test]
+fn test_utn_n_fvs3_keeps_chachlag_onset() {
+    // XIM11-46: `e n fvs3 mvs e`. FVS3 is undefined for n there. The font (the UTN model) reads
+    // it as transparent and n takes the chachlag onset. EAC expects the first form `A`
+    // (`A A Fvs3 _ Aa`), reading GB's `n + FVS1/FVS2 + MVS` rules as making any FVS count.
+    assert_shape(&mgl("e n fvs3 mvs e"), &["A", "N", "Mvs", "Aa"]);
 }
 
 #[test]

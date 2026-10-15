@@ -18,10 +18,15 @@
 //! passes grammatical context both ways) except where Appendix B writes it out, and shows an
 //! invalid one as an error glyph; the font carries it through phase III as `fvsN.ignored`.
 //! So `a s t fvs3 r a` is `A A S T R A`, as without the FVS. The rules that read an FVS as a signal
-//! of their own still count any FVS: III.2c, for an FVS on an n/h/g before an MVS (their
-//! Appendix B tables write out `n + FVS1 + MVS` and the like; EAC XIM11-46 keeps
-//! `a n fvs3 mvs e` at the first form) and on the vowel after the MVS (GB postpones the MVS
-//! shaping), GB.A/GB.B, the cluster and d.marked rules, and the particles.
+//! of their own still count one: III.2c on the vowel after an MVS (GB postpones the MVS shaping),
+//! GB.A/GB.B, the cluster and d.marked rules, and the particles. They count it as the font's
+//! lookups do, which read FVS marks and skip the joiners.
+//!
+//! Where GB/T 25914-2023 or its EAC suite read an FVS otherwise, the engine follows the font.
+//! Those cases are an undefined FVS on an n/h/g before an MVS (EAC XIM11-46,
+//! `iii2c_chachlag_onset_at`) and two FVS between an initial d and its final vowel
+//! (`iii2a_d_marked_at`). Each doc says what to change if upstream goes the GB way, and the
+//! WATCHED list in tests/font_vs_engine.rs flags a font that does.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::shaper::{next_adjacent_letter, next_tok, prev_adjacent_letter, prev_tok, Shaper};
@@ -335,10 +340,20 @@ per_token!(iii2a_d_marked => iii2a_d_marked_at);
 /// only for d.init, and without the gate a d.medi would claim the slot and block III.2e's
 /// `onset`) — see rules.py::_iii2a_d_marked_at.
 ///
-/// So does an FVS carried by a joiner between them: the font's reset (`III.d.marked.GB`,
-/// UseMarkFilteringSet @fvs) skips the joiners, so `d nirugu fvs4 ue` keeps the default `T`.
-/// The reset wants exactly one FVS there, so the font keeps `D` for two (`d fvs3 fvs2 oe`).
-/// The engine cancels for any FVS, as GB has it, and keeps that difference on purpose.
+/// The FVS that cancels is the one the font's reset (`III.d.marked.GB`, UseMarkFilteringSet
+/// @fvs) reads. Joiners are marks the reset skips. It cancels for:
+/// - exactly one FVS between the d and the vowel, on the d or on a joiner: `d nirugu fvs4 ue`
+///   keeps the default `T`;
+/// - no FVS between them and one right after the vowel: `d a fvs1` is `T Aa`.
+///
+/// **Against GB, on purpose.** With two FVS between them neither context matches, so the font
+/// keeps `D` and the engine does too: `d fvs3 fvs2 oe` is `D U`. GB/T 25914-2023 cancels the
+/// marked d for any FVS. B.27 also writes FVS rules for the initial d (`d + FVS1`,
+/// `d + FVS2`), so the FVS there is not transparent, and the GB reading is `T U`. Two FVS on
+/// one letter are an invalid repeat in any case.
+///
+/// If upstream cancels for any FVS, do so again: return when `tokens[index..=next]` has any
+/// FVS, the code before #55. The WATCHED list in tests/font_vs_engine.rs flags such a font.
 fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
     if tok.condition.is_some() {
@@ -347,7 +362,7 @@ fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !tok.is_letter || tok.alias != Some(Alias::D) {
         return;
     }
-    if tok.position != Position::Init || tok.has_fvs {
+    if tok.position != Position::Init {
         return;
     }
     let Some(next) = next_letter_in_segment(tokens, index) else {
@@ -356,8 +371,12 @@ fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     if !(shaper.is_vowel(&tokens[next]) && tokens[next].position == Position::Fina) {
         return;
     }
-    if tokens[index + 1..=next].iter().any(Token::has_fvs) {
-        return; // GB: an FVS on the following vowel, or on a joiner before it, also cancels
+    let between: usize = tokens[index..next]
+        .iter()
+        .map(|token| token.fvs.len())
+        .sum();
+    if between == 1 || (between == 0 && tokens[next].has_fvs()) {
+        return; // the reset of `III.d.marked.GB`
     }
     set(tokens, index, Condition::Marked);
 }
@@ -378,24 +397,24 @@ per_token!(iii2c_chachlag_onset => iii2c_chachlag_onset_at);
 /// (step 2) does not mention the case. The vowel must follow the MVS directly
 /// (`letter_after_mvs`): `a n mvs mvs a` keeps the default n, as in the font.
 ///
-/// An FVS on the consonant itself depends on the letter. GB/T 25914-2023 writes out an FVS
-/// before the MVS for n, h and g (B.16 `n + FVS1 + MVS + a/e`, B.20 `h + FVS1 + MVS`, B.21
-/// `g + FVS3 + MVS` and `g + FVS1 + MVS`). There the FVS is one of the cases "附录 B 中明确定义的",
-/// so any FVS counts: an undefined one matches no rule, and the letter falls back to its first
-/// form (EAC XIM11-46: `e n fvs3 mvs e` → `A A Fvs3 _ Aa`). B.29 (j) and B.32 (w) write no
-/// such rule, so the FVS clause applies and only a valid FVS counts: `a j fvs3 mvs a` takes the
-/// onset `I`, as in the font. The font counts only a valid FVS for every letter; mongfontbuilder
-/// marks XIM11-46 xfail.
+/// An FVS on the consonant itself counts only when it selects a variant there, for every letter,
+/// as in the font: an undefined FVS is `fvsN.ignored` there and changes nothing. So
+/// `e n fvs3 mvs e` is `A A N Mvs Aa` and `a j fvs3 mvs a` is `A A I Mvs Aa`.
+///
+/// **Against GB and the EAC suite, on purpose.** GB/T 25914-2023 writes out an FVS before the
+/// MVS for n, h and g: B.16 `n + FVS1 + MVS + a/e`, B.20 `h + FVS1 + MVS`, and B.21
+/// `g + FVS3 + MVS` and `g + FVS1 + MVS`. That makes it one of the cases "附录 B 中明确定义的":
+/// an undefined FVS there matches no rule, and the letter falls back to its first form. EAC
+/// XIM11-46 expects exactly that (`e n fvs3 mvs e` → `A A Fvs3 _ Aa`), and the engine shaped it
+/// so before #55. mongfontbuilder follows the UTN model instead and marks the row xfail. The
+/// engine follows the font, and `UTN_XFAIL_CASES` skips XIM11-46 too.
+///
+/// If upstream goes the GB way, count any FVS on n, h and g again: `tok.has_fvs` for them, the
+/// code before #55. Then flip XIM11-46 and the n/g cases in the tests. The WATCHED list in
+/// tests/font_vs_engine.rs flags such a font.
 fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let tok = view(tokens, index);
-    if tok.condition.is_some() || !tok.is_letter {
-        return;
-    }
-    let fvs_blocks = match tok.alias {
-        Some(Alias::J | Alias::W) => shaper.has_valid_fvs(&tokens[index]),
-        _ => tok.has_fvs,
-    };
-    if fvs_blocks {
+    if tok.condition.is_some() || !tok.is_letter || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
     let Some(next) = next_tok(tokens, index) else {

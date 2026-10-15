@@ -243,8 +243,14 @@ pub const PARTICLE_EQUIVALENCE_GROUPS: &[(&str, &[&str])] = &[
 
 /// The EAC cases where the GB spec and the UTN model intentionally disagree
 /// (`python/tests/test_eac_hud.py::_UTN_XFAIL_CASES`, the same set mongfontbuilder marks `xfail`).
-pub const UTN_XFAIL_CASES: &[&str] =
-    &["XIM11-38", "XIM11-39", "XIM11-40", "XIM11-41", "XIM11-1012"];
+pub const UTN_XFAIL_CASES: &[&str] = &[
+    "XIM11-38",
+    "XIM11-39",
+    "XIM11-40",
+    "XIM11-41",
+    "XIM11-46",
+    "XIM11-1012",
+];
 
 /// Every non-empty word of a loaded corpus TSV. Panics on an unknown alias instead of silently
 /// shrinking coverage; `file` only names the offending corpus in that message.
