@@ -56,10 +56,19 @@ The site homepage has a permanent link to `/norm/`; deployments only update that
 directory. See [release setup](../docs/releasing.md#the-web-playground).
 
 The UI uses `shape` and `normalize`, which accept a single Mongolian word.
-It does not trim, split, or silently rewrite the input. Spaces, mixed-script
-text, and currently unsupported ZWNJ produce the engine's actual errors.
+It does not trim, split, or silently rewrite the input. Spaces and mixed-script
+text produce the engine's actual errors.
 The match indicator compares the engine's shape sequences, not rendered pixels.
 Norm is a canonical encoding by shape, not an orthographic spelling correction.
+
+The engine is the oracle, not the previews. Chrome shapes a `<textarea>` with
+`white-space: pre-wrap` in pieces split at a ZWNJ, so a word such as
+ᠨᠦ‌ᠬ᠊ (U+1828 U+1826 U+200C U+182C U+180A) can show a masculine `H` after the
+break in the input box while HarfBuzz in one buffer — and `shape` — gives the
+feminine `G` the vowel before the break asks for; a plain block renders it as
+`shape` says. The vertical preview (`writing-mode: vertical-lr`) does not run
+the font's `rclt` contextual lookups, so phase-III context is missing there
+altogether.
 
 ## Browser tests
 

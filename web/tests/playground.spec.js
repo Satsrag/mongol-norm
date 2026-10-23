@@ -21,7 +21,7 @@ test("loads the bundled font and matches the CLI for real words and controls", a
   await ready(page);
   expect(await page.evaluate(() => document.fonts.check('32px "Hudum"', "ᠮᠣᠩᠭᠣᠯ"))).toBe(true);
   await expect(page.locator("#engine-status")).not.toContainText("失败");
-  for (const word of ["ᠮᠣᠩᠭᠣᠯ", "ᠰᠡᠢᠨ", "ᠪᠠ\u180b", "ᠯᠠᠯᠠ\u200dᠫᠦᠳ", "ᠠ\u180eᠠ", "\u202fᠤᠨ", "\u200dᠠ"]) {
+  for (const word of ["ᠮᠣᠩᠭᠣᠯ", "ᠰᠡᠢᠨ", "ᠪᠠ\u180b", "ᠯᠠᠯᠠ\u200dᠫᠦᠳ", "ᠠ\u180eᠠ", "\u202fᠤᠨ", "\u200dᠠ", "ᠨᠦ\u200cᠬ\u180a", "ᠯᠠᠯᠠ\u200d\u200cᠫᠦᠳ", "\u200c"]) {
     await page.locator("#input").fill(word);
     await expect(page.locator("#shape-output")).toHaveText(cli("shape", word));
     await expect(page.locator("#norm-output")).toHaveText(cli("normalize", word));
@@ -55,6 +55,27 @@ test("drops redundant ZWJ like the CLI and keeps the ones that change the ink", 
     await expect(page.locator("#shape-output")).toHaveText(cli("shape", word));
     await expect(page.locator("#shape-output")).toContainText("Zwj");
     await expect(page.locator("#norm-output")).toHaveText(cli("normalize", word));
+  }
+});
+
+test("drops redundant ZWNJ like the CLI and keeps the ones that change the ink", async ({ page }) => {
+  await ready(page);
+  // A break at a word edge or beside an MVS changes nothing; one between two letters whose
+  // joined forms differ stays as `Zwnj` and `normalize` writes it back as U+200C.
+  for (const [word, without] of [["\u200cᠪᠠ", "ᠪᠠ"], ["ᠪᠠ\u200c", "ᠪᠠ"], ["ᠠ\u200c\u180eᠠ", "ᠠ\u180eᠠ"], ["ᠪ\u200cᠪᠠ", "ᠪᠪᠠ"], ["ᠪ\u200d\u200c\u200dᠣ", "ᠪᠣ"]]) {
+    await page.locator("#input").fill(word);
+    await expect(page.locator("#shape-output")).toHaveText(cli("shape", without));
+    await expect(page.locator("#shape-output")).not.toContainText("Zwnj");
+    await expect(page.locator("#norm-output")).toHaveText(cli("normalize", without));
+    await expect(page.locator("#shape-match")).toHaveText("✓ Shapes match / shape 序列一致");
+  }
+  for (const word of ["ᠪ\u200cᠠ", "ᠠ\u200cᠠ", "ᠨᠦ\u200cᠬ\u180a", "ᠲᠠᠯ\u200cᠠ"]) {
+    await page.locator("#input").fill(word);
+    await expect(page.locator("#shape-output")).toHaveText(cli("shape", word));
+    await expect(page.locator("#shape-output")).toContainText("Zwnj");
+    await expect(page.locator("#norm-output")).toHaveText(cli("normalize", word));
+    await expect(page.locator("#norm-codepoints")).toContainText("U+200C ZWNJ");
+    await expect(page.locator("#shape-error")).toBeHidden();
   }
 });
 
