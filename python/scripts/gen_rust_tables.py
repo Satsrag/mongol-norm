@@ -41,12 +41,12 @@ STRUCTURAL_UNITS = ("Mvs", "Nirugu", "Zwj", "Zwnj")
 POSITIONS = ("isol", "init", "medi", "fina")
 SCHEMA_VERSION = 1
 NORMALIZE_SCHEMA = "mongol-normalize-table/1"
-CANONICAL_VERSION = "mng-canonical/3"
+CANONICAL_VERSION = "mng-canonical/4"
 MAX_UNIT_KEY_LEN = 3  # src/normalize.rs::UnitKey capacity
-# Must equal the code points hard-coded in src/unicode.rs (MVS, NIRUGU, ZWJ) and
+# Must equal the code points hard-coded in src/unicode.rs (MVS, NIRUGU, ZWJ, ZWNJ) and
 # src/tables.rs (Fvs::cp).
 CONSTANTS = {
-    "MVS": "180E", "NIRUGU": "180A", "ZWJ": "200D",
+    "MVS": "180E", "NIRUGU": "180A", "ZWJ": "200D", "ZWNJ": "200C",
     "FVS1": "180B", "FVS2": "180C", "FVS3": "180D", "FVS4": "180F",
 }
 FVS_CP_TO_INDEX = {"180B": 1, "180C": 2, "180D": 3, "180F": 4}

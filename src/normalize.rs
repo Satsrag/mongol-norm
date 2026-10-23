@@ -91,7 +91,12 @@ impl NormalizeTable {
             .iter()
             .flat_map(|entry| entry.units.iter().copied())
             .collect();
-        known_units.extend([WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]);
+        known_units.extend([
+            WrittenUnit::Mvs,
+            WrittenUnit::Nirugu,
+            WrittenUnit::Zwj,
+            WrittenUnit::Zwnj,
+        ]);
         let sorted_vocabulary = sorted_vocabulary(&known_units);
         NormalizeTable {
             canonical_version: data.canonical_version,
@@ -110,10 +115,14 @@ impl NormalizeTable {
     /// encodings at all, so every chain falls back.
     #[cfg(any(test, feature = "testing"))]
     pub fn empty(canonical_version: &'static str) -> NormalizeTable {
-        let known_units: HashSet<WrittenUnit> =
-            [WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]
-                .into_iter()
-                .collect();
+        let known_units: HashSet<WrittenUnit> = [
+            WrittenUnit::Mvs,
+            WrittenUnit::Nirugu,
+            WrittenUnit::Zwj,
+            WrittenUnit::Zwnj,
+        ]
+        .into_iter()
+        .collect();
         NormalizeTable {
             canonical_version,
             max_len: 1,
@@ -142,11 +151,13 @@ pub(crate) fn structural_char(unit: WrittenUnit) -> Option<char> {
         WrittenUnit::Mvs => Some('\u{180E}'),
         WrittenUnit::Nirugu => Some('\u{180A}'),
         WrittenUnit::Zwj => Some('\u{200D}'),
+        WrittenUnit::Zwnj => Some('\u{200C}'),
         _ => None,
     }
 }
 
-/// Joiners force cursive connection on the adjacent letter (Python `_JOINER_TOKENS`).
+/// Joiners force cursive connection on the adjacent letter (Python `_JOINER_TOKENS`). A `Zwnj`
+/// is the opposite — it ends the chain — so it is not one.
 pub(crate) fn is_joiner(unit: WrittenUnit) -> bool {
     matches!(unit, WrittenUnit::Nirugu | WrittenUnit::Zwj)
 }
@@ -316,7 +327,7 @@ impl Shaper {
         &self.normalize
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/3"`). Persist it next
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/4"`). Persist it next
     /// to stored normalized keys. Always `Some`: the `Option` remains from the locales without
     /// a normalize table the crate used to have.
     pub fn canonical_version(&self) -> Option<&'static str> {
@@ -379,7 +390,7 @@ impl Shaper {
                             want.extend_from_slice(body);
                             want.extend_from_slice(&suffix_target);
                             if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
-                                == self.without_redundant_zwj(&want)
+                                == self.partial_target(&want)
                             {
                                 chain_canonical = Some(candidate);
                             }
@@ -442,12 +453,14 @@ impl Shaper {
         // The check sees only part of the word (no chain to the left), so a ZWJ that the full
         // word keeps can look redundant here — `ᠠᠯ‍᠎ᠠ` verifies its last chain as `‍᠎ᠠ`, whose
         // ZWJ has no letter beside it. Filter the target the same way `shape` filters the text;
-        // the full-word check in `normalize_impl` still has the last word.
+        // the full-word check in `normalize_impl` still has the last word. A ZWNJ kept by the
+        // full word can be redundant in the part for the same reason (`ᠨᠠ‌ᠪ` verifies its last
+        // chain as `‌ᠪ`, a break at a word edge), so the target part gets the ZWNJ filter too.
         let mut verify_target = prefix_tokens.to_vec();
         verify_target.extend_from_slice(chain);
         verify_target.extend_from_slice(suffix_target);
         if self.shape(&format!("{prefix_text}{text}{suffix_text}"))?
-            == self.without_redundant_zwj(&verify_target)
+            == self.partial_target(&verify_target)
         {
             Ok(Some(text))
         } else {
@@ -459,17 +472,10 @@ impl Shaper {
         if text.is_empty() {
             return Ok(String::new());
         }
-        // `shape` already accepts U+200C (ZWNJ), so `is_mongolian_word_char` is `true` for it;
-        // reject it here until `normalize` adds ZWNJ support in the follow-up PR.
-        for (index, ch) in text.chars().enumerate() {
-            if !is_mongolian_word_char(ch) || ch == '\u{200C}' {
-                return Err(Error::NonMongolianChar { ch, index });
-            }
-        }
         let target = self.shape(text)?;
         if target.is_empty() {
-            // Only FVS marks, no letter — canonical is the empty string. (Joiners are *not*
-            // dropped here: a lone nirugu/ZWJ shapes to a structural token and round-trips.)
+            // Only FVS marks, no letter — canonical is the empty string. (Controls are *not*
+            // dropped here: a lone nirugu/ZWJ/ZWNJ shapes to a structural token and round-trips.)
             return Ok(String::new());
         }
         let canonical = self.canonical_for_shape(&target)?;
@@ -510,8 +516,7 @@ impl Shaper {
         let mut run = String::new();
         let mut run_is_mongolian: Option<bool> = None;
         for ch in text.chars() {
-            // Keep splitting runs at U+200C until `normalize` supports ZWNJ.
-            let is_mongolian = ch != '\u{200C}' && is_mongolian_word_char(ch);
+            let is_mongolian = is_mongolian_word_char(ch);
             match run_is_mongolian {
                 Some(current) if current != is_mongolian => {
                     self.flush_run(&mut out, &run, current, strict)?;
@@ -612,10 +617,11 @@ mod tests {
     #[test]
     fn empty_and_structural_shapes_normalize_without_a_letter() {
         let shaper = Shaper::new(Locale::Mng);
-        assert_eq!(shaper.canonical_version(), Some("mng-canonical/3"));
+        assert_eq!(shaper.canonical_version(), Some("mng-canonical/4"));
         assert_eq!(shaper.normalize("").unwrap(), "");
         assert_eq!(shaper.normalize("\u{180B}").unwrap(), ""); // FVS only: empty shape short-circuits
         assert_eq!(shaper.normalize("\u{180A}").unwrap(), "\u{180A}"); // structural-only shape
+        assert_eq!(shaper.normalize("\u{200C}").unwrap(), "\u{200C}"); // a lone ZWNJ too
     }
 
     #[test]

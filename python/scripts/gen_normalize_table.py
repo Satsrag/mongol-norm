@@ -56,7 +56,7 @@ LOCALES = ["MNG"]
 
 # Canonical Unicode output policy. Bump this whenever normalize() may choose a
 # different encoding for an existing supported shape.
-CANONICAL_VERSION = "mng-canonical/3"
+CANONICAL_VERSION = "mng-canonical/4"
 
 POSITIONS = ("isol", "init", "medi", "fina")
 
@@ -66,6 +66,7 @@ FVS_INT_TO_CP = {0: None, 1: 0x180B, 2: 0x180C, 3: 0x180D, 4: 0x180F}
 MVS_CP = 0x180E
 NIRUGU_CP = 0x180A
 ZWJ_CP = 0x200D
+ZWNJ_CP = 0x200C
 
 # Velar feminine forms: the adjacent ambiguous vowel is encoded with its FEMININE
 # letter for clean output (g+fvs2+o round-trips but looks wrong; oe is the
@@ -314,6 +315,7 @@ def compute_normalize_tables(shaper):
             "MVS": f"{MVS_CP:04X}",
             "NIRUGU": f"{NIRUGU_CP:04X}",
             "ZWJ": f"{ZWJ_CP:04X}",
+            "ZWNJ": f"{ZWNJ_CP:04X}",
             "FVS1": "180B", "FVS2": "180C",
             "FVS3": "180D", "FVS4": "180F",
         },

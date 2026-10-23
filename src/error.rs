@@ -35,7 +35,7 @@ pub enum Error {
         written_units: Vec<WrittenUnit>,
     },
     /// `parse_written_units`: a name that is neither a unit known to the normalize table nor
-    /// `Mvs`/`Nirugu`/`Zwj`.
+    /// `Mvs`/`Nirugu`/`Zwj`/`Zwnj`.
     UnknownWrittenUnit {
         /// Index of the unit in the parsed sequence.
         index: usize,
@@ -54,7 +54,8 @@ pub enum Error {
     NoCanonicalEncoding,
     /// `normalize_positioned_written_units`: explicit `Zwj` records are rejected.
     ExplicitZwj,
-    /// `normalize_positioned_written_units`: `Mvs` / `Nirugu` need [`UnitPosition::Control`].
+    /// `normalize_positioned_written_units`: `Mvs` / `Nirugu` / `Zwnj` need
+    /// [`UnitPosition::Control`].
     ControlRequiresControlPosition {
         /// Index of the record.
         index: usize,

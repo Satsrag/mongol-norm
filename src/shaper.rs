@@ -490,6 +490,19 @@ impl Shaper {
         drop_redundant_zwj(units)
     }
 
+    /// The view of a *partial* target the encoders verify a candidate against: the redundant-ZWJ
+    /// filter, and — only where the part contains a `Zwnj` — the full public fold, because a
+    /// break the whole word keeps can be redundant in the part the candidate shows (its far side
+    /// is missing), exactly as the ZWJ comment in `normalize.rs` describes.
+    pub(crate) fn partial_target(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
+        let filtered = self.without_redundant_zwj(units);
+        if filtered.contains(&WrittenUnit::Zwnj) {
+            self.canonical_units(&filtered)
+        } else {
+            filtered
+        }
+    }
+
     /// The engine's written-unit sequence before redundant ZWJs and ZWNJs are dropped and
     /// duplicate encodings are unified — the sequence UTN #57 / GB/T 25914-2023 describe, and
     /// the one their EAC conformance vectors are checked against. All nine duplicates and every
