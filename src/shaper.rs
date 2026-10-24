@@ -301,14 +301,34 @@ impl Shaper {
     /// after the g/h at `idx` after the full preprocessing chain? Forward scan
     /// (preprocessing.A/B/C) then backward scan (preprocessing.G/H/J/K). Nirugu is transparent,
     /// MVS blocks.
+    ///
+    /// A ZWNJ is an ignored glyph to the font, but the marker lookups are keyed on joining
+    /// positions, and a ZWNJ changes those. The forward markers (masculine A/B, feminine D/E)
+    /// are emitted after an `init`/`medi` vowel and move only onto `medi`/`fina` glyphs: they
+    /// cross a ZWNJ exactly when the letter right after it is still `medi`/`fina` (a joiner
+    /// follows the break), and a vowel of the other gender, which is on neither propagation
+    /// list, stops them whatever its position. The backward chain (G–K) runs through letters of
+    /// every position and skips ignored glyphs, so it does cross a ZWNJ — but it needs the
+    /// `false` marker that G hands only to `init`/`medi`/`fina` glyphs, so an `isol` letter
+    /// breaks it, and H turns a masculine vowel into its source only at `medi`/`fina`. Without a
+    /// ZWNJ none of these distinctions can arise (every letter before a g/h in its segment is
+    /// `init`/`medi`, every letter after an `init`/`medi` g/h is `medi`/`fina`), so the walk is
+    /// unchanged for ZWNJ-free text.
     pub(crate) fn masc_marker_reaches_g_h(&self, tokens: &[Token], idx: usize) -> bool {
+        // Can a forward marker cross the ZWNJ at `tokens[j]`, coming from `last_position` (the
+        // position of the nearest letter on the g/h side)? Only onto a joined glyph.
+        let crosses_break = |j: usize, last_position: Position| {
+            tokens[j].is_transparent() && matches!(last_position, Position::Medi | Position::Fina)
+        };
+
         // ── Forward (preprocessing.A/B/C) ──
         let mut j = idx;
+        let mut last_position = tokens[idx].position;
         while j > 0 {
             j -= 1;
             let token = &tokens[j];
             if !token.is_letter() {
-                if token.is_nirugu() {
+                if token.is_nirugu() || crosses_break(j, last_position) {
                     continue;
                 }
                 break; // mvs blocks; fall through to the backward check
@@ -316,45 +336,59 @@ impl Shaper {
             if self.is_fem_vowel(token) {
                 break;
             }
-            if self.is_masc_vowel(token)
-                && matches!(token.position, Position::Init | Position::Medi)
-            {
-                return true;
+            if self.is_masc_vowel(token) {
+                if matches!(token.position, Position::Init | Position::Medi) {
+                    return true;
+                }
+                break; // an unjoined masculine vowel neither emits nor passes the marker
             }
+            last_position = token.position;
         }
 
         // ── Backward (preprocessing.G/H/J/K) ──
-        if !matches!(tokens[idx].position, Position::Init | Position::Medi) {
+        // A `fina` g/h carries the `false` marker too, but only a ZWNJ lets letters follow it
+        // within the chain's reach.
+        let fina_before_zwnj = tokens[idx].position == Position::Fina
+            && (idx + 1..tokens.len())
+                .find(|&k| !tokens[k].is_nirugu())
+                .is_some_and(|k| tokens[k].is_transparent());
+        if !matches!(tokens[idx].position, Position::Init | Position::Medi) && !fina_before_zwnj {
             return false;
         }
         // A fem vowel earlier in the word blocks the backward chain.
         let mut j = idx;
+        let mut last_position = tokens[idx].position;
         while j > 0 {
             j -= 1;
             let token = &tokens[j];
             if !token.is_letter() {
-                if token.is_nirugu() {
+                if token.is_nirugu() || crosses_break(j, last_position) {
                     continue;
                 }
                 break;
             }
             if self.is_fem_vowel(token) {
-                return false;
+                if matches!(token.position, Position::Init | Position::Medi) {
+                    return false;
+                }
+                break; // an unjoined feminine vowel neither emits nor passes the marker
             }
+            last_position = token.position;
         }
-        // Walk forward through an unbroken chain of non-fem init/medi letters, terminating at
-        // a masc vowel or at `fina letter + mvs + isol a`.
+        // Walk forward through an unbroken chain of non-fem letters, terminating at a
+        // `medi`/`fina` masc vowel or at `fina letter + mvs + isol a`.
         let mut j = idx + 1;
         while j < tokens.len() {
             let next = &tokens[j];
             if !next.is_letter() {
-                if next.is_nirugu() {
+                if next.is_transparent() {
                     j += 1;
                     continue;
                 }
                 return false;
             }
-            if self.is_masc_vowel(next) {
+            if self.is_masc_vowel(next) && matches!(next.position, Position::Medi | Position::Fina)
+            {
                 return true;
             }
             if self.is_fem_vowel(next) {
@@ -364,17 +398,22 @@ impl Shaper {
                 j += 1;
                 continue;
             }
-            let mut k = j + 1;
-            while k < tokens.len() && tokens[k].is_nirugu() {
-                k += 1;
+            if next.position != Position::Fina {
+                return false; // an isolated letter has no marker to pass on
             }
-            return next.position == Position::Fina
-                && k < tokens.len()
-                && tokens[k].is_mvs()
-                && k + 1 < tokens.len()
-                && tokens[k + 1].is_letter()
-                && tokens[k + 1].alias == Some(Alias::A)
-                && tokens[k + 1].position == Position::Isol;
+            let Some(k) = (j + 1..tokens.len()).find(|&k| !tokens[k].is_transparent()) else {
+                return false;
+            };
+            if tokens[k].is_letter() {
+                j = k; // only transparent tokens — a ZWNJ among them — were crossed
+                continue;
+            }
+            return tokens[k].is_mvs()
+                && next_tok_through_zwnj(tokens, k).is_some_and(|a| {
+                    tokens[a].is_letter()
+                        && tokens[a].alias == Some(Alias::A)
+                        && tokens[a].position == Position::Isol
+                });
         }
         false
     }
@@ -411,6 +450,11 @@ impl Shaper {
     /// dropped (see `redundant_zwj.rs` for the rules and the reviewed edge table). An MVS is a
     /// segment edge, so a ZWJ next to it is judged like one at the word edge.
     ///
+    /// A ZWNJ breaks the cursive chain — the letter before it is written `fina` (or `isol`), the
+    /// letter after it `init` (or `isol`) — while the context rules look through it, as they do
+    /// in the reference font. It appears as [`WrittenUnit::Zwnj`], a segment edge for the ZWJ
+    /// rules and for duplicate unification.
+    ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
     /// medial `Hx` and initial `Cr` come out as `O A`, `A A`, `N N` and `O O`. The other four
@@ -422,18 +466,17 @@ impl Shaper {
     /// evidence and the termination argument.
     ///
     /// Errors with [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS,
-    /// NNBSP, nirugu and ZWJ — use [`Shaper::normalize_text`] for mixed-script text.
+    /// NNBSP, nirugu, ZWJ and ZWNJ — use [`Shaper::normalize_text`] for mixed-script text.
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
         Ok(self.canonical_units(&self.shape_raw(text)?))
     }
 
-    /// The public shape of an engine-level unit sequence: redundant ZWJs dropped, then the
-    /// duplicate encodings unified — in that order, so a joiner that separated `I Aa` no longer
-    /// blocks the `G` contraction. Shared by [`Shaper::shape`], [`Shaper::trace`] and the
-    /// written-unit encoders, which is what keeps `normalize_written_units([L, I, Zwj, Aa])` and
-    /// `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one contract.
+    /// The public shape of an engine-level unit sequence ([`canonical_units`]). Shared by
+    /// [`Shaper::shape`], [`Shaper::trace`] and the written-unit encoders, which is what keeps
+    /// `normalize_written_units([L, I, Zwj, Aa])` and `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one
+    /// contract.
     pub(crate) fn canonical_units(&self, raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-        collapse(&self.without_redundant_zwj(raw))
+        canonical_units(raw)
     }
 
     /// The redundant-ZWJ filter alone (no duplicate unification).
@@ -443,8 +486,8 @@ impl Shaper {
 
     /// The engine's written-unit sequence before redundant ZWJs are dropped and duplicate
     /// encodings are unified — the sequence UTN #57 / GB/T 25914-2023 describe, and the one
-    /// their EAC conformance vectors are checked against. All nine duplicates and every ZWJ of
-    /// the input can appear here.
+    /// their EAC conformance vectors are checked against. All nine duplicates and every ZWJ and
+    /// ZWNJ of the input can appear here.
     ///
     /// Not part of the public contract: it exists so the conformance suites and the table
     /// generator can compare against the standard verbatim. Everything user-facing goes through
@@ -536,6 +579,14 @@ impl Shaper {
     }
 }
 
+/// The public shape of an engine-level unit sequence: redundant ZWJs dropped, then the duplicate
+/// encodings unified — in that order, so a joiner that separated `I Aa` no longer blocks the `G`
+/// contraction. Both backends fold their raw units with it, so [`Shaper::shape`] and
+/// `FontShaper::shape` compare unit for unit.
+pub(crate) fn canonical_units(raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
+    collapse(&drop_redundant_zwj(raw))
+}
+
 /// Flatten resolved tokens into the public shape.
 pub(crate) fn flatten(tokens: &[Token]) -> Vec<WrittenUnit> {
     let mut shape = Vec::with_capacity(tokens.len() * 2);
@@ -544,6 +595,7 @@ pub(crate) fn flatten(tokens: &[Token]) -> Vec<WrittenUnit> {
             TokenKind::Mvs => shape.push(WrittenUnit::Mvs),
             TokenKind::Nirugu => shape.push(WrittenUnit::Nirugu),
             TokenKind::Zwj => shape.push(WrittenUnit::Zwj),
+            TokenKind::Zwnj => shape.push(WrittenUnit::Zwnj),
             TokenKind::Letter => {
                 if let Some(written) = token.written {
                     shape.extend_from_slice(written);
@@ -575,19 +627,58 @@ pub(crate) fn next_tok(tokens: &[Token], index: usize) -> Option<usize> {
     }
 }
 
-/// Nearest preceding letter reached without crossing an MVS; nirugu is transparent.
+/// The token right before `index` for the rules that want an MVS *directly* beside a letter
+/// (chachlag, chachlag onset, dotless g, the MASC marker) — looking through a ZWNJ.
+///
+/// The font's lookups ignore nirugu, ZWJ and ZWNJ alike; the engine keeps nirugu and ZWJ opaque
+/// here because they extend the joining chain, so the letter is no longer the isolated/final
+/// glyph those lookups name, and [`prev_tok`] encodes that. A ZWNJ ends the chain instead, so
+/// the glyph can be the right one and the rule sees through it: when the run of transparent
+/// tokens right before `index` holds a ZWNJ (and ZWNJs do not block context), the result is the
+/// first token before that run, and the rule's own position check decides — `MVS ZWJ ZWNJ a` is
+/// chachlag `Aa` like `MVS ZWNJ a`, while in `MVS ZWNJ ZWJ a` the `a` is final. Otherwise it is
+/// [`prev_tok`], unchanged.
+pub(crate) fn prev_tok_through_zwnj(tokens: &[Token], index: usize) -> Option<usize> {
+    let start = (0..index)
+        .rev()
+        .find(|&j| !tokens[j].is_transparent())
+        .map_or(0, |j| j + 1);
+    if tokens[start..index]
+        .iter()
+        .any(|t| t.is_zwnj() && t.is_transparent())
+    {
+        start.checked_sub(1)
+    } else {
+        prev_tok(tokens, index)
+    }
+}
+
+/// Mirror image of [`prev_tok_through_zwnj`].
+pub(crate) fn next_tok_through_zwnj(tokens: &[Token], index: usize) -> Option<usize> {
+    let end = (index + 1..tokens.len())
+        .find(|&j| !tokens[j].is_transparent())
+        .unwrap_or(tokens.len());
+    if tokens[index + 1..end]
+        .iter()
+        .any(|t| t.is_zwnj() && t.is_transparent())
+    {
+        (end < tokens.len()).then_some(end)
+    } else {
+        next_tok(tokens, index)
+    }
+}
+
+/// Nearest preceding letter reached without crossing an MVS; nirugu, ZWJ and (unless it blocks
+/// context) ZWNJ are transparent.
 pub(crate) fn prev_adjacent_letter(tokens: &[Token], index: usize) -> Option<usize> {
     let mut j = index;
     while j > 0 {
         j -= 1;
         let token = &tokens[j];
-        if token.is_mvs() {
-            return None;
-        }
         if token.is_letter() {
             return Some(j);
         }
-        if token.is_nirugu() {
+        if token.is_transparent() {
             continue;
         }
         return None;
@@ -600,13 +691,10 @@ pub(crate) fn next_adjacent_letter(tokens: &[Token], index: usize) -> Option<usi
     let mut j = index + 1;
     while j < tokens.len() {
         let token = &tokens[j];
-        if token.is_mvs() {
-            return None;
-        }
         if token.is_letter() {
             return Some(j);
         }
-        if token.is_nirugu() {
+        if token.is_transparent() {
             j += 1;
             continue;
         }

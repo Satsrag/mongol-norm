@@ -13,9 +13,8 @@ use harfrust::{
     ShaperFont,
 };
 
-use crate::duplicates::collapse;
 use crate::generated::font_hudum::GLYPHS;
-use crate::redundant_zwj::drop_redundant_zwj;
+use crate::shaper::canonical_units;
 use crate::unicode::check_word_chars;
 use crate::{Error, Position, WrittenUnit};
 
@@ -56,6 +55,8 @@ pub(crate) enum Kind {
     Nirugu,
     /// A ZWJ.
     Zwj,
+    /// A ZWNJ.
+    Zwnj,
     /// Ink or no ink, nothing the crate reports: an FVS (valid or not — the font draws an
     /// invalid one as a placeholder), the silent half of an idle MVS, a composer marker.
     Silent,
@@ -113,6 +114,10 @@ impl Glyph {
         Glyph::control(Kind::Zwj, &[WrittenUnit::Zwj])
     }
 
+    pub(crate) const fn zwnj() -> Glyph {
+        Glyph::control(Kind::Zwnj, &[WrittenUnit::Zwnj])
+    }
+
     pub(crate) const fn silent() -> Glyph {
         Glyph::control(Kind::Silent, &[])
     }
@@ -168,9 +173,9 @@ pub struct ShapedGlyph {
 /// # Output contract
 ///
 /// [`FontShaper::shape`] is the same kind of sequence as [`Shaper::shape`](crate::Shaper::shape):
-/// `Mvs` and `Nirugu` verbatim, a `Zwj` only where it changes the ink, the duplicate encodings
-/// unified — the two post-passes are shared with the rule engine — so the two backends can
-/// be compared unit for unit. How the glyphs are read:
+/// `Mvs`, `Nirugu` and `Zwnj` verbatim, a `Zwj` only where it changes the ink, the duplicate
+/// encodings unified — the two post-passes are shared with the rule engine — so the two
+/// backends can be compared unit for unit. How the glyphs are read:
 /// * an FVS, valid or not, is never a unit. The font draws an invalid one as a visible
 ///   placeholder; the crate follows the rule engine and the GB/T 25914-2023 unit streams and
 ///   reports nothing;
@@ -181,8 +186,8 @@ pub struct ShapedGlyph {
 ///
 /// # Errors
 ///
-/// [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS, NNBSP, nirugu and
-/// ZWJ — the rule engine's rule; [`Error::UnsupportedChar`] on a character of the block the
+/// [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS, NNBSP, nirugu, ZWJ
+/// and ZWNJ — the rule engine's rule; [`Error::UnsupportedChar`] on a character of the block the
 /// font has no glyph for: a letter of another writing system (Todo, Sibe, Manchu, Ali Gali),
 /// an Ali Gali sign, an unassigned code point. The rule engine shapes those to nothing; the
 /// font would draw its `.notdef` box, so this backend refuses them instead.
@@ -227,8 +232,8 @@ impl FontShaper {
     }
 
     /// Shape `text` into its written-unit sequence, on the same contract as
-    /// [`Shaper::shape`](crate::Shaper::shape): `Mvs` and `Nirugu` verbatim, a `Zwj` only where
-    /// it changes the ink, the duplicate encodings unified.
+    /// [`Shaper::shape`](crate::Shaper::shape): `Mvs`, `Nirugu` and `Zwnj` verbatim, a `Zwj`
+    /// only where it changes the ink, the duplicate encodings unified.
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
         let glyphs = self.run(text)?;
         let raw: Vec<WrittenUnit> = glyphs
@@ -236,12 +241,12 @@ impl FontShaper {
             .filter(|glyph| !glyph.skipped)
             .flat_map(|glyph| glyph.units.iter().copied())
             .collect();
-        Ok(collapse(&drop_redundant_zwj(&raw)))
+        Ok(canonical_units(&raw))
     }
 
     /// The written units of the glyphs the font chose, in glyph order, before the shared
-    /// post-passes: every ZWJ of the input (one the font ligated across comes after the
-    /// ligature) and every duplicate encoding is still there. The counterpart of
+    /// post-passes: every ZWJ and ZWNJ of the input (a ZWJ the font ligated across comes after
+    /// the ligature) and every duplicate encoding is still there. The counterpart of
     /// [`Shaper::shape_raw`](crate::Shaper::shape_raw), and like it not part of the public
     /// contract — it is what the conformance suites compare against.
     #[doc(hidden)]
@@ -371,7 +376,9 @@ mod tests {
                     assert!(!glyph.units.is_empty(), "glyph {id} shows nothing");
                     assert!(glyph.letters >= 1, "glyph {id} draws no letter");
                 }
-                Kind::Mvs | Kind::Nirugu | Kind::Zwj => assert_eq!(glyph.units.len(), 1),
+                Kind::Mvs | Kind::Nirugu | Kind::Zwj | Kind::Zwnj => {
+                    assert_eq!(glyph.units.len(), 1)
+                }
                 Kind::Silent | Kind::Unsupported => assert!(glyph.units.is_empty()),
             }
         }

@@ -11,7 +11,7 @@ font is the whole glyph → written-unit mapping:
                                              the written form (`isol|init|medi|fina`), optionally
                                              the joining position it serves (`._isol`) or the
                                              before-MVS variant (`.mvs`)
-  mvs, mvs.narrow, nnbsp, nirugu, zwj, …     the format controls and their shaping-time variants
+  mvs, mvs.narrow, nnbsp, nirugu, zwj, zwnj  the format controls and their shaping-time variants
   _A.isol, marker.initial, …                 the composer's building blocks and markers: never
                                              part of a shaped run
 
@@ -37,10 +37,11 @@ UNIT_TOKEN = re.compile(r"[A-Z][a-z0-9]*")
 MVS_GLYPHS = frozenset(["mvs", "mvs.narrow", "mvs.wide", "mvs.nominal", "nbspace", "nnbsp"])
 NIRUGU_GLYPHS = frozenset(["nirugu", "nirugu.ignored"])
 ZWJ_GLYPHS = frozenset(["zwj", "zwj.ignored"])
-SILENT_GLYPHS = frozenset(["mvs.ignored", "zwnj", "zwnj.ignored"])
+ZWNJ_GLYPHS = frozenset(["zwnj", "zwnj.ignored"])
+SILENT_GLYPHS = frozenset(["mvs.ignored"])
 SILENT_PREFIXES = ("fvs1", "fvs2", "fvs3", "fvs4", "marker.")
 
-KINDS = ("letters", "mvs", "nirugu", "zwj", "silent", "unsupported")
+KINDS = ("letters", "mvs", "nirugu", "zwj", "zwnj", "silent", "unsupported")
 
 # kind: one of KINDS; units: tuple of unit names; letters: code points the glyph draws;
 # form / joining: positions (None unless kind == "letters").
@@ -55,6 +56,8 @@ def classify(name):
         return Glyph("nirugu", ("Nirugu",), 0, None, None)
     if name in ZWJ_GLYPHS:
         return Glyph("zwj", ("Zwj",), 0, None, None)
+    if name in ZWNJ_GLYPHS:
+        return Glyph("zwnj", ("Zwnj",), 0, None, None)
     if name in SILENT_GLYPHS or name.startswith(SILENT_PREFIXES):
         return Glyph("silent", (), 0, None, None)
     match = LETTER_GLYPH.match(name)
@@ -81,7 +84,7 @@ def read_glyph_order(path):
 
 
 def font_units(names):
-    """Every written unit the font can show (the structural `Mvs`/`Nirugu`/`Zwj` included)."""
+    """Every written unit the font can show (the structural `Mvs`/`Nirugu`/`Zwj`/`Zwnj` included)."""
     units = set()
     for name in names:
         units.update(classify(name).units)

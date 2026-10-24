@@ -1,9 +1,25 @@
-//! Tokens of the shaping pipeline: one per letter, MVS, nirugu or ZWJ, each with the FVS run
-//! that follows it; plus tokenization and structural position assignment.
+//! Tokens of the shaping pipeline: one per letter, MVS, nirugu, ZWJ or ZWNJ, each with the FVS
+//! run that follows it; plus tokenization and structural position assignment.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::tables::{Fvs, Position};
-use crate::unicode::{is_mongolian_letter_cp, MVS, NIRUGU, NNBSP, ZWJ};
+use crate::unicode::{is_mongolian_letter_cp, MVS, NIRUGU, NNBSP, ZWJ, ZWNJ};
+
+/// Does a ZWNJ (U+200C) stop the phase-III context rules, the way an MVS does?
+///
+/// This is the one place that decides how the rules see a ZWNJ. It breaks cursive joining
+/// regardless: the letter before it takes its `fina` (or `isol`) form and the letter after it
+/// its `init` (or `isol`) form, exactly as [`assign_positions`] splits segments at it. What the
+/// switch governs is whether the vowel-harmony, marker, chachlag, dotless and particle rules
+/// look *through* the break (`false`, the shipped behaviour) or treat it as a wall (`true`).
+///
+/// `false` follows the reference font (mongfontbuilder `hudum.otf`, Kushim-Jiang/mongolian#58):
+/// phase III substitutes ZWNJ to an ignored glyph before any rule runs, and every rule lookup
+/// skips ignored glyphs, so context crosses a ZWNJ the same way it crosses a nirugu — only the
+/// joining positions changed. MVS stays a real glyph in the font and keeps blocking.
+pub(crate) const fn zwnj_blocks_context() -> bool {
+    false
+}
 
 /// What a token is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -17,12 +33,15 @@ pub(crate) enum TokenKind {
     /// ZWJ (U+200D). Grouped with nirugu for every rule (Python `is_nirugu`), but kept apart so
     /// the shape emits `Zwj` rather than `Nirugu`.
     Zwj,
+    /// ZWNJ (U+200C). Splits the joining chain like an MVS, but is not a glyph: the context
+    /// rules look through it (see [`zwnj_blocks_context`]).
+    Zwnj,
 }
 
 /// One token. Field semantics follow the Python `Token` class.
 #[derive(Clone, Debug)]
 pub(crate) struct Token {
-    /// The token's kind: letter, MVS, nirugu or ZWJ.
+    /// The token's kind: letter, MVS, nirugu, ZWJ or ZWNJ.
     pub kind: TokenKind,
     /// Code point (MVS for NNBSP input).
     pub cp: u32,
@@ -54,7 +73,7 @@ impl Token {
         }
     }
 
-    /// Is this a letter token (as opposed to MVS, nirugu or ZWJ)?
+    /// Is this a letter token (as opposed to MVS, nirugu, ZWJ or ZWNJ)?
     pub fn is_letter(&self) -> bool {
         self.kind == TokenKind::Letter
     }
@@ -69,6 +88,23 @@ impl Token {
         matches!(self.kind, TokenKind::Nirugu | TokenKind::Zwj)
     }
 
+    /// Is this a ZWNJ token?
+    pub fn is_zwnj(&self) -> bool {
+        self.kind == TokenKind::Zwnj
+    }
+
+    /// Do the context rules look through this token as if it were not there? Nirugu and ZWJ
+    /// always; a ZWNJ unless [`zwnj_blocks_context`] says it is a wall. A letter or an MVS
+    /// never is.
+    pub fn is_transparent(&self) -> bool {
+        self.is_nirugu() || (self.is_zwnj() && !zwnj_blocks_context())
+    }
+
+    /// Does this token end the joining chain — an MVS or a ZWNJ?
+    pub fn breaks_joining(&self) -> bool {
+        matches!(self.kind, TokenKind::Mvs | TokenKind::Zwnj)
+    }
+
     /// Does this token carry at least one FVS?
     pub fn has_fvs(&self) -> bool {
         !self.fvs.is_empty()
@@ -80,11 +116,11 @@ impl Token {
     }
 }
 
-/// Split text into tokens: letters, MVS/NNBSP (as `Mvs`), nirugu and ZWJ, each absorbing the
-/// FVS run right after it; a leading FVS and everything else are skipped. Only a letter's FVS
-/// can select a variant. The others are kept for the rules that see them as the font does: an
-/// MVS's stops a particle (GB/T 25914-2023 B.6 gives `MVS + CTL` a case of its own), and a
-/// joiner's counts for GB.A, whose lookup skips the joiners.
+/// Split text into tokens: letters, MVS/NNBSP (as `Mvs`), nirugu, ZWJ and ZWNJ, each absorbing
+/// the FVS run right after it; a leading FVS and everything else are skipped. Only a letter's
+/// FVS can select a variant. The others are kept for the rules that see them as the font does:
+/// an MVS's stops a particle (GB/T 25914-2023 B.6 gives `MVS + CTL` a case of its own), and a
+/// joiner's or a ZWNJ's counts for GB.A, whose lookup skips them.
 pub(crate) fn tokenize(text: &str, alias_of: impl Fn(u32) -> Option<Alias>) -> Vec<Token> {
     let cps: Vec<u32> = text.chars().map(|c| c as u32).collect();
     let mut tokens = Vec::with_capacity(cps.len());
@@ -99,6 +135,8 @@ pub(crate) fn tokenize(text: &str, alias_of: impl Fn(u32) -> Option<Alias>) -> V
             Token::new(TokenKind::Nirugu, NIRUGU, None)
         } else if cp == ZWJ {
             Token::new(TokenKind::Zwj, ZWJ, None)
+        } else if cp == ZWNJ {
+            Token::new(TokenKind::Zwnj, ZWNJ, None)
         } else {
             i += 1;
             continue;
@@ -114,16 +152,16 @@ pub(crate) fn tokenize(text: &str, alias_of: impl Fn(u32) -> Option<Alias>) -> V
     tokens
 }
 
-/// Assign `isol`/`init`/`medi`/`fina` to letters. Segments are split at MVS; letters *and*
-/// joining tokens count toward a segment's length (a nirugu extends the chain) but only letters
-/// receive a position.
+/// Assign `isol`/`init`/`medi`/`fina` to letters. Segments are split at MVS and at ZWNJ;
+/// letters *and* joining tokens count toward a segment's length (a nirugu extends the chain)
+/// but only letters receive a position.
 pub(crate) fn assign_positions(tokens: &mut [Token]) {
     let mut segments: Vec<Vec<usize>> = Vec::new();
     let mut current: Vec<usize> = Vec::new();
     for (i, token) in tokens.iter().enumerate() {
         if token.is_letter() || token.is_nirugu() {
             current.push(i);
-        } else if token.is_mvs() && !current.is_empty() {
+        } else if token.breaks_joining() && !current.is_empty() {
             segments.push(std::mem::take(&mut current));
         }
     }
@@ -175,7 +213,10 @@ mod tests {
 
     #[test]
     fn nnbsp_becomes_mvs_and_joiners_keep_their_kind() {
-        let tokens = tokenize("\u{202F}\u{180E}\u{180A}\u{200D}x \u{180B}", no_alias);
+        let tokens = tokenize(
+            "\u{202F}\u{180E}\u{180A}\u{200D}\u{200C}x \u{180B}",
+            no_alias,
+        );
         let kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind).collect();
         assert_eq!(
             kinds,
@@ -183,11 +224,64 @@ mod tests {
                 TokenKind::Mvs,
                 TokenKind::Mvs,
                 TokenKind::Nirugu,
-                TokenKind::Zwj
+                TokenKind::Zwj,
+                TokenKind::Zwnj
             ]
         );
         assert_eq!(tokens[0].cp, MVS);
         assert!(tokens[2].is_nirugu() && tokens[3].is_nirugu());
+        assert!(!tokens[4].is_nirugu() && tokens[4].is_zwnj());
+        assert_eq!(tokens[4].cp, ZWNJ);
+        // Nirugu and ZWJ are always transparent to the rules; MVS never; ZWNJ follows the switch.
+        assert!(tokens[2].is_transparent() && tokens[3].is_transparent());
+        assert!(!tokens[0].is_transparent());
+        assert_eq!(tokens[4].is_transparent(), !zwnj_blocks_context());
+        assert!(tokens[0].breaks_joining() && tokens[4].breaks_joining());
+        assert!(!tokens[2].breaks_joining() && !tokens[3].breaks_joining());
+    }
+
+    #[test]
+    fn zwnj_splits_the_joining_chain_like_an_mvs() {
+        use Position::*;
+        use TokenKind::*;
+        // `t a l` + ZWNJ + `a`: the l is final, the a isolated — exactly the MVS picture.
+        assert_eq!(
+            positions("\u{1832}\u{1820}\u{182F}\u{200C}\u{1820}"),
+            vec![
+                (Letter, Init),
+                (Letter, Medi),
+                (Letter, Fina),
+                (Zwnj, Isol),
+                (Letter, Isol)
+            ]
+        );
+        // Leading, trailing and doubled ZWNJs leave the letters as they would be without them.
+        assert_eq!(
+            positions("\u{200C}\u{1820}\u{182A}\u{200C}"),
+            vec![(Zwnj, Isol), (Letter, Init), (Letter, Fina), (Zwnj, Isol)]
+        );
+        assert_eq!(
+            positions("\u{1820}\u{200C}\u{200C}\u{1820}"),
+            vec![(Letter, Isol), (Zwnj, Isol), (Zwnj, Isol), (Letter, Isol)]
+        );
+        // A joiner on the far side of the ZWNJ still joins its own side: ZWJ + ZWNJ + `b` is a
+        // lone `b`, ZWNJ + ZWJ + `b` is a final `b`.
+        assert_eq!(
+            positions("\u{1820}\u{200D}\u{200C}\u{182A}"),
+            vec![(Letter, Init), (Zwj, Isol), (Zwnj, Isol), (Letter, Isol)]
+        );
+        assert_eq!(
+            positions("\u{1820}\u{200C}\u{200D}\u{182A}"),
+            vec![(Letter, Isol), (Zwnj, Isol), (Zwj, Isol), (Letter, Fina)]
+        );
+        // An FVS stays with the token right before it: after a ZWNJ it is the ZWNJ's.
+        let tokens = tokenize("\u{1820}\u{200C}\u{180B}\u{1820}", no_alias);
+        assert_eq!(tokens.len(), 3);
+        assert!(!tokens[0].has_fvs() && !tokens[2].has_fvs());
+        assert_eq!(tokens[1].fvs, vec![Fvs::Fvs1]);
+        let tokens = tokenize("\u{1820}\u{180B}\u{200C}\u{1820}", no_alias);
+        assert_eq!(tokens[0].fvs, vec![Fvs::Fvs1]);
+        assert!(tokens[1].is_zwnj() && !tokens[1].has_fvs());
     }
 
     #[test]
@@ -287,5 +381,9 @@ mod tests {
         let tokens = tokenize("\u{1820}\u{200D}\u{180F}", no_alias);
         assert_eq!(tokens[1].kind, Zwj);
         assert_eq!(tokens[1].fvs, vec![Fvs::Fvs4]);
+        // And one right after a ZWNJ.
+        let tokens = tokenize("\u{1820}\u{200C}\u{180C}", no_alias);
+        assert_eq!(tokens[1].kind, Zwnj);
+        assert_eq!(tokens[1].fvs, vec![Fvs::Fvs2]);
     }
 }

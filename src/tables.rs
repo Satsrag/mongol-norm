@@ -387,6 +387,7 @@ mod tests {
         assert!(WrittenUnit::Mvs.is_structural());
         assert!(WrittenUnit::Nirugu.is_structural());
         assert!(WrittenUnit::Zwj.is_structural());
+        assert!(WrittenUnit::Zwnj.is_structural());
         assert!(!WrittenUnit::A.is_structural());
         assert_eq!(Condition::ChachlagOnsetGb.as_str(), "chachlag_onset_gb");
         assert_eq!(Alias::K2.as_str(), "k2");

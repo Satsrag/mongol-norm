@@ -70,10 +70,10 @@ fn non_mongolian_characters_are_rejected_with_their_index() {
         font.shape("a"),
         Err(Error::NonMongolianChar { ch: 'a', index: 0 })
     );
-    // Punctuation of the block (the Sibe syllable boundary marker included), the digits, and
-    // ZWNJ are not word characters — the same classification as the rule engine.
+    // Punctuation of the block (the Sibe syllable boundary marker included) and the digits are
+    // not word characters — the same classification as the rule engine.
     let rules = Shaper::new(Locale::Mng);
-    for ch in ['\u{1800}', '\u{1807}', '\u{1810}', '\u{200C}'] {
+    for ch in ['\u{1800}', '\u{1807}', '\u{1810}'] {
         let text = ch.to_string();
         assert_eq!(
             font.shape(&text),
@@ -186,6 +186,29 @@ fn joiners_at_the_edges_follow_the_shared_redundant_zwj_pass() {
     ]);
     assert_eq!(shape("\u{200D}"), ["Zwj"]);
     assert_eq!(shape("ᠯᠢ\u{200D}ᠡ᠋"), ["L", "G"]);
+}
+
+#[test]
+fn a_zwnj_is_a_unit() {
+    // t a l + ZWNJ + a: the break makes the l final and the a isolated, and the font reports it.
+    assert_eq!(raw("ᠲᠠᠯ\u{200C}ᠠ"), ["T", "A", "L", "Zwnj", "A", "A"]);
+    assert_eq!(shape("ᠲᠠᠯ\u{200C}ᠠ"), ["T", "A", "L", "Zwnj", "A", "A"]);
+    // At a word edge too, as in the rule engine.
+    assert_eq!(raw("\u{200C}ᠪᠠ"), ["Zwnj", "B", "Aa"]);
+    assert_eq!(shape("\u{200C}ᠪᠠ"), ["Zwnj", "B", "Aa"]);
+    assert_eq!(shape("\u{200C}"), ["Zwnj"]);
+    assert_like_the_engine(&[
+        "\u{200C}",
+        "\u{200C}\u{200C}",
+        "ᠪᠠ\u{200C}",
+        "ᠲᠠᠯ\u{200C}ᠠ",
+        "ᠨᠠ\u{200C}ᠪ",
+        "ᠠ\u{200C}\u{180E}ᠠ",
+        "ᠠ\u{180E}\u{200C}ᠠ",
+        "ᠯᠠᠯᠠ\u{200D}\u{200C}ᠫᠦᠳ",
+        "ᠲᠠᠩ\u{200D}\u{200C}ᠫᠤᠷᠤᠮ",
+        "ᠰᠠ\u{200C}ᠢᠨ",
+    ]);
 }
 
 #[test]
