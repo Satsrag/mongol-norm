@@ -80,7 +80,59 @@ joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing on
 Applying it to its own output changes nothing, which is what `normalize`'s verification
 (`shape(candidate) == target`) relies on. The positioned written-unit API inserts its implicit
 ZWJs by position and then folds them the same way, so `[B:medi]` encodes as bare `b`, while
-`[N:medi]` keeps both joiners.
+`[N:medi]` keeps both joiners. A `Zwnj` (below) is a segment edge for every rule in the table,
+exactly like an `Mvs`.
+
+## ZWNJ: an in-word joining break
+
+A ZWNJ (U+200C) is a word character (issue #34). It breaks the cursive chain — the position
+assignment splits segments at it as it does at an MVS, so the letter before it is written `fina`
+(or `isol`) and the letter after it `init` (or `isol`) — and that is *all* it does to the
+rendering: following the reference font (mongfontbuilder `hudum.otf`,
+[Kushim-Jiang/mongolian#58](https://github.com/Kushim-Jiang/mongolian/issues/58)), phase III
+substitutes the ZWNJ to an ignored glyph before any rule runs, and every rule lookup skips
+ignored glyphs. The engine mirrors that: the context walks of vowel harmony, the gender markers,
+chachlag, dotless g and the particle lookup look through a ZWNJ the way they look through a
+nirugu (`Token::is_transparent`), while an MVS keeps blocking them. ᠨᠦ‌ᠬ᠊ (`n ue` + ZWNJ +
+`h nirugu`) is `N Ue Zwnj G Nirugu`: the `ue` is final and the `h` initial, yet the `h` is the
+feminine `G` the vowel across the break asks for — the font's `u182C.G.init`.
+
+Where the font keys a lookup on joining positions, the ZWNJ changes the answer through the
+positions it changed, not through the glyph:
+
+- the forward gender markers (`iii.py` preprocessing A/B, D/E) move only onto `medi`/`fina`
+  glyphs, so they cross a break only when a joiner follows it; the backward chain (G–K) runs
+  through letters of every position and skips the break, but needs the marker G hands only to
+  `init`/`medi`/`fina` glyphs;
+- an `init`/`isol` g/h after a vowel (possible only through a break) has no `masculine_devsger`
+  variant and falls through to the "initial g/h before a consonant → feminine" rule;
+- a particle pattern names every letter's position, so a particle follows the joining chain: it
+  ends where a break ends the chain (`MVS i` + ZWNJ + `n` is the particle `I`), starts where one
+  starts it (`a r nirugu` + ZWNJ + `ue ue`), and runs on where two ZWJs join across the break
+  (`u` + ZWJ ZWNJ ZWJ + `u` is the particle `u u`);
+- the vowel-devsger and `sh` dotless classes are `init`/`medi` vowels and `medi`/`fina` `i`,
+  which a letter across a break is not;
+- post_bowed reads a final or isolated consonant (one before a break) in the form it has before
+  its FVS applies, since the font applies an FVS last: `a b` FVS1 + ZWNJ ZWJ + `e` takes
+  post_bowed after the `B` that becomes `B2`, while an isolated g/h, which takes no gender, is the
+  unbowed `Hx`/`H` whatever its FVS selects. GB's resets follow the font too: FVS1/FVS3 on a g/h
+  at any position, FVS2/FVS4 before o/u only on a joined one;
+- the lookups that need an MVS right beside a letter (chachlag, the chachlag onset, the dotless
+  g, the MASC marker's `fina + MVS + a`) look through a run of ZWJ, nirugu and ZWNJ that holds a
+  ZWNJ, and leave the rest to the letter's position: `a n` MVS ZWJ ZWNJ `a` has the chachlag
+  onset, `a n` MVS ZWNJ ZWJ `a` does not (its `a` is final).
+
+Each of these is written so that a word without a ZWNJ takes exactly the path it took before.
+
+An FVS after a ZWNJ stays with the ZWNJ, as one after a joiner stays with the joiner: it selects
+no variant, but the font's FVS-reading lookups skip the ZWNJ and read it as an FVS after the
+letter before the break. So GB.A resets a `marked` o/u/ö/ü there (`t o` + ZWNJ + FVS3 is
+`T U Zwnj`, like `t o` + FVS3), the initial d before that vowel loses its `marked` form (`d e` +
+ZWNJ + FVS3 is `T A Zwnj`), after the isolated a/e that follows an MVS it postpones the chachlag
+onset of the consonant before the MVS (`a j` NNBSP `a` + ZWNJ + FVS4 keeps `J`), and a particle
+ends unmatched (`MVS ue` + ZWNJ + FVS3 is `Mvs A Ue Zwnj`). The `Zwnj` is a segment edge for the
+ZWJ rules, and duplicate unification does not contract across it (`L I Zwnj Aa` stays, `l i e᠋` is
+`L G`). `shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
 
 ## Duplicate encodings
 
@@ -240,14 +292,15 @@ checksums; `python/scripts/gen_font_shaper.py` rebuilds all of it from a clone o
 
 Shaping a word: validate the characters as the rule engine does, push them into a HarfBuzz buffer
 one cluster per character, shape under the font's `MNG` language system, map each glyph through the
-table, then run the same two post-passes as the rule engine — the redundant-ZWJ filter and
-duplicate unification — so `FontShaper::shape` and `Shaper::shape` are comparable unit for unit. A
+table, then run the same post-passes as the rule engine — the redundant-ZWJ filter and duplicate
+unification — so `FontShaper::shape` and `Shaper::shape` are comparable unit for unit. A
 character of the block the font has no glyph for (a letter of another writing system, an Ali Gali
 sign, an unassigned code point) is `Error::UnsupportedChar`, where the rule engine shapes it to
 nothing. The reading of the controls follows the rule engine: an FVS is never a
 unit (the font draws an invalid one as a visible placeholder; the standard's unit streams do not
 list it), an idle MVS (drawn as a space plus a silent glyph) is one `Mvs`, NNBSP is an `Mvs`, a
-nirugu is verbatim. The one HarfBuzz artefact to undo: a ZWJ between two letters the font ligates
+nirugu is verbatim, and so is a ZWNJ (`zwnj`, or `zwnj.ignored` once phase III has made it a mark
+the lookups skip). The one HarfBuzz artefact to undo: a ZWJ between two letters the font ligates
 comes out after the ligature; it is recognised by its character index against the ligature's
 letters and dropped from the public shape, as the redundant-ZWJ pass drops any joiner between two
 joined letter units.

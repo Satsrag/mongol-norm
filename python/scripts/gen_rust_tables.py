@@ -37,7 +37,7 @@ FOREIGN = {"font_hudum.rs": ('#[cfg(feature = "font")]', "python/scripts/gen_fon
 
 LOCALES = ("MNG",)
 NORMALIZE_LOCALES = ("MNG",)
-STRUCTURAL_UNITS = ("Mvs", "Nirugu", "Zwj")
+STRUCTURAL_UNITS = ("Mvs", "Nirugu", "Zwj", "Zwnj")
 POSITIONS = ("isol", "init", "medi", "fina")
 SCHEMA_VERSION = 1
 NORMALIZE_SCHEMA = "mongol-normalize-table/1"
@@ -296,6 +296,7 @@ STRUCTURAL_DOCS = {
     "Mvs": "Structural token: Mongolian vowel separator U+180E (NNBSP U+202F is folded into it).",
     "Nirugu": "Structural token: nirugu U+180A, the visible stem extender.",
     "Zwj": "Structural token: zero width joiner U+200D.",
+    "Zwnj": "Structural token: zero width non-joiner U+200C (a joining break inside a word).",
 }
 
 
@@ -328,9 +329,9 @@ def render_enums(rules):
             die("{} variant identifiers collide".format(label))
 
     is_structural = (
-        "\n    /// `true` for the structural tokens `Mvs`, `Nirugu` and `Zwj`.\n"
+        "\n    /// `true` for the structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj`.\n"
         "    pub const fn is_structural(self) -> bool {\n"
-        "        matches!(self, WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwj)\n"
+        "        matches!(self, WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwj | WrittenUnit::Zwnj)\n"
         "    }\n"
     )
     out = [HEADER, provenance([DATA / (locale + ".json") for locale in LOCALES]), "\n"]
@@ -338,7 +339,7 @@ def render_enums(rules):
     out.append(render_enum(
         "WrittenUnit",
         "A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). "
-        "The structural tokens `Mvs`, `Nirugu` and `Zwj` are members too: they appear verbatim in "
+        "The structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj` are members too: they appear verbatim in "
         "[`Shaper::shape`](crate::Shaper::shape) output, exactly as the Python implementation emits them.",
         unit_entries, "written unit", is_structural))
     out.append("\n")

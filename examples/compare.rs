@@ -30,7 +30,8 @@ ported rules) and report the words they shape differently. The report goes to st
 input (one of):
   FILE ...          the Mongolian words of these text files ('-' is stdin)
   (no FILE)         the Mongolian words of stdin
-  --random N        N random strings over the Hudum letters, FVS1-4, MVS, NNBSP, nirugu and ZWJ
+  --random N        N random strings over the Hudum letters, FVS1-4, MVS, NNBSP, nirugu, ZWJ and
+                    ZWNJ
 
 options:
   --seed S          seed of --random (default 1)
@@ -162,7 +163,7 @@ fn random_words(count: usize, seed: u64, max_len: usize) -> Vec<String> {
     let mut alphabet: Vec<char> = (0x1820..=0x1842).filter_map(char::from_u32).collect();
     alphabet.extend([
         '\u{180B}', '\u{180C}', '\u{180D}', '\u{180F}', '\u{180E}', '\u{202F}', '\u{180A}',
-        '\u{200D}',
+        '\u{200D}', '\u{200C}',
     ]);
     // Seed 0 would make xorshift emit zeros forever; mix the seed so nearby seeds diverge.
     let mut rng = XorShift(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1);

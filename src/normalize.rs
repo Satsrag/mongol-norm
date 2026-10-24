@@ -459,6 +459,13 @@ impl Shaper {
         if text.is_empty() {
             return Ok(String::new());
         }
+        // `shape` already accepts U+200C (ZWNJ), so `is_mongolian_word_char` is `true` for it;
+        // reject it here until `normalize` adds ZWNJ support in the follow-up PR.
+        for (index, ch) in text.chars().enumerate() {
+            if !is_mongolian_word_char(ch) || ch == '\u{200C}' {
+                return Err(Error::NonMongolianChar { ch, index });
+            }
+        }
         let target = self.shape(text)?;
         if target.is_empty() {
             // Only FVS marks, no letter — canonical is the empty string. (Joiners are *not*
@@ -503,7 +510,8 @@ impl Shaper {
         let mut run = String::new();
         let mut run_is_mongolian: Option<bool> = None;
         for ch in text.chars() {
-            let is_mongolian = is_mongolian_word_char(ch);
+            // Keep splitting runs at U+200C until `normalize` supports ZWNJ.
+            let is_mongolian = ch != '\u{200C}' && is_mongolian_word_char(ch);
             match run_is_mongolian {
                 Some(current) if current != is_mongolian => {
                     self.flush_run(&mut out, &run, current, strict)?;

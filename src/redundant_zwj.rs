@@ -16,25 +16,27 @@
 //! # Rules (left to right, repeated until nothing changes)
 //!
 //! Everything here is about written units: a "letter unit" is any unit other than the structural
-//! `Mvs`, `Nirugu` and `Zwj` ([`WrittenUnit::is_structural`]), and `U` names one such unit.
+//! `Mvs`, `Nirugu`, `Zwj` and `Zwnj` ([`WrittenUnit::is_structural`]), and `U` names one such
+//! unit. A segment edge is the start or end of the word, an `Mvs` or a `Zwnj` — the three places
+//! the position assignment breaks the joining chain.
 //!
 //! | ZWJ context | result |
 //! |---|---|
 //! | `Zwj Zwj` | one copy survives (then judged like a single one) |
 //! | next to a `Nirugu`, on either side | dropped — the nirugu already joins |
 //! | between two letter units (segment interior) | dropped |
-//! | segment-initial (start of word or directly after an `Mvs`), before a letter unit `U` | dropped iff `U:init` is accepted as the same shape as `U:medi` |
+//! | segment-initial (start of word or directly after an `Mvs`/`Zwnj`), before a letter unit `U` | dropped iff `U:init` is accepted as the same shape as `U:medi` |
 //! | segment-initial, before a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:fina` |
-//! | segment-final (end of word or directly before an `Mvs`), after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
+//! | segment-final (end of word or directly before an `Mvs`/`Zwnj`), after a letter unit `U` | dropped iff `U:fina` is accepted as the same shape as `U:medi` |
 //! | segment-final, after a lone letter unit `U` | dropped iff `U:isol` is accepted as the same shape as `U:init` |
-//! | no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`) | dropped — it has nothing to join |
+//! | no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`, `Zwj Zwnj…`) | dropped — it has nothing to join |
 //! | a lone `Zwj` | kept (it is the whole shape) |
 //!
 //! The four edge tables are the maintainer's reviewed equivalence classes for Hudum, selected on
 //! issue #33 from an ink comparison of every unit on the reference font (mongfontbuilder
 //! `hudum.otf`): each listed pair was encoded with `normalize_written_units`, rendered with
 //! HarfBuzz, and compared outline-against-outline. "Lone" means the unit is the only letter of
-//! its segment: nothing, or an `Mvs`, on the far side.
+//! its segment: nothing, an `Mvs` or a `Zwnj` on the far side.
 //!
 //! An `Mvs` splits segments exactly as the position assignment splits them, and the reference
 //! font agrees on both sides: the letter before an MVS takes its `fina` (or `isol`) form and the
@@ -47,6 +49,10 @@
 //! `ᠪ‍᠎ᠠ` = `ᠪ᠎ᠠ`. A ZWJ whose only neighbours are MVS or the word boundary joins nothing: on the
 //! reference font every such pair renders the same glyphs at the same positions, MVS included.
 //!
+//! A `Zwnj` is a segment edge on both sides for the same reason an `Mvs` is: the letter before it
+//! takes its `fina` (or `isol`) form and the letter after it its `init` (or `isol`) form, so a
+//! ZWJ beside it asks the word-edge question.
+//!
 //! The pass is a fixed point of left-to-right single removals, so `Zwj B Zwj` first loses the
 //! leading joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one
 //! (`B:init` ≡ `B:isol`). Applying the filter to its own output changes nothing, which is what
@@ -55,8 +61,8 @@
 use crate::generated::enums::WrittenUnit;
 
 use WrittenUnit::{
-    Aa, Ch, Cr, Dd, Gx, Hx, Mvs, Nirugu, Rh, Sh, Zr, Zwj, B, C, D, F, G, H, I, K, K2, L, M, N, O,
-    P, R, S, T, U, W, Y, Z,
+    Aa, Ch, Cr, Dd, Gx, Hx, Mvs, Nirugu, Rh, Sh, Zr, Zwj, Zwnj, B, C, D, F, G, H, I, K, K2, L, M,
+    N, O, P, R, S, T, U, W, Y, Z,
 };
 
 /// Segment-initial `Zwj U X…` → `U X…` (`U:medi` ≡ `U:init`); at the start of the word or after an MVS.
@@ -104,6 +110,11 @@ fn is_letter(unit: WrittenUnit) -> bool {
     !unit.is_structural()
 }
 
+/// Does `unit` end a segment the way the word boundary does — an `Mvs` or a `Zwnj`?
+fn is_edge(unit: WrittenUnit) -> bool {
+    matches!(unit, Mvs | Zwnj)
+}
+
 /// Is the `Zwj` at `units[index]` redundant? `units` holds no repeated `Zwj`.
 fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
     let prev = index.checked_sub(1).map(|i| units[i]);
@@ -111,12 +122,12 @@ fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
     match (prev, next) {
         (Some(Nirugu), _) | (_, Some(Nirugu)) => true,
         (Some(p), Some(n)) if is_letter(p) && is_letter(n) => true,
-        (None | Some(Mvs), Some(n)) if is_letter(n) => {
-            // An MVS starts the segment like the start of the word: `n` is `init` (or `isol`).
-            // The far side of `n`: another letter or a joiner keeps `n` joined onward, so
-            // dropping the ZWJ turns `n:medi` into `n:init`; nothing (or an MVS) leaves a lone
-            // `n`, `fina` → `isol`.
-            let alone = matches!(units.get(index + 2), None | Some(Mvs));
+        (None | Some(Mvs | Zwnj), Some(n)) if is_letter(n) => {
+            // An MVS or ZWNJ starts the segment like the start of the word: `n` is `init` (or
+            // `isol`). The far side of `n`: another letter or a joiner keeps `n` joined onward,
+            // so dropping the ZWJ turns `n:medi` into `n:init`; nothing (or an edge) leaves a
+            // lone `n`, `fina` → `isol`.
+            let alone = units.get(index + 2).is_none_or(|&unit| is_edge(unit));
             let same_shape = if alone {
                 INITIAL_ALONE
             } else {
@@ -124,9 +135,10 @@ fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
             };
             same_shape.contains(&n)
         }
-        (Some(p), None | Some(Mvs)) if is_letter(p) => {
-            // An MVS ends the segment like the end of the word: `p` is `fina` (or `isol`) either way.
-            let alone = index < 2 || units[index - 2] == Mvs;
+        (Some(p), None | Some(Mvs | Zwnj)) if is_letter(p) => {
+            // An MVS or ZWNJ ends the segment like the end of the word: `p` is `fina` (or
+            // `isol`) either way.
+            let alone = index < 2 || is_edge(units[index - 2]);
             let same_shape = if alone {
                 FINAL_ALONE
             } else {
@@ -136,7 +148,7 @@ fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
         }
         // A lone `Zwj` is the whole shape.
         (None, None) => false,
-        // Only MVS or the word boundary around it: the joiner has nothing to join.
+        // Only edges or the word boundary around it: the joiner has nothing to join.
         _ => true,
     }
 }
@@ -244,6 +256,28 @@ mod tests {
         assert_eq!(drop(&[Zwj, A, Zwj]), [Zwj, A, Zwj]);
         // O: leading drops (O:medi ≡ O:init); then `O Zwj` is a lone O:init, not equivalent.
         assert_eq!(drop(&[Zwj, O, Zwj]), [O, Zwj]);
+    }
+
+    #[test]
+    fn zwnj_is_a_segment_edge_for_the_zwj_rules() {
+        // Before a ZWNJ: the word-final question.
+        assert_eq!(drop(&[B, Zwj, Zwnj, A, A]), [B, Zwnj, A, A]); // lone: B:init ≡ B:isol
+        assert_eq!(drop(&[A, Zwj, Zwnj, B]), [A, Zwj, Zwnj, B]); // lone: A:init ≠ A:isol
+        assert_eq!(drop(&[A, O, Zwj, Zwnj, B]), [A, O, Zwnj, B]); // O:medi ≡ O:fina
+        assert_eq!(drop(&[A, L, Zwj, Zwnj, B]), [A, L, Zwj, Zwnj, B]); // L:medi ≠ L:fina
+                                                                       // After a ZWNJ: the word-initial question.
+        assert_eq!(drop(&[A, Zwnj, Zwj, B, Aa]), [A, Zwnj, B, Aa]); // B:medi ≡ B:init
+        assert_eq!(drop(&[A, Zwnj, Zwj, N, A]), [A, Zwnj, Zwj, N, A]); // N:medi ≠ N:init
+        assert_eq!(drop(&[A, Zwnj, Zwj, Aa]), [A, Zwnj, Aa]); // lone: Aa:fina ≡ Aa:isol
+        assert_eq!(drop(&[A, Zwnj, Zwj, A]), [A, Zwnj, Zwj, A]); // lone: A:fina ≠ the suffix a
+                                                                 // A ZWNJ counts as the far edge when deciding "alone".
+        assert_eq!(drop(&[Zwnj, B, Zwj, Zwnj]), [Zwnj, B, Zwnj]); // lone B between two breaks
+        assert_eq!(drop(&[Zwj, B, Zwnj, A]), [Zwj, B, Zwnj, A]); // lone: B:fina ≠ B:isol
+                                                                 // No letter beside it.
+        assert_eq!(drop(&[Zwj, Zwnj, N, A]), [Zwnj, N, A]);
+        assert_eq!(drop(&[N, A, Zwnj, Zwj]), [N, A, Zwnj]);
+        assert_eq!(drop(&[Zwnj, Zwj, Zwnj]), [Zwnj, Zwnj]);
+        assert_eq!(drop(&[Mvs, Zwj, Zwnj]), [Mvs, Zwnj]);
     }
 
     #[test]

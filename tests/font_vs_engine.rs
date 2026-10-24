@@ -1,8 +1,8 @@
 #![cfg(feature = "font")]
 //! The font backend against the rule engine, word for word, on every Hudum word the crate's
 //! fixtures hold: the corpora (`core-hud`, `eac-hud`, the inline round-trip cases) and the
-//! canonical golden vectors. A second set spells out ~15k words around an MVS, a joiner or an
-//! FVS, where random strings rarely reach (`boundary_words`). The two backends implement the same rules from two sources —
+//! canonical golden vectors. A second set spells out ~18k words around an MVS, a joiner, a ZWNJ
+//! or an FVS, where random strings rarely reach (`boundary_words`). The two backends implement the same rules from two sources —
 //! the font at the pinned mongfontbuilder commit, the engine ported from mongfontbuilder
 //! 0.10.6 — so every word they shape differently is pinned here with the reason, and a new
 //! disagreement (or an old one going away) fails the test.
@@ -167,8 +167,9 @@ fn combinations(parts: &[&[&str]]) -> Vec<String> {
 const JOINERS: &[&str] = &["", "nirugu", "zwj"];
 const FVS: &[&str] = &["", "fvs1", "fvs2", "fvs3", "fvs4"];
 
-/// Words around an MVS, a joiner or an FVS: the contexts where the two backends parted until
-/// #50–#52. A random sample rarely builds them, so they are spelled out here.
+/// Words around an MVS, a joiner, a ZWNJ or an FVS: the contexts where the two backends parted
+/// until #50–#52 and #55, and where a ZWNJ met them. A random sample rarely builds them, so they
+/// are spelled out here.
 fn boundary_words() -> Vec<String> {
     let joiners: &[&str] = &["", "nirugu", "zwj", "zwj zwj", "nirugu zwj"];
     let mvs: &[&str] = &["mvs", "nnbsp", "mvs mvs", "nnbsp nnbsp", "mvs nnbsp"];
@@ -316,7 +317,57 @@ fn boundary_words() -> Vec<String> {
             &["a", "e", "o", "u", "oe", "ue"],
         ]),
     ];
-    let mut words: Vec<String> = sets.into_iter().flatten().collect();
+    let zwnj = [
+        // A ZWNJ next to an FVS, a joiner, a particle, an MVS and a bowed consonant.
+        combinations(&[
+            &[
+                "t o",
+                "d e",
+                "a b fvs1",
+                "g fvs2",
+                "a g fvs1",
+                "a g fvs2",
+                "t g fvs2",
+                "u",
+                "nnbsp ue",
+                "mvs y i n",
+                "mvs i",
+                "a n mvs",
+                "e g mvs",
+                "a j nnbsp a",
+                "i g sh i n fvs2 mvs",
+            ],
+            &[
+                "zwnj",
+                "zwj zwnj",
+                "zwnj zwj",
+                "zwnj nirugu",
+                "nirugu zwnj",
+                "zwnj zwnj",
+            ],
+            &["", "fvs1", "fvs3"],
+            &[
+                "",
+                "a",
+                "e",
+                "o",
+                "u",
+                "ue ue",
+                "zwj fvs2",
+                "i n",
+                "b a",
+                "a zwnj fvs3",
+            ],
+        ]),
+        // Particles and joining chains across a ZWNJ.
+        combinations(&[
+            &["", "mvs", "a r nirugu", "t"],
+            &["u", "ue", "y", "i", "b"],
+            &["zwnj", "zwj zwnj", "zwnj zwj"],
+            &["u", "ue", "i", "i n", "ee", "u zwj zwnj"],
+        ]),
+    ];
+    let mut words: Vec<String> = sets.into_iter().chain(zwnj).flatten().collect();
     words.sort();
     words.dedup();
     words
@@ -328,7 +379,7 @@ fn boundary_words_shape_alike() {
     let engine = Shaper::new(Locale::Mng);
     let words = boundary_words();
     assert!(
-        words.len() > 13_000,
+        words.len() > 17_500,
         "the boundary set shrank to {} words",
         words.len()
     );

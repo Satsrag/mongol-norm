@@ -3,7 +3,7 @@
 // Font:   fonts/hudum.otf, built by mongfontbuilder 0.15.3 at https://github.com/Kushim-Jiang/mongolian c695f9641be6
 //
 // The glyph -> written-unit table of the bundled shaping font, by glyph id: 976 glyphs,
-// 615 letter variants/ligatures, 9 controls, 20 silent, 332 unsupported.
+// 615 letter variants/ligatures, 11 controls, 18 silent, 332 unsupported.
 
 use crate::font::Glyph;
 use crate::generated::enums::WrittenUnit;
@@ -24,7 +24,7 @@ pub(crate) static GLYPHS: [Glyph; GLYPH_COUNT] = [
     Glyph::silent(), // 6 fvs4
     Glyph::nirugu(), // 7 nirugu
     Glyph::zwj(), // 8 zwj
-    Glyph::silent(), // 9 zwnj
+    Glyph::zwnj(), // 9 zwnj
     Glyph::unsupported(), // 10 space
     Glyph::mvs(), // 11 nnbsp
     Glyph::unsupported(), // 12 _A.isol
@@ -990,5 +990,5 @@ pub(crate) static GLYPHS: [Glyph; GLYPH_COUNT] = [
     Glyph::letters(&[WrittenUnit::Cr], 1, Position::Init, Position::Isol), // 972 u1842.Cr.init._isol
     Glyph::letters(&[WrittenUnit::Cr], 1, Position::Init, Position::Medi), // 973 u1842.Cr.init._medi
     Glyph::zwj(), // 974 zwj.ignored
-    Glyph::silent(), // 975 zwnj.ignored
+    Glyph::zwnj(), // 975 zwnj.ignored
 ];
