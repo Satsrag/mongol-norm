@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use crate::Error;
 
-/// A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). The structural tokens `Mvs`, `Nirugu` and `Zwj` are members too: they appear verbatim in [`Shaper::shape`](crate::Shaper::shape) output, exactly as the Python implementation emits them.
+/// A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). The structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj` are members too: they appear verbatim in [`Shaper::shape`](crate::Shaper::shape) output, exactly as the Python implementation emits them.
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[rustfmt::skip]
@@ -93,12 +93,14 @@ pub enum WrittenUnit {
     Zr,
     /// Structural token: zero width joiner U+200D.
     Zwj,
+    /// Structural token: zero width non-joiner U+200C (a joining break inside a word).
+    Zwnj,
 }
 
 #[rustfmt::skip]
 impl WrittenUnit {
     /// Every variant, in declaration (sorted contract-name) order.
-    pub const ALL: [WrittenUnit; 41] = [
+    pub const ALL: [WrittenUnit; 42] = [
         WrittenUnit::A,
         WrittenUnit::Aa,
         WrittenUnit::B,
@@ -140,6 +142,7 @@ impl WrittenUnit {
         WrittenUnit::Z,
         WrittenUnit::Zr,
         WrittenUnit::Zwj,
+        WrittenUnit::Zwnj,
     ];
 
     /// The contract name used by the Python API, the CLI and the data files.
@@ -186,12 +189,13 @@ impl WrittenUnit {
             WrittenUnit::Z => "Z",
             WrittenUnit::Zr => "Zr",
             WrittenUnit::Zwj => "Zwj",
+            WrittenUnit::Zwnj => "Zwnj",
         }
     }
 
-    /// `true` for the structural tokens `Mvs`, `Nirugu` and `Zwj`.
+    /// `true` for the structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj`.
     pub const fn is_structural(self) -> bool {
-        matches!(self, WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwj)
+        matches!(self, WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwj | WrittenUnit::Zwnj)
     }
 }
 
@@ -242,6 +246,7 @@ impl FromStr for WrittenUnit {
             "Z" => Ok(WrittenUnit::Z),
             "Zr" => Ok(WrittenUnit::Zr),
             "Zwj" => Ok(WrittenUnit::Zwj),
+            "Zwnj" => Ok(WrittenUnit::Zwnj),
             _ => Err(Error::UnknownName { kind: "written unit", name: name.to_owned() }),
         }
     }

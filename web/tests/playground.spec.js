@@ -60,7 +60,7 @@ test("drops redundant ZWJ like the CLI and keeps the ones that change the ink", 
 
 test("invalid input clears stale results and keeps the engine error", async ({ page }) => {
   await ready(page);
-  for (const text of ["ᠠ\u200cᠠ", "hello", "ᠠ ᠠ", "ᠠ\nᠠ"]) {
+  for (const text of ["hello", "ᠠ ᠠ", "ᠠ\nᠠ"]) {
     await page.locator("#input").fill(text);
     await expect(page.locator("#shape-error")).toBeVisible();
     await expect(page.locator("#norm-error")).toBeVisible();

@@ -7,10 +7,17 @@
 //! OpenType class-membership semantics (see the Python comments for the font verification).
 //!
 //! Context lookups stay inside the MVS segment. To the font an MVS is a base glyph that no lookup
-//! sees past, while nirugu, ZWJ and FVS are marks it steps over. So `next_letter_in_segment`,
-//! `prev_adjacent_letter` and `next_adjacent_letter` stop at an MVS and step over the joiners.
-//! The rules that do read an MVS name it: III.1 (`prev_tok`), III.2c, III.2f and III.2g's g.dotless
-//! rule (2) (`letter_after_mvs`, the letter right after it) and III.3 (whole segments).
+//! sees past, while nirugu, ZWJ, ZWNJ and FVS are marks it steps over. So `next_letter_in_segment`,
+//! `prev_adjacent_letter` and `next_adjacent_letter` stop at an MVS and step over the joiners and
+//! a ZWNJ. The rules that do read an MVS name it: III.1 (`prev_tok_through_zwnj`), III.2c, III.2f
+//! and III.2g's g.dotless rule (2) (`letter_after_mvs`, the letter right after it) and III.3
+//! (whole segments).
+//!
+//! A ZWNJ is not a segment edge for these lookups, but it is one for the joining positions (see
+//! `token::assign_positions`): the letter before it is `fina`/`isol`, the letter after it
+//! `init`/`isol`. The font's lookups name those positions, so a few rules gate on them where
+//! only a ZWNJ can produce the combination (III.1, the cluster rule, III.2f, III.2g sh, III.3,
+//! III.4 and the MASC marker walk); ZWNJ-free text takes the same paths as before.
 //!
 //! An FVS locks a letter against the context rules only when it selects a variant there
 //! ([`Shaper::has_valid_fvs`]), and that variant wins whatever condition a rule sets. An FVS that
@@ -29,7 +36,10 @@
 //! WATCHED list in tests/font_vs_engine.rs flags a font that does.
 
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
-use crate::shaper::{next_adjacent_letter, next_tok, prev_adjacent_letter, prev_tok, Shaper};
+use crate::shaper::{
+    next_adjacent_letter, next_tok_through_zwnj, prev_adjacent_letter, prev_tok_through_zwnj,
+    Shaper,
+};
 use crate::tables::{Fvs, Locale, ParticleSym, Position};
 use crate::token::Token;
 
@@ -61,7 +71,6 @@ struct View {
     is_letter: bool,
     alias: Option<Alias>,
     position: Position,
-    has_fvs: bool,
     first_fvs: Option<Fvs>,
     condition: Option<Condition>,
 }
@@ -72,7 +81,6 @@ fn view(tokens: &[Token], index: usize) -> View {
         is_letter: token.is_letter(),
         alias: token.alias,
         position: token.position,
-        has_fvs: token.has_fvs(),
         first_fvs: token.first_fvs(),
         condition: token.condition,
     }
@@ -144,10 +152,15 @@ fn iii1_chachlag_at(tokens: &mut [Token], index: usize, _shaper: &Shaper) {
     if !matches!(tok.alias, Some(Alias::A | Alias::E)) {
         return;
     }
-    let Some(prev) = prev_tok(tokens, index) else {
+    let Some(prev) = prev_tok_through_zwnj(tokens, index) else {
         return;
     };
     if !tokens[prev].is_mvs() {
+        return;
+    }
+    // Through a ZWNJ the font's lookup still names the isolated glyph; the directly-adjacent
+    // path keeps its historical, position-free check.
+    if prev + 1 != index && tok.position != Position::Isol {
         return;
     }
     set(tokens, index, Condition::Chachlag);
@@ -181,23 +194,24 @@ fn iii2a_o_u_oe_ue_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper
 per_token!(iii2a_o_u_oe_ue_marked_gb_a => iii2a_o_u_oe_ue_marked_gb_a_at);
 
 /// An FVS right after the letter as GB.A's lookup sees it: the letter's own, or one carried by a
-/// ZWJ or nirugu right after it (phase III turns the joiners into marks the lookup skips).
+/// ZWJ, nirugu or ZWNJ right after it (phase III turns them into marks the lookup skips), so
+/// `t o zwnj fvs3` resets the marked o (`T U`), as in the font.
 fn fvs_follows(tokens: &[Token], index: usize) -> bool {
     tokens[index].has_fvs()
         || tokens[index + 1..]
             .iter()
-            .take_while(|token| token.is_nirugu())
+            .take_while(|token| token.is_transparent())
             .any(Token::has_fvs)
 }
 
-/// An FVS right before the letter as GB.A's lookup sees it: one carried by a ZWJ or nirugu right
-/// before it, or the previous letter's own.
+/// An FVS right before the letter as GB.A's lookup sees it: one carried by a ZWJ, nirugu or ZWNJ
+/// right before it, or the previous letter's own.
 fn fvs_precedes(tokens: &[Token], index: usize) -> bool {
     for token in tokens[..index].iter().rev() {
         if token.has_fvs() {
-            return token.is_nirugu() || token.is_letter();
+            return token.is_transparent() || token.is_letter();
         }
-        if !token.is_nirugu() {
+        if !token.is_transparent() {
             return false;
         }
     }
@@ -312,10 +326,10 @@ fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Sh
         j -= 1;
         let t = &tokens[j];
         if !t.is_letter() {
-            if t.is_nirugu() {
-                continue;
+            if t.is_transparent() {
+                continue; // nirugu, zwj; a zwnj the marker looks through
             }
-            return; // mvs/etc. blocks
+            return; // mvs blocks
         }
         if !shaper.is_consonant(t) {
             return; // vowel blocks the chain
@@ -326,8 +340,10 @@ fn iii2a_oe_ue_cluster_marked_at(tokens: &mut [Token], index: usize, shaper: &Sh
             }
             return;
         }
-        if t.position != Position::Medi {
-            return; // fina / isol — not a propagation source
+        // iii.py propagates the marker through `medi` *and* `fina` consonants; a `fina` one
+        // before this vowel can only be reached across a ZWNJ.
+        if !matches!(t.position, Position::Medi | Position::Fina) {
+            return; // isol — not a propagation source
         }
         saw_medi = true;
     }
@@ -341,10 +357,11 @@ per_token!(iii2a_d_marked => iii2a_d_marked_at);
 /// `onset`) — see rules.py::_iii2a_d_marked_at.
 ///
 /// The FVS that cancels is the one the font's reset (`III.d.marked.GB`, UseMarkFilteringSet
-/// @fvs) reads. Joiners are marks the reset skips. It cancels for:
+/// @fvs) reads. Joiners and a ZWNJ are marks the reset skips. It cancels for:
 /// - exactly one FVS between the d and the vowel, on the d or on a joiner: `d nirugu fvs4 ue`
 ///   keeps the default `T`;
-/// - no FVS between them and one right after the vowel: `d a fvs1` is `T Aa`.
+/// - no FVS between them and one right after the vowel, on the vowel or on a ZWNJ after it:
+///   `d a fvs1` is `T Aa`, and so is `d a zwnj fvs1`.
 ///
 /// **Against GB, on purpose.** With two FVS between them neither context matches, so the font
 /// keeps `D` and the engine does too: `d fvs3 fvs2 oe` is `D U`. GB/T 25914-2023 cancels the
@@ -375,7 +392,7 @@ fn iii2a_d_marked_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         .iter()
         .map(|token| token.fvs.len())
         .sum();
-    if between == 1 || (between == 0 && tokens[next].has_fvs()) {
+    if between == 1 || (between == 0 && fvs_follows(tokens, next)) {
         return; // the reset of `III.d.marked.GB`
     }
     set(tokens, index, Condition::Marked);
@@ -417,7 +434,7 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, shaper: &Shaper) 
     if tok.condition.is_some() || !tok.is_letter || shaper.has_valid_fvs(&tokens[index]) {
         return;
     }
-    let Some(next) = next_tok(tokens, index) else {
+    let Some(next) = next_tok_through_zwnj(tokens, index) else {
         return;
     };
     if !tokens[next].is_mvs() {
@@ -426,10 +443,15 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, shaper: &Shaper) 
     let Some(after) = letter_after_mvs(tokens, next) else {
         return;
     };
+    // An FVS on the vowel postpones the MVS shaping, also one a ZWNJ right after the vowel
+    // carries (the reset skips the ZWNJ): `a j nnbsp a zwnj fvs4` keeps `J`. One between the MVS
+    // and the vowel does not, on the MVS itself or on a ZWNJ after it, because the font's reset
+    // reads the vowel right after the MVS: `g mvs fvs3 a fvs1` and `g mvs zwnj fvs3 a fvs1` keep
+    // the onset.
+    let vowel_fvs = fvs_follows(tokens, after);
+    let mvs_fvs = tokens[next..after].iter().any(Token::has_fvs);
     let after = view(tokens, after);
-    // An FVS on the vowel postpones the MVS shaping. One on the MVS itself does not, because
-    // the font's reset reads the vowel right after the MVS: `g mvs fvs3 a fvs1` keeps the onset.
-    if after.position != Position::Isol || (after.has_fvs && !tokens[next].has_fvs()) {
+    if after.position != Position::Isol || (vowel_fvs && !mvs_fvs) {
         return;
     }
     if matches!(tok.alias, Some(Alias::N | Alias::J | Alias::W))
@@ -455,7 +477,7 @@ fn iii2c_chachlag_onset_at(tokens: &mut [Token], index: usize, shaper: &Shaper) 
 
 per_token!(iii2e_n_t_d_onset_devsger => iii2e_n_t_d_onset_devsger_at);
 
-/// The next letter before the segment ends at an MVS; ZWJ and nirugu are transparent.
+/// The next letter before the segment ends at an MVS; ZWJ, nirugu and ZWNJ are transparent.
 fn next_letter_in_segment(tokens: &[Token], index: usize) -> Option<usize> {
     tokens[index + 1..]
         .iter()
@@ -464,10 +486,11 @@ fn next_letter_in_segment(tokens: &[Token], index: usize) -> Option<usize> {
         .map(|offset| index + 1 + offset)
 }
 
-/// The letter right after the MVS at `mvs`. A second MVS in between does not count: the font
-/// matches `mvs` + letter as neighbours, so `g nnbsp nnbsp a` is no chachlag context for g.
+/// The letter right after the MVS at `mvs`, looking through a ZWNJ ([`next_tok_through_zwnj`]).
+/// A second MVS in between does not count: the font matches `mvs` + letter as neighbours, so
+/// `g nnbsp nnbsp a` is no chachlag context for g.
 fn letter_after_mvs(tokens: &[Token], mvs: usize) -> Option<usize> {
-    next_tok(tokens, mvs).filter(|&next| tokens[next].is_letter())
+    next_tok_through_zwnj(tokens, mvs).filter(|&next| tokens[next].is_letter())
 }
 
 /// n/t/d: `onset` before a vowel, `devsger` after one — see
@@ -547,6 +570,12 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     }
     let next = next_adjacent_letter(tokens, index);
     let prev = prev_adjacent_letter(tokens, index);
+    // `masculine_devsger` exists only for a joined-before (`medi`/`fina`) g/h, and in iii.py an
+    // input class holds only the glyphs that have the variant, so an `init`/`isol` g/h after a
+    // vowel — reachable only through a ZWNJ — does not match those patterns and falls through
+    // to the later ones instead. Without a ZWNJ a g/h after an adjacent vowel is always
+    // `medi`/`fina`, so this gate changes nothing there.
+    let joined_before = matches!(tok.position, Position::Medi | Position::Fina);
 
     // ── (a) the adjacent vowel decides ──
     if let Some(next) = next {
@@ -560,7 +589,7 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         }
     }
     if let Some(prev) = prev {
-        if shaper.is_masc_vowel(&tokens[prev]) {
+        if shaper.is_masc_vowel(&tokens[prev]) && joined_before {
             set(tokens, index, Condition::MasculineDevsger);
             return;
         }
@@ -573,7 +602,7 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     // ── (b) i + g/h with a reachable MASC marker (iii2f.A) ──
     if let Some(prev) = prev {
         if tokens[prev].alias == Some(Alias::I) {
-            if shaper.masc_marker_reaches_g_h(tokens, index) {
+            if joined_before && shaper.masc_marker_reaches_g_h(tokens, index) {
                 set(tokens, index, Condition::MasculineDevsger);
                 return;
             }
@@ -596,7 +625,7 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     // No layer fired — the resolver uses the default variant.
 }
 
-/// g/h + MVS + isolated a/e, with any joiners before the MVS: the context III.2c's
+/// g/h + MVS + isolated a/e, with any joiners or ZWNJs before the MVS: the context III.2c's
 /// `chachlag_onset` owns. The font's gender lookups (`III.k_g_h.onset_and_devsger_and_gender`,
 /// `III.g_h.onset_and_devsger_and_gender.A`) open with an ignore rule for it, so no gender
 /// applies there. When III.2c does not fire either, g/h keeps its default form:
@@ -609,7 +638,7 @@ fn iii2f_h_g_harmony_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
 /// masculine g its final form `H`, as the font does before an MVS and a consonant (`a g mvs n`).
 /// If upstream starts doing that, drop the FVS case here. `tests/font_vs_engine.rs` watches it.
 fn precedes_mvs_and_isolated_a_e(tokens: &[Token], index: usize) -> bool {
-    let Some(mvs) = (index + 1..tokens.len()).find(|&j| !tokens[j].is_nirugu()) else {
+    let Some(mvs) = (index + 1..tokens.len()).find(|&j| !tokens[j].is_transparent()) else {
         return false;
     };
     if !tokens[mvs].is_mvs() {
@@ -662,12 +691,20 @@ fn iii2g_sh_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let Some(next) = next_letter_in_segment(tokens, index) else {
         return;
     };
+    let next_index = next;
     let next = view(tokens, next);
     if next.alias != Some(Alias::I) {
         return;
     }
     if tok.position == Position::Init && next.position == Position::Medi {
         set(tokens, index, Condition::Dotless);
+        return;
+    }
+    // iii.py: `sh.medi` + `i.medi`/`i.fina`. Across a ZWNJ the i is `init`/`isol` and does not
+    // match; without one the i after a medial sh in its segment is always `medi`/`fina`.
+    if matches!(next.position, Position::Init | Position::Isol)
+        && (index + 1..next_index).any(|k| tokens[k].is_zwnj() && tokens[k].is_transparent())
+    {
         return;
     }
     if tok.position == Position::Medi {
@@ -713,7 +750,7 @@ fn iii2g_g_dotless_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     // too, as in the font — see rules.py::_iii2g_g_dotless_at. That rests on an upstream
     // inconsistency documented at `iii1_chachlag_at`, which says what changes if it is fixed.
     if tok.position == Position::Fina {
-        if let Some(next) = next_tok(tokens, index) {
+        if let Some(next) = next_tok_through_zwnj(tokens, index) {
             if tokens[next].is_mvs() {
                 if let Some(after) = letter_after_mvs(tokens, next) {
                     let after = view(tokens, after);
@@ -750,12 +787,18 @@ fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
             continue;
         };
         // UseMarkFilteringSet @fvs: any FVS in the matched run breaks base-glyph adjacency:
-        // one right after its MVS (`mvs fvs2 i` is no particle: `Mvs A I`), and one carried
-        // by a joiner between its letters, which the lookup skips (`u zwj fvs4 u`).
+        // one right after its MVS (`mvs fvs2 i` is no particle: `Mvs A I`), one carried by a
+        // joiner between its letters, which the lookup skips (`u zwj fvs4 u`), and one right
+        // after its last letter, also when a ZWNJ or a joiner after one carries it
+        // (`mvs i zwnj fvs1` is `Mvs A I`). A joiner right after the last letter needs no
+        // check: it shifts the letter off its position (below).
         let (Some(&first), Some(&last)) = (used.first(), used.last()) else {
             continue;
         };
-        if tokens[first..=last].iter().any(Token::has_fvs) {
+        let end = (last + 1..tokens.len())
+            .find(|&k| !tokens[k].is_transparent())
+            .unwrap_or(tokens.len());
+        if tokens[first..end].iter().any(Token::has_fvs) {
             continue;
         }
         // The lookup keys on position-specific classes, the particle's letters filling their
@@ -802,6 +845,15 @@ fn iii3_particle(tokens: &mut [Token], shaper: &Shaper) {
 /// `(symbols, token indices)` per MVS-headed segment; nirugu is skipped, and a letter without an
 /// alias becomes `ParticleSym::Unknown` (never matches, exactly like Python's empty alias) —
 /// see rules.py::_build_mvs_segments.
+///
+/// A segment also follows the joining chains: it ends after a `fina` or `isol` letter, and an
+/// `init` or `isol` letter after another letter starts a new one (without an MVS). Without a
+/// ZWNJ the chain is the whole MVS segment, so nothing changes. iii.py's particle lookup skips
+/// the ZWNJ glyph, but every pattern names each letter's joining position
+/// (`mvs y.init i.medi n.fina`): a particle ends where a ZWNJ ends the chain — `MVS i` + ZWNJ +
+/// `n` is the particle `I` followed by a new `init` n — a particle that matches anywhere starts
+/// where a ZWNJ starts one (`r nirugu zwnj ue ue`), and a particle runs on where two ZWJs join
+/// across the ZWNJ (`u zwj zwnj zwj u` is the particle `u u`), as in the reference font.
 fn build_mvs_segments(tokens: &[Token]) -> Vec<(Vec<ParticleSym>, Vec<usize>)> {
     let mut segments = Vec::new();
     let mut syms: Vec<ParticleSym> = Vec::new();
@@ -814,8 +866,15 @@ fn build_mvs_segments(tokens: &[Token]) -> Vec<(Vec<ParticleSym>, Vec<usize>)> {
             syms.push(ParticleSym::Mvs);
             indices.push(i);
         } else if token.is_letter() {
+            let starts_chain = matches!(token.position, Position::Init | Position::Isol);
+            if starts_chain && indices.iter().any(|&index| tokens[index].is_letter()) {
+                segments.push((std::mem::take(&mut syms), std::mem::take(&mut indices)));
+            }
             syms.push(token.alias.map_or(ParticleSym::Unknown, ParticleSym::Alias));
             indices.push(i);
+            if matches!(token.position, Position::Fina | Position::Isol) {
+                segments.push((std::mem::take(&mut syms), std::mem::take(&mut indices)));
+            }
         }
     }
     if !syms.is_empty() {
@@ -848,6 +907,14 @@ fn iii4_vowel_devsger_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
         return;
     };
     if !shaper.is_vowel(&tokens[prev]) {
+        return;
+    }
+    // iii.py's class holds `init`/`medi` vowels only. Across a ZWNJ the vowel before a medial
+    // `i` is `fina`/`isol` (a joiner after the break keeps the `i` medial) and does not match;
+    // without one the vowel before a medial `i` in its segment is always `init`/`medi`.
+    if matches!(tokens[prev].position, Position::Fina | Position::Isol)
+        && (prev + 1..index).any(|k| tokens[k].is_zwnj() && tokens[k].is_transparent())
+    {
         return;
     }
     // GB's table (`III.i.devsger.MNG.GB`, UseMarkFilteringSet @fvs) reads the one FVS between an
@@ -920,9 +987,20 @@ fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     let Some(prev) = prev_adjacent_letter(tokens, index) else {
         return;
     };
-    shaper.resolve_written(&mut tokens[prev]);
-    let Some(written) = tokens[prev].written else {
-        return;
+    // Across a ZWNJ the consonant is `fina` or `isol`, and the font reads the form it has before
+    // any FVS applies (`III.fvs.MNG` runs last): `a b fvs1 zwnj zwj e` takes post_bowed after
+    // the `B` its FVS1 later turns into `B2`, and an isolated g/h, which takes no gender, is the
+    // default `Hx`/`H`, not bowed, whatever its FVS selects (`g fvs2 zwnj zwj e` is `G A`). A
+    // joined consonant reads the FVS's own variant, which with the GB rules below gives the font's
+    // answer.
+    let written = if matches!(tokens[prev].position, Position::Fina | Position::Isol) {
+        shaper.contextual_written(&tokens[prev])
+    } else {
+        shaper.resolve_written(&mut tokens[prev]);
+        let Some(written) = tokens[prev].written else {
+            return;
+        };
+        written
     };
     let Some(&last_unit) = written.last() else {
         return;
@@ -942,9 +1020,21 @@ fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
     }
     // ── iii5.GB rules (FVS-aware) ──
     if let Some(fvs) = prev.first_fvs {
-        // Rule E: g/h + fvs2/fvs4 + [o,u].fina → reset (suppress post_bowed).
+        // Rules B/D: g/h + fvs1/3 → reset. A joined g/h shows the FVS's `Hx`/`H` here, which
+        // is not bowed, so only a final one across a ZWNJ gets this far (its form before the
+        // FVS is `G`): `a g fvs1 zwnj zwj e` is `A A H Zwnj Zwj A`, as in the font.
         if is_bowed_g
             && matches!(prev.alias, Some(Alias::G | Alias::H))
+            && matches!(fvs, Fvs::Fvs1 | Fvs::Fvs3)
+        {
+            return;
+        }
+        // Rule E: g/h.init/medi + fvs2/fvs4 + [o,u].fina → reset (suppress post_bowed). The
+        // font keys it on the joined g/h: a final one across a ZWNJ keeps post_bowed
+        // (`a g fvs2 zwnj zwj o` is `A A G Zwnj Zwj O`).
+        if is_bowed_g
+            && matches!(prev.alias, Some(Alias::G | Alias::H))
+            && matches!(prev.position, Position::Init | Position::Medi)
             && matches!(fvs, Fvs::Fvs2 | Fvs::Fvs4)
             && matches!(tok.alias, Some(Alias::O | Alias::U))
         {
@@ -958,11 +1048,9 @@ fn iii5_post_bowed_at(tokens: &mut [Token], index: usize, shaper: &Shaper) {
             set(tokens, index, Condition::Marked);
             return;
         }
-        // iii.py's remaining GB rules need no code here: B/D (h/g + fvs1/3 → reset) cannot
-        // trigger because those render `Hx`/`H`, which are not bowed, so the main rule never
-        // fires; G (h/g.init + fvs2/4 + oe/ue → marked) is already covered by GB.B, which takes
-        // the h/g's first FVS as well (`iii2a_o_u_oe_ue_marked_gb_b_at`) — see
-        // rules.py::_iii5_post_bowed_at.
+        // iii.py's remaining GB rule needs no code here: G (h/g.init + fvs2/4 + oe/ue →
+        // marked) is already covered by GB.B, which takes the h/g's first FVS as well
+        // (`iii2a_o_u_oe_ue_marked_gb_b_at`) — see rules.py::_iii5_post_bowed_at.
     }
     set(tokens, index, Condition::PostBowed);
 }
