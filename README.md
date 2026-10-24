@@ -25,9 +25,9 @@ them to one key. Rust crate with zero dependencies, plus a Python package and a 
 ### Why
 
 The same visible Mongolian word can be typed as many different Unicode sequences — A/E look alike
-in medial and final position, O/U and OE/UE share forms, FVS selectors and joiners (nirugu, ZWJ)
-can produce the same glyph in several ways. So search misses matches, deduplication fails and
-index keys differ for words that look identical.
+in medial and final position, O/U and OE/UE share forms, FVS selectors and joining controls
+(nirugu, ZWJ, ZWNJ) can produce the same glyph in several ways. So search misses matches,
+deduplication fails and index keys differ for words that look identical.
 
 ![Five encodings of "sain" all normalizing to the same canonical form](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
 
@@ -200,7 +200,7 @@ Rust crate，另有 Python 包和命令行工具。
 ### 为什么
 
 同一个看起来一样的蒙古文词，可以用很多种 Unicode 序列输入——A/E 在词中、词尾同形，O/U、OE/UE 共享字形，
-FVS 和连接符（nirugu、ZWJ）也能用不同方式得到同一个字形。结果是：搜索找不到、去重失败、同一个词索引 key
+FVS 和连接控制符（nirugu、ZWJ、ZWNJ）也能用不同方式得到同一个字形。结果是：搜索找不到、去重失败、同一个词索引 key
 不同。
 
 ![五种 sain 编码全部规范化为同一个形式](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
