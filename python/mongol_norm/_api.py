@@ -119,10 +119,15 @@ class MongolianShaper:
         A ZWNJ (U+200C) breaks the cursive chain — the letter before it is written
         ``fina``/``isol``, the letter after it ``init``/``isol`` — while the context
         rules (vowel harmony, gender markers, chachlag, particles) look through it,
-        as the reference font does. It appears as ``Zwnj``.
+        as the reference font does. It appears as ``Zwnj`` only where the break
+        changes the ink: it is dropped iff the shape is the same without it (unit for
+        unit, the units beside the break in the reviewed Hudum classes for their new
+        positions, the ZWJ filter and duplicate unification re-run over the joined
+        segment). Repeated ZWNJs collapse to one; a lone ZWNJ is kept like a lone ZWJ.
         ZWNJ(U+200C)打断连写:其前字母取 ``fina``/``isol``、其后字母取 ``init``/``isol``,
-        而上下文规则(元音和谐、阴阳标记、chachlag、虚词)像参考字体一样穿过它。ZWNJ
-        输出为 ``Zwnj``。
+        而上下文规则(元音和谐、阴阳标记、chachlag、虚词)像参考字体一样穿过它。只有
+        改变字形时才作为 ``Zwnj`` 出现;去掉后 shape 相同的 ZWNJ 会被去掉。重复的 ZWNJ
+        合并为一个;孤立的 ZWNJ 像孤立的 ZWJ 一样保留。
 
         Raises ValueError on characters outside the Mongolian word alphabet
         (letters, FVS, MVS, NNBSP, Nirugu, ZWJ, ZWNJ); use :meth:`normalize_text`
@@ -132,12 +137,12 @@ class MongolianShaper:
 
     def _shape_raw(self, text):
         """
-        The engine's own written-unit sequence, before redundant ZWJs are dropped
-        and the nine duplicate encodings are unified — the sequence UTN #57 / GB/T
-        25914-2023 describe, in which all nine and every ZWJ and ZWNJ of the input
+        The engine's own written-unit sequence, before redundant ZWJs and ZWNJs are
+        dropped and the nine duplicate encodings are unified — the sequence UTN #57 /
+        GB/T 25914-2023 describe, in which all nine and every ZWJ and ZWNJ of the input
         still appear.
-        引擎自身的书写单元序列(未去冗余 ZWJ、未统一重复编码),
-        即 UTN #57 / GB/T 25914-2023 所描述的序列。
+        引擎自身的书写单元序列(未去冗余 ZWJ/ZWNJ、未统一重复编码),即 UTN #57 /
+        GB/T 25914-2023 所描述的序列。
 
         NOT part of the public contract (hence the leading underscore, mirroring the Rust
         crate's ``#[doc(hidden)] Shaper::shape_raw``): it exists so the conformance suites

@@ -341,6 +341,7 @@ fn boundary_words() -> Vec<String> {
                 "zwnj",
                 "zwj zwnj",
                 "zwnj zwj",
+                "zwj zwnj zwj",
                 "zwnj nirugu",
                 "nirugu zwnj",
                 "zwnj zwnj",
@@ -363,7 +364,7 @@ fn boundary_words() -> Vec<String> {
         combinations(&[
             &["", "mvs", "a r nirugu", "t"],
             &["u", "ue", "y", "i", "b"],
-            &["zwnj", "zwj zwnj", "zwnj zwj"],
+            &["zwnj", "zwj zwnj zwj", "zwj zwnj", "zwnj zwj"],
             &["u", "ue", "i", "i n", "ee", "u zwj zwnj"],
         ]),
     ];
@@ -379,7 +380,7 @@ fn boundary_words_shape_alike() {
     let engine = Shaper::new(Locale::Mng);
     let words = boundary_words();
     assert!(
-        words.len() > 17_500,
+        words.len() > 18_000,
         "the boundary set shrank to {} words",
         words.len()
     );
