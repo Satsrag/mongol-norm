@@ -2,7 +2,7 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/3` policy
+> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/4` policy
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
@@ -132,8 +132,9 @@ letter before the break. So GB.A resets a `marked` o/u/ö/ü there (`t o` + ZWNJ
 ZWNJ + FVS3 is `T A`), after the isolated a/e that follows an MVS it postpones the chachlag
 onset of the consonant before the MVS (`a j` NNBSP `a` + ZWNJ + FVS4 keeps `J`), and a particle
 ends unmatched (`MVS ue` + ZWNJ + FVS3 is `Mvs A Ue`). A kept `Zwnj` is a segment edge for the
-ZWJ rules, and duplicate unification does not contract across it (`L I Zwnj Aa` stays, `l i e᠋` is
-`L G`). `shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
+ZWJ rules, duplicate unification does not contract across it (`L I Zwnj Aa` stays, `l i e᠋` is
+`L G`), and `normalize` writes it back as U+200C with the chain after it encoded from `init`.
+`shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
 
 **Redundant ZWNJ.** Like a ZWJ, a break that changes no glyph is dropped from the public shape,
 and the decision is made on the written units alone — never by re-shaping the text or consulting
@@ -167,7 +168,8 @@ font forms its ligatures across it, so it is taken out first.
 Judging on the units rather than by re-shaping the text is what makes the first word of the
 issue work: the text without its ZWNJ renders `P O O A` (the `ue` is marked only after an
 initial `p`), so a text-based test would keep the break — but every FVS-pinned spelling of the
-same ink renders alike with or without it.
+same ink renders alike with or without it, so no canonical text could have reproduced a kept
+`Zwnj`. `normalize` gives ᠯᠠᠯᠠᠫᠣᠢ᠍ᠣᠠ᠌, which shapes back to the same units.
 
 ## Duplicate encodings
 
@@ -250,7 +252,7 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **shape** the input into its written-unit sequence. MVS and nirugu appear verbatim as PascalCase `Mvs` / `Nirugu` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above; nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
+1. **shape** the input into its written-unit sequence. MVS and nirugu appear verbatim as PascalCase `Mvs` / `Nirugu` tokens, a ZWJ as `Zwj` and a ZWNJ as `Zwnj` where they change the ink (see "Redundant ZWJ" and "ZWNJ" above; nirugu renders a visible stem; all four are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged. A chain after a `Zwnj` starts at `init` like one after an `Mvs` — only `Nirugu` and `Zwj` join the chain beside them.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
@@ -275,10 +277,19 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/4`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
+
+**`mng-canonical/4` invalidates keys stored under `mng-canonical/3` (0.3.x) only where the text
+contains a ZWNJ.** Under `/3` a ZWNJ was rejected (`NonMongolianChar`), so no key for such a word
+exists; every other text takes exactly the `/3` code path, and the 1988 `mng-canonical/3` golden
+representatives are byte-identical under `/4`. The number moves because `normalize_text`, which
+used to split a run at a ZWNJ and normalize the pieces independently, now treats it as a word
+character, and the context rules look through it: text with a ZWNJ inside a Mongolian word can
+normalize differently (ᠨᠦ + ZWNJ + ᠬ᠊ takes the feminine `G`). A ZWNJ at a word edge changes no
+glyph, so it is dropped (`abc` + ZWNJ + `ᠠ` loses the ZWNJ).
 
 **`mng-canonical/3` (0.3.0 on crates.io, 0.3.1 on PyPI) invalidates keys stored under `mng-canonical/2` (0.2.x) for some
 texts.** Two kinds of change reach `normalize`:

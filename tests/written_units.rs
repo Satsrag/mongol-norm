@@ -114,14 +114,10 @@ fn test_pascal_case_controls_reuse_structural_chain_encoding() {
 
 #[test]
 fn test_the_table_knows_every_written_unit() {
-    // Hudum is the only locale, so every `WrittenUnit` (apart from `Zwnj`, which `shape` emits
-    // before `normalize` learns it) is in the normalize table's vocabulary and
-    // `UnsupportedWrittenUnit` cannot come from real data (src/written_units.rs tests it on an
-    // empty table).
-    let mut all: Vec<WrittenUnit> = WrittenUnit::ALL
-        .into_iter()
-        .filter(|&unit| unit != WrittenUnit::Zwnj)
-        .collect();
+    // Hudum is the only locale, so every `WrittenUnit` is in the normalize table's vocabulary
+    // and `UnsupportedWrittenUnit` cannot come from real data (src/written_units.rs tests it
+    // on an empty table).
+    let mut all: Vec<WrittenUnit> = WrittenUnit::ALL.to_vec();
     all.sort_by_key(|unit| unit.as_str());
     assert_eq!(shaper().known_written_units().unwrap(), all);
 }
