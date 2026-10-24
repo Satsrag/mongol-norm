@@ -18,9 +18,12 @@ __all__ = ["MongolianShaper", "NormalizationFallbackError", "main"]
 MVS_CP = 0x180E
 NIRUGU_CP = 0x180A
 ZWJ_CP = 0x200D
+ZWNJ_CP = 0x200C
 # shape_detailed() reports structural tokens with these aliases (letters use
 # their locale alias, or "" when the letter has none).
-_STRUCTURAL_ALIASES = {MVS_CP: "mvs", NIRUGU_CP: "nirugu", ZWJ_CP: "zwj"}
+_STRUCTURAL_ALIASES = {
+    MVS_CP: "mvs", NIRUGU_CP: "nirugu", ZWJ_CP: "zwj", ZWNJ_CP: "zwnj",
+}
 _POSITIONED_UNIT_POSITIONS = frozenset({
     "isol", "init", "medi", "fina", "control",
 })
@@ -113,19 +116,28 @@ class MongolianShaper:
         连写形与非连写形同形(见 ``docs/internals.md`` 的表)的 ZWJ 在统一重复编码前去掉;
         MVS 是段边缘,紧挨 MVS 的 ZWJ 按词首/词尾规则处理。``Mvs`` 和 ``Nirugu`` 总是原样输出。
 
+        A ZWNJ (U+200C) breaks the cursive chain — the letter before it is written
+        ``fina``/``isol``, the letter after it ``init``/``isol`` — while the context
+        rules (vowel harmony, gender markers, chachlag, particles) look through it,
+        as the reference font does. It appears as ``Zwnj``.
+        ZWNJ(U+200C)打断连写:其前字母取 ``fina``/``isol``、其后字母取 ``init``/``isol``,
+        而上下文规则(元音和谐、阴阳标记、chachlag、虚词)像参考字体一样穿过它。ZWNJ
+        输出为 ``Zwnj``。
+
         Raises ValueError on characters outside the Mongolian word alphabet
-        (letters, FVS, MVS, NNBSP, Nirugu, ZWJ); use :meth:`normalize_text`
+        (letters, FVS, MVS, NNBSP, Nirugu, ZWJ, ZWNJ); use :meth:`normalize_text`
         for mixed-script input.
         """
         return self._native.shape(text)
 
     def _shape_raw(self, text):
         """
-        The engine's own written-unit sequence, before redundant ZWJs are dropped and the
-        nine duplicate encodings are unified — the sequence UTN #57 / GB/T 25914-2023
-        describe, in which all nine and every ZWJ of the input still appear.
-        引擎自身的书写单元序列(未去冗余 ZWJ、未统一重复编码),即 UTN #57 / GB/T 25914-2023
-        所描述的序列。
+        The engine's own written-unit sequence, before redundant ZWJs are dropped
+        and the nine duplicate encodings are unified — the sequence UTN #57 / GB/T
+        25914-2023 describe, in which all nine and every ZWJ and ZWNJ of the input
+        still appear.
+        引擎自身的书写单元序列(未去冗余 ZWJ、未统一重复编码),
+        即 UTN #57 / GB/T 25914-2023 所描述的序列。
 
         NOT part of the public contract (hence the leading underscore, mirroring the Rust
         crate's ``#[doc(hidden)] Shaper::shape_raw``): it exists so the conformance suites

@@ -74,6 +74,7 @@ class TestShapeDetailed(unittest.TestCase):
         for text, cp, alias in [
             ("\u180Aᠣ", "U+180A", "nirugu"),   # nirugu o
             ("\u200Dᠳ", "U+200D", "zwj"),      # ZWJ d
+            ("\u200Cᠳ", "U+200C", "zwnj"),     # ZWNJ d
             ("\u180E", "U+180E", "mvs"),            # MVS
             ("\u202F", "U+180E", "mvs"),            # NNBSP reads as MVS
         ]:
@@ -106,7 +107,7 @@ class TestShapeDetailed(unittest.TestCase):
                 self.assertEqual(
                     [unit for detail in details for unit in detail["written"]],
                     [unit for unit in self.shaper._shape_raw(text)
-                     if unit not in ("Mvs", "Nirugu", "Zwj")],
+                     if unit not in ("Mvs", "Nirugu", "Zwj", "Zwnj")],
                 )
 
     def test_rejects_non_mongolian_input_like_shape(self):
