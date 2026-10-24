@@ -128,12 +128,46 @@ Each of these is written so that a word without a ZWNJ takes exactly the path it
 An FVS after a ZWNJ stays with the ZWNJ, as one after a joiner stays with the joiner: it selects
 no variant, but the font's FVS-reading lookups skip the ZWNJ and read it as an FVS after the
 letter before the break. So GB.A resets a `marked` o/u/ö/ü there (`t o` + ZWNJ + FVS3 is
-`T U Zwnj`, like `t o` + FVS3), the initial d before that vowel loses its `marked` form (`d e` +
-ZWNJ + FVS3 is `T A Zwnj`), after the isolated a/e that follows an MVS it postpones the chachlag
+`T U`, like `t o` + FVS3), the initial d before that vowel loses its `marked` form (`d e` +
+ZWNJ + FVS3 is `T A`), after the isolated a/e that follows an MVS it postpones the chachlag
 onset of the consonant before the MVS (`a j` NNBSP `a` + ZWNJ + FVS4 keeps `J`), and a particle
-ends unmatched (`MVS ue` + ZWNJ + FVS3 is `Mvs A Ue Zwnj`). The `Zwnj` is a segment edge for the
+ends unmatched (`MVS ue` + ZWNJ + FVS3 is `Mvs A Ue`). A kept `Zwnj` is a segment edge for the
 ZWJ rules, and duplicate unification does not contract across it (`L I Zwnj Aa` stays, `l i e᠋` is
 `L G`). `shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
+
+**Redundant ZWNJ.** Like a ZWJ, a break that changes no glyph is dropped from the public shape,
+and the decision is made on the written units alone — never by re-shaping the text or consulting
+a font (`src/redundant_zwnj.rs`). Take the `Zwnj` out; the two sides are now one segment, so run
+the ZWJ filter and duplicate unification again over it; then the break is redundant iff every
+unit beside it that changed form is in the reviewed edge class for that change: the unit before
+goes `fina` → `medi` (the `Cr O Zr` list) or, alone in its segment, `isol` → `init` (the
+word-final-alone list); the unit after goes `init` → `medi` (the word-initial list) or, alone,
+`isol` → `fina` (the word-initial-alone list). A unit changes form only when the other side is a
+letter unit or a joiner; beside an `Mvs`, another `Zwnj` or the word boundary nothing changes
+and equal units decide. The pass is a fixed point of left-to-right single removals, repeated
+ZWNJs collapse to one (or none), and a lone ZWNJ keeps its `Zwnj` like a lone ZWJ. One case is
+settled before the ZWJ filter even runs: a ZWNJ with a joiner on both sides (ZWJ ZWNJ ZWJ, or a
+nirugu on either side) changes no position, since each joiner keeps its letter joined, and the
+font forms its ligatures across it, so it is taken out first.
+
+| input | `shape` | why |
+|---|---|---|
+| ZWNJ + ᠪᠠ, ᠪᠠ + ZWNJ | `B Aa` | word edge: no position changes |
+| ᠪ‌ᠪᠠ | `B B Aa` | `B:isol` ≡ `B:init`, `B:init` ≡ `B:medi` |
+| ᠪ‌ᠠ | `B Zwnj A A` | `A:isol` ≠ `A:fina` |
+| ᠯᠢ‌ᠡ᠋ | `L I Zwnj Aa` | `I:fina` ≠ `I:medi`; no `G` across the break |
+| ᠠ‌᠎ᠠ, ᠎‌ᠠ | `A A Mvs Aa`, `Mvs Aa` | beside an MVS; chachlag looks through |
+| ᠠ‌‌ᠪ | `A A Zwnj B` | repeated breaks collapse |
+| ‍‌ᠨᠠ, ᠨᠠ‌‍ | `N A` | the ZWJ had nothing to join while the break stood, and goes with it |
+| ᠠ‍‌ᠪᠠ | `A A B Aa` | the kept ZWJ joined the `a`; after the break goes, the ZWJ sits between letters |
+| ᠪ‍‌‍ᠧ | `B W` | a joiner on both sides: no position changes; the font draws its `BW` ligature |
+| ᠯᠠᠯᠠ‍‌ᠫᠦᠳ (issue #34) | `L A L A P O I O A` | `P:init` ≡ `P:medi`; the marked `ue` stays, the break goes |
+| ZWNJ alone | `Zwnj` | the whole shape |
+
+Judging on the units rather than by re-shaping the text is what makes the first word of the
+issue work: the text without its ZWNJ renders `P O O A` (the `ue` is marked only after an
+initial `p`), so a text-based test would keep the break — but every FVS-pinned spelling of the
+same ink renders alike with or without it.
 
 ## Duplicate encodings
 
@@ -293,8 +327,9 @@ checksums; `python/scripts/gen_font_shaper.py` rebuilds all of it from a clone o
 
 Shaping a word: validate the characters as the rule engine does, push them into a HarfBuzz buffer
 one cluster per character, shape under the font's `MNG` language system, map each glyph through the
-table, then run the same post-passes as the rule engine — the redundant-ZWJ filter and duplicate
-unification — so `FontShaper::shape` and `Shaper::shape` are comparable unit for unit. A
+table, then run the same post-passes as the rule engine — a ZWNJ between two joiners taken out,
+the redundant-ZWJ filter, duplicate unification and the redundant-ZWNJ filter — so
+`FontShaper::shape` and `Shaper::shape` are comparable unit for unit. A
 character of the block the font has no glyph for (a letter of another writing system, an Ali Gali
 sign, an unassigned code point) is `Error::UnsupportedChar`, where the rule engine shapes it to
 nothing. The reading of the controls follows the rule engine: an FVS is never a
@@ -302,7 +337,7 @@ unit (the font draws an invalid one as a visible placeholder; the standard's uni
 list it), an idle MVS (drawn as a space plus a silent glyph) is one `Mvs`, NNBSP is an `Mvs`, a
 nirugu is verbatim, and so is a ZWNJ (`zwnj`, or `zwnj.ignored` once phase III has made it a mark
 the lookups skip). The one HarfBuzz artefact to undo: a ZWJ between two letters the font ligates
-comes out after the ligature; it is recognised by its character index against the ligature's
+— and a ZWNJ between two such ZWJs — comes out after the ligature; it is recognised by its character index against the ligature's
 letters and dropped from the public shape, as the redundant-ZWJ pass drops any joiner between two
 joined letter units.
 
