@@ -145,10 +145,11 @@ pub struct ShapedGlyph {
     /// another's form — an isolated `N` is drawn with `N:init`, so `form` is `Init` and
     /// `joining` is `Isol`.
     pub joining: Option<Position>,
-    /// A ZWJ the font's ligature formation skipped: it sits between two letters of the
-    /// preceding ligature, HarfBuzz moved it after the ligature, and
-    /// [`FontShaper::shape`] drops it, as the redundant-ZWJ pass drops any joiner between two
-    /// joined letter units.
+    /// A ZWJ or ZWNJ the font's ligature formation skipped: it sits between two letters of the
+    /// preceding ligature, HarfBuzz moved it after the ligature, and [`FontShaper::shape`]
+    /// drops it, as the redundant-ZWJ pass drops any joiner between two joined letter units. A
+    /// ZWNJ is inside a ligature only between two ZWJs (`k zwj zwnj zwj u` is the `KO`
+    /// ligature): they join its two letters again, and it breaks nothing.
     pub skipped: bool,
 }
 
@@ -173,16 +174,17 @@ pub struct ShapedGlyph {
 /// # Output contract
 ///
 /// [`FontShaper::shape`] is the same kind of sequence as [`Shaper::shape`](crate::Shaper::shape):
-/// `Mvs`, `Nirugu` and `Zwnj` verbatim, a `Zwj` only where it changes the ink, the duplicate
-/// encodings unified — the two post-passes are shared with the rule engine — so the two
-/// backends can be compared unit for unit. How the glyphs are read:
+/// `Mvs` and `Nirugu` verbatim, a `Zwj` or `Zwnj` only where it changes the ink, the duplicate
+/// encodings unified — the post-passes are shared with the rule engine — so the two backends
+/// can be compared unit for unit. How the glyphs are read:
 /// * an FVS, valid or not, is never a unit. The font draws an invalid one as a visible
 ///   placeholder; the crate follows the rule engine and the GB/T 25914-2023 unit streams and
 ///   reports nothing;
 /// * an MVS that separates nothing is drawn as a space plus a silent glyph: one `Mvs`. An
 ///   NNBSP is an `Mvs`, as in the rule engine;
-/// * a ZWJ between two letters the font ligates comes out of HarfBuzz after the ligature.
-///   [`FontShaper::shape_raw`] keeps it there; `shape` drops it (see [`ShapedGlyph::skipped`]).
+/// * a ZWJ between two letters the font ligates comes out of HarfBuzz after the ligature, and
+///   so does a ZWNJ between two such ZWJs. [`FontShaper::shape_raw`] keeps it there; `shape`
+///   drops it (see [`ShapedGlyph::skipped`]).
 ///
 /// # Errors
 ///
@@ -232,7 +234,7 @@ impl FontShaper {
     }
 
     /// Shape `text` into its written-unit sequence, on the same contract as
-    /// [`Shaper::shape`](crate::Shaper::shape): `Mvs`, `Nirugu` and `Zwnj` verbatim, a `Zwj`
+    /// [`Shaper::shape`](crate::Shaper::shape): `Mvs` and `Nirugu` verbatim, a `Zwj` or `Zwnj`
     /// only where it changes the ink, the duplicate encodings unified.
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
         let glyphs = self.run(text)?;
@@ -288,7 +290,8 @@ impl FontShaper {
 
         let mut buffer = Buffer::new();
         // One cluster per character, never merged: the cluster of a glyph is the index of the
-        // character it comes from, which is what tells a skipped ZWJ from one after a ligature.
+        // character it comes from, which is what tells a skipped ZWJ or ZWNJ from one after a
+        // ligature.
         buffer.set_cluster_level(ClusterLevel::Characters);
         for (index, &ch) in chars.iter().enumerate() {
             buffer.push(ch as u32, index as u32);
@@ -307,8 +310,8 @@ impl FontShaper {
         .expect("the plan was built for this direction and script");
 
         let mut out = Vec::with_capacity(buffer.len());
-        // The letters of the last letter glyph: a ZWJ whose character lies strictly inside
-        // them was skipped by the ligature that drew them.
+        // The letters of the last letter glyph: a ZWJ or ZWNJ whose character lies strictly
+        // inside them was skipped by the ligature that drew them.
         let mut span: Option<(usize, usize)> = None;
         for info in buffer.glyph_infos() {
             let id = info.glyph_id as usize;
@@ -324,7 +327,7 @@ impl FontShaper {
                 Kind::Letters => span = Some((index, span_end(&chars, index, glyph.letters))),
                 _ => {}
             }
-            let skipped = glyph.kind == Kind::Zwj
+            let skipped = matches!(glyph.kind, Kind::Zwj | Kind::Zwnj)
                 && span.is_some_and(|(start, end)| start < index && index < end);
             out.push(ShapedGlyph {
                 glyph: id as u16,

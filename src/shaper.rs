@@ -8,6 +8,7 @@ use crate::generated::mng;
 use crate::generated::mng_normalize;
 use crate::normalize::NormalizeTable;
 use crate::redundant_zwj::drop_redundant_zwj;
+use crate::redundant_zwnj::{drop_redundant_zwnj, drop_zwnj_between_joiners};
 use crate::rules::{self, Rule};
 use crate::tables::{Fvs, Letter, Locale, LocaleData, ParticleSym, Position, Variant};
 use crate::token::{assign_positions, tokenize, Token, TokenKind};
@@ -452,8 +453,13 @@ impl Shaper {
     ///
     /// A ZWNJ breaks the cursive chain — the letter before it is written `fina` (or `isol`), the
     /// letter after it `init` (or `isol`) — while the context rules look through it, as they do
-    /// in the reference font. It appears as [`WrittenUnit::Zwnj`], a segment edge for the ZWJ
-    /// rules and for duplicate unification.
+    /// in the reference font. It appears as [`WrittenUnit::Zwnj`] only where the break changes
+    /// the ink: it is dropped iff the shape is the same without it — unit for unit, with the
+    /// units beside the break in the reviewed Hudum equivalence classes for the positions they
+    /// move to, the ZWJ filter and duplicate unification re-run over the joined segment.
+    /// Repeated ZWNJs collapse to one, a lone ZWNJ is kept like a lone ZWJ; see
+    /// `redundant_zwnj.rs`. A kept `Zwnj` is a segment edge for the ZWJ rules and for duplicate
+    /// unification.
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
@@ -484,10 +490,10 @@ impl Shaper {
         drop_redundant_zwj(units)
     }
 
-    /// The engine's written-unit sequence before redundant ZWJs are dropped and duplicate
-    /// encodings are unified — the sequence UTN #57 / GB/T 25914-2023 describe, and the one
-    /// their EAC conformance vectors are checked against. All nine duplicates and every ZWJ and
-    /// ZWNJ of the input can appear here.
+    /// The engine's written-unit sequence before redundant ZWJs and ZWNJs are dropped and
+    /// duplicate encodings are unified — the sequence UTN #57 / GB/T 25914-2023 describe, and
+    /// the one their EAC conformance vectors are checked against. All nine duplicates and every
+    /// ZWJ and ZWNJ of the input can appear here.
     ///
     /// Not part of the public contract: it exists so the conformance suites and the table
     /// generator can compare against the standard verbatim. Everything user-facing goes through
@@ -579,12 +585,20 @@ impl Shaper {
     }
 }
 
-/// The public shape of an engine-level unit sequence: redundant ZWJs dropped, then the duplicate
-/// encodings unified — in that order, so a joiner that separated `I Aa` no longer blocks the `G`
-/// contraction. Both backends fold their raw units with it, so [`Shaper::shape`] and
-/// `FontShaper::shape` compare unit for unit.
+/// The public shape of an engine-level unit sequence: a ZWNJ between two joiners taken out
+/// (it changes no position), redundant ZWJs dropped, then the duplicate encodings unified — in
+/// that order, so a joiner that separated `I Aa` no longer blocks the `G` contraction — then,
+/// for a sequence with a `Zwnj`, the redundant breaks dropped (`redundant_zwnj.rs`; it re-runs
+/// the ZWJ filter and duplicate unification over each joined segment). Both backends fold their
+/// raw units with it, so [`Shaper::shape`] and `FontShaper::shape` compare unit for unit.
 pub(crate) fn canonical_units(raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-    collapse(&drop_redundant_zwj(raw))
+    let raw = drop_zwnj_between_joiners(raw);
+    let units = collapse(&drop_redundant_zwj(&raw));
+    if units.contains(&WrittenUnit::Zwnj) {
+        drop_redundant_zwnj(&units)
+    } else {
+        units
+    }
 }
 
 /// Flatten resolved tokens into the public shape.

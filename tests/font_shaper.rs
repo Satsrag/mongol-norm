@@ -189,17 +189,32 @@ fn joiners_at_the_edges_follow_the_shared_redundant_zwj_pass() {
 }
 
 #[test]
-fn a_zwnj_is_a_unit() {
+fn a_zwnj_is_a_unit_where_it_changes_the_ink() {
     // t a l + ZWNJ + a: the break makes the l final and the a isolated, and the font reports it.
     assert_eq!(raw("ᠲᠠᠯ\u{200C}ᠠ"), ["T", "A", "L", "Zwnj", "A", "A"]);
     assert_eq!(shape("ᠲᠠᠯ\u{200C}ᠠ"), ["T", "A", "L", "Zwnj", "A", "A"]);
-    // At a word edge too, as in the rule engine.
+    // At a word edge it changes nothing: the shared post-pass drops it, as the rule engine does.
     assert_eq!(raw("\u{200C}ᠪᠠ"), ["Zwnj", "B", "Aa"]);
-    assert_eq!(shape("\u{200C}ᠪᠠ"), ["Zwnj", "B", "Aa"]);
+    assert_eq!(shape("\u{200C}ᠪᠠ"), ["B", "Aa"]);
     assert_eq!(shape("\u{200C}"), ["Zwnj"]);
+    // b + ZWJ ZWNJ ZWJ + o: the two ZWJs join b and o again, the font ligates them across the
+    // break, and HarfBuzz moves all three controls after the ligature; `shape` drops them.
+    let glyphs = FontShaper::new()
+        .shape_glyphs("ᠪ\u{200D}\u{200C}\u{200D}ᠣ")
+        .unwrap();
+    assert_eq!(glyphs.len(), 4);
+    assert_eq!(glyphs[0].units, &[WrittenUnit::B, WrittenUnit::O]);
+    assert!(glyphs[1..].iter().all(|g| g.skipped));
+    assert_eq!(
+        raw("ᠪ\u{200D}\u{200C}\u{200D}ᠣ"),
+        ["B", "O", "Zwj", "Zwnj", "Zwj"]
+    );
+    assert_eq!(shape("ᠪ\u{200D}\u{200C}\u{200D}ᠣ"), ["B", "O"]);
     assert_like_the_engine(&[
         "\u{200C}",
         "\u{200C}\u{200C}",
+        "ᠪ\u{200D}\u{200C}\u{200D}ᠣ",
+        "ᠲᠻ\u{200D}\u{200C}\u{200D}ᠤᠵᠺᠡ",
         "ᠪᠠ\u{200C}",
         "ᠲᠠᠯ\u{200C}ᠠ",
         "ᠨᠠ\u{200C}ᠪ",

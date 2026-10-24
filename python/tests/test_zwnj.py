@@ -2,11 +2,12 @@
 """
 ZWNJ (U+200C) as an in-word joining break (issue #34): the letter before it is
 written fina/isol, the letter after it init/isol, the context rules look through
-it as the reference font does (Kushim-Jiang/mongolian#58), and the public shape
-keeps the break as a Zwnj unit. The Rust twin is tests/zwnj.rs; the table there
+it as the reference font does (Kushim-Jiang/mongolian#58), and a break that
+changes no glyph is dropped from the public shape by the same written-unit
+machinery as a redundant ZWJ. The Rust twin is tests/zwnj.rs; the table there
 is the one of the pull request and was cross-checked against HarfBuzz with the
 bundled hudum.otf.
-ZWNJ(U+200C,#34):打断连写但上下文规则穿过它;公开 shape 保留每个 ZWNJ。
+ZWNJ(U+200C,#34):打断连写但上下文规则穿过它;不改变字形的 ZWNJ 从公开 shape 中去掉。
 """
 import random
 import unittest
@@ -37,25 +38,25 @@ def _hex(text):
 # (aliases, shape with the ZWNJ(s), shape without them)
 TABLE = [
     # word edges
-    ('zwnj b a', 'Zwnj+B+Aa', 'B+Aa'),
-    ('b a zwnj', 'B+Aa+Zwnj', 'B+Aa'),
-    ('zwnj n a', 'Zwnj+N+A', 'N+A'),
-    ('n a zwnj', 'N+A+Zwnj', 'N+A'),
-    ('zwnj a', 'Zwnj+A+A', 'A+A'),
-    ('a zwnj', 'A+A+Zwnj', 'A+A'),
+    ('zwnj b a', 'B+Aa', 'B+Aa'),
+    ('b a zwnj', 'B+Aa', 'B+Aa'),
+    ('zwnj n a', 'N+A', 'N+A'),
+    ('n a zwnj', 'N+A', 'N+A'),
+    ('zwnj a', 'A+A', 'A+A'),
+    ('a zwnj', 'A+A', 'A+A'),
     # control-only input
     ('zwnj', 'Zwnj', ''),
-    ('zwnj zwnj', 'Zwnj+Zwnj', ''),
+    ('zwnj zwnj', 'Zwnj', ''),
     ('zwnj fvs1', 'Zwnj', ''),
-    ('zwnj mvs', 'Zwnj+Mvs', 'Mvs'),
-    ('mvs zwnj', 'Mvs+Zwnj', 'Mvs'),
+    ('zwnj mvs', 'Mvs', 'Mvs'),
+    ('mvs zwnj', 'Mvs', 'Mvs'),
     ('zwj zwnj', 'Zwnj', 'Zwj'),
     ('zwnj zwj', 'Zwnj', 'Zwj'),
     # repeated breaks
-    ('a zwnj zwnj b', 'A+A+Zwnj+Zwnj+B', 'A+A+B'),
-    ('zwnj b zwnj', 'Zwnj+B+Zwnj', 'B'),
+    ('a zwnj zwnj b', 'A+A+Zwnj+B', 'A+A+B'),
+    ('zwnj b zwnj', 'B', 'B'),
     # between letters
-    ('b zwnj b a', 'B+Zwnj+B+Aa', 'B+B+Aa'),
+    ('b zwnj b a', 'B+B+Aa', 'B+B+Aa'),
     ('a o zwnj b a', 'A+A+U+Zwnj+B+Aa', 'A+A+O+B+Aa'),
     ('b zwnj a', 'B+Zwnj+A+A', 'B+Aa'),
     ('n zwnj a', 'N+Zwnj+A+A', 'N+A'),
@@ -68,42 +69,42 @@ TABLE = [
     ('a zwnj b zwnj a', 'A+A+Zwnj+B+Zwnj+A+A', 'A+A+B+Aa'),
     ('a zwnj n zwnj a', 'A+A+Zwnj+N+Zwnj+A+A', 'A+A+N+A'),
     # beside an MVS / NNBSP
-    ('mvs zwnj a', 'Mvs+Zwnj+Aa', 'Mvs+Aa'),
-    ('zwnj mvs a', 'Zwnj+Mvs+Aa', 'Mvs+Aa'),
-    ('a zwnj mvs a', 'A+A+Zwnj+Mvs+Aa', 'A+A+Mvs+Aa'),
-    ('a zwnj nnbsp a', 'A+A+Zwnj+Mvs+Aa', 'A+A+Mvs+Aa'),
-    ('mvs zwnj i', 'Mvs+Zwnj+I', 'Mvs+I'),
-    ('mvs zwnj u n', 'Mvs+Zwnj+O+A', 'Mvs+O+A'),
-    ('mvs zwnj y i n', 'Mvs+Zwnj+I+I+A', 'Mvs+I+I+A'),
-    ('n zwnj mvs a', 'N+Zwnj+Mvs+Aa', 'N+Mvs+Aa'),
-    ('a n zwnj mvs a', 'A+A+N+Zwnj+Mvs+Aa', 'A+A+N+Mvs+Aa'),
-    ('s g zwnj mvs a', 'S+H+Zwnj+Mvs+Aa', 'S+H+Mvs+Aa'),
-    ('g zwnj mvs a', 'Hx+Zwnj+Mvs+Aa', 'Hx+Mvs+Aa'),
-    ('t a l mvs zwnj a', 'T+A+L+Mvs+Zwnj+Aa', 'T+A+L+Mvs+Aa'),
+    ('mvs zwnj a', 'Mvs+Aa', 'Mvs+Aa'),
+    ('zwnj mvs a', 'Mvs+Aa', 'Mvs+Aa'),
+    ('a zwnj mvs a', 'A+A+Mvs+Aa', 'A+A+Mvs+Aa'),
+    ('a zwnj nnbsp a', 'A+A+Mvs+Aa', 'A+A+Mvs+Aa'),
+    ('mvs zwnj i', 'Mvs+I', 'Mvs+I'),
+    ('mvs zwnj u n', 'Mvs+O+A', 'Mvs+O+A'),
+    ('mvs zwnj y i n', 'Mvs+I+I+A', 'Mvs+I+I+A'),
+    ('n zwnj mvs a', 'N+Mvs+Aa', 'N+Mvs+Aa'),
+    ('a n zwnj mvs a', 'A+A+N+Mvs+Aa', 'A+A+N+Mvs+Aa'),
+    ('s g zwnj mvs a', 'S+H+Mvs+Aa', 'S+H+Mvs+Aa'),
+    ('g zwnj mvs a', 'Hx+Mvs+Aa', 'Hx+Mvs+Aa'),
+    ('t a l mvs zwnj a', 'T+A+L+Mvs+Aa', 'T+A+L+Mvs+Aa'),
     # a break inside a particle ends it
     ('mvs i zwnj y a r', 'Mvs+I+Zwnj+Y+A+R', 'Mvs+I+I+A+R'),
     ('mvs y zwnj i n', 'Mvs+Y+Zwnj+A+I+A', 'Mvs+I+I+A'),
     ('mvs u zwnj u', 'Mvs+U+Zwnj+A+O', 'Mvs+O+U'),
     ('a mvs d u zwnj r', 'A+A+Mvs+D+U+Zwnj+R', 'A+A+Mvs+D+O+R'),
     # beside a nirugu
-    ('n zwnj nirugu', 'N+Zwnj+Nirugu', 'N+Nirugu'),
-    ('zwnj nirugu i e fvs1', 'Zwnj+Nirugu+G', 'Nirugu+G'),
+    ('n zwnj nirugu', 'N+Nirugu', 'N+Nirugu'),
+    ('zwnj nirugu i e fvs1', 'Nirugu+G', 'Nirugu+G'),
     ('a zwnj nirugu b', 'A+A+Zwnj+Nirugu+B', 'A+A+Nirugu+B'),
     ('a nirugu zwnj b', 'A+A+Nirugu+Zwnj+B', 'A+A+Nirugu+B'),
     ('nirugu zwnj b', 'Nirugu+Zwnj+B', 'Nirugu+B'),
     # beside a ZWJ, both orders
-    ('b zwnj zwj a', 'B+Zwnj+Aa', 'B+Aa'),
-    ('n zwnj zwj a', 'N+Zwnj+Zwj+A', 'N+A'),
-    ('zwj zwnj n a', 'Zwnj+N+A', 'Zwj+N+A'),
-    ('n a zwnj zwj', 'N+A+Zwnj', 'N+A+Zwj'),
-    ('a zwj zwnj b a', 'A+A+Zwj+Zwnj+B+Aa', 'A+A+B+Aa'),
+    ('b zwnj zwj a', 'B+Aa', 'B+Aa'),
+    ('n zwnj zwj a', 'N+A', 'N+A'),
+    ('zwj zwnj n a', 'N+A', 'Zwj+N+A'),
+    ('n a zwnj zwj', 'N+A', 'N+A+Zwj'),
+    ('a zwj zwnj b a', 'A+A+B+Aa', 'A+A+B+Aa'),
     ('a zwj zwnj b', 'A+A+Zwj+Zwnj+B', 'A+A+B'),
     ('a zwnj zwj b', 'A+A+Zwnj+Zwj+B', 'A+A+B'),
     ('b zwj zwnj a', 'B+Zwnj+A+A', 'B+Aa'),
     # an FVS after a break selects nothing (it is the break's); one before it is the letter's
     ('a zwnj fvs1 a', 'A+A+Zwnj+A+A', 'A+A'),
     ('a fvs1 zwnj a', 'A+Zwnj+A+A', 'A+A'),
-    ('b a fvs1 zwnj', 'B+Aa+Zwnj', 'B+Aa'),
+    ('b a fvs1 zwnj', 'B+Aa', 'B+Aa'),
     # gender and harmony cross the break
     ('n ue zwnj h nirugu', 'N+Ue+Zwnj+G+Nirugu', 'N+O+I+G+Nirugu'),
     ('h zwnj oe', 'H+Zwnj+A+Ue', 'G+Ue'),
@@ -117,10 +118,10 @@ TABLE = [
     ('s g zwnj a', 'S+G+Zwnj+A+A', 'S+N+N+A'),
     ('m n oe zwnj g e', 'M+N+U+Zwnj+G+Aa', 'M+N+O+I+G+Aa'),
     # the issue's corpus
-    ('l a l a zwj zwnj p ue d', 'L+A+L+A+Zwj+Zwnj+P+O+I+O+A', 'L+A+L+A+P+O+O+A'),
-    ('t a ng zwj zwnj p u r u m', 'T+A+A+G+Zwj+Zwnj+P+O+R+O+M', 'T+A+A+G+P+O+R+O+M'),
-    ('t i l zwj zwnj p u r u g', 'T+I+L+Zwj+Zwnj+P+O+R+O+H', 'T+I+L+P+O+R+O+H'),
-    ('s e ng zwj zwnj p u r u m', 'S+A+A+G+Zwj+Zwnj+P+O+R+O+M', 'S+A+A+G+P+O+R+O+M'),
+    ('l a l a zwj zwnj p ue d', 'L+A+L+A+P+O+I+O+A', 'L+A+L+A+P+O+O+A'),
+    ('t a ng zwj zwnj p u r u m', 'T+A+A+G+P+O+R+O+M', 'T+A+A+G+P+O+R+O+M'),
+    ('t i l zwj zwnj p u r u g', 'T+I+L+P+O+R+O+H', 'T+I+L+P+O+R+O+H'),
+    ('s e ng zwj zwnj p u r u m', 'S+A+A+G+P+O+R+O+M', 'S+A+A+G+P+O+R+O+M'),
     ('l a l a zwnj p ue d', 'L+A+L+A+Zwnj+P+O+I+O+A', 'L+A+L+A+P+O+O+A'),
     ('t a ng zwnj p u r u m', 'T+A+A+G+Zwnj+P+O+R+O+M', 'T+A+A+G+P+O+R+O+M'),
     ('t i l zwnj p u r u g', 'T+I+L+Zwnj+P+O+R+O+H', 'T+I+L+P+O+R+O+H'),
@@ -133,39 +134,36 @@ class _Base(unittest.TestCase):
         cls.s = MongolianShaper(locale='MNG')
 
 
-class TestEveryBreakStays(_Base):
+class TestDropAndKeepTable(_Base):
     def test_table(self):
         for aliases, with_zwnj, without in TABLE:
             with self.subTest(aliases=aliases):
                 text = _mgl(aliases)
                 plain = text.replace(ZWNJ, '')
-                breaks = text.count(ZWNJ)
                 self.assertEqual(self.s.shape_str(text), with_zwnj)
                 self.assertEqual(self.s.shape_str(plain), without)
-                self.assertEqual(with_zwnj.split('+').count('Zwnj'), breaks)
+                kept = 'Zwnj' in with_zwnj.split('+')
+                if kept:
+                    self.assertNotEqual(self.s.shape(text), self.s.shape(plain))
                 self.assertEqual(self.s._shape_raw(text).count('Zwnj'), text.count(ZWNJ))
                 self.assertEqual(self.s.trace(text)['shape'], self.s.shape(text))
 
 
 class TestIssueCorpus(_Base):
-    def test_first_word_keeps_its_marked_ue(self):
+    def test_first_word_keeps_its_marked_ue_but_no_control(self):
         word = '\u182F\u1820\u182F\u1820\u200D\u200C\u182B\u1826\u1833'
         self.assertEqual(self.s._shape_raw(word),
                          ['L', 'A', 'L', 'A', 'Zwj', 'Zwnj', 'P', 'O', 'I', 'Dd'])
-        self.assertEqual(self.s.shape(word),
-                         ['L', 'A', 'L', 'A', 'Zwj', 'Zwnj', 'P', 'O', 'I', 'O', 'A'])
+        self.assertEqual(self.s.shape(word), ['L', 'A', 'L', 'A', 'P', 'O', 'I', 'O', 'A'])
 
-    def test_other_words(self):
-        for word, shape in [
-            ('\u1832\u1820\u1829\u200D\u200C\u182B\u1824\u1837\u1824\u182E',
-             'T+A+A+G+Zwj+Zwnj+P+O+R+O+M'),
-            ('\u1832\u1822\u182F\u200D\u200C\u182B\u1824\u1837\u1824\u182D',
-             'T+I+L+Zwj+Zwnj+P+O+R+O+H'),
-            ('\u1830\u1821\u1829\u200D\u200C\u182B\u1824\u1837\u1824\u182E',
-             'S+A+A+G+Zwj+Zwnj+P+O+R+O+M'),
+    def test_other_words_shape_like_their_plain_spelling(self):
+        for word, plain in [
+            ('\u1832\u1820\u1829\u200D\u200C\u182B\u1824\u1837\u1824\u182E', 't a ng p u r u m'),
+            ('\u1832\u1822\u182F\u200D\u200C\u182B\u1824\u1837\u1824\u182D', 't i l p u r u g'),
+            ('\u1830\u1821\u1829\u200D\u200C\u182B\u1824\u1837\u1824\u182E', 's e ng p u r u m'),
         ]:
             with self.subTest(word=_hex(word)):
-                self.assertEqual(self.s.shape_str(word), shape)
+                self.assertTrue(self.s.same_shape(word, _mgl(plain)))
 
 
 class TestContextCrossesTheBreak(_Base):
@@ -193,9 +191,9 @@ class TestContextCrossesTheBreak(_Base):
         self.assertTrue(self.s.same_shape(_mgl('a zwnj fvs1 a'), _mgl('a zwnj a')))
         self.assertEqual(self.s.shape_detailed(_mgl('a fvs1 zwnj a'))[0]['fvs'], '+FVS1')
         # GB.A skips the break and resets the marked o, as in the font.
-        self.assertEqual(self.s.shape_str(_mgl('t o zwnj')), 'T+O+Zwnj')
-        self.assertEqual(self.s.shape_str(_mgl('t o zwnj fvs3')), 'T+U+Zwnj')
-        self.assertEqual(self.s.shape_str(_mgl('sh ue zwnj fvs3 nnbsp o')), 'Sh+U+Zwnj+Mvs+A+O')
+        self.assertEqual(self.s.shape_str(_mgl('t o zwnj')), 'T+O')
+        self.assertEqual(self.s.shape_str(_mgl('t o zwnj fvs3')), 'T+U')
+        self.assertEqual(self.s.shape_str(_mgl('sh ue zwnj fvs3 nnbsp o')), 'Sh+U+Mvs+A+O')
 
 
 class TestFollowsTheFont(_Base):
@@ -203,34 +201,39 @@ class TestFollowsTheFont(_Base):
     reference font does (the Rust twin is FONT_CASES in tests/zwnj.rs)."""
     CASES = [
         # An FVS a ZWNJ carries counts for the FVS-reading lookups, which skip the ZWNJ.
-        ('t o zwnj fvs3', 'T+U+Zwnj'),
-        ('t o zwnj', 'T+O+Zwnj'),
-        ('d e zwnj fvs3', 'T+A+Zwnj'),
-        ('d e zwnj', 'D+A+Zwnj'),
-        ('a j nnbsp a zwnj fvs4', 'A+A+J+Mvs+Aa+Zwnj'),
-        ('a g mvs zwnj fvs1 a zwnj fvs3', 'A+A+Hx+Mvs+Zwnj+Aa+Zwnj'),
-        ('a n mvs zwnj fvs1 a zwnj fvs3', 'A+A+N+Mvs+Zwnj+Aa+Zwnj'),
-        ('a j nnbsp a zwnj', 'A+A+I+Mvs+Aa+Zwnj'),
-        ('nnbsp ue zwnj fvs3', 'Mvs+A+Ue+Zwnj'),
-        ('nnbsp ue zwnj', 'Mvs+U+Zwnj'),
-        ('mvs y i n zwnj fvs1', 'Mvs+Y+I+A+Zwnj'),
-        ('mvs y i n zwnj', 'Mvs+I+I+A+Zwnj'),
-        ('mvs i zwnj zwj fvs2', 'Mvs+A+I+Zwnj'),
+        ('t o zwnj fvs3', 'T+U'),
+        ('t o zwnj', 'T+O'),
+        ('d e zwnj fvs3', 'T+A'),
+        ('d e zwnj', 'D+A'),
+        ('a j nnbsp a zwnj fvs4', 'A+A+J+Mvs+Aa'),
+        ('a g mvs zwnj fvs1 a zwnj fvs3', 'A+A+Hx+Mvs+Aa'),
+        ('a n mvs zwnj fvs1 a zwnj fvs3', 'A+A+N+Mvs+Aa'),
+        ('a j nnbsp a zwnj', 'A+A+I+Mvs+Aa'),
+        ('nnbsp ue zwnj fvs3', 'Mvs+A+Ue'),
+        ('nnbsp ue zwnj', 'Mvs+U'),
+        ('mvs y i n zwnj fvs1', 'Mvs+Y+I+A'),
+        ('mvs y i n zwnj', 'Mvs+I+I+A'),
+        ('mvs i zwnj zwj fvs2', 'Mvs+A+I'),
         # A particle follows the joining chain: two ZWJs join across a ZWNJ.
-        ('u zwnj zwj u', 'A+O+Zwnj+U'),
-        ('a r nirugu zwnj ue ue', 'A+A+R+Nirugu+Zwnj+O+U'),
+        ('u zwj zwnj zwj u', 'O+U'),
+        ('u zwnj zwj u', 'A+O+U'),
+        ('mvs y zwj zwnj zwj i', 'Mvs+I+I'),
+        ('a r nirugu zwnj ue ue', 'A+A+R+Nirugu+O+U'),
+        # A ZWNJ between two joiners changes no position; the font ligates across it.
+        ('b zwj zwnj zwj ee zwj zwnj', 'B+W+Zwj'),
+        ('t k zwj zwnj zwj u j k2 e', 'T+K+O+J+K2+Aa'),
         # post_bowed reads a final or isolated consonant before its FVS applies.
-        ('g fvs2 zwnj zwj e', 'G+Zwnj+Zwj+A'),
+        ('g fvs2 zwnj zwj e', 'G+A'),
         ('a b fvs1 zwnj zwj e', 'A+A+B2+Zwnj+Aa'),
         ('a g fvs1 zwnj zwj e', 'A+A+H+Zwnj+Zwj+A'),
         ('a g fvs2 zwnj zwj o', 'A+A+G+Zwnj+Zwj+O'),
         ('t g fvs2 zwnj nirugu o', 'T+G+Zwnj+Nirugu+O'),
         # The lookups that need an MVS beside a letter look through a run that holds a ZWNJ.
-        ('a n mvs zwj zwnj a', 'A+A+N+Mvs+Zwnj+Aa'),
-        ('a n mvs zwnj zwj a', 'A+A+A+Mvs+Zwnj+Zwj+A'),
-        ('e g mvs zwj zwnj e', 'A+H+Mvs+Zwnj+Aa'),
-        ('a y a g mvs zwj zwnj a', 'A+A+Y+A+Hx+Mvs+Zwnj+Aa'),
-        ('i g sh i n fvs2 mvs zwnj fvs2 zwnj zwnj a', 'A+I+A+A+S+I+A+Mvs+Zwnj+Zwnj+Zwnj+Aa'),
+        ('a n mvs zwj zwnj a', 'A+A+N+Mvs+Aa'),
+        ('a n mvs zwnj zwj a', 'A+A+A+Mvs+Zwj+A'),
+        ('e g mvs zwj zwnj e', 'A+H+Mvs+Aa'),
+        ('a y a g mvs zwj zwnj a', 'A+A+Y+A+Hx+Mvs+Aa'),
+        ('i g sh i n fvs2 mvs zwnj fvs2 zwnj zwnj a', 'A+I+A+A+S+I+A+Mvs+Aa'),
     ]
 
     def test_cases(self):
@@ -241,12 +244,18 @@ class TestFollowsTheFont(_Base):
 
 class TestConfluence(_Base):
     GROUPS = [
-        # Spellings that differ only in what the shape folds away: a ZWJ beside the
-        # break with nothing to join, an FVS the break carries, an NNBSP for the MVS.
-        ['n a zwnj', 'n a zwnj zwj', 'n a zwnj fvs1'],
-        ['zwnj n a', 'zwj zwnj n a'],
-        ['a zwnj a', 'a zwnj fvs1 a'],
-        ['mvs zwnj a', 'nnbsp zwnj a'],
+        ['n a', 'zwnj n a', 'n a zwnj', 'zwj zwnj n a', 'n a zwnj zwj', 'n zwnj zwj a',
+         'zwnj zwnj n a zwnj'],
+        ['b a', 'zwnj b a', 'b a zwnj', 'b zwnj zwj a', 'b a fvs1 zwnj', 'zwj b a zwnj'],
+        ['b b a', 'b zwnj b a', 'b zwj zwnj b a', 'zwnj b zwnj b a'],
+        ['a b a', 'a zwj zwnj b a', 'a zwj zwj b a', 'a zwj zwnj zwj b a',
+         'a zwj zwnj zwnj zwj b a'],
+        # A break between two joiners breaks nothing: the shape is the joined word.
+        ['b o', 'b zwj zwnj zwj o'],
+        ['b nirugu nirugu o', 'b nirugu zwnj nirugu o'],
+        ['mvs a', 'mvs zwnj a', 'zwnj mvs a', 'mvs zwnj zwnj a', 'nnbsp zwnj a'],
+        ['s g mvs a', 's g zwnj mvs a', 's g zwnj zwj mvs a'],
+        ['l a l a zwj zwnj p ue d', 'l a l a p o i fvs3 o a fvs2'],
     ]
 
     def test_equivalent_spellings_converge(self):
@@ -277,6 +286,7 @@ class TestFuzz(_Base):
             with self.subTest(text=_hex(text)):
                 shape = self.s.shape(text)
                 self.assertEqual(self.s._shape_raw(text).count('Zwnj'), text.count(ZWNJ))
+                self.assertNotIn(('Zwnj', 'Zwnj'), list(zip(shape, shape[1:])))
                 self.assertEqual(self.s.trace(text)['shape'], shape)
 
 

@@ -51,7 +51,8 @@
 //!
 //! A `Zwnj` is a segment edge on both sides for the same reason an `Mvs` is: the letter before it
 //! takes its `fina` (or `isol`) form and the letter after it its `init` (or `isol`) form, so a
-//! ZWJ beside it asks the word-edge question.
+//! ZWJ beside it asks the word-edge question. The ZWNJ filter itself lives in
+//! `redundant_zwnj.rs`, which reuses the four edge tables through [`zwnj_join_keeps_shape`].
 //!
 //! The pass is a fixed point of left-to-right single removals, so `Zwj B Zwj` first loses the
 //! leading joiner (`B:medi` ≡ `B:init`), then — now a lone `B:init` — the trailing one
@@ -151,6 +152,50 @@ fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
         // Only edges or the word boundary around it: the joiner has nothing to join.
         _ => true,
     }
+}
+
+/// Would taking the `Zwnj` at `units[index]` out — so that its two sides join — leave every
+/// letter unit at the same shape? Only the units right beside the break change form, and only
+/// when the other side is something they would join: a letter unit or a joiner (`Nirugu`,
+/// `Zwj`). The unit before the break goes `fina` → `medi`, or `isol` → `init` when it is alone
+/// in its segment; the unit after it goes `init` → `medi`, or `isol` → `fina` when alone —
+/// the very pairs the four edge tables were reviewed for, so this is one question per side with
+/// the same lists `is_redundant` uses for a ZWJ at that edge.
+///
+/// The caller has already established that the unit *names* are the same with and without the
+/// break; this settles whether the changed joining positions are accepted as the same ink.
+pub(crate) fn zwnj_join_keeps_shape(units: &[WrittenUnit], index: usize) -> bool {
+    debug_assert_eq!(units[index], Zwnj);
+    let prev = index.checked_sub(1).map(|i| units[i]);
+    let next = units.get(index + 1).copied();
+    let joins = |unit: Option<WrittenUnit>| unit.is_some_and(|unit| !is_edge(unit));
+    if let Some(p) = prev.filter(|&p| is_letter(p)) {
+        if joins(next) {
+            let alone = index < 2 || is_edge(units[index - 2]);
+            let same_shape = if alone {
+                FINAL_ALONE
+            } else {
+                FINAL_AFTER_LETTER
+            };
+            if !same_shape.contains(&p) {
+                return false;
+            }
+        }
+    }
+    if let Some(n) = next.filter(|&n| is_letter(n)) {
+        if joins(prev) {
+            let alone = units.get(index + 2).is_none_or(|&unit| is_edge(unit));
+            let same_shape = if alone {
+                INITIAL_ALONE
+            } else {
+                INITIAL_BEFORE_LETTER
+            };
+            if !same_shape.contains(&n) {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 #[cfg(test)]
@@ -278,6 +323,29 @@ mod tests {
         assert_eq!(drop(&[N, A, Zwnj, Zwj]), [N, A, Zwnj]);
         assert_eq!(drop(&[Zwnj, Zwj, Zwnj]), [Zwnj, Zwnj]);
         assert_eq!(drop(&[Mvs, Zwj, Zwnj]), [Mvs, Zwnj]);
+    }
+
+    #[test]
+    fn zwnj_join_follows_the_edge_tables() {
+        // Both sides change: `B:isol` → `B:init` and `Aa:isol` → `Aa:fina`, both reviewed.
+        assert!(zwnj_join_keeps_shape(&[B, Zwnj, Aa], 1));
+        // `A:isol` → `A:fina` is not.
+        assert!(!zwnj_join_keeps_shape(&[B, Zwnj, A], 1));
+        // Letters on the far sides: `B:fina` → `B:medi` is not reviewed as the same shape…
+        assert!(!zwnj_join_keeps_shape(&[A, B, Zwnj, B, Aa], 2));
+        // …but `O:fina` → `O:medi` and `B:init` → `B:medi` are.
+        assert!(zwnj_join_keeps_shape(&[A, O, Zwnj, B, Aa], 2));
+        // A joiner on the far side joins the letter too: `N:isol` → `N:init` (reviewed).
+        assert!(zwnj_join_keeps_shape(&[N, Zwnj, Nirugu], 1));
+        assert!(zwnj_join_keeps_shape(&[N, Zwnj, Zwj, A], 1));
+        // A kept ZWJ beside the break already joins its letter: nothing changes on that side.
+        assert!(zwnj_join_keeps_shape(&[A, Zwj, Zwnj, B, Aa], 2));
+        // An edge or the word boundary on the other side: nothing changes at all.
+        assert!(zwnj_join_keeps_shape(&[Zwnj, N, A], 0));
+        assert!(zwnj_join_keeps_shape(&[N, A, Zwnj], 2));
+        assert!(zwnj_join_keeps_shape(&[A, A, Zwnj, Mvs, Aa], 2));
+        assert!(zwnj_join_keeps_shape(&[Mvs, Zwnj, Aa], 1));
+        assert!(zwnj_join_keeps_shape(&[A, A, Zwnj, Zwnj, B], 2));
     }
 
     #[test]
