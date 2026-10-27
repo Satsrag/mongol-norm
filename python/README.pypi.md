@@ -68,7 +68,9 @@ shaper.canonical_version                    # → 'mng-canonical/4'
 - `shape` / `normalize` take **one word** and raise `ValueError` on non-Mongolian characters; use
   `normalize_text` for sentences and mixed-script text.
 - ZWNJ (U+200C) is accepted and every break is preserved, including leading, trailing,
-  repeated and control-only breaks. `normalize_text` keeps shaping context across each break.
+  repeated and control-only breaks. The whole word supplies the target shape; the shape is
+  then split at `Zwnj` and each segment encoded independently. Each segment must preserve
+  its target shape on its own, and the rejoined word must preserve the complete shape.
 - A shape the built-in table cannot encode raises `NormalizationFallbackError` (a `ValueError`,
   with `.text` and `.written_units`). Pass `strict=False` to get the input back unchanged instead.
 - Locale: `"MNG"` (Hudum), the only one. Todo, Sibe and Manchu are not supported.

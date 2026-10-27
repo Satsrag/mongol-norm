@@ -51,7 +51,8 @@ impl Shaper {
     /// [`Shaper::shape`], so `[L, I, Zwj, Aa]` is encoded as `L G`, exactly like the text
     /// `ᠯᠢ\u{200D}ᠡ᠋`. The result is accepted only if it reshapes to that folded sequence.
     ///
-    /// Every `Zwnj` is preserved and splits the joining chain. An empty sequence returns `""`.
+    /// Every `Zwnj` is preserved. Each segment between breaks is encoded independently and must
+    /// reshape to its target even on its own. An empty sequence returns `""`.
     ///
     /// # Errors
     ///

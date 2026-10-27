@@ -55,7 +55,10 @@ shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 
 The input must be an ordered `Sequence[str]` using the same unit vocabulary
 returned by `shape()`. Every written-unit name is PascalCase; structural controls
-are `Mvs`, `Nirugu`, `Zwj`, and `Zwnj`. Every `Zwnj` is encoded as U+200C.
+are `Mvs`, `Nirugu`, `Zwj`, and `Zwnj`. Every `Zwnj` is encoded as U+200C. After
+folding the request, split it at `Zwnj` and encode each segment independently. Each
+segment must reshape to its exact target on its own, and the rejoined output must
+reshape to the complete target.
 The nine duplicate encodings (see the normalize algorithm below) are still *accepted* here and unified before encoding, so data
 captured from an older `shape()` keeps working; they simply never come back out of
 `shape()`. Old lowercase and all-uppercase control aliases
@@ -246,7 +249,7 @@ Used by step 3 of the shaping pipeline. Match each MVS-headed segment against th
 The shape algorithm assigns a `condition` to each token, then looks up which FVS variant for that `(cp, position)` has the condition in its `conditions` list. The condition vocabulary for MNG is:
 
 ```
-chachlag              — suffix form after MVS
+chachlag              — chachlag A/E form after MVS
 chachlag_onset        — start of a chachlag
 chachlag_onset_gb     — GB-specific chachlag onset
 onset                 — word-initial consonant
@@ -272,7 +275,7 @@ This document is **data only**. For the algorithm, see:
 
 The 5 steps summarized:
 
-1. **Chachlag** — tag letters after MVS with suffix-form conditions.
+1. **Chachlag** — tag A/E after MVS with chachlag conditions.
 2. **Syllabic** — assign per-letter conditions from phonological context (vowel class, neighboring consonants, word position).
 3. **Particle** — match MVS-headed segments against the `particles` dictionary; tag hit indices with `"particle"`.
 4. **Devsger** — `i` in medial position after a vowel gets `"vowel_devsger"` (renders as double tooth).
@@ -351,7 +354,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
-1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ, ZWNJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj`/`Zwnj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. `Zwnj` breaks joining, never pads positions like a joiner, and does not trigger the MVS suffix rule. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
+1. `shape()` the whole word to obtain its target written units (needs the shape rules). Structural characters — MVS, nirugu, ZWJ, ZWNJ — appear in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj`/`Zwnj` tokens. Context rules may look through ZWNJ while resolving this target. The shape-to-Unicode encoder works from these resolved units, not from independently reshaped pieces of the original text. Structural tokens divide letter chains; a letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`). `Zwnj` never pads joining positions.
 1a. **Unify the duplicate encodings.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
 
    First **expand**, in one left-to-right pass over each chain:
@@ -377,11 +380,16 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
    Initial/final `H`/`Hx`, a lone `Cr:isol`, and a lone `A` are unchanged. One expansion pass suffices: neither direction emits expansion targets or exposes initial/final `H`/`Hx` as medial. All contractions end the chain; `A/B2/G` cannot contract again, and a contracted `Aa` follows a bowed written unit rather than `A/O/I`. This proves idempotence without repeated deletion. In particular `Dd Aa → O A Aa` cannot then contract: `O` is not a bowed written unit. See the 168 421-input exhaustion and context regressions in `src/duplicates.rs`.
 
    UTN #57 and GB/T 25914-2023 keep all nine as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-unification sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs).
-2. For each chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
+2. Split the canonical target at `Zwnj`, retaining empty segments at edges and repeated breaks. Encode each segment independently, without passing context across ZWNJ. Within a segment, retain the existing MVS suffix and chachlag rules and split at the remaining structural tokens. For each letter chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
-4. Verify by reshaping. The table is total over the reference corpus (FVS-first selection leaves no gap chains); if a shape ever misses the table, fail closed (raise), or return the input unchanged only when the caller opted in (`strict=False` / `--allow-fallback`); never mis-encode.
+4. Verify each encoded segment independently against its exact target shape, reinsert one U+200C per `Zwnj`, then verify the complete output against the whole target. No segment may depend on a neighbour across ZWNJ to display correctly. If a segment or the complete result cannot preserve its target, strict normalization raises a fallback; lenient normalization (`strict=False` / `--allow-fallback`) returns the complete original word, and unit input reports no canonical encoding. No partial output is returned.
 
-Full reference: [`src/normalize.rs`](../src/normalize.rs) — `canonical_for_shape`, `unit_encode_chain`, `unit_partition`, `apply_velar_fem`.
+MVS suffix encoding uses the already-resolved suffix shape independently, then reattaches MVS
+and verifies in context. For example, `mvs y i n` gives `Mvs I I A`, and the canonical suffix
+still displays as `I I A` without MVS. MVS chachlag has a separate rule: `Aa` directly after
+MVS is encoded as bare `a`. Both rules remain within each ZWNJ segment.
+
+Full reference: [`src/normalize.rs`](../src/normalize.rs) — `canonical_for_shape`, `canonical_for_segment`, `unit_encode_chain`, `unit_partition`, `apply_velar_fem`.
 
 ---
 

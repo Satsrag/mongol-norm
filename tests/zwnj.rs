@@ -364,6 +364,15 @@ fn assert_normalization(shaper: &Shaper, text: &str) -> String {
     assert_eq!(shaper.normalize_text(text).unwrap(), normalized);
     assert_eq!(shaper.normalize_allow_fallback(text).unwrap(), normalized);
     assert_eq!(shaper.normalize_written_units(&units).unwrap(), normalized);
+    // Splitting happens after shaping: each output segment must preserve its already-resolved
+    // target, with no letters or controls supplied from across the ZWNJ.
+    let targets: Vec<_> = units.split(|unit| *unit == WrittenUnit::Zwnj).collect();
+    let segments: Vec<_> = normalized.split(ZWNJ).collect();
+    assert_eq!(segments.len(), targets.len());
+    for (segment, target) in segments.into_iter().zip(targets) {
+        assert_eq!(shaper.shape(segment).unwrap(), target, "{}", hex(text));
+        assert_eq!(shaper.normalize_written_units(target).unwrap(), segment);
+    }
     normalized
 }
 
@@ -397,12 +406,21 @@ fn existing_table_gap_keeps_the_error_contract_with_or_without_a_break() {
 }
 
 #[test]
-fn text_normalization_keeps_context_across_breaks() {
+fn parsed_shape_is_encoded_independently_across_breaks() {
     let shaper = shaper();
     assert_eq!(shaper.normalize_text("a\u{200C}b").unwrap(), "a\u{200C}b");
     let word = mgl("n ue zwnj h nirugu");
     let normalized = assert_normalization(&shaper, &word);
-    // Normalizing the sides independently loses the feminine context of h.
+    let (left, right) = normalized.split_once(ZWNJ).unwrap();
+    assert_eq!(
+        shaper.shape(left).unwrap(),
+        [WrittenUnit::N, WrittenUnit::Ue]
+    );
+    assert_eq!(
+        shaper.shape(right).unwrap(),
+        [WrittenUnit::G, WrittenUnit::Nirugu]
+    );
+    // Normalizing the original Unicode segments independently loses the feminine context of h.
     let split = word
         .split(ZWNJ)
         .map(|part| shaper.normalize(part).unwrap())
@@ -416,6 +434,44 @@ fn text_normalization_keeps_context_across_breaks() {
         shaper.normalize_text_allow_fallback(&mixed).unwrap(),
         expected
     );
+}
+
+#[test]
+fn zwnj_segments_use_the_same_standalone_encoding_as_an_mvs_suffix() {
+    let shaper = shaper();
+    let suffix = [WrittenUnit::I, WrittenUnit::I, WrittenUnit::A];
+    let encoded_suffix = shaper.normalize_written_units(&suffix).unwrap();
+    let mvs = assert_normalization(&shaper, &mgl("mvs y i n"));
+    assert_eq!(mvs, format!("\u{180E}{encoded_suffix}"));
+    for aliases in ["mvs zwnj y i n", "mvs zwnj zwnj y i n"] {
+        let text = mgl(aliases);
+        let normalized = assert_normalization(&shaper, &text);
+        assert_eq!(normalized.rsplit(ZWNJ).next().unwrap(), encoded_suffix);
+    }
+}
+
+#[test]
+fn suffix_before_a_break_does_not_depend_on_the_following_segment() {
+    let shaper = shaper();
+    let text = mgl("nnbsp u t zwj fvs1 zwnj zwnj r");
+    let normalized = assert_normalization(&shaper, &text);
+    // Encoding with the following segment as context used to choose a spelling whose
+    // standalone suffix had D instead of the requested T. Keep T even without that context.
+    let first = normalized.split(ZWNJ).next().unwrap();
+    assert_eq!(shaper.shape_str(first).unwrap(), "Mvs+A+O+T+Zwj");
+}
+
+#[test]
+fn an_unencodable_segment_never_returns_a_partial_word() {
+    let shaper = shaper();
+    let gap = mgl("a j nnbsp a zwnj fvs4");
+    // A successful segment on either side must not hide failure of another segment.
+    for text in [
+        format!("{}\u{200C}{gap}", mgl("b")),
+        format!("{gap}\u{200C}{}", mgl("b")),
+    ] {
+        assert_table_gap(&shaper, &text);
+    }
 }
 
 #[test]

@@ -141,6 +141,17 @@ class _Base(unittest.TestCase):
         self.assertEqual(self.s.normalize_text(text), normalized)
         self.assertEqual(self.s.normalize(text, strict=False), normalized)
         self.assertEqual(self.s.normalize_written_units(units), normalized)
+        targets = [[]]
+        for unit in units:
+            if unit == 'Zwnj':
+                targets.append([])
+            else:
+                targets[-1].append(unit)
+        segments = normalized.split(ZWNJ)
+        self.assertEqual(len(segments), len(targets))
+        for segment, target in zip(segments, targets):
+            self.assertEqual(self.s.shape(segment), target)
+            self.assertEqual(self.s.normalize_written_units(target), segment)
         return normalized
 
     def assert_table_gap(self, text):
@@ -290,16 +301,39 @@ class TestConfluence(_Base):
 
 
 class TestApis(_Base):
-    def test_text_normalization_keeps_context_across_breaks(self):
+    def test_parsed_shape_is_encoded_independently_across_breaks(self):
         self.assertEqual(self.s.normalize_text('a\u200Cb'), 'a\u200Cb')
         word = _mgl('n ue zwnj h nirugu')
         normalized = self.assert_normalization(word)
+        left, right = normalized.split(ZWNJ)
+        self.assertEqual(self.s.shape(left), ['N', 'Ue'])
+        self.assertEqual(self.s.shape(right), ['G', 'Nirugu'])
         split = ZWNJ.join(self.s.normalize(part) for part in word.split(ZWNJ))
         self.assertNotEqual(normalized, split)
         mixed = f'Hello {word}, 中文 a\u200Cb!\n{word}'
         expected = f'Hello {normalized}, 中文 a\u200Cb!\n{normalized}'
         self.assertEqual(self.s.normalize_text(mixed), expected)
         self.assertEqual(self.s.normalize_text(mixed, strict=False), expected)
+
+    def test_zwnj_segments_use_the_standalone_mvs_suffix_encoding(self):
+        encoded_suffix = self.s.normalize_written_units(['I', 'I', 'A'])
+        mvs = self.assert_normalization(_mgl('mvs y i n'))
+        self.assertEqual(mvs, '\u180E' + encoded_suffix)
+        for aliases in ['mvs zwnj y i n', 'mvs zwnj zwnj y i n']:
+            normalized = self.assert_normalization(_mgl(aliases))
+            self.assertEqual(normalized.rsplit(ZWNJ, 1)[1], encoded_suffix)
+
+    def test_unencodable_segment_never_returns_a_partial_word(self):
+        gap = _mgl('a j nnbsp a zwnj fvs4')
+        for text in [_mgl('b') + ZWNJ + gap, gap + ZWNJ + _mgl('b')]:
+            with self.subTest(text=_hex(text)):
+                self.assert_table_gap(text)
+
+    def test_suffix_before_a_break_does_not_depend_on_the_following_segment(self):
+        text = _mgl('nnbsp u t zwj fvs1 zwnj zwnj r')
+        normalized = self.assert_normalization(text)
+        # The old encoding depended on the following segment to keep T instead of D.
+        self.assertEqual(self.s.shape_str(normalized.split(ZWNJ)[0]), 'Mvs+A+O+T+Zwj')
 
     def test_existing_table_gap_with_or_without_a_break(self):
         for aliases in ['a j nnbsp a fvs4', 'a j nnbsp a zwnj fvs4']:

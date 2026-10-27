@@ -217,8 +217,12 @@ class MongolianShaper:
         单个蒙古文词的规范化编码。
 
         Every ZWNJ is preserved, including leading, trailing, repeated and
-        control-only breaks. Letters and FVS are canonically encoded by shape.
-        保留每个 ZWNJ 断点；字母和 FVS 按字形选择规范编码。
+        control-only breaks. The whole word supplies the target shape, which is
+        split at ``Zwnj`` and encoded independently per segment. Each segment
+        must preserve its target shape when displayed alone; the rejoined word
+        must preserve the complete shape. Letters and FVS may be rewritten.
+        保留每个 ZWNJ 断点；先读取整词 shape，再按 ``Zwnj`` 分段独立编码。
+        每段单独显示及拼接后的整词都保形；字母和 FVS 可改为规范编码。
 
         With ``strict=True`` (default) a shape the normalize table cannot
         encode raises :class:`NormalizationFallbackError`; with
@@ -230,9 +234,11 @@ class MongolianShaper:
     def normalize_text(self, text, strict=True):
         """
         Normalize every Mongolian word run inside free-form *text*, leaving
-        other characters untouched. ZWNJ belongs to the word run, so shaping
-        context crosses each preserved break.
+        other characters untouched. ZWNJ belongs to the word run while its
+        target shape is read. Encoding then splits that shape at ``Zwnj`` into
+        independent segments, as in :meth:`normalize`.
         对自由文本中的每个蒙古文词段做规范化，其余字符原样保留。
+        先读取整词 shape，再按 ``Zwnj`` 分段独立编码并拼回断点。
         """
         return _call(self._native.normalize_text, text, strict)
 
@@ -243,15 +249,19 @@ class MongolianShaper:
 
         ``written_units`` may be the direct output of :meth:`shape`. Structural
         written-unit names are PascalCase: ``Mvs``, ``Nirugu``, ``Zwj``, and ``Zwnj``.
-        Every ``Zwnj`` is preserved. Letter positions are inferred from sequence order and structural controls; this
-        API does not accept explicit position records or infer/insert controls.
+        Every ``Zwnj`` is preserved. After folding the request as described
+        below, the encoder splits it at ``Zwnj`` and encodes each segment
+        independently. Both the standalone segments and the rejoined output
+        must reshape to their exact targets. Letter positions are inferred
+        from sequence order and structural controls; this API does not accept
+        explicit position records or infer/insert controls.
         ZWJ is emitted only when ``Zwj`` is present in the request. An
         empty sequence returns an empty string.
         ``written_units`` 可直接使用 :meth:`shape` 的输出。外部调用方也可将结构
         token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``、``Zwnj``，并保留每个 ``Zwnj``。
-        字母位置由序列顺序
-        与结构 control 推导；本 API 不接受显式位置 record，也不推断或插入
-        control。只有请求含 ``Zwj`` 时才输出
+        请求经下述折叠后按 ``Zwnj`` 分段独立编码，每段及拼回后的整体均须精确保形。
+        字母位置由序列顺序与结构 control 推导；本 API 不接受显式位置 record，
+        也不推断或插入 control。只有请求含 ``Zwj`` 时才输出
         ZWJ；空序列返回空字符串。
 
         The request goes through the same redundant-ZWJ filter and duplicate
