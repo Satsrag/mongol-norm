@@ -10,7 +10,9 @@ pub(crate) const NIRUGU: u32 = 0x180A;
 /// U+200D ZERO WIDTH JOINER.
 pub(crate) const ZWJ: u32 = 0x200D;
 /// U+200C ZERO WIDTH NON-JOINER — a joining break inside a word.
-pub(crate) const ZWNJ: u32 = 0x200C;
+pub(crate) const ZWNJ_CHAR: char = '\u{200C}';
+/// Numeric code point of [`ZWNJ_CHAR`], for tokenization and classification.
+pub(crate) const ZWNJ: u32 = ZWNJ_CHAR as u32;
 /// U+202F NARROW NO-BREAK SPACE — folded into MVS at tokenization, like Python does.
 pub(crate) const NNBSP: u32 = 0x202F;
 

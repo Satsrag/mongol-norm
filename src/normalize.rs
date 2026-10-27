@@ -18,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 use crate::generated::enums::WrittenUnit;
 use crate::shaper::Shaper;
 use crate::tables::{Fvs, NormalizeData, Position, UnitEntry};
-use crate::unicode::is_mongolian_word_char;
+use crate::unicode::{is_mongolian_word_char, ZWNJ_CHAR};
 use crate::Error;
 
 /// Longest written-unit tuple a table key holds (the generator asserts `unit_enc_max_len <= 3`).
@@ -152,7 +152,7 @@ pub(crate) fn structural_char(unit: WrittenUnit) -> Option<char> {
         WrittenUnit::Mvs => Some('\u{180E}'),
         WrittenUnit::Nirugu => Some('\u{180A}'),
         WrittenUnit::Zwj => Some('\u{200D}'),
-        WrittenUnit::Zwnj => Some('\u{200C}'),
+        WrittenUnit::Zwnj => Some(ZWNJ_CHAR),
         _ => None,
     }
 }
@@ -350,7 +350,7 @@ impl Shaper {
                 return Ok(String::new());
             }
             if index > 0 {
-                canonical.push('\u{200C}');
+                canonical.push(ZWNJ_CHAR);
             }
             canonical.push_str(&encoded);
         }
