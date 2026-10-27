@@ -2,7 +2,7 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/3` policy
+> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/4` policy
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
@@ -215,7 +215,7 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **shape** the input into its written-unit sequence. MVS and nirugu appear verbatim as PascalCase `Mvs` / `Nirugu` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above; nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
+1. **shape** the input into its written-unit sequence. MVS, nirugu and ZWNJ appear verbatim as PascalCase `Mvs` / `Nirugu` / `Zwnj` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above). ZWNJ breaks joining while context rules can look through it. **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
 2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
@@ -240,10 +240,29 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/4`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
+
+**`mng-canonical/4` adds ZWNJ-preserving normalization.** `normalize` now accepts U+200C,
+and `normalize_text` includes it in a Mongolian word run instead of normalizing the two sides
+separately. Rebuild stored `normalize_text` keys for text containing ZWNJ: even with every break
+preserved, cross-break context can change the canonical letters/FVS. For example, `n ue ZWNJ h
+nirugu` retains the feminine `G` after the break, which independent normalization of `h nirugu`
+would lose. Inputs without ZWNJ and all **1988** existing canonical golden vectors are unchanged.
+This policy update does not itself change the package version or publish a release.
+
+The normalizer copies every `Zwnj` to U+200C, including word edges, repeated breaks and
+control-only input. The complete ordered shape is preserved; the original nominal letters and
+FVS spelling need not be. A break separates encoding chains but is neither a joiner nor an MVS
+suffix boundary. The unit APIs accept `Zwnj`, and the positioned API requires `Zwnj:control`.
+The existing redundant-ZWJ and duplicate-unit rules still apply; no ZWNJ deletion policy is added.
+
+Table coverage is unchanged. The known `a j NNBSP a ZWNJ FVS4` shape (`A A J Mvs Aa Zwnj`)
+has no table encoding; its `J`-before-MVS gap also occurs without ZWNJ. Strict normalization
+reports a fallback, lenient normalization preserves the complete original word, and unit input
+reports no canonical encoding. There is no search fallback or partial result.
 
 **`mng-canonical/3` (0.3.0 on crates.io, 0.3.1 on PyPI) invalidates keys stored under `mng-canonical/2` (0.2.x) for some
 texts.** Two kinds of change reach `normalize`:

@@ -38,6 +38,10 @@ mongol-norm runs the [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html
 - `same_shape(a, b)` — do two encodings render identically?
 - `normalize(word)` / `normalize_text(text)` — one canonical Unicode string per shape
 
+Normalization accepts ZWNJ (U+200C) and preserves every break, including word edges,
+repeated breaks and control-only input. `normalize_text` keeps shaping context across a break.
+See the [canonical policy and migration notes](docs/internals.md#normalization-strategy) for stored keys.
+
 Use it for search and indexing, deduplication, corpus counts, spell-check lookup, and cleaning OCR
 or input-method output.
 
@@ -211,6 +215,9 @@ mongol-norm 按 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) 的
 - `shape(word)` —— 书写单元序列，即可见词形的指纹
 - `same_shape(a, b)` —— 两种编码渲染结果是否相同
 - `normalize(word)` / `normalize_text(text)` —— 同一个 shape 只输出一个 Unicode 字符串
+
+规范化接受 ZWNJ（U+200C），保留每个断点，包括词首、词尾、重复及纯控制符输入；
+`normalize_text` 保留断点两侧的整词上下文。
 
 用途：搜索和索引、去重、语料词频统计、拼写检查前的查词、清洗 OCR 或输入法输出。
 

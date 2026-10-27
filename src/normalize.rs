@@ -55,7 +55,7 @@ pub(crate) struct NormalizeTable {
     feminine: HashMap<(Position, UnitKey), Encoding>,
     velar_fem_units: HashSet<WrittenUnit>,
     masculine_cps: HashSet<u32>,
-    /// Every unit that occurs in a table key, plus the three structural tokens — the vocabulary
+    /// Every unit that occurs in a table key, plus the four structural tokens — the vocabulary
     /// of `normalize_written_units` and `parse_written_units`.
     pub known_units: HashSet<WrittenUnit>,
     /// `known_units` as names, in Python's `(-len, name)` order — the compact-segmentation
@@ -91,7 +91,12 @@ impl NormalizeTable {
             .iter()
             .flat_map(|entry| entry.units.iter().copied())
             .collect();
-        known_units.extend([WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]);
+        known_units.extend([
+            WrittenUnit::Mvs,
+            WrittenUnit::Nirugu,
+            WrittenUnit::Zwj,
+            WrittenUnit::Zwnj,
+        ]);
         let sorted_vocabulary = sorted_vocabulary(&known_units);
         NormalizeTable {
             canonical_version: data.canonical_version,
@@ -110,10 +115,14 @@ impl NormalizeTable {
     /// encodings at all, so every chain falls back.
     #[cfg(any(test, feature = "testing"))]
     pub fn empty(canonical_version: &'static str) -> NormalizeTable {
-        let known_units: HashSet<WrittenUnit> =
-            [WrittenUnit::Mvs, WrittenUnit::Nirugu, WrittenUnit::Zwj]
-                .into_iter()
-                .collect();
+        let known_units: HashSet<WrittenUnit> = [
+            WrittenUnit::Mvs,
+            WrittenUnit::Nirugu,
+            WrittenUnit::Zwj,
+            WrittenUnit::Zwnj,
+        ]
+        .into_iter()
+        .collect();
         NormalizeTable {
             canonical_version,
             max_len: 1,
@@ -142,6 +151,7 @@ pub(crate) fn structural_char(unit: WrittenUnit) -> Option<char> {
         WrittenUnit::Mvs => Some('\u{180E}'),
         WrittenUnit::Nirugu => Some('\u{180A}'),
         WrittenUnit::Zwj => Some('\u{200D}'),
+        WrittenUnit::Zwnj => Some('\u{200C}'),
         _ => None,
     }
 }
@@ -316,7 +326,7 @@ impl Shaper {
         &self.normalize
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/3"`). Persist it next
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/4"`). Persist it next
     /// to stored normalized keys. Always `Some`: the `Option` remains from the locales without
     /// a normalize table the crate used to have.
     pub fn canonical_version(&self) -> Option<&'static str> {
@@ -459,10 +469,8 @@ impl Shaper {
         if text.is_empty() {
             return Ok(String::new());
         }
-        // `shape` already accepts U+200C (ZWNJ), so `is_mongolian_word_char` is `true` for it;
-        // reject it here until `normalize` adds ZWNJ support in the follow-up PR.
         for (index, ch) in text.chars().enumerate() {
-            if !is_mongolian_word_char(ch) || ch == '\u{200C}' {
+            if !is_mongolian_word_char(ch) {
                 return Err(Error::NonMongolianChar { ch, index });
             }
         }
@@ -487,7 +495,8 @@ impl Shaper {
 
     /// Canonical, FVS-pinned encoding of one Mongolian word: within the normalize table's domain,
     /// `shape(x) == shape(y)` ⟹ `normalize(x) == normalize(y)`, and
-    /// `shape(normalize(x)) == shape(x)`.
+    /// `shape(normalize(x)) == shape(x)`. Every ZWNJ is preserved, including leading,
+    /// trailing, repeated and control-only breaks; letters and FVS are canonically encoded.
     ///
     /// Strict (the Python default): an uncovered shape is [`Error::NormalizationFallback`].
     /// Errors with [`Error::NonMongolianChar`] on mixed-script input — see
@@ -510,8 +519,7 @@ impl Shaper {
         let mut run = String::new();
         let mut run_is_mongolian: Option<bool> = None;
         for ch in text.chars() {
-            // Keep splitting runs at U+200C until `normalize` supports ZWNJ.
-            let is_mongolian = ch != '\u{200C}' && is_mongolian_word_char(ch);
+            let is_mongolian = is_mongolian_word_char(ch);
             match run_is_mongolian {
                 Some(current) if current != is_mongolian => {
                     self.flush_run(&mut out, &run, current, strict)?;
@@ -612,7 +620,7 @@ mod tests {
     #[test]
     fn empty_and_structural_shapes_normalize_without_a_letter() {
         let shaper = Shaper::new(Locale::Mng);
-        assert_eq!(shaper.canonical_version(), Some("mng-canonical/3"));
+        assert_eq!(shaper.canonical_version(), Some("mng-canonical/4"));
         assert_eq!(shaper.normalize("").unwrap(), "");
         assert_eq!(shaper.normalize("\u{180B}").unwrap(), ""); // FVS only: empty shape short-circuits
         assert_eq!(shaper.normalize("\u{180A}").unwrap(), "\u{180A}"); // structural-only shape

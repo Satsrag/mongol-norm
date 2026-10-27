@@ -8,7 +8,7 @@ use crate::tables::{Position, UnitPosition};
 use crate::Error;
 
 /// One record of [`Shaper::normalize_positioned_written_units`]: a written unit with its
-/// authoritative HUD inventory position (`Control` for `Mvs` / `Nirugu`).
+/// authoritative HUD inventory position (`Control` for `Mvs` / `Nirugu` / `Zwnj`).
 ///
 /// This is an *input* type: both fields are public and it is deliberately not
 /// `#[non_exhaustive]` (unlike the crate's result types), so callers can build records with a
@@ -51,7 +51,7 @@ impl Shaper {
     /// [`Shaper::shape`], so `[L, I, Zwj, Aa]` is encoded as `L G`, exactly like the text
     /// `ᠯᠢ\u{200D}ᠡ᠋`. The result is accepted only if it reshapes to that folded sequence.
     ///
-    /// An empty sequence returns `""`.
+    /// Every `Zwnj` is preserved and splits the joining chain. An empty sequence returns `""`.
     ///
     /// # Errors
     ///
@@ -88,8 +88,8 @@ impl Shaper {
     /// record — every consonant, whose isolated form is its initial unit — and takes a trailing
     /// ZWJ where it would not: `A` and `I`, which the inventory also carries at `isol`, and `O`,
     /// which has no bare spelling; single `medi` / `fina` records get the joining context their
-    /// position needs. `Mvs` and
-    /// `Nirugu` require `Control`; explicit `Zwj` is rejected; at most
+    /// position needs. `Mvs`,
+    /// `Nirugu` and `Zwnj` require `Control`; explicit `Zwj` is rejected; at most
     /// [`MAX_POSITIONED_RECORDS`] records.
     ///
     /// # Validation order
@@ -101,8 +101,8 @@ impl Shaper {
     ///    [`Error::ExplicitZwj`];
     /// 2. explicit `Zwj` anywhere in the request;
     /// 3. empty request — returns `""`;
-    /// 4. per record, the control/inventory check (`Mvs` and `Nirugu` need `Control`; every other
-    ///    `(unit, position)` must be in the HUD inventory), reporting the first offender;
+    /// 4. per record, the control/inventory check (`Mvs`, `Nirugu` and `Zwnj` need `Control`;
+    ///    every other `(unit, position)` must be in the HUD inventory), reporting the first offender;
     /// 5. per multi-record chain, that the declared positions match the padded chain;
     /// 6. delegation to [`Shaper::normalize_written_units`].
     ///
@@ -131,7 +131,10 @@ impl Shaper {
         }
         let table = self.table();
         for (index, record) in records.iter().enumerate() {
-            if matches!(record.unit, WrittenUnit::Mvs | WrittenUnit::Nirugu) {
+            if matches!(
+                record.unit,
+                WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwnj
+            ) {
                 if record.position != UnitPosition::Control {
                     return Err(Error::ControlRequiresControlPosition {
                         index,

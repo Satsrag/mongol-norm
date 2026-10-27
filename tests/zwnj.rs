@@ -9,7 +9,9 @@
 mod common;
 
 use common::{hex, mgl, unit_names};
-use mongol_norm::{Locale, Position, Shaper, WrittenUnit};
+use mongol_norm::{
+    Error, Locale, Position, PositionedWrittenUnit, Shaper, UnitPosition, WrittenUnit,
+};
 
 const ZWNJ: char = '\u{200C}';
 
@@ -169,6 +171,7 @@ fn every_break_stays() {
             shaper.trace(&text).unwrap().shape,
             shaper.shape(&text).unwrap()
         );
+        assert_normalization(&shaper, &text);
     }
 }
 
@@ -300,8 +303,15 @@ const FONT_CASES: &[(&str, &str)] = &[
 
 #[test]
 fn follows_the_font_around_the_break() {
+    let shaper = shaper();
     for (aliases, expected) in FONT_CASES {
-        assert_eq!(shape(&mgl(aliases)), *expected, "{aliases}");
+        let text = mgl(aliases);
+        assert_eq!(shape(&text), *expected, "{aliases}");
+        if *aliases == "a j nnbsp a zwnj fvs4" {
+            assert_table_gap(&shaper, &text);
+        } else {
+            assert_normalization(&shaper, &text);
+        }
     }
 }
 
@@ -319,6 +329,7 @@ fn equivalent_spellings_converge() {
     for group in groups {
         let first = mgl(group[0]);
         let shape0 = shaper.shape(&first).unwrap();
+        let normalized = shaper.normalize(&first).unwrap();
         for aliases in &group[1..] {
             let text = mgl(aliases);
             assert_eq!(
@@ -327,6 +338,7 @@ fn equivalent_spellings_converge() {
                 "{aliases} vs {}",
                 group[0]
             );
+            assert_eq!(shaper.normalize(&text).unwrap(), normalized, "{aliases}");
         }
     }
 }
@@ -340,7 +352,152 @@ fn error_message_names_zwnj() {
     );
 }
 
-/// Deterministic xorshift, ZWNJ-dense alphabet: no panics, and `shape_raw` keeps every ZWNJ.
+/// Successful normalization preserves the complete ordered shape, including every break.
+fn assert_normalization(shaper: &Shaper, text: &str) -> String {
+    let units = shaper.shape(text).unwrap();
+    let normalized = shaper
+        .normalize(text)
+        .unwrap_or_else(|e| panic!("{}: {e}", hex(text)));
+    assert_eq!(shaper.shape(&normalized).unwrap(), units, "{}", hex(text));
+    assert_eq!(normalized.matches(ZWNJ).count(), text.matches(ZWNJ).count());
+    assert_eq!(shaper.normalize(&normalized).unwrap(), normalized);
+    assert_eq!(shaper.normalize_text(text).unwrap(), normalized);
+    assert_eq!(shaper.normalize_allow_fallback(text).unwrap(), normalized);
+    assert_eq!(shaper.normalize_written_units(&units).unwrap(), normalized);
+    normalized
+}
+
+fn assert_table_gap(shaper: &Shaper, text: &str) {
+    let units = shaper.shape(text).unwrap();
+    assert_eq!(
+        shaper.normalize(text),
+        Err(Error::NormalizationFallback {
+            text: text.to_owned(),
+            written_units: units.clone(),
+        })
+    );
+    assert_eq!(shaper.normalize_allow_fallback(text).unwrap(), text);
+    assert_eq!(
+        shaper.normalize_written_units(&units),
+        Err(Error::NoCanonicalEncoding)
+    );
+    let mixed = format!("English {text}, 中文");
+    assert_eq!(shaper.normalize_text(&mixed), shaper.normalize(text));
+    assert_eq!(shaper.normalize_text_allow_fallback(&mixed).unwrap(), mixed);
+}
+
+#[test]
+fn existing_table_gap_keeps_the_error_contract_with_or_without_a_break() {
+    // J before MVS + chachlag Aa is uncovered even without ZWNJ; this change does not
+    // add search fallback or widen the table. Lenient mode must keep the entire word.
+    let shaper = shaper();
+    for aliases in ["a j nnbsp a fvs4", "a j nnbsp a zwnj fvs4"] {
+        assert_table_gap(&shaper, &mgl(aliases));
+    }
+}
+
+#[test]
+fn text_normalization_keeps_context_across_breaks() {
+    let shaper = shaper();
+    assert_eq!(shaper.normalize_text("a\u{200C}b").unwrap(), "a\u{200C}b");
+    let word = mgl("n ue zwnj h nirugu");
+    let normalized = assert_normalization(&shaper, &word);
+    // Normalizing the sides independently loses the feminine context of h.
+    let split = word
+        .split(ZWNJ)
+        .map(|part| shaper.normalize(part).unwrap())
+        .collect::<Vec<_>>()
+        .join("\u{200C}");
+    assert_ne!(normalized, split);
+    let mixed = format!("Hello {word}, 中文 a\u{200C}b!\n{word}");
+    let expected = format!("Hello {normalized}, 中文 a\u{200C}b!\n{normalized}");
+    assert_eq!(shaper.normalize_text(&mixed).unwrap(), expected);
+    assert_eq!(
+        shaper.normalize_text_allow_fallback(&mixed).unwrap(),
+        expected
+    );
+}
+
+#[test]
+fn structural_vocabulary_and_positioned_breaks() {
+    let shaper = shaper();
+    for spec in ["ZwnjBZwnjZwnj", "Zwnj+B+Zwnj+Zwnj"] {
+        let units = shaper.parse_written_units(spec).unwrap();
+        assert_eq!(
+            units,
+            [
+                WrittenUnit::Zwnj,
+                WrittenUnit::B,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Zwnj
+            ]
+        );
+        assert_eq!(
+            shaper.normalize_written_units(&units).unwrap(),
+            mgl("zwnj b zwnj zwnj")
+        );
+    }
+    let rec = PositionedWrittenUnit::new;
+    let controls = [rec(WrittenUnit::Zwnj, UnitPosition::Control); 2];
+    assert_eq!(
+        shaper
+            .normalize_positioned_written_units(&controls)
+            .unwrap(),
+        "\u{200C}\u{200C}"
+    );
+    let records = [
+        controls[0],
+        rec(WrittenUnit::B, UnitPosition::Init),
+        rec(WrittenUnit::Aa, UnitPosition::Fina),
+        controls[0],
+        controls[0],
+        rec(WrittenUnit::N, UnitPosition::Medi),
+        controls[0],
+    ];
+    let expected = [
+        WrittenUnit::Zwnj,
+        WrittenUnit::B,
+        WrittenUnit::Aa,
+        WrittenUnit::Zwnj,
+        WrittenUnit::Zwnj,
+        WrittenUnit::Zwj,
+        WrittenUnit::N,
+        WrittenUnit::Zwj,
+        WrittenUnit::Zwnj,
+    ];
+    assert_eq!(
+        shaper.normalize_positioned_written_units(&records).unwrap(),
+        shaper.normalize_written_units(&expected).unwrap()
+    );
+    let bad = rec(WrittenUnit::Zwnj, UnitPosition::Isol);
+    assert_eq!(
+        shaper.normalize_positioned_written_units(&[records[1], bad]),
+        Err(Error::ControlRequiresControlPosition {
+            index: 1,
+            unit: WrittenUnit::Zwnj
+        })
+    );
+    // Existing validation precedence: record limit, explicit ZWJ, then per-record controls.
+    assert_eq!(
+        shaper.normalize_positioned_written_units(&[
+            bad,
+            rec(WrittenUnit::Zwj, UnitPosition::Control)
+        ]),
+        Err(Error::ExplicitZwj)
+    );
+    assert_eq!(
+        shaper.normalize_positioned_written_units(&vec![bad; 1025]),
+        Err(Error::TooManyRecords { max: 1024 })
+    );
+    for fvs in ["fvs1", "fvs2", "fvs3", "fvs4"] {
+        assert_eq!(
+            assert_normalization(&shaper, &mgl(&format!("zwnj {fvs} zwnj"))),
+            "\u{200C}\u{200C}"
+        );
+    }
+}
+
+/// Deterministic xorshift: both the original alphabet and an expanded FVS4 alphabet.
 #[test]
 fn zwnj_fuzz() {
     const ALPHABET: &[u32] = &[
@@ -349,6 +506,12 @@ fn zwnj_fuzz() {
         0x1838, 0x183B, 0x1842, 0x180B, 0x180C, 0x180D, 0x180E, 0x202F, 0x180A, 0x200D, 0x200C,
         0x200C, 0x200C, 0x200C,
     ];
+    for alphabet in [ALPHABET.to_vec(), [ALPHABET, &[0x180F]].concat()] {
+        fuzz_normalization(&alphabet);
+    }
+}
+
+fn fuzz_normalization(alphabet: &[u32]) {
     let shaper = shaper();
     let mut state: u64 = 0x2545_F491_4F6C_DD1D;
     let mut next = || {
@@ -358,10 +521,12 @@ fn zwnj_fuzz() {
         state
     };
     let mut kept = 0;
+    let mut normalized_count = 0;
+    let mut by_shape = std::collections::HashMap::new();
     for _ in 0..20_000 {
         let len = (next() % 10) as usize + 1;
         let text: String = (0..len)
-            .map(|_| char::from_u32(ALPHABET[(next() % ALPHABET.len() as u64) as usize]).unwrap())
+            .map(|_| char::from_u32(alphabet[(next() % alphabet.len() as u64) as usize]).unwrap())
             .collect();
         let shape = shaper.shape(&text).unwrap();
         let raw = shaper.shape_raw(&text).unwrap();
@@ -371,14 +536,31 @@ fn zwnj_fuzz() {
             "{}",
             hex(&text)
         );
-        assert!(
-            shape.iter().filter(|&&u| u == WrittenUnit::Zwnj).count()
-                <= raw.iter().filter(|&&u| u == WrittenUnit::Zwnj).count()
+        assert_eq!(
+            shape.iter().filter(|&&u| u == WrittenUnit::Zwnj).count(),
+            raw.iter().filter(|&&u| u == WrittenUnit::Zwnj).count()
         );
         if shape.contains(&WrittenUnit::Zwnj) {
             kept += 1;
         }
         assert_eq!(shaper.trace(&text).unwrap().shape, shape);
+        match shaper.normalize(&text) {
+            Ok(_) => {
+                normalized_count += 1;
+                let normalized = assert_normalization(&shaper, &text);
+                if let Some(previous) = by_shape.insert(shape, normalized.clone()) {
+                    assert_eq!(
+                        previous,
+                        normalized,
+                        "same-shape canonicity: {}",
+                        hex(&text)
+                    );
+                }
+            }
+            Err(Error::NormalizationFallback { .. }) => assert_table_gap(&shaper, &text),
+            Err(error) => panic!("{}: {error}", hex(&text)),
+        }
     }
     assert!(kept > 1_000, "kept {kept}");
+    assert!(normalized_count > 18_000, "normalized {normalized_count}");
 }

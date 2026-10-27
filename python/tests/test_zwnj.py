@@ -11,7 +11,7 @@ ZWNJ(U+200C,#34):打断连写但上下文规则穿过它;公开 shape 保留每�
 import random
 import unittest
 
-from mongol_norm import MongolianShaper
+from mongol_norm import MongolianShaper, NormalizationFallbackError
 
 _ALIAS_TO_CP = {
     'a': 0x1820, 'e': 0x1821, 'i': 0x1822, 'o': 0x1823, 'u': 0x1824, 'oe': 0x1825,
@@ -132,6 +132,31 @@ class _Base(unittest.TestCase):
     def setUpClass(cls):
         cls.s = MongolianShaper(locale='MNG')
 
+    def assert_normalization(self, text):
+        units = self.s.shape(text)
+        normalized = self.s.normalize(text)
+        self.assertEqual(self.s.shape(normalized), units)
+        self.assertEqual(normalized.count(ZWNJ), text.count(ZWNJ))
+        self.assertEqual(self.s.normalize(normalized), normalized)
+        self.assertEqual(self.s.normalize_text(text), normalized)
+        self.assertEqual(self.s.normalize(text, strict=False), normalized)
+        self.assertEqual(self.s.normalize_written_units(units), normalized)
+        return normalized
+
+    def assert_table_gap(self, text):
+        with self.assertRaises(NormalizationFallbackError) as raised:
+            self.s.normalize(text)
+        self.assertEqual(raised.exception.text, text)
+        self.assertEqual(raised.exception.written_units, tuple(self.s.shape(text)))
+        self.assertEqual(self.s.normalize(text, strict=False), text)
+        with self.assertRaisesRegex(ValueError, 'no canonical MNG encoding'):
+            self.s.normalize_written_units(self.s.shape(text))
+        mixed = f'English {text}, 中文'
+        with self.assertRaises(NormalizationFallbackError) as raised:
+            self.s.normalize_text(mixed)
+        self.assertEqual(raised.exception.text, text)
+        self.assertEqual(self.s.normalize_text(mixed, strict=False), mixed)
+
 
 class TestEveryBreakStays(_Base):
     def test_table(self):
@@ -145,6 +170,7 @@ class TestEveryBreakStays(_Base):
                 self.assertEqual(with_zwnj.split('+').count('Zwnj'), breaks)
                 self.assertEqual(self.s._shape_raw(text).count('Zwnj'), text.count(ZWNJ))
                 self.assertEqual(self.s.trace(text)['shape'], self.s.shape(text))
+                self.assert_normalization(text)
 
 
 class TestIssueCorpus(_Base):
@@ -237,6 +263,10 @@ class TestFollowsTheFont(_Base):
         for aliases, expected in self.CASES:
             with self.subTest(aliases=aliases):
                 self.assertEqual(self.s.shape_str(_mgl(aliases)), expected)
+                if aliases == 'a j nnbsp a zwnj fvs4':
+                    self.assert_table_gap(_mgl(aliases))
+                else:
+                    self.assert_normalization(_mgl(aliases))
 
 
 class TestConfluence(_Base):
@@ -256,9 +286,47 @@ class TestConfluence(_Base):
                 with self.subTest(aliases=aliases, reference=group[0]):
                     text = _mgl(aliases)
                     self.assertEqual(self.s.shape(text), self.s.shape(first))
+                    self.assertEqual(self.s.normalize(text), self.s.normalize(first))
 
 
 class TestApis(_Base):
+    def test_text_normalization_keeps_context_across_breaks(self):
+        self.assertEqual(self.s.normalize_text('a\u200Cb'), 'a\u200Cb')
+        word = _mgl('n ue zwnj h nirugu')
+        normalized = self.assert_normalization(word)
+        split = ZWNJ.join(self.s.normalize(part) for part in word.split(ZWNJ))
+        self.assertNotEqual(normalized, split)
+        mixed = f'Hello {word}, 中文 a\u200Cb!\n{word}'
+        expected = f'Hello {normalized}, 中文 a\u200Cb!\n{normalized}'
+        self.assertEqual(self.s.normalize_text(mixed), expected)
+        self.assertEqual(self.s.normalize_text(mixed, strict=False), expected)
+
+    def test_existing_table_gap_with_or_without_a_break(self):
+        for aliases in ['a j nnbsp a fvs4', 'a j nnbsp a zwnj fvs4']:
+            with self.subTest(aliases=aliases):
+                self.assert_table_gap(_mgl(aliases))
+
+    def test_positioned_breaks_and_validation_order(self):
+        control = {'unit': 'Zwnj', 'position': 'control'}
+        self.assertEqual(self.s.normalize_positioned_written_units([control] * 2), ZWNJ * 2)
+        records = [control, {'unit': 'B', 'position': 'init'},
+                   {'unit': 'Aa', 'position': 'fina'}, control, control,
+                   {'unit': 'N', 'position': 'medi'}, control]
+        units = ['Zwnj', 'B', 'Aa', 'Zwnj', 'Zwnj', 'Zwj', 'N', 'Zwj', 'Zwnj']
+        self.assertEqual(self.s.normalize_positioned_written_units(records),
+                         self.s.normalize_written_units(units))
+        bad = {'unit': 'Zwnj', 'position': 'isol'}
+        with self.assertRaisesRegex(ValueError, r"positioned_units\[1\] control 'Zwnj' requires position 'control'"):
+            self.s.normalize_positioned_written_units([records[1], bad])
+        with self.assertRaisesRegex(ValueError, "unsupported positioned control 'Zwj'"):
+            self.s.normalize_positioned_written_units([bad, {'unit': 'Zwj', 'position': 'control'}])
+        with self.assertRaisesRegex(ValueError, 'at most 1024'):
+            self.s.normalize_positioned_written_units([bad] * 1025)
+
+    def test_fvs_on_control_only_input(self):
+        for fvs in ['fvs1', 'fvs2', 'fvs3', 'fvs4']:
+            self.assertEqual(self.assert_normalization(_mgl(f'zwnj {fvs} zwnj')), ZWNJ * 2)
+
     def test_error_message(self):
         with self.assertRaisesRegex(ValueError, 'FVS/MVS/NNBSP/Nirugu/ZWJ/ZWNJ'):
             self.s.shape('\u1820x')
@@ -270,14 +338,28 @@ class TestFuzz(_Base):
         ZWNJ, ZWNJ, ZWNJ, ZWNJ,
     ]
 
-    def test_never_panics_and_raw_keeps_every_zwnj(self):
-        rng = random.Random(34)
-        for _ in range(5000):
-            text = ''.join(rng.choice(self.ALPHABET) for _ in range(rng.randint(1, 10)))
-            with self.subTest(text=_hex(text)):
-                shape = self.s.shape(text)
-                self.assertEqual(self.s._shape_raw(text).count('Zwnj'), text.count(ZWNJ))
-                self.assertEqual(self.s.trace(text)['shape'], shape)
+    def test_normalization_and_every_break_with_and_without_fvs4(self):
+        for alphabet in [self.ALPHABET, self.ALPHABET + ['\u180F']]:
+            rng = random.Random(34)
+            normalized_count = 0
+            by_shape = {}
+            for _ in range(20_000):
+                text = ''.join(rng.choice(alphabet) for _ in range(rng.randint(1, 10)))
+                with self.subTest(text=_hex(text)):
+                    shape = self.s.shape(text)
+                    self.assertEqual(self.s._shape_raw(text).count('Zwnj'), text.count(ZWNJ))
+                    self.assertEqual(shape.count('Zwnj'), text.count(ZWNJ))
+                    self.assertEqual(self.s.trace(text)['shape'], shape)
+                    try:
+                        self.s.normalize(text)
+                    except NormalizationFallbackError:
+                        self.assert_table_gap(text)
+                    else:
+                        normalized_count += 1
+                        normalized = self.assert_normalization(text)
+                        previous = by_shape.setdefault(tuple(shape), normalized)
+                        self.assertEqual(previous, normalized)
+            self.assertGreater(normalized_count, 18_000)
 
 
 if __name__ == '__main__':

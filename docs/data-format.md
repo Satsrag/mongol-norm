@@ -55,8 +55,8 @@ shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 
 The input must be an ordered `Sequence[str]` using the same unit vocabulary
 returned by `shape()`. Every written-unit name is PascalCase; structural controls
-are `Mvs`, `Nirugu`, and `Zwj`. The nine duplicate encodings (see the normalize
-algorithm below) are still *accepted* here and unified before encoding, so data
+are `Mvs`, `Nirugu`, `Zwj`, and `Zwnj`. Every `Zwnj` is encoded as U+200C.
+The nine duplicate encodings (see the normalize algorithm below) are still *accepted* here and unified before encoding, so data
 captured from an older `shape()` keeps working; they simply never come back out of
 `shape()`. Old lowercase and all-uppercase control aliases
 are rejected. Positions are inferred from order
@@ -83,7 +83,7 @@ inventory, not the emitted Unicode letter's joining topology. Resolved variant
 references preserve that distinction: isolated Unicode FA borrows `F:init`, so a
 lone `F:init` record encodes as bare `U+1839`; `F:isol` is not a valid pair and is
 rejected. Letter positions are `isol`, `init`, `medi`, or `fina`; structural units
-`Mvs` and `Nirugu` require `control`. Explicit `Zwj` input is rejected, but the
+`Mvs`, `Nirugu` and `Zwnj` require `control`. Explicit `Zwj` input is rejected, but the
 encoder may insert ZWJ in its Unicode output when a valid HUD position needs
 joining context. Borrowed forms with a bare candidate remain bare: a lone `init`
 record whose bare letter reads back as that record — every consonant, whose isolated
@@ -315,7 +315,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 ```json
 {
   "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/3",
+  "canonical_version": "mng-canonical/4",
   "locale": "MNG",
   "unit_enc_max_len": 3,
   "positioned_units": [
@@ -342,7 +342,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 | `velar_fem[pos][unit]` | The feminine encoding of a single vowel unit, used by the velar-feminine refinement. |
 | `velar_fem_units` | Units that trigger that refinement (`G`, `Gx`). |
 | `masc_to_fem` | Masculine→feminine vowel alias map the refinement applies. |
-| `constants` | Hex codepoints for MVS / Nirugu / ZWJ / FVS1–4. |
+| `constants` | Hex codepoints for MVS / Nirugu / ZWJ / ZWNJ / FVS1–4. |
 | `ci_probe_letters` | The neighbour letters the selection battery probed (provenance; not needed at runtime). |
 
 `cp`/`fvs` are **hex strings** (`"1820"`, or `null` for no FVS) — parse with base 16.
@@ -351,7 +351,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
-1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
+1. `shape()` the word (needs the shape rules). Structural characters — MVS, nirugu, ZWJ, ZWNJ — appear verbatim in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj`/`Zwnj` tokens. Split the shape at these tokens into chains and copy the tokens through unchanged. `Zwnj` breaks joining, never pads positions like a joiner, and does not trigger the MVS suffix rule. A letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`).
 1a. **Unify the duplicate encodings.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
 
    First **expand**, in one left-to-right pass over each chain:

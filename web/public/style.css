@@ -82,7 +82,6 @@ h2 { margin: 0; font-size: 16px; font-weight: 550; }
 .codepoints { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 13px; max-height: 130px; overflow: auto; }
 .codepoint { font: 10px/1.5 var(--mono); color: #69765e; background: #f0f2eb; padding: 4px 6px; border-radius: 3px; }
 .codepoint.control { color: #95702d; background: #f7efd9; }
-.codepoint.unsupported { color: #ab473a; background: #fceae5; }
 .results { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .shape-panel { flex: 0 0 auto; }
 .shape-output { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; min-height: 86px; padding: 20px 24px 10px; font: 18px/1.6 var(--mono); max-height: 220px; overflow: auto; }

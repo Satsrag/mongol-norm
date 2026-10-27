@@ -59,7 +59,7 @@ shaper.shape_str("ᠰᠠᠢᠨ")                    # → 'S+A+I+I+A'
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
-shaper.canonical_version                    # → 'mng-canonical/3'
+shaper.canonical_version                    # → 'mng-canonical/4'
 
 # Deduplicate
 {shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
@@ -67,6 +67,8 @@ shaper.canonical_version                    # → 'mng-canonical/3'
 
 - `shape` / `normalize` take **one word** and raise `ValueError` on non-Mongolian characters; use
   `normalize_text` for sentences and mixed-script text.
+- ZWNJ (U+200C) is accepted and every break is preserved, including leading, trailing,
+  repeated and control-only breaks. `normalize_text` keeps shaping context across each break.
 - A shape the built-in table cannot encode raises `NormalizationFallbackError` (a `ValueError`,
   with `.text` and `.written_units`). Pass `strict=False` to get the input back unchanged instead.
 - Locale: `"MNG"` (Hudum), the only one. Todo, Sibe and Manchu are not supported.

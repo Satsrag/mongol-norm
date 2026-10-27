@@ -55,7 +55,7 @@ The browser playground has separate build prerequisites and browser tests; see
 Rust, from the repository root:
 
 ```bash
-cargo test --workspace --locked   # 327 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
+cargo test --workspace --locked   # 336 tests: unit + corpus + goldens + properties + CLI + fuzz + the README doctest
 cargo test -p mongol-norm --features font --locked   # + the font backend (Rust 1.85): the upstream Hudum
                                                      #   suites, font-vs-engine, its own contract, fuzz
 cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -73,7 +73,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install 'maturin>=1.15,<2'
 maturin develop --locked --features testing        # builds mongol_norm/_native
 
-python -m unittest discover -s tests -p 'test_*.py'   # 308 tests
+python -m unittest discover -s tests -p 'test_*.py'   # 314 tests
 python -m unittest tests.test_shaper -v               # shape / same_shape / normalize
 python -m unittest tests.test_round_trip              # round-trip + canonicity + prefix-stability
 python -m unittest tests.test_core_hud tests.test_eac_hud   # the upstream TSV suites
@@ -161,9 +161,9 @@ Two more comparisons widen the net:
   from templates around an MVS, a joiner, a ZWNJ or an FVS, the contexts the backends parted on
   until #50–#52 and #55, and those a ZWNJ meets. All of them must shape alike.
 
-Current totals: **327 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
+Current totals: **336 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
 1988 canonical and 15 phase-trace golden vectors, fuzz, the ZWNJ cases and the README doctest; the
-`font` feature adds 21) and **308 Python tests**, green on Rust stable / 1.82 (the core crate's
+`font` feature adds 21) and **314 Python tests**, green on Rust stable / 1.82 (the core crate's
 MSRV; the binding crate needs 1.83, the `font` feature 1.85) and CPython 3.9 and 3.14 (CI tests the
 ends of the supported range; the extension targets the stable ABI, so the versions in between load
 the same build).
