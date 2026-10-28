@@ -216,6 +216,14 @@ class MongolianShaper:
         Canonical encoding of a single Mongolian word.
         单个蒙古文词的规范化编码。
 
+        Every ZWNJ is preserved, including leading, trailing, repeated and
+        control-only breaks. The whole word supplies the target shape, which is
+        split at ``Zwnj`` and encoded independently per segment. Each segment
+        must preserve its target shape when displayed alone; the rejoined word
+        must preserve the complete shape. Letters and FVS may be rewritten.
+        保留每个 ZWNJ 断点；先读取整词 shape，再按 ``Zwnj`` 分段独立编码。
+        每段单独显示及拼接后的整词都保形；字母和 FVS 可改为规范编码。
+
         With ``strict=True`` (default) a shape the normalize table cannot
         encode raises :class:`NormalizationFallbackError`; with
         ``strict=False`` the input is returned unchanged instead. Raises
@@ -226,8 +234,11 @@ class MongolianShaper:
     def normalize_text(self, text, strict=True):
         """
         Normalize every Mongolian word run inside free-form *text*, leaving
-        other characters untouched.
+        other characters untouched. ZWNJ belongs to the word run while its
+        target shape is read. Encoding then splits that shape at ``Zwnj`` into
+        independent segments, as in :meth:`normalize`.
         对自由文本中的每个蒙古文词段做规范化，其余字符原样保留。
+        先读取整词 shape，再按 ``Zwnj`` 分段独立编码并拼回断点。
         """
         return _call(self._native.normalize_text, text, strict)
 
@@ -237,15 +248,20 @@ class MongolianShaper:
         将有序书写单元序列编码为 canonical MNG Unicode。
 
         ``written_units`` may be the direct output of :meth:`shape`. Structural
-        written-unit names are PascalCase: ``Mvs``, ``Nirugu``, and ``Zwj``. Letter
-        positions are inferred from sequence order and structural controls; this
-        API does not accept explicit position records or infer/insert controls.
+        written-unit names are PascalCase: ``Mvs``, ``Nirugu``, ``Zwj``, and ``Zwnj``.
+        Every ``Zwnj`` is preserved. After folding the request as described
+        below, the encoder splits it at ``Zwnj`` and encodes each segment
+        independently. Both the standalone segments and the rejoined output
+        must reshape to their exact targets. Letter positions are inferred
+        from sequence order and structural controls; this API does not accept
+        explicit position records or infer/insert controls.
         ZWJ is emitted only when ``Zwj`` is present in the request. An
         empty sequence returns an empty string.
         ``written_units`` 可直接使用 :meth:`shape` 的输出。外部调用方也可将结构
-        token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``。字母位置由序列顺序
-        与结构 control 推导；本 API 不接受显式位置 record，也不推断或插入
-        control。只有请求含 ``Zwj`` 时才输出
+        token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``、``Zwnj``，并保留每个 ``Zwnj``。
+        请求经下述折叠后按 ``Zwnj`` 分段独立编码，每段及拼回后的整体均须精确保形。
+        字母位置由序列顺序与结构 control 推导；本 API 不接受显式位置 record，
+        也不推断或插入 control。只有请求含 ``Zwj`` 时才输出
         ZWJ；空序列返回空字符串。
 
         The request goes through the same redundant-ZWJ filter and duplicate
@@ -295,8 +311,8 @@ class MongolianShaper:
         ``I:init`` and ``O:init``, whose bare letter would read back as another
         record, receive a trailing ZWJ. Single
         ``medi`` and ``fina`` records receive the joining context their positions
-        need. ``Mvs`` and ``Nirugu`` require ``control``; explicit ``Zwj`` input is
-        rejected.
+        need. ``Mvs``, ``Nirugu`` and ``Zwnj`` require ``control``; explicit ``Zwj``
+        input is rejected.
 
         每项必须严格为内建 ``{"unit": str, "position": str}`` dict。字母position
         是权威HUD written-unit position：``isol``/``init``/``medi``/``fina``。
@@ -304,7 +320,7 @@ class MongolianShaper:
         到``fina``结束；边界不完整时自动补ZWJ。单个``init``在裸字母能读回
         同一record时不补ZWJ（所有辅音）；``A:init``、``I:init``、``O:init``裸写会读回
         成别的record，在末尾补ZWJ。单个``medi``和``fina``补足其位置所需的连接
-        上下文。``Mvs``与``Nirugu``使用``control``；显式``Zwj``输入被拒绝。
+        上下文。``Mvs``、``Nirugu``与``Zwnj``使用``control``；显式``Zwj``输入被拒绝。
 
         This word-level API accepts at most 1024 records.
 
@@ -351,7 +367,7 @@ class MongolianShaper:
             return ""
         positioned_units_inventory = self._positioned_units()
         for index, (unit, position) in enumerate(records):
-            if unit in ("Mvs", "Nirugu"):
+            if unit in ("Mvs", "Nirugu", "Zwnj"):
                 if position != "control":
                     raise ValueError(
                         f"positioned_units[{index}] control {unit!r} "

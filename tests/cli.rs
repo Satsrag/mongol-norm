@@ -53,6 +53,33 @@ fn shaper() -> Shaper {
     Shaper::new(Locale::Mng)
 }
 
+#[test]
+fn zwnj_normalization_accepts_text_and_both_unit_spellings() {
+    let text = mgl("zwnj b zwnj zwnj");
+    for (command, input) in [
+        ("normalize", text.as_str()),
+        ("normalize-written-units", "Zwnj+B+Zwnj+Zwnj"),
+        ("normalize-written-units", "ZwnjBZwnjZwnj"),
+    ] {
+        let output = run(&[command, input], None);
+        assert_eq!(output.code, 0, "{}", output.stderr);
+        assert_eq!(output.stdout, format!("{text}\n"));
+    }
+    let input = format!("Hello {text}\na\u{200C}b\n");
+    let output = run(&["normalize-text", "--batch", "-"], Some(&input));
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.stdout, input);
+}
+
+#[test]
+fn zwnj_table_gap_reports_fallback_and_lenient_mode_preserves_the_word() {
+    let text = mgl("a j nnbsp a zwnj fvs4");
+    assert_clean_failure(&run(&["normalize", &text], None), "normalization fallback");
+    let output = run(&["normalize", "--allow-fallback", &text], None);
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.stdout, format!("{text}\n"));
+}
+
 /// A scratch directory for the file-I/O tests, removed when the test ends (pass or panic).
 struct TempDir {
     path: PathBuf,

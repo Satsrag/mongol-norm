@@ -25,6 +25,29 @@ class TestNormalizeCli(unittest.TestCase):
     def setUpClass(cls):
         cls.shaper = MongolianShaper(locale="MNG")
 
+    def test_zwnj_text_and_unit_spellings(self):
+        text = "\u200Cᠪ\u200C\u200C"
+        for command, value in [("normalize", text),
+                               ("normalize-written-units", "Zwnj+B+Zwnj+Zwnj"),
+                               ("normalize-written-units", "ZwnjBZwnjZwnj")]:
+            with self.subTest(command=command, value=value):
+                result = run_cli(command, value)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, text + "\n")
+        mixed = f"Hello {text}\na\u200Cb"
+        result = run_cli("normalize-text", "--batch", mixed)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, mixed + "\n")
+
+    def test_zwnj_table_gap_strict_and_lenient(self):
+        text = "ᠠᠵ\u202Fᠠ\u200C\u180F"
+        result = run_cli("normalize", text)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("normalization fallback", result.stderr)
+        result = run_cli("normalize", "--allow-fallback", text)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, text + "\n")
+
     def test_allow_fallback_is_accepted_and_still_normalizes_a_covered_word(self):
         cases = (
             ("normalize", SAIN, self.shaper.normalize(SAIN)),

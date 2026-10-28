@@ -75,6 +75,29 @@ test("invalid input clears stale results and keeps the engine error", async ({ p
   await expect(page.locator("#shape-output")).toHaveText("S+A+I+I+A");
 });
 
+test("normalizes ZWNJ and copies every break including control-only input", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await ready(page);
+  for (const word of ["ᠨᠦ\u200cᠬ᠊", "\u200cᠪ\u200c\u200c", "\u200c\u200c", "ᠯᠠᠯᠠ\u200d\u200cᠫᠦᠳ"]) {
+    await page.locator("#input").fill(word);
+    const normalized = cli("normalize", word);
+    await expect(page.locator("#norm-output")).toHaveText(normalized);
+    await expect(page.locator("#shape-output")).toHaveText(cli("shape", word));
+    await expect(page.locator("#shape-match")).toHaveText("✓ Shapes match / shape 序列一致");
+    await expect(page.locator("#norm-error")).toBeHidden();
+    await expect(page.locator("#norm-codepoints")).toContainText("U+200C ZWNJ");
+    await expect(page.locator(".unsupported")).toHaveCount(0);
+    await page.locator("#copy-norm").click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(normalized);
+    expect(normalized.split("\u200c").length).toBe(word.split("\u200c").length);
+  }
+  await page.locator("#input").fill("ᠪ");
+  await page.locator("#input").evaluate((node) => node.setSelectionRange(1, 1));
+  await page.locator("[data-insert='200C']").click();
+  await expect(page.locator("#input")).toHaveValue("ᠪ\u200c");
+  await expect(page.locator("#norm-output")).toHaveText(cli("normalize", "ᠪ\u200c"));
+});
+
 test("inserts invisible controls at the caret and replaces a selection", async ({ page }) => {
   await ready(page);
   await page.locator("#input").fill("ᠪᠠ");

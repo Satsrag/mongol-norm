@@ -56,8 +56,11 @@ The site homepage has a permanent link to `/norm/`; deployments only update that
 directory. See [release setup](../docs/releasing.md#the-web-playground).
 
 The UI uses `shape` and `normalize`, which accept a single Mongolian word.
-It does not trim, split, or silently rewrite the input. Spaces, mixed-script
-text, and currently unsupported ZWNJ produce the engine's actual errors.
+It does not trim, split, or silently rewrite the input. Spaces and mixed-script
+text produce the engine's actual errors. ZWNJ is accepted and every joining break
+is preserved by normalization, including leading, trailing and repeated breaks. The engine
+reads the whole word's target shape, then independently encodes the segments separated by
+`Zwnj`; each segment and the rejoined word must preserve their target shapes.
 The match indicator compares the engine's shape sequences, not rendered pixels.
 Norm is a canonical encoding by shape, not an orthographic spelling correction.
 

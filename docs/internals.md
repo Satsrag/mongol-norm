@@ -2,7 +2,7 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/3` policy
+> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/4` policy
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
@@ -13,7 +13,7 @@ does with a font file, but using only the rule data from
 
 ## Shaping pipeline (UTN #57 v4 Mongolian-specific phase)
 
-1. **Chachlag** — Suffix forms for A/E after MVS (Mongolian Vowel Separator)
+1. **Chachlag** — Chachlag forms for A/E after MVS (Mongolian Vowel Separator)
 2. **Syllabic** — Consonant/vowel context: onset, devsger, marked, masculine/feminine harmony, dotless
 3. **Particle** — MVS particle dictionary lookup for specific suffix words
 4. **Devsger** — I after a vowel (vowel_devsger) gets double-tooth form: `I → I+I`
@@ -215,13 +215,23 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **shape** the input into its written-unit sequence. MVS and nirugu appear verbatim as PascalCase `Mvs` / `Nirugu` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above; nirugu renders a visible stem; all three are the evidence for a neighbour's init/medi/fina form). **Split** the shape at these tokens into *chains*; the tokens themselves are copied through unchanged.
-2. **encode each chain** (right-to-left, so appending a suffix can't disturb what precedes it):
+1. **Read the target shape from the whole input.** MVS, nirugu and ZWNJ appear verbatim as PascalCase `Mvs` / `Nirugu` / `Zwnj` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above). Context rules may look through ZWNJ when determining this target.
+2. **Split the target shape at `Zwnj`.** Preserve empty segments at word edges and repeated breaks. Encode each segment independently: encoding receives no context from across ZWNJ. This splits already-resolved written units, not the original Unicode text.
+3. **Encode each segment's chains.** Split at its remaining structural tokens (`Mvs`, `Nirugu`, `Zwj`), which are copied through unchanged. Encode chains right-to-left, checking them against the context within this segment:
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
-   3. **verify** — reshape the candidate in full context; accept only if it equals the target chain shape.
+   3. **verify** — reshape the candidate in its segment context; accept only if it equals the target chain shape.
    4. **no search fallback** — the table is total over the corpus (with FVS-first selection there are no gap chains left). If an out-of-corpus shape ever misses the table, normalization fails closed with the input and the uncovered written-unit sequence. Callers may explicitly ask for the lenient variant to return the input unchanged (round-trip preserved, never a mis-encoding). A letter next to a joiner simply looks its unit up at the shifted (joined) position.
-3. **post-MVS suffix rule** — a chain directly after MVS takes its **standalone** canonical (drop the MVS, normalize, re-attach), so the spelling never depends on MVS. One exception: chachlag `Aa` after MVS is written the bare letter `a`. (The isolate-`I` → `i+FVS1` spelling is pinned in the table itself — no post-processing pass exists.)
+4. **Verify and rejoin the ZWNJ segments.** Each encoded segment must independently reshape to exactly its target segment. Reinsert one U+200C per `Zwnj`, then verify the complete result against the whole target shape. If either check fails, strict normalization reports a fallback, lenient normalization returns the complete original word, and the unit API reports no canonical encoding.
+
+**MVS suffix encoding** works from the suffix's already-parsed written units: encode them
+standalone, reattach MVS, and verify in context. For example, `mvs y i n` shapes to
+`Mvs I I A`; the suffix is encoded from `I I A` and still displays as `I I A` without MVS.
+The isolate-`I` → `i+FVS1` spelling is pinned in the table itself. ZWNJ segmentation uses the
+same principle of independently encoding the resolved shape.
+
+**MVS chachlag encoding** is a separate rule: `Aa` directly after MVS is encoded as bare `a`.
+The existing MVS suffix and chachlag rules remain inside each ZWNJ segment.
 
 **Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the
 shared region encodes identically except the single boundary unit whose position changes (final in
@@ -240,10 +250,34 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/3`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/4`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
+
+**`mng-canonical/4` adds ZWNJ-preserving normalization.** `normalize` now accepts U+200C,
+and `normalize_text` includes it when reading a Mongolian word's target shape. The encoder then
+splits that shape at `Zwnj` and encodes each segment independently. Rebuild stored
+`normalize_text` keys for text containing ZWNJ: the older policy split the original Unicode
+before reading the shape, so it could choose a different target. For example, `n ue ZWNJ h
+nirugu` resolves to `N Ue Zwnj G Nirugu`; its right segment is encoded as `g FVS2 nirugu`,
+which independently displays as `G Nirugu`. Inputs without ZWNJ and all **1988** existing
+canonical golden vectors are unchanged. This policy update does not itself change the package
+version or publish a release.
+
+中文概括：先读取整词 shape，再按 `Zwnj` 分段独立编码、拼回断点；各段独立显示与整词均须保形。
+这里类比的是 MVS suffix 的独立编码，MVS chachlag 保持自身规则。
+
+The normalizer copies every `Zwnj` to U+200C, including word edges, repeated breaks and
+control-only input. The complete ordered shape is preserved; the original nominal letters and
+FVS spelling need not be. A break separates independent encoding segments and never pads
+joining positions. The unit APIs accept `Zwnj`, and the positioned API requires `Zwnj:control`.
+The existing redundant-ZWJ and duplicate-unit rules still apply; no ZWNJ deletion policy is added.
+
+Table coverage is unchanged. The known `a j NNBSP a ZWNJ FVS4` shape (`A A J Mvs Aa Zwnj`)
+has no table encoding; its `J`-before-MVS gap also occurs without ZWNJ. Strict normalization
+reports a fallback, lenient normalization preserves the complete original word, and unit input
+reports no canonical encoding. There is no search fallback or partial result.
 
 **`mng-canonical/3` (0.3.0 on crates.io, 0.3.1 on PyPI) invalidates keys stored under `mng-canonical/2` (0.2.x) for some
 texts.** Two kinds of change reach `normalize`:
