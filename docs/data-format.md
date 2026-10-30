@@ -387,7 +387,8 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 MVS suffix encoding uses the already-resolved suffix shape independently, then reattaches MVS
 and verifies in context. For example, `mvs y i n` gives `Mvs I I A`, and the canonical suffix
 still displays as `I I A` without MVS. MVS chachlag has a separate rule: `Aa` directly after
-MVS is encoded as bare `a`. Both rules remain within each ZWNJ segment.
+MVS is encoded as bare `a` when that preserves the complete target, and as `a+FVS2` when
+bare `a` would rewrite a J/W. Both rules remain within each ZWNJ segment.
 
 Full reference: [`src/normalize.rs`](../src/normalize.rs) — `canonical_for_shape`, `canonical_for_segment`, `unit_encode_chain`, `unit_partition`, `apply_velar_fem`.
 
