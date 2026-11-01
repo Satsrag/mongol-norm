@@ -174,25 +174,6 @@ enum Part {
     Chain(Vec<WrittenUnit>),
 }
 
-impl Part {
-    fn chain(&self) -> Option<&[WrittenUnit]> {
-        match self {
-            Part::Chain(units) => Some(units),
-            Part::Structural(_) => None,
-        }
-    }
-}
-
-struct ChachlagAaTrial<'a> {
-    parts: &'a [Part],
-    left_chain: Option<usize>,
-    prefix_tokens: &'a [WrittenUnit],
-    suffix_text: &'a str,
-    suffix_target: &'a [WrittenUnit],
-    complete: &'a [WrittenUnit],
-    mvs_index: usize,
-}
-
 /// Split a shape at its structural tokens (which are copied through verbatim).
 fn split_parts(shape: &[WrittenUnit]) -> Vec<Part> {
     let mut parts = Vec::new();
@@ -211,20 +192,6 @@ fn split_parts(shape: &[WrittenUnit]) -> Vec<Part> {
         parts.push(Part::Chain(chain));
     }
     parts
-}
-
-/// Structural tokens immediately before `chain_index`, and the letter chain before that run.
-fn prefix_and_left_chain(parts: &[Part], chain_index: usize) -> (Vec<WrittenUnit>, Option<usize>) {
-    let mut prefix = Vec::new();
-    let mut scan = chain_index;
-    while scan > 0 {
-        scan -= 1;
-        match &parts[scan] {
-            Part::Structural(unit) => prefix.insert(0, *unit),
-            Part::Chain(_) => return (prefix, Some(scan)),
-        }
-    }
-    (prefix, None)
 }
 
 /// Position of a letter spanning units `[start, start + length)` in a chain of `unit_count` units.
@@ -380,17 +347,28 @@ impl Shaper {
 
     /// Encode an already-canonical shape, independently on each side of every ZWNJ. The target
     /// units have already captured the original text's context; joining context is not carried
-    /// across a ZWNJ. Each segment must reshape exactly to its target on its own, and the
-    /// caller verifies the rejoined word. Empty segments preserve leading/repeated/trailing
-    /// breaks. A failed segment invalidates the whole candidate, never just that segment.
+    /// across a ZWNJ. Chachlag `Aa` tries bare `a` first and `a+FVS2` only when that is what
+    /// preserves the complete target (a J/W before the MVS, including across a break). Each
+    /// segment must reshape exactly to its target on its own, and the caller verifies the
+    /// rejoined word. Empty segments preserve leading/repeated/trailing breaks. A failed
+    /// segment invalidates the whole candidate, never just that segment.
     pub(crate) fn canonical_for_shape(&self, shape: &[WrittenUnit]) -> Result<String, Error> {
+        for use_fvs2 in [false, true] {
+            let encoded = self.encode_segments(shape, use_fvs2)?;
+            if !encoded.is_empty() && self.shape(&encoded)? == shape {
+                return Ok(encoded);
+            }
+        }
+        Ok(String::new())
+    }
+
+    fn encode_segments(&self, shape: &[WrittenUnit], chachlag_fvs2: bool) -> Result<String, Error> {
         if !shape.contains(&WrittenUnit::Zwnj) {
-            return self.canonical_for_segment(shape, 0, shape);
+            return self.canonical_for_segment(shape, chachlag_fvs2);
         }
         let mut canonical = String::new();
-        let mut offset = 0;
         for (index, segment) in shape.split(|unit| *unit == WrittenUnit::Zwnj).enumerate() {
-            let encoded = self.canonical_for_segment(segment, offset, shape)?;
+            let encoded = self.canonical_for_segment(segment, chachlag_fvs2)?;
             if self.shape(&encoded)? != segment {
                 return Ok(String::new());
             }
@@ -398,7 +376,6 @@ impl Shaper {
                 canonical.push(ZWNJ_CHAR);
             }
             canonical.push_str(&encoded);
-            offset += segment.len() + 1;
         }
         Ok(canonical)
     }
@@ -417,8 +394,7 @@ impl Shaper {
     fn canonical_for_segment(
         &self,
         shape: &[WrittenUnit],
-        segment_offset: usize,
-        complete: &[WrittenUnit],
+        chachlag_fvs2: bool,
     ) -> Result<String, Error> {
         debug_assert!(!shape.contains(&WrittenUnit::Zwnj));
         let parts = split_parts(shape);
@@ -441,42 +417,35 @@ impl Shaper {
                     // Context = the full run of structural tokens right before this chain, not
                     // just the adjacent one: an MVS behind a nirugu still matters, because
                     // chachlag looks through nirugu. — see shaper.py::_canonical_for_shape
-                    let (prefix_tokens, left_chain) = prefix_and_left_chain(&parts, index);
+                    let mut prefix_tokens: Vec<WrittenUnit> = Vec::new();
+                    let mut scan = index;
+                    while scan > 0 {
+                        scan -= 1;
+                        match &parts[scan] {
+                            Part::Structural(unit) => prefix_tokens.insert(0, *unit),
+                            Part::Chain(_) => break,
+                        }
+                    }
                     let mut chain_canonical: Option<String> = None;
                     // An MVS suffix is encoded from its target units STANDALONE, then reattached.
-                    // MVS chachlag is a separate case: try bare `a`, then `a+FVS2` if that is
-                    // what keeps the omitted left chain — and any prior ZWNJ segment — intact.
+                    // MVS chachlag is a separate case: `Aa` after MVS is ordinarily bare `a`,
+                    // and `a+FVS2` when the caller has already seen that bare `a` cannot keep
+                    // the complete target.
                     if prefix_tokens.last() == Some(&WrittenUnit::Mvs) {
-                        if body.as_slice() == [WrittenUnit::Aa] {
-                            let mvs_index =
-                                segment_offset + shape.len() - suffix_target.len() - body.len() - 1;
-                            debug_assert_eq!(complete.get(mvs_index), Some(&WrittenUnit::Mvs));
-                            chain_canonical = self.chachlag_aa_canonical(
-                                table,
-                                body,
-                                &ChachlagAaTrial {
-                                    parts: &parts,
-                                    left_chain,
-                                    prefix_tokens: &prefix_tokens,
-                                    suffix_text: &suffix_text,
-                                    suffix_target: &suffix_target,
-                                    complete,
-                                    mvs_index,
-                                },
-                            )?;
+                        let candidate = if body.as_slice() == [WrittenUnit::Aa] {
+                            chachlag_aa_text(chachlag_fvs2)
                         } else {
-                            let candidate =
-                                self.encode_chain_canonical(table, body, &[], "", &[])?;
-                            if !candidate.is_empty() {
-                                let prefix_text = structural_text(&prefix_tokens);
-                                let mut want = prefix_tokens.clone();
-                                want.extend_from_slice(body);
-                                want.extend_from_slice(&suffix_target);
-                                if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
-                                    == self.without_redundant_zwj(&want)
-                                {
-                                    chain_canonical = Some(candidate);
-                                }
+                            self.encode_chain_canonical(table, body, &[], "", &[])?
+                        };
+                        if !candidate.is_empty() {
+                            let prefix_text = structural_text(&prefix_tokens);
+                            let mut want = prefix_tokens.clone();
+                            want.extend_from_slice(body);
+                            want.extend_from_slice(&suffix_target);
+                            if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
+                                == self.without_redundant_zwj(&want)
+                            {
+                                chain_canonical = Some(candidate);
                             }
                         }
                     }
@@ -498,63 +467,6 @@ impl Shaper {
             }
         }
         Ok(suffix_text)
-    }
-
-    /// Bare `a` first; `a+FVS2` only when the left chain — or a J/W across ZWNJ — would not
-    /// keep the target. Both spellings independently display as `Aa`.
-    fn chachlag_aa_canonical(
-        &self,
-        table: &NormalizeTable,
-        body: &[WrittenUnit],
-        trial: &ChachlagAaTrial<'_>,
-    ) -> Result<Option<String>, Error> {
-        for use_fvs2 in [false, true] {
-            let candidate = chachlag_aa_text(use_fvs2);
-            let prefix_text = structural_text(trial.prefix_tokens);
-            let trial_suffix = format!(
-                "{prefix_text}{candidate}{suffix_text}",
-                suffix_text = trial.suffix_text
-            );
-            let mut trial_target = trial.prefix_tokens.to_vec();
-            trial_target.extend_from_slice(body);
-            trial_target.extend_from_slice(trial.suffix_target);
-            if self.shape(&trial_suffix)? != self.without_redundant_zwj(&trial_target) {
-                continue;
-            }
-            if let Some(left_index) = trial.left_chain {
-                let left = trial.parts[left_index].chain().expect("left letter chain");
-                let (left_prefix, _) = prefix_and_left_chain(trial.parts, left_index);
-                if self
-                    .encode_chain_canonical(
-                        table,
-                        left,
-                        &left_prefix,
-                        &trial_suffix,
-                        &trial_target,
-                    )?
-                    .is_empty()
-                {
-                    continue;
-                }
-            }
-            if trial.mvs_index > 0 && trial.complete[..trial.mvs_index].contains(&WrittenUnit::Zwnj)
-            {
-                let prior = &trial.complete[..trial.mvs_index];
-                let prior_enc = self.canonical_for_shape(prior)?;
-                if prior_enc.is_empty() {
-                    continue;
-                }
-                let mut whole = prior_enc;
-                whole.push_str(&trial_suffix);
-                let mut want = prior.to_vec();
-                want.extend_from_slice(&trial_target);
-                if self.shape(&whole)? != self.without_redundant_zwj(&want) {
-                    continue;
-                }
-            }
-            return Ok(Some(candidate));
-        }
-        Ok(None)
     }
 
     /// Python `_encode_chain_canonical` / `_compute_chain_canonical`: the table encoding of one
