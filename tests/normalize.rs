@@ -237,3 +237,82 @@ fn test_nnbsp_normalize_text_idempotent() {
     let n1 = normalize_text(&text);
     assert_eq!(normalize_text(&n1), n1);
 }
+
+// ── Chachlag Aa encoding (#62) ─────────────────────────────────────────────
+
+fn assert_jw_chachlag_round_trip(text: &str, units: &[mongol_norm::WrittenUnit]) {
+    use mongol_norm::WrittenUnit;
+    let shaper = shaper();
+    assert_eq!(shaper.shape(text).unwrap(), units, "{text:?}");
+    let normalized = shaper.normalize(text).unwrap();
+    assert_eq!(shaper.shape(&normalized).unwrap(), units);
+    assert_eq!(shaper.normalize(&normalized).unwrap(), normalized);
+    assert_eq!(shaper.normalize_written_units(units).unwrap(), normalized);
+    assert_eq!(shaper.normalize_text(text).unwrap(), normalized);
+    assert!(
+        normalized.contains("\u{180E}\u{1820}\u{180C}"),
+        "J/W chachlag must use a+FVS2, got {normalized:?}"
+    );
+    assert_eq!(normalized.matches('\u{180E}').count(), 1);
+    let targets: Vec<_> = units.split(|unit| *unit == WrittenUnit::Zwnj).collect();
+    let segments: Vec<_> = normalized.split('\u{200C}').collect();
+    assert_eq!(segments.len(), targets.len());
+    for (segment, target) in segments.into_iter().zip(targets) {
+        assert_eq!(shaper.shape(segment).unwrap(), target);
+        let isolated = shaper.normalize_written_units(target).unwrap();
+        assert_eq!(shaper.shape(&isolated).unwrap(), target);
+        if isolated != segment {
+            let (short, long) = if isolated.len() < segment.len() {
+                (isolated.as_str(), segment)
+            } else {
+                (segment, isolated.as_str())
+            };
+            assert_eq!(long, format!("{short}\u{180C}"));
+            assert!(short.contains('\u{180E}') && short.ends_with('\u{1820}'));
+        }
+    }
+}
+
+#[test]
+fn j_and_w_before_mvs_aa_use_a_fvs2_and_stay_idempotent() {
+    use mongol_norm::WrittenUnit::*;
+    assert_jw_chachlag_round_trip(&mgl("a fvs1 j mvs a fvs2"), &[A, J, Mvs, Aa]);
+    assert_jw_chachlag_round_trip(&mgl("a fvs1 w mvs a fvs2"), &[A, W, Mvs, Aa]);
+    assert_jw_chachlag_round_trip(&mgl("a fvs1 j zwnj mvs a fvs2"), &[A, J, Zwnj, Mvs, Aa]);
+    assert_jw_chachlag_round_trip(&mgl("a fvs1 w zwnj mvs a fvs2"), &[A, W, Zwnj, Mvs, Aa]);
+    // The same representable target used to be treated as a table gap (#34).
+    assert_jw_chachlag_round_trip(&mgl("a j nnbsp a fvs4"), &[A, A, J, Mvs, Aa]);
+    assert_jw_chachlag_round_trip(&mgl("a j nnbsp a zwnj fvs4"), &[A, A, J, Mvs, Aa, Zwnj]);
+}
+
+#[test]
+fn ordinary_chachlag_keeps_bare_a() {
+    let shaper = shaper();
+    let text = mgl("t a l mvs a");
+    let normalized = shaper.normalize(&text).unwrap();
+    assert_eq!(
+        shaper.shape(&normalized).unwrap(),
+        shaper.shape(&text).unwrap()
+    );
+    assert!(
+        normalized.contains('\u{180E}') && !normalized.contains("\u{180E}\u{1820}\u{180C}"),
+        "ordinary chachlag must stay bare a, got {normalized:?}"
+    );
+    assert_eq!(
+        shaper
+            .normalize_written_units(&[
+                mongol_norm::WrittenUnit::T,
+                mongol_norm::WrittenUnit::A,
+                mongol_norm::WrittenUnit::L,
+                mongol_norm::WrittenUnit::Mvs,
+                mongol_norm::WrittenUnit::Aa,
+            ])
+            .unwrap(),
+        normalized
+    );
+    // Two MVS already preserve W without FVS2; do not widen that existing encoding.
+    let two_mvs = mgl("mvs w mvs a");
+    let two_mvs_norm = shaper.normalize(&two_mvs).unwrap();
+    assert_eq!(two_mvs_norm, two_mvs);
+    assert!(!two_mvs_norm.contains("\u{180E}\u{1820}\u{180C}"));
+}

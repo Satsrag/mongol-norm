@@ -35,7 +35,7 @@ _ALIAS_TO_CP = {
     'w': '\u1838', 'f': '\u1839', 'k2': '\u183A', 'k': '\u183B',
     'mvs': '\u180E', 'fvs1': '\u180B', 'fvs2': '\u180C',
     'fvs3': '\u180D', 'fvs4': '\u180F', 'nnbsp': '\u202F',
-    'nirugu': '\u180A', 'zwj': '\u200D',
+    'nirugu': '\u180A', 'zwj': '\u200D', 'zwnj': '\u200C',
 }
 
 def _mgl(s):
@@ -1501,6 +1501,60 @@ class TestNormalize(unittest.TestCase):
     def test_normalized_same_shape_as_original(self):
         for word in ["ᠰᠡᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ", "ᠰᠠᠶ᠋ᠶ᠋ᠨ"]:
             self.assertTrue(self.s.same_shape(word, self.s.normalize(word)))
+
+    def _assert_jw_chachlag(self, aliases, units):
+        text = _mgl(aliases)
+        self.assertEqual(self.s.shape(text), units)
+        normalized = self.s.normalize(text)
+        self.assertEqual(self.s.shape(normalized), units)
+        self.assertEqual(self.s.normalize(normalized), normalized)
+        self.assertEqual(self.s.normalize_written_units(units), normalized)
+        self.assertEqual(self.s.normalize_text(text), normalized)
+        self.assertIn('\u180e\u1820\u180c', normalized)
+        self.assertEqual(normalized.count('\u180e'), 1)
+        targets = [[]]
+        for unit in units:
+            if unit == 'Zwnj':
+                targets.append([])
+            else:
+                targets[-1].append(unit)
+        segments = normalized.split('\u200c')
+        self.assertEqual(len(segments), len(targets))
+        for segment, target in zip(segments, targets):
+            self.assertEqual(self.s.shape(segment), target)
+            isolated = self.s.normalize_written_units(target)
+            self.assertEqual(self.s.shape(isolated), target)
+            if isolated != segment:
+                short, long = (isolated, segment) if len(isolated) < len(segment) else (segment, isolated)
+                self.assertEqual(long, short + '\u180c')
+                self.assertIn('\u180e', short)
+                self.assertTrue(short.endswith('\u1820'))
+
+    def test_j_and_w_before_mvs_aa_use_a_fvs2(self):
+        self._assert_jw_chachlag('a fvs1 j mvs a fvs2', ['A', 'J', 'Mvs', 'Aa'])
+        self._assert_jw_chachlag('a fvs1 w mvs a fvs2', ['A', 'W', 'Mvs', 'Aa'])
+        self._assert_jw_chachlag(
+            'a fvs1 j zwnj mvs a fvs2', ['A', 'J', 'Zwnj', 'Mvs', 'Aa'])
+        self._assert_jw_chachlag(
+            'a fvs1 w zwnj mvs a fvs2', ['A', 'W', 'Zwnj', 'Mvs', 'Aa'])
+        self._assert_jw_chachlag('a j nnbsp a fvs4', ['A', 'A', 'J', 'Mvs', 'Aa'])
+        self._assert_jw_chachlag(
+            'a j nnbsp a zwnj fvs4', ['A', 'A', 'J', 'Mvs', 'Aa', 'Zwnj'])
+
+    def test_ordinary_chachlag_keeps_bare_a(self):
+        text = _mgl('t a l mvs a')
+        normalized = self.s.normalize(text)
+        self.assertEqual(self.s.shape(normalized), self.s.shape(text))
+        self.assertIn('\u180e', normalized)
+        self.assertNotIn('\u180e\u1820\u180c', normalized)
+        self.assertEqual(
+            self.s.normalize_written_units(['T', 'A', 'L', 'Mvs', 'Aa']),
+            normalized,
+        )
+        two_mvs = _mgl('mvs w mvs a')
+        two_mvs_norm = self.s.normalize(two_mvs)
+        self.assertEqual(two_mvs_norm, two_mvs)
+        self.assertNotIn('\u180e\u1820\u180c', two_mvs_norm)
 
 
 class TestNormalizeText(unittest.TestCase):

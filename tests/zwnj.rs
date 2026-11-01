@@ -307,11 +307,7 @@ fn follows_the_font_around_the_break() {
     for (aliases, expected) in FONT_CASES {
         let text = mgl(aliases);
         assert_eq!(shape(&text), *expected, "{aliases}");
-        if *aliases == "a j nnbsp a zwnj fvs4" {
-            assert_table_gap(&shaper, &text);
-        } else {
-            assert_normalization(&shaper, &text);
-        }
+        assert_normalization(&shaper, &text);
     }
 }
 
@@ -371,9 +367,30 @@ fn assert_normalization(shaper: &Shaper, text: &str) -> String {
     assert_eq!(segments.len(), targets.len());
     for (segment, target) in segments.into_iter().zip(targets) {
         assert_eq!(shaper.shape(segment).unwrap(), target, "{}", hex(text));
-        assert_eq!(shaper.normalize_written_units(target).unwrap(), segment);
+        let isolated = shaper.normalize_written_units(target).unwrap();
+        assert_eq!(shaper.shape(&isolated).unwrap(), target, "{}", hex(text));
+        // Isolated `Mvs+Aa` keeps ordinary bare `a`; the complete target may select
+        // `a+FVS2` so a J/W across the break stays J/W (#62).
+        if isolated != segment {
+            assert!(
+                chachlag_aa_spellings(&isolated, segment),
+                "segment encoding diverged: {} vs {}",
+                hex(&isolated),
+                hex(segment)
+            );
+        }
     }
     normalized
+}
+
+/// The two chachlag `Aa` spellings: ordinary bare `a` after MVS, and `a+FVS2`.
+fn chachlag_aa_spellings(left: &str, right: &str) -> bool {
+    let (short, long) = if left.len() < right.len() {
+        (left, right)
+    } else {
+        (right, left)
+    };
+    long == format!("{short}\u{180C}") && short.contains('\u{180E}') && short.ends_with('\u{1820}')
 }
 
 fn assert_table_gap(shaper: &Shaper, text: &str) {
@@ -393,16 +410,6 @@ fn assert_table_gap(shaper: &Shaper, text: &str) {
     let mixed = format!("English {text}, 中文");
     assert_eq!(shaper.normalize_text(&mixed), shaper.normalize(text));
     assert_eq!(shaper.normalize_text_allow_fallback(&mixed).unwrap(), mixed);
-}
-
-#[test]
-fn existing_table_gap_keeps_the_error_contract_with_or_without_a_break() {
-    // J before MVS + chachlag Aa is uncovered even without ZWNJ; this change does not
-    // add search fallback or widen the table. Lenient mode must keep the entire word.
-    let shaper = shaper();
-    for aliases in ["a j nnbsp a fvs4", "a j nnbsp a zwnj fvs4"] {
-        assert_table_gap(&shaper, &mgl(aliases));
-    }
 }
 
 #[test]
@@ -464,13 +471,19 @@ fn suffix_before_a_break_does_not_depend_on_the_following_segment() {
 #[test]
 fn an_unencodable_segment_never_returns_a_partial_word() {
     let shaper = shaper();
-    let gap = mgl("a j nnbsp a zwnj fvs4");
-    // A successful segment on either side must not hide failure of another segment.
-    for text in [
-        format!("{}\u{200C}{gap}", mgl("b")),
-        format!("{gap}\u{200C}{}", mgl("b")),
+    // Isol O has no table encoding; a successful neighbour must not hide that gap.
+    assert_eq!(
+        shaper.normalize_written_units(&[WrittenUnit::O]),
+        Err(Error::NoCanonicalEncoding)
+    );
+    for units in [
+        vec![WrittenUnit::B, WrittenUnit::Zwnj, WrittenUnit::O],
+        vec![WrittenUnit::O, WrittenUnit::Zwnj, WrittenUnit::B],
     ] {
-        assert_table_gap(&shaper, &text);
+        assert_eq!(
+            shaper.normalize_written_units(&units),
+            Err(Error::NoCanonicalEncoding)
+        );
     }
 }
 

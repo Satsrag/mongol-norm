@@ -39,14 +39,10 @@ class TestNormalizeCli(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, mixed + "\n")
 
-    def test_zwnj_table_gap_strict_and_lenient(self):
-        text = "ᠠᠵ\u202Fᠠ\u200C\u180F"
-        result = run_cli("normalize", text)
+    def test_isol_o_reports_no_canonical_encoding(self):
+        result = run_cli("normalize-written-units", "O")
         self.assertEqual(result.returncode, 2)
-        self.assertIn("normalization fallback", result.stderr)
-        result = run_cli("normalize", "--allow-fallback", text)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, text + "\n")
+        self.assertIn("no canonical MNG encoding", result.stderr)
 
     def test_allow_fallback_is_accepted_and_still_normalizes_a_covered_word(self):
         cases = (

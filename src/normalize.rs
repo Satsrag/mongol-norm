@@ -220,6 +220,17 @@ fn letter_position(letter_index: usize, total: usize) -> Position {
     }
 }
 
+/// Ordinary chachlag `Aa` is bare `a` (narrow MVS gap). `a+FVS2` is the table's isol-`Aa`
+/// spelling: it still displays as `Aa`, and an FVS on the vowel postpones chachlag-onset so a
+/// J/W before the MVS stays J/W.
+fn chachlag_aa_text(use_fvs2: bool) -> String {
+    let mut text = String::from('\u{1820}');
+    if use_fvs2 {
+        text.push(Fvs::Fvs2.as_char());
+    }
+    text
+}
+
 /// Python `_unit_partition`: single deterministic local partition + encode pass. At each index
 /// take the single unit if the table has it, else the longest multi-unit entry. Joiners on either
 /// side shift the positions as if one extra unit padded that side.
@@ -335,17 +346,29 @@ impl Shaper {
     }
 
     /// Encode an already-canonical shape, independently on each side of every ZWNJ. The target
-    /// units have already captured the original text's context; encoding never carries that
-    /// context across a ZWNJ. Each segment must reshape exactly to its target on its own, and
-    /// the caller verifies the rejoined word. Empty segments preserve leading/repeated/trailing
-    /// breaks. A failed segment invalidates the whole candidate, never just that segment.
+    /// units have already captured the original text's context; joining context is not carried
+    /// across a ZWNJ. Chachlag `Aa` tries bare `a` first and `a+FVS2` only when that is what
+    /// preserves the complete target (a J/W before the MVS, including across a break). Each
+    /// segment must reshape exactly to its target on its own, and the caller verifies the
+    /// rejoined word. Empty segments preserve leading/repeated/trailing breaks. A failed
+    /// segment invalidates the whole candidate, never just that segment.
     pub(crate) fn canonical_for_shape(&self, shape: &[WrittenUnit]) -> Result<String, Error> {
+        for use_fvs2 in [false, true] {
+            let encoded = self.encode_segments(shape, use_fvs2)?;
+            if !encoded.is_empty() && self.shape(&encoded)? == shape {
+                return Ok(encoded);
+            }
+        }
+        Ok(String::new())
+    }
+
+    fn encode_segments(&self, shape: &[WrittenUnit], chachlag_fvs2: bool) -> Result<String, Error> {
         if !shape.contains(&WrittenUnit::Zwnj) {
-            return self.canonical_for_segment(shape);
+            return self.canonical_for_segment(shape, chachlag_fvs2);
         }
         let mut canonical = String::new();
         for (index, segment) in shape.split(|unit| *unit == WrittenUnit::Zwnj).enumerate() {
-            let encoded = self.canonical_for_segment(segment)?;
+            let encoded = self.canonical_for_segment(segment, chachlag_fvs2)?;
             if self.shape(&encoded)? != segment {
                 return Ok(String::new());
             }
@@ -368,7 +391,11 @@ impl Shaper {
     /// The table is fetched only when a chain has to be encoded (Python calls `_build_unit_enc`
     /// lazily), so a structural-only shape — e.g. a lone nirugu — is copied through even for
     /// locales without a normalize table.
-    fn canonical_for_segment(&self, shape: &[WrittenUnit]) -> Result<String, Error> {
+    fn canonical_for_segment(
+        &self,
+        shape: &[WrittenUnit],
+        chachlag_fvs2: bool,
+    ) -> Result<String, Error> {
         debug_assert!(!shape.contains(&WrittenUnit::Zwnj));
         let parts = split_parts(shape);
         // `suffix_text` accumulates the whole result: each part is prepended as it is encoded, so
@@ -401,10 +428,12 @@ impl Shaper {
                     }
                     let mut chain_canonical: Option<String> = None;
                     // An MVS suffix is encoded from its target units STANDALONE, then reattached.
-                    // MVS chachlag is a separate case: `Aa` after MVS is encoded as bare `a`.
+                    // MVS chachlag is a separate case: `Aa` after MVS is ordinarily bare `a`,
+                    // and `a+FVS2` when the caller has already seen that bare `a` cannot keep
+                    // the complete target.
                     if prefix_tokens.last() == Some(&WrittenUnit::Mvs) {
                         let candidate = if body.as_slice() == [WrittenUnit::Aa] {
-                            String::from('\u{1820}')
+                            chachlag_aa_text(chachlag_fvs2)
                         } else {
                             self.encode_chain_canonical(table, body, &[], "", &[])?
                         };
@@ -672,5 +701,11 @@ mod tests {
             UnitKey::new(&[WrittenUnit::A]),
             UnitKey::new(&[WrittenUnit::A, WrittenUnit::A])
         );
+    }
+
+    #[test]
+    fn chachlag_aa_spellings_are_bare_a_and_a_fvs2() {
+        assert_eq!(chachlag_aa_text(false), "\u{1820}");
+        assert_eq!(chachlag_aa_text(true), "\u{1820}\u{180C}");
     }
 }

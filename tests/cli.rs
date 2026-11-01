@@ -72,12 +72,11 @@ fn zwnj_normalization_accepts_text_and_both_unit_spellings() {
 }
 
 #[test]
-fn zwnj_table_gap_reports_fallback_and_lenient_mode_preserves_the_word() {
-    let text = mgl("a j nnbsp a zwnj fvs4");
-    assert_clean_failure(&run(&["normalize", &text], None), "normalization fallback");
-    let output = run(&["normalize", "--allow-fallback", &text], None);
-    assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(output.stdout, format!("{text}\n"));
+fn isol_o_reports_no_canonical_encoding() {
+    assert_clean_failure(
+        &run(&["normalize-written-units", "O"], None),
+        "no canonical MNG encoding",
+    );
 }
 
 /// A scratch directory for the file-I/O tests, removed when the test ends (pass or panic).

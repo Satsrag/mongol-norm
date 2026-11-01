@@ -151,7 +151,15 @@ class _Base(unittest.TestCase):
         self.assertEqual(len(segments), len(targets))
         for segment, target in zip(segments, targets):
             self.assertEqual(self.s.shape(segment), target)
-            self.assertEqual(self.s.normalize_written_units(target), segment)
+            isolated = self.s.normalize_written_units(target)
+            self.assertEqual(self.s.shape(isolated), target)
+            # Isolated Mvs+Aa keeps ordinary bare a; the complete target may
+            # select a+FVS2 so a J/W across the break stays J/W (#62).
+            if isolated != segment:
+                short, long = (isolated, segment) if len(isolated) < len(segment) else (segment, isolated)
+                self.assertEqual(long, short + '\u180c')
+                self.assertIn('\u180e', short)
+                self.assertTrue(short.endswith('\u1820'))
         return normalized
 
     def assert_table_gap(self, text):
@@ -274,10 +282,7 @@ class TestFollowsTheFont(_Base):
         for aliases, expected in self.CASES:
             with self.subTest(aliases=aliases):
                 self.assertEqual(self.s.shape_str(_mgl(aliases)), expected)
-                if aliases == 'a j nnbsp a zwnj fvs4':
-                    self.assert_table_gap(_mgl(aliases))
-                else:
-                    self.assert_normalization(_mgl(aliases))
+                self.assert_normalization(_mgl(aliases))
 
 
 class TestConfluence(_Base):
@@ -324,21 +329,18 @@ class TestApis(_Base):
             self.assertEqual(normalized.rsplit(ZWNJ, 1)[1], encoded_suffix)
 
     def test_unencodable_segment_never_returns_a_partial_word(self):
-        gap = _mgl('a j nnbsp a zwnj fvs4')
-        for text in [_mgl('b') + ZWNJ + gap, gap + ZWNJ + _mgl('b')]:
-            with self.subTest(text=_hex(text)):
-                self.assert_table_gap(text)
+        with self.assertRaisesRegex(ValueError, 'no canonical MNG encoding'):
+            self.s.normalize_written_units(['O'])
+        for units in [['B', 'Zwnj', 'O'], ['O', 'Zwnj', 'B']]:
+            with self.subTest(units=units):
+                with self.assertRaisesRegex(ValueError, 'no canonical MNG encoding'):
+                    self.s.normalize_written_units(units)
 
     def test_suffix_before_a_break_does_not_depend_on_the_following_segment(self):
         text = _mgl('nnbsp u t zwj fvs1 zwnj zwnj r')
         normalized = self.assert_normalization(text)
         # The old encoding depended on the following segment to keep T instead of D.
         self.assertEqual(self.s.shape_str(normalized.split(ZWNJ)[0]), 'Mvs+A+O+T+Zwj')
-
-    def test_existing_table_gap_with_or_without_a_break(self):
-        for aliases in ['a j nnbsp a fvs4', 'a j nnbsp a zwnj fvs4']:
-            with self.subTest(aliases=aliases):
-                self.assert_table_gap(_mgl(aliases))
 
     def test_positioned_breaks_and_validation_order(self):
         control = {'unit': 'Zwnj', 'position': 'control'}

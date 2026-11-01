@@ -230,8 +230,11 @@ standalone, reattach MVS, and verify in context. For example, `mvs y i n` shapes
 The isolate-`I` → `i+FVS1` spelling is pinned in the table itself. ZWNJ segmentation uses the
 same principle of independently encoding the resolved shape.
 
-**MVS chachlag encoding** is a separate rule: `Aa` directly after MVS is encoded as bare `a`.
-The existing MVS suffix and chachlag rules remain inside each ZWNJ segment.
+**MVS chachlag encoding** is a separate rule: `Aa` directly after MVS is encoded as bare `a`
+when that preserves the complete target, and as the table's isol-`Aa` spelling `a+FVS2`
+when bare `a` would rewrite a J/W (including one across ZWNJ) into I/U. Ordinary chachlag
+keeps the narrow MVS gap; J/W keeps the explicit FVS2 spelling. The existing MVS suffix and
+chachlag rules remain inside each ZWNJ segment.
 
 **Prefix-stability** means: if word *A* = word *B* + a suffix and their shapes share a prefix, the
 shared region encodes identically except the single boundary unit whose position changes (final in
@@ -266,18 +269,21 @@ canonical golden vectors are unchanged. This policy update does not itself chang
 version or publish a release.
 
 中文概括：先读取整词 shape，再按 `Zwnj` 分段独立编码、拼回断点；各段独立显示与整词均须保形。
-这里类比的是 MVS suffix 的独立编码，MVS chachlag 保持自身规则。
+这里类比的是 MVS suffix 的独立编码；MVS chachlag 在保形时用裸 `a`，在需要保住 J/W 时用已有的 `a+FVS2`。
 
 The normalizer copies every `Zwnj` to U+200C, including word edges, repeated breaks and
 control-only input. The complete ordered shape is preserved; the original nominal letters and
 FVS spelling need not be. A break separates independent encoding segments and never pads
-joining positions. The unit APIs accept `Zwnj`, and the positioned API requires `Zwnj:control`.
-The existing redundant-ZWJ and duplicate-unit rules still apply; no ZWNJ deletion policy is added.
+joining positions. Isolated `Mvs+Aa` still encodes as bare `a`; a complete target that must
+keep a J/W across that break may spell the same segment as `a+FVS2`. Both spellings
+independently display as `Aa`. The unit APIs accept `Zwnj`, and the positioned API requires
+`Zwnj:control`. The existing redundant-ZWJ and duplicate-unit rules still apply; no ZWNJ
+deletion policy is added.
 
-Table coverage is unchanged. The known `a j NNBSP a ZWNJ FVS4` shape (`A A J Mvs Aa Zwnj`)
-has no table encoding; its `J`-before-MVS gap also occurs without ZWNJ. Strict normalization
-reports a fallback, lenient normalization preserves the complete original word, and unit input
-reports no canonical encoding. There is no search fallback or partial result.
+A representable `J`/`W` + MVS + `Aa` target no longer needs a second MVS or a retained ZWNJ
+to encode. Isol `O` remains a genuine table gap: strict normalization reports a fallback,
+lenient normalization preserves the complete original word, and unit input reports no
+canonical encoding. There is no search fallback or partial result.
 
 **`mng-canonical/3` (0.3.0 on crates.io, 0.3.1 on PyPI) invalidates keys stored under `mng-canonical/2` (0.2.x) for some
 texts.** Two kinds of change reach `normalize`:
