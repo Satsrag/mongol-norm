@@ -387,8 +387,8 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("b mvs nirugu o")), ["B", "Mvs", "Nirugu", "U"])
         self.assertEqual(self.s.shape(_mgl("b mvs zwj a")), ["B", "Mvs", "Zwj", "A"])
         # A second MVS: the a does not follow the consonant's MVS directly (III.2c, III.2f).
-        self.assertEqual(self.s.shape(_mgl("a j mvs mvs a")), ["A", "A", "J", "Mvs", "Mvs", "Aa"])
-        self.assertEqual(self.s.shape(_mgl("a g mvs mvs a")), ["A", "A", "H", "Mvs", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a j mvs mvs a")), ["A", "A", "J", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a g mvs mvs a")), ["A", "A", "H", "Mvs", "Aa"])
         # Within one segment nothing changes.
         self.assertEqual(self.s.shape(_mgl("a n mvs a")), ["A", "A", "N", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("b o")), ["B", "O"])
@@ -1534,12 +1534,12 @@ class TestNormalize(unittest.TestCase):
         self._assert_jw_chachlag('a fvs1 j mvs a fvs2', ['A', 'J', 'Mvs', 'Aa'])
         self._assert_jw_chachlag('a fvs1 w mvs a fvs2', ['A', 'W', 'Mvs', 'Aa'])
         self._assert_jw_chachlag(
-            'a fvs1 j zwnj mvs a fvs2', ['A', 'J', 'Zwnj', 'Mvs', 'Aa'])
+            'a fvs1 j zwnj mvs a fvs2', ['A', 'J', 'Mvs', 'Aa'])
         self._assert_jw_chachlag(
-            'a fvs1 w zwnj mvs a fvs2', ['A', 'W', 'Zwnj', 'Mvs', 'Aa'])
+            'a fvs1 w zwnj mvs a fvs2', ['A', 'W', 'Mvs', 'Aa'])
         self._assert_jw_chachlag('a j nnbsp a fvs4', ['A', 'A', 'J', 'Mvs', 'Aa'])
         self._assert_jw_chachlag(
-            'a j nnbsp a zwnj fvs4', ['A', 'A', 'J', 'Mvs', 'Aa', 'Zwnj'])
+            'a j nnbsp a zwnj fvs4', ['A', 'A', 'J', 'Mvs', 'Aa'])
 
     def test_ordinary_chachlag_keeps_bare_a(self):
         text = _mgl('t a l mvs a')

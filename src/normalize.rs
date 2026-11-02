@@ -338,7 +338,7 @@ impl Shaper {
         &self.normalize
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/4"`). Persist it next
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/5"`). Persist it next
     /// to stored normalized keys. Always `Some`: the `Option` remains from the locales without
     /// a normalize table the crate used to have.
     pub fn canonical_version(&self) -> Option<&'static str> {
@@ -443,7 +443,7 @@ impl Shaper {
                             want.extend_from_slice(body);
                             want.extend_from_slice(&suffix_target);
                             if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
-                                == self.without_redundant_zwj(&want)
+                                == self.canonical_controls(&want)
                             {
                                 chain_canonical = Some(candidate);
                             }
@@ -511,7 +511,7 @@ impl Shaper {
         verify_target.extend_from_slice(chain);
         verify_target.extend_from_slice(suffix_target);
         if self.shape(&format!("{prefix_text}{text}{suffix_text}"))?
-            == self.without_redundant_zwj(&verify_target)
+            == self.canonical_controls(&verify_target)
         {
             Ok(Some(text))
         } else {
@@ -676,7 +676,7 @@ mod tests {
     #[test]
     fn empty_and_structural_shapes_normalize_without_a_letter() {
         let shaper = Shaper::new(Locale::Mng);
-        assert_eq!(shaper.canonical_version(), Some("mng-canonical/4"));
+        assert_eq!(shaper.canonical_version(), Some("mng-canonical/5"));
         assert_eq!(shaper.normalize("").unwrap(), "");
         assert_eq!(shaper.normalize("\u{180B}").unwrap(), ""); // FVS only: empty shape short-circuits
         assert_eq!(shaper.normalize("\u{180A}").unwrap(), "\u{180A}"); // structural-only shape

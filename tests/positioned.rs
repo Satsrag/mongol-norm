@@ -394,10 +394,7 @@ fn test_long_control_sequence_stays_iterative() {
     let shaper = shaper();
     let mut records = vec![rec(WrittenUnit::Mvs, UnitPosition::Control); 1000];
     records.push(rec(WrittenUnit::F, UnitPosition::Init));
-    assert_eq!(
-        positioned(&shaper, &records).unwrap(),
-        format!("{}\u{1839}", "\u{180E}".repeat(1000))
-    );
+    assert_eq!(positioned(&shaper, &records).unwrap(), "\u{180E}\u{1839}");
 }
 
 #[test]

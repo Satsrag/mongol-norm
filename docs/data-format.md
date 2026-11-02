@@ -55,8 +55,10 @@ shaper.normalize_written_units(["S", "A", "I", "I", "N", "Mvs", "Aa"])
 
 The input must be an ordered `Sequence[str]` using the same unit vocabulary
 returned by `shape()`. Every written-unit name is PascalCase; structural controls
-are `Mvs`, `Nirugu`, `Zwj`, and `Zwnj`. Every `Zwnj` is encoded as U+200C. After
-folding the request, split it at `Zwnj` and encode each segment independently. Each
+are `Mvs`, `Nirugu`, `Zwj`, and `Zwnj`. Canonicalization merges consecutive identical
+ZWJ/ZWNJ/MVS runs and removes redundant ZWJ/ZWNJ controls before duplicate unification.
+Every surviving `Zwnj` is encoded as U+200C. Split the canonical request at its remaining
+`Zwnj` units and encode each segment independently. Each
 segment must reshape to its exact target on its own, and the rejoined output must
 reshape to the complete target.
 The nine duplicate encodings (see the normalize algorithm below) are still *accepted* here and unified before encoding, so data
@@ -318,7 +320,7 @@ tbl = load_normalize_table("MNG")   # -> dict
 ```json
 {
   "schema": "mongol-normalize-table/1",
-  "canonical_version": "mng-canonical/4",
+  "canonical_version": "mng-canonical/5",
   "locale": "MNG",
   "unit_enc_max_len": 3,
   "positioned_units": [
@@ -355,7 +357,14 @@ tbl = load_normalize_table("MNG")   # -> dict
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
 1. `shape()` the whole word to obtain its target written units (needs the shape rules). Structural characters — MVS, nirugu, ZWJ, ZWNJ — appear in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj`/`Zwnj` tokens. Context rules may look through ZWNJ while resolving this target. The shape-to-Unicode encoder works from these resolved units, not from independently reshaped pieces of the original text. Structural tokens divide letter chains; a letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`). `Zwnj` never pads joining positions.
-1a. **Unify the duplicate encodings.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
+1a. **Canonicalize controls.** For a port starting from raw resolved written units, repeatedly
+   merge consecutive identical ZWJ/ZWNJ/MVS units, run the complete existing ZWJ filter, and
+   scan ZWNJs once from left to right. Stop after an unchanged complete round. Remove a ZWNJ
+   only when every affected letter's position is unchanged or covered by its reviewed
+   positional equivalence. Preserve a whole-sequence `[Zwj]` or `[Zwnj]`, and preserve Nirugu
+   count and order. See [control post-processing](internals.md#control-character-post-processing).
+   `shape()` already performs this step and the following duplicate unification.
+1b. **Unify the duplicate encodings once.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
 
    First **expand**, in one left-to-right pass over each chain:
 
@@ -380,7 +389,7 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
    Initial/final `H`/`Hx`, a lone `Cr:isol`, and a lone `A` are unchanged. One expansion pass suffices: neither direction emits expansion targets or exposes initial/final `H`/`Hx` as medial. All contractions end the chain; `A/B2/G` cannot contract again, and a contracted `Aa` follows a bowed written unit rather than `A/O/I`. This proves idempotence without repeated deletion. In particular `Dd Aa → O A Aa` cannot then contract: `O` is not a bowed written unit. See the 168 421-input exhaustion and context regressions in `src/duplicates.rs`.
 
    UTN #57 and GB/T 25914-2023 keep all nine as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-unification sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs).
-2. Split the canonical target at `Zwnj`, retaining empty segments at edges and repeated breaks. Encode each segment independently, without passing context across ZWNJ. Within a segment, retain the existing MVS suffix and chachlag rules and split at the remaining structural tokens. For each letter chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
+2. Split the canonical target at the remaining `Zwnj` units, retaining empty segments for a singleton `[Zwnj]`. Encode each segment independently, without passing context across ZWNJ. Within a segment, retain the existing MVS suffix and chachlag rules and split at the remaining structural tokens. For each letter chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
 4. Verify each encoded segment independently against its exact target shape, reinsert one U+200C per `Zwnj`, then verify the complete output against the whole target. No segment may depend on a neighbour across ZWNJ to display correctly. If a segment or the complete result cannot preserve its target, strict normalization raises a fallback; lenient normalization (`strict=False` / `--allow-fallback`) returns the complete original word, and unit input reports no canonical encoding. No partial output is returned.
 

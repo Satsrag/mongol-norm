@@ -440,8 +440,10 @@ fn test_context_stays_in_the_mvs_segment() {
     assert_shape(&mgl("b mvs nirugu o"), &["B", "Mvs", "Nirugu", "U"]);
     assert_shape(&mgl("b mvs zwj a"), &["B", "Mvs", "Zwj", "A"]);
     // A second MVS: the a does not follow the consonant's MVS directly (III.2c, III.2f).
-    assert_shape(&mgl("a j mvs mvs a"), &["A", "A", "J", "Mvs", "Mvs", "Aa"]);
-    assert_shape(&mgl("a g mvs mvs a"), &["A", "A", "H", "Mvs", "Mvs", "Aa"]);
+    assert_shape_raw(&mgl("a j mvs mvs a"), &["A", "A", "J", "Mvs", "Mvs", "Aa"]);
+    assert_shape(&mgl("a j mvs mvs a"), &["A", "A", "J", "Mvs", "Aa"]);
+    assert_shape_raw(&mgl("a g mvs mvs a"), &["A", "A", "H", "Mvs", "Mvs", "Aa"]);
+    assert_shape(&mgl("a g mvs mvs a"), &["A", "A", "H", "Mvs", "Aa"]);
     // Within one segment nothing changes.
     assert_shape(&mgl("a n mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
     assert_shape(&mgl("b o"), &["B", "O"]);

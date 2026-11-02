@@ -33,11 +33,11 @@ class TestNormalizeCli(unittest.TestCase):
             with self.subTest(command=command, value=value):
                 result = run_cli(command, value)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(result.stdout, text + "\n")
+                self.assertEqual(result.stdout, "ᠪ\n")
         mixed = f"Hello {text}\na\u200Cb"
         result = run_cli("normalize-text", "--batch", mixed)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, mixed + "\n")
+        self.assertEqual(result.stdout, "Hello ᠪ\na\u200Cb\n")
 
     def test_isol_o_reports_no_canonical_encoding(self):
         result = run_cli("normalize-written-units", "O")

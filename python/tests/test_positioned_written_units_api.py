@@ -346,7 +346,7 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         positioned.append({"unit": "F", "position": "init"})
         self.assertEqual(
             self.shaper.normalize_positioned_written_units(positioned),
-            "\u180e" * 1000 + "\u1839",
+            "\u180e\u1839",
         )
 
     def test_record_limit_fails_closed(self):

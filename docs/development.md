@@ -162,7 +162,7 @@ Two more comparisons widen the net:
   until #50–#52 and #55, and those a ZWNJ meets. All of them must shape alike.
 
 Current totals: **339 Rust tests** (unit + property + 177 core-hud and 3512 eac-hud corpus rows,
-1988 canonical and 15 phase-trace golden vectors, fuzz, the ZWNJ cases and the README doctest; the
+1987 canonical and 15 phase-trace golden vectors, fuzz, the ZWNJ cases and the README doctest; the
 `font` feature adds 21) and **317 Python tests**, green on Rust stable / 1.82 (the core crate's
 MSRV; the binding crate needs 1.83, the `font` feature 1.85) and CPython 3.9 and 3.14 (CI tests the
 ends of the supported range; the extension targets the stable ABI, so the versions in between load

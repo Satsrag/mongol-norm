@@ -111,18 +111,22 @@ class MongolianShaper:
         table, see ``docs/internals.md``) is dropped before duplicate unification, so
         ᠯᠢᠡ᠋ and ᠯᠢ + ZWJ + ᠡ᠋ are both ``L G``. An MVS is a segment edge, so a ZWJ
         next to it is judged like one at the word edge.
-        ``Mvs`` and ``Nirugu`` always appear verbatim.
+        Consecutive identical ZWJ, ZWNJ and MVS units merge; ``Nirugu`` keeps its count and order.
         同理,ZWJ 只在改变字形时作为 ``Zwj`` 出现:两侧已连写、挨着 nirugu、重复、或词首尾
         连写形与非连写形同形(见 ``docs/internals.md`` 的表)的 ZWJ 在统一重复编码前去掉;
-        MVS 是段边缘,紧挨 MVS 的 ZWJ 按词首/词尾规则处理。``Mvs`` 和 ``Nirugu`` 总是原样输出。
+        MVS 是段边缘,紧挨 MVS 的 ZWJ 按词首/词尾规则处理。连续同类 ZWJ、ZWNJ、MVS 归并，Nirugu 保留数量与顺序。
 
         A ZWNJ (U+200C) breaks the cursive chain — the letter before it is written
         ``fina``/``isol``, the letter after it ``init``/``isol`` — while the context
         rules (vowel harmony, gender markers, chachlag, particles) look through it,
-        as the reference font does. It appears as ``Zwnj``.
+        as the reference font does. After shaping, redundant breaks are removed using
+        reviewed per-letter positional equivalences. A needed break remains as ``Zwnj``.
+        Merge identical control runs, drop ZWJ, and scan ZWNJ repeatedly until stable,
+        then unify duplicate units once. A lone ``Zwj`` or ``Zwnj`` is kept.
         ZWNJ(U+200C)打断连写:其前字母取 ``fina``/``isol``、其后字母取 ``init``/``isol``,
         而上下文规则(元音和谐、阴阳标记、chachlag、虚词)像参考字体一样穿过它。ZWNJ
-        输出为 ``Zwnj``。
+        仅在需要保留断点时输出为 ``Zwnj``。先归并连续同类控制符，再依次执行 ZWJ、ZWNJ 删除，
+        整轮重复至稳定后统一同形单元。整个序列仅有一个 ``Zwj`` 或 ``Zwnj`` 时保留。
 
         Raises ValueError on characters outside the Mongolian word alphabet
         (letters, FVS, MVS, NNBSP, Nirugu, ZWJ, ZWNJ); use :meth:`normalize_text`
@@ -132,11 +136,11 @@ class MongolianShaper:
 
     def _shape_raw(self, text):
         """
-        The engine's own written-unit sequence, before redundant ZWJs are dropped
+        The engine's own written-unit sequence, before control normalization
         and the nine duplicate encodings are unified — the sequence UTN #57 / GB/T
         25914-2023 describe, in which all nine and every ZWJ and ZWNJ of the input
         still appear.
-        引擎自身的书写单元序列(未去冗余 ZWJ、未统一重复编码),
+        引擎自身的书写单元序列(未规范化控制符、未统一重复编码),
         即 UTN #57 / GB/T 25914-2023 所描述的序列。
 
         NOT part of the public contract (hence the leading underscore, mirroring the Rust
@@ -216,12 +220,14 @@ class MongolianShaper:
         Canonical encoding of a single Mongolian word.
         单个蒙古文词的规范化编码。
 
-        Every ZWNJ is preserved, including leading, trailing, repeated and
-        control-only breaks. The whole word supplies the target shape, which is
-        split at ``Zwnj`` and encoded independently per segment. Each segment
+        Redundant ZWJ and ZWNJ units are removed, and consecutive identical ZWJ,
+        ZWNJ and MVS units are merged. Needed breaks and Nirugu strokes remain.
+        The whole word supplies the canonical target shape, which is split at
+        the remaining ``Zwnj`` units and encoded independently per segment. Each segment
         must preserve its target shape when displayed alone; the rejoined word
         must preserve the complete shape. Letters and FVS may be rewritten.
-        保留每个 ZWNJ 断点；先读取整词 shape，再按 ``Zwnj`` 分段独立编码。
+        删除冗余 ZWJ、ZWNJ，归并连续同类 ZWJ、ZWNJ、MVS；保留必要断点与 Nirugu 笔画。
+        先读取整词规范 shape，再按剩余 ``Zwnj`` 分段独立编码。
         每段单独显示及拼接后的整词都保形；字母和 FVS 可改为规范编码。
 
         With ``strict=True`` (default) a shape the normalize table cannot
@@ -235,10 +241,10 @@ class MongolianShaper:
         """
         Normalize every Mongolian word run inside free-form *text*, leaving
         other characters untouched. ZWNJ belongs to the word run while its
-        target shape is read. Encoding then splits that shape at ``Zwnj`` into
+        target shape is read. Encoding then splits the canonical shape at remaining ``Zwnj`` units into
         independent segments, as in :meth:`normalize`.
         对自由文本中的每个蒙古文词段做规范化，其余字符原样保留。
-        先读取整词 shape，再按 ``Zwnj`` 分段独立编码并拼回断点。
+        先读取整词规范 shape，再按剩余 ``Zwnj`` 分段独立编码并拼回断点。
         """
         return _call(self._native.normalize_text, text, strict)
 
@@ -249,8 +255,8 @@ class MongolianShaper:
 
         ``written_units`` may be the direct output of :meth:`shape`. Structural
         written-unit names are PascalCase: ``Mvs``, ``Nirugu``, ``Zwj``, and ``Zwnj``.
-        Every ``Zwnj`` is preserved. After folding the request as described
-        below, the encoder splits it at ``Zwnj`` and encodes each segment
+        After control normalization and duplicate unification as described
+        below, the encoder splits at the remaining ``Zwnj`` units and encodes each segment
         independently. Both the standalone segments and the rejoined output
         must reshape to their exact targets. Letter positions are inferred
         from sequence order and structural controls; this API does not accept
@@ -258,19 +264,19 @@ class MongolianShaper:
         ZWJ is emitted only when ``Zwj`` is present in the request. An
         empty sequence returns an empty string.
         ``written_units`` 可直接使用 :meth:`shape` 的输出。外部调用方也可将结构
-        token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``、``Zwnj``，并保留每个 ``Zwnj``。
-        请求经下述折叠后按 ``Zwnj`` 分段独立编码，每段及拼回后的整体均须精确保形。
+        token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``、``Zwnj``。
+        请求经控制符规范化与同形归一后，按剩余 ``Zwnj`` 分段独立编码，每段及拼回后的整体均须精确保形。
         字母位置由序列顺序与结构 control 推导；本 API 不接受显式位置 record，
         也不推断或插入 control。只有请求含 ``Zwj`` 时才输出
         ZWJ；空序列返回空字符串。
 
-        The request goes through the same redundant-ZWJ filter and duplicate
-        unification as :meth:`shape`, so ``["L", "I", "Zwj", "Aa"]`` is encoded as
+        The request goes through the same stable control-normalization loop and
+        duplicate unification as :meth:`shape`, so ``["L", "I", "Zwj", "Aa"]`` is encoded as
         ``L G`` — exactly like the text ᠯᠢ + ZWJ + ᠡ᠋ — and a ``Zwj`` that changes
         no glyph is not emitted. The result is accepted only when it reshapes to
         that folded sequence. An unknown/malformed unit or an unencodable sequence
         raises instead of guessing or returning a partial result.
-        请求先经过与 :meth:`shape` 相同的冗余 ZWJ 过滤和重复编码统一(``L I Zwj Aa``
+        请求先经过与 :meth:`shape` 相同的控制符规范化循环和同形单元归一(``L I Zwj Aa``
         编码为 ``L G``),不改变字形的 ``Zwj`` 不会输出。仅当输出重新 shape 后与
         折叠后的序列完全一致时才接受。未知/非法 unit 或无法编码的序列会抛出异常,
         不猜测,也不返回部分结果。
