@@ -1,5 +1,19 @@
 import { test, expect } from "@playwright/test";
 
+async function checkLocalLinks(page) {
+  const urls = await page.locator("a[href]").evaluateAll(links => [...new Set(links.map(link => link.href).filter(url => new URL(url).origin === location.origin))]);
+  const documents = new Map();
+  for (const url of urls) {
+    const [path, hash] = url.split("#");
+    if (!documents.has(path)) {
+      const response = await page.request.get(path);
+      expect(response.ok(), path).toBe(true);
+      documents.set(path, await response.text());
+    }
+    if (hash) expect(documents.get(path), url).toContain(`id="${decodeURIComponent(hash)}"`);
+  }
+}
+
 for (const kind of ["zwnj", "zwj"]) {
   test(`${kind} reference translates text, tooltips and navigation without changing glyphs`, async ({ page }) => {
     const errors = [];
@@ -32,15 +46,34 @@ for (const kind of ["zwnj", "zwj"]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.fonts.check('27px "HudumReview"', "ᠮ"))).toBe(true);
-    const urls = await page.locator("a[href]").evaluateAll(links => [...new Set(links.map(link => link.href).filter(url => new URL(url).origin === location.origin))]);
-    for (const url of urls) {
-      const response = await page.request.get(url);
-      expect(response.ok(), url).toBe(true);
-      const hash = new URL(url).hash;
-      if (hash && new URL(url).pathname === new URL(page.url()).pathname) {
-        expect(await page.locator(`[id="${decodeURIComponent(hash.slice(1))}"]`).count(), hash).toBe(1);
-      }
-    }
+    await checkLocalLinks(page);
     expect(errors).toEqual([]);
   });
 }
+
+test("overall policy translates the complete-round plan and connects both detailed references", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/control-policy-review/");
+  await expect(page.locator("h1")).toHaveText("Control-character removal policy");
+  await expect(page.locator("header .callout")).toContainText("planned behavior");
+  await expect(page.locator("#p05-4 pre")).toContainText("one left-to-right ZWNJ drop scan");
+  await expect(page.locator(".control-pairs tbody tr")).toHaveCount(16);
+  const trace = await page.locator("#round-example td code").allTextContents();
+  expect(trace.slice(0, 4)).toEqual(["N+Zwnj+B+Zwnj+I", "N+Zwnj+B+I", "N+Zwnj+B+I", "N+B+I"]);
+  await page.getByRole("button", { name: "中文", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.locator("h1")).toHaveText("控制符删除总方案");
+  await expect(page.locator("#p05-4 pre")).toContainText("从左到右执行一轮 ZWNJ drop");
+  expect(await page.locator("#round-example td code").allTextContents()).toEqual(trace);
+  await page.locator("#p06-1 .term").filter({ hasText: /^isol$/ }).first().focus();
+  await expect(page.locator("#term-tooltip")).toHaveText("独立形。");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await checkLocalLinks(page);
+  await page.getByRole("button", { name: "English", exact: true }).click();
+  expect(await page.locator("i18n-text").evaluateAll(nodes => nodes.every(node => !/[\u4e00-\u9fff]/.test(node.textContent)))).toBe(true);
+  expect(errors).toEqual([]);
+});

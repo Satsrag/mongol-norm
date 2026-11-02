@@ -6,4 +6,8 @@ nav .term { display:inline; width:auto; color:inherit; }
 .grouped-rules th:first-child { width:72px; white-space:nowrap; }
 .rule-table, .grouped-rules { min-width:760px; }
 .render-unit code { overflow-wrap:normal; }
+.term { cursor:help; text-decoration:underline dotted #8d9db7; text-underline-offset:4px; }
+.term:focus-visible { outline:2px solid #9bb1f2; outline-offset:3px; border-radius:2px; }
+.term-tooltip { position:fixed; z-index:1000; width:max-content; max-width:min(320px,calc(100vw - 24px)); padding:10px 13px; border:1px solid #cdd7e8; border-radius:7px; background:#fff; color:var(--ink); box-shadow:0 5px 20px #25334726; font-size:14px; line-height:1.75; pointer-events:none; }
 @media print { .language-switch { display:none; } }
+@media print { .term { text-decoration:none; } .term-tooltip { display:none; } }
