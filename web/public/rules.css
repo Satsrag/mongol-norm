@@ -1,0 +1,9 @@
+.language-switch { display:flex; justify-content:flex-end; gap:6px; margin-bottom:20px; }
+.language-switch button { padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); font:inherit; font-size:14px; cursor:pointer; }
+.language-switch button[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:white; }
+.language-switch button:focus-visible { outline:3px solid #9bb1f2; outline-offset:3px; }
+nav .term { display:inline; width:auto; color:inherit; }
+.grouped-rules th:first-child { width:72px; white-space:nowrap; }
+.rule-table, .grouped-rules { min-width:760px; }
+.render-unit code { overflow-wrap:normal; }
+@media print { .language-switch { display:none; } }

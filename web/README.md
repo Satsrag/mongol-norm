@@ -8,6 +8,14 @@ the bundled `hudum.otf`. Input stays in the browser.
 **[Open the live playground](https://www.satsrag.dev/norm/)** ·
 **[在线使用](https://www.satsrag.dev/norm/)**
 
+The site also includes [ZWJ drop rules](https://www.satsrag.dev/norm/zwj-drop-rules/)
+and the [ZWNJ drop plan](https://www.satsrag.dev/norm/zwnj-drop-rules/), with
+English/中文 switching, localized term explanations, and glyph comparisons.
+These are static reference snapshots, with pinned source commits; the ZWNJ
+page describes a proposed pass, not an implemented library feature. The HTML
+under `public/*-drop-rules/` and shared `rules.js`/`rules.css` ship with every
+playground deployment. Update both languages when revising these snapshots.
+
 The WebAssembly adapter calls the Rust crate at `../..` directly. It has its
 own Cargo workspace and lockfile so browser build dependencies do not affect
 the core crate's zero-dependency or MSRV guarantees.
