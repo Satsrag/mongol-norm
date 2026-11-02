@@ -66,7 +66,7 @@
     for (const button of buttons) button.setAttribute("aria-pressed", String(button.dataset.language === language));
     // Close any tooltip whose term has just been translated.
     dispatchEvent(new Event("resize"));
-    annotate(language);
+    if (document.getElementById("term-tooltip")) annotate(language);
     try { localStorage.setItem("mongol-norm-rules-language", language); } catch {}
   }
   for (const button of buttons) button.addEventListener("click", () => setLanguage(button.dataset.language));

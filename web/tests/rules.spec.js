@@ -51,23 +51,17 @@ for (const kind of ["zwnj", "zwj"]) {
   });
 }
 
-test("overall policy translates the complete-round plan and connects both detailed references", async ({ page }) => {
+test("concise overall policy translates and connects both detailed references", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/control-policy-review/");
   await expect(page.locator("h1")).toHaveText("Control-character removal policy");
-  await expect(page.locator("header .callout")).toContainText("planned behavior");
-  await expect(page.locator("#p05-4 pre")).toContainText("one left-to-right ZWNJ drop scan");
-  await expect(page.locator(".control-pairs tbody tr")).toHaveCount(16);
-  const trace = await page.locator("#round-example td code").allTextContents();
-  expect(trace.slice(0, 4)).toEqual(["N+Zwnj+B+Zwnj+I", "N+Zwnj+B+I", "N+Zwnj+B+I", "N+B+I"]);
+  await expect(page.locator("ol a")).toHaveText(["ZWJ drop", "ZWNJ drop"]);
+  await expect(page.locator("#p05-4")).toContainText("Repeat the complete round until nothing changes.");
   await page.getByRole("button", { name: "中文", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   await expect(page.locator("h1")).toHaveText("控制符删除总方案");
-  await expect(page.locator("#p05-4 pre")).toContainText("从左到右执行一轮 ZWNJ drop");
-  expect(await page.locator("#round-example td code").allTextContents()).toEqual(trace);
-  await page.locator("#p06-1 .term").filter({ hasText: /^isol$/ }).first().focus();
-  await expect(page.locator("#term-tooltip")).toHaveText("独立形。");
+  await expect(page.locator("#p05-4")).toContainText("整轮有变化就重跑，直到稳定。");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   await page.setViewportSize({ width: 390, height: 844 });

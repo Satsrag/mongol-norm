@@ -14,8 +14,7 @@ and the [ZWNJ drop plan](https://www.satsrag.dev/norm/zwnj-drop-rules/), with
 English/中文 switching, localized term explanations, and glyph comparisons.
 These are static reference snapshots, with pinned source commits; the ZWNJ
 page describes a proposed pass, not an implemented library feature. The overall
-policy explains the complete-round loop (merge runs → existing ZWJ fixed point →
-one ZWNJ scan), all 16 ordered control pairs, and encoding/acceptance requirements.
+policy summarizes the three-step loop and links to the two detailed references.
 The unified loop and repeated-MVS merging are also planned behavior. The HTML
 under `public/control-policy-review/`, `public/*-drop-rules/`, and shared `rules.js`/`rules.css` ship with every
 playground deployment. Update both languages when revising these snapshots.
