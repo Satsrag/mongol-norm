@@ -46,6 +46,7 @@ mod font;
 mod generated;
 mod normalize;
 mod redundant_zwj;
+mod redundant_zwnj;
 mod rules;
 mod shaper;
 mod tables;
