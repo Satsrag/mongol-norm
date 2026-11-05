@@ -19,6 +19,10 @@
     [["INITIAL_ALONE"], "fina ↔ isol equivalence. For ZWJ removal at a segment start, the following letter has a boundary on its far side.", "fina ↔ isol 等价表。删除片段开头的 ZWJ 时，后方字母外侧是边界。"],
     [["FINAL_AFTER_LETTER"], "medi ↔ fina equivalence. For ZWJ removal at a segment end, the preceding letter remains connected on its far side.", "medi ↔ fina 等价表。删除片段结尾的 ZWJ 时，前方字母外侧仍有连接。"],
     [["FINAL_ALONE"], "init ↔ isol equivalence. For ZWJ removal at a segment end, the preceding letter has a boundary on its far side.", "init ↔ isol 等价表。删除片段结尾的 ZWJ 时，前方字母外侧是边界。"],
+    [["INIT_TO_MEDI"], "init ↔ medi equivalence. For ZWNJ removal, the right letter has a connection on its far side and changes from init to medi.", "init ↔ medi 等价表。删除 ZWNJ 时，右字母外侧有连接，位置由 init 变为 medi。"],
+    [["FINA_TO_MEDI"], "fina ↔ medi equivalence. For ZWNJ removal, the left letter has a connection on its far side and changes from fina to medi.", "fina ↔ medi 等价表。删除 ZWNJ 时，左字母外侧有连接，位置由 fina 变为 medi。"],
+    [["ISOL_TO_FINA"], "isol ↔ fina equivalence. For ZWNJ removal, the right letter has a boundary on its far side and changes from isol to fina.", "isol ↔ fina 等价表。删除 ZWNJ 时，右字母外侧是边界，位置由 isol 变为 fina。"],
+    [["ISOL_TO_INIT"], "isol ↔ init equivalence. For ZWNJ removal, the left letter has a boundary on its far side and changes from isol to init.", "isol ↔ init 等价表。删除 ZWNJ 时，左字母外侧是边界，位置由 isol 变为 init。"],
   ];
   const terms = new Map(glossary.flatMap(([names, en, zh]) => names.map(name => [name.toLowerCase(), { en, zh }])));
   const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
