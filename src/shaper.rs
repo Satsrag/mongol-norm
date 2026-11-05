@@ -564,11 +564,26 @@ impl Shaper {
 }
 
 /// The public shape of an engine-level unit sequence: controls processed to stability, then
-/// duplicate encodings unified — in that order, so a joiner that separated `I Aa` no longer blocks the `G`
-/// contraction. Both backends fold their raw units with it, so [`Shaper::shape`] and
+/// duplicate encodings unified — repeating if an expanded duplicate (such as `Dd` → `O A`) exposes
+/// a now-redundant control. Both backends fold their raw units with it, so [`Shaper::shape`] and
 /// `FontShaper::shape` compare unit for unit.
 pub(crate) fn canonical_units(raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-    collapse(&canonical_controls(raw))
+    let mut units = canonical_controls(raw);
+    loop {
+        let collapsed = collapse(&units);
+        if collapsed == units
+            || !collapsed
+                .iter()
+                .any(|u| matches!(u, WrittenUnit::Zwj | WrittenUnit::Zwnj))
+        {
+            return collapsed;
+        }
+        let next = canonical_controls(&collapsed);
+        if next.len() == collapsed.len() {
+            return next;
+        }
+        units = next;
+    }
 }
 
 /// Flatten resolved tokens into the public shape.

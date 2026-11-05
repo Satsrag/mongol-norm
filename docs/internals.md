@@ -31,7 +31,9 @@ For each ZWNJ, simulate removing only that unit using the current sequence. MVS 
 break joining chains; ZWJ and Nirugu provide joining context. Remove the break only when
 all affected letters retain their positions or pass their reviewed per-unit positional
 equivalences. An adjacent MVS supplies the same break, so that ZWNJ can be removed.
-The four ZWJ tables supply `init ↔ medi`, `fina ↔ medi`, `isol ↔ fina`, and `isol ↔ init`;
+Four reviewed ZWNJ tables (`INIT_TO_MEDI`, `FINA_TO_MEDI`, `ISOL_TO_FINA`, and
+`ISOL_TO_INIT` in `src/redundant_zwnj.rs`) supply `init ↔ medi`, `fina ↔ medi`,
+`isol ↔ fina`, and `isol ↔ init`;
 only approved paths for that same unit establish further equivalence. Missing evidence
 keeps the ZWNJ. A sequence consisting only of `[Zwj]` or `[Zwnj]` keeps that representative.
 

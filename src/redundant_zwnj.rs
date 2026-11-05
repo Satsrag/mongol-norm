@@ -3,9 +3,27 @@
 
 use crate::generated::enums::WrittenUnit;
 use crate::normalize::{is_joiner, slot_position};
-use crate::redundant_zwj::{FINAL_AFTER_LETTER, FINAL_ALONE, INITIAL_ALONE, INITIAL_BEFORE_LETTER};
 use crate::tables::Position;
-use WrittenUnit::{Mvs, Zwnj};
+use WrittenUnit::{
+    Aa, Ch, Cr, Gx, Hx, Mvs, Rh, Sh, Zr, Zwnj, B, C, D, F, G, H, I, K, K2, L, M, N, O, P, R, S, T,
+    U, W, Y, Z,
+};
+
+/// Right neighbor `… Zwnj U X…` → `… U X…` (`U:init` → `U:medi`).
+pub(crate) const INIT_TO_MEDI: &[WrittenUnit] = &[
+    B, C, Ch, Cr, D, F, G, Gx, I, K, K2, O, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
+];
+
+/// Left neighbor `…X U Zwnj …` → `…X U …` (`U:fina` → `U:medi`).
+pub(crate) const FINA_TO_MEDI: &[WrittenUnit] = &[Cr, O, Zr];
+
+/// Right neighbor `… Zwnj U` with `U` alone on the right → `… U` (`U:isol` → `U:fina`).
+pub(crate) const ISOL_TO_FINA: &[WrittenUnit] = &[Aa, Cr, I, U, Zr];
+
+/// Left neighbor `U Zwnj …` with `U` alone on the left → `U …` (`U:isol` → `U:init`).
+pub(crate) const ISOL_TO_INIT: &[WrittenUnit] = &[
+    B, C, Ch, Cr, D, F, G, Gx, H, Hx, K, K2, L, M, N, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
+];
 
 /// Remove redundant `Zwnj` units in one left-to-right scan, without revisiting kept breaks.
 pub(crate) fn drop_redundant_zwnj(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
@@ -66,16 +84,15 @@ const fn mask(position: Position) -> u8 {
     }
 }
 
-/// The same four reviewed per-unit equivalences as ZWJ, used in either direction.
-/// Paths may compose only for the same unit. The reviewed comparison snapshot contains no
-/// additional approved edges; missing encodings do not revoke an existing ZWJ decision.
+/// Reviewed per-unit positional equivalences for removing a ZWNJ break.
+/// Paths may compose only for the same unit.
 fn equivalent(unit: WrittenUnit, from: Position, to: Position) -> bool {
     use Position::{Fina, Init, Isol, Medi};
     let edges = [
-        (Init, Medi, INITIAL_BEFORE_LETTER),
-        (Fina, Medi, FINAL_AFTER_LETTER),
-        (Isol, Fina, INITIAL_ALONE),
-        (Isol, Init, FINAL_ALONE),
+        (Init, Medi, INIT_TO_MEDI),
+        (Fina, Medi, FINA_TO_MEDI),
+        (Isol, Fina, ISOL_TO_FINA),
+        (Isol, Init, ISOL_TO_INIT),
     ];
     let mut reached = mask(from);
     loop {
@@ -138,10 +155,12 @@ mod tests {
 
     #[test]
     fn equivalent_paths_are_per_letter_and_do_not_guess_missing_edges() {
-        use Position::{Init, Isol, Medi};
+        use Position::{Fina, Init, Isol, Medi};
         assert!(equivalent(B, Isol, Medi)); // isol -> init -> medi
         assert!(!equivalent(N, Isol, Medi)); // N lacks init -> medi
         assert!(!equivalent(A, Isol, Init));
         assert!(equivalent(A, Isol, Isol));
+        assert!(!equivalent(WrittenUnit::Dd, Init, Medi));
+        assert!(!equivalent(WrittenUnit::Dd, Isol, Fina));
     }
 }
