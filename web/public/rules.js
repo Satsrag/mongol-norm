@@ -23,6 +23,7 @@
     [["FINA_TO_MEDI"], "fina ↔ medi equivalence. For ZWNJ removal, the left letter has a connection on its far side and changes from fina to medi.", "fina ↔ medi 等价表。删除 ZWNJ 时，左字母外侧有连接，位置由 fina 变为 medi。"],
     [["ISOL_TO_FINA"], "isol ↔ fina equivalence. For ZWNJ removal, the right letter has a boundary on its far side and changes from isol to fina.", "isol ↔ fina 等价表。删除 ZWNJ 时，右字母外侧是边界，位置由 isol 变为 fina。"],
     [["ISOL_TO_INIT"], "isol ↔ init equivalence. For ZWNJ removal, the left letter has a boundary on its far side and changes from isol to init.", "isol ↔ init 等价表。删除 ZWNJ 时，左字母外侧是边界，位置由 isol 变为 init。"],
+    [["bowed written unit", "bowed written units", "bowed unit", "bowed units", "弓形单元"], "One of the 7 Hudum bowed consonant units: B, P, F, G, Gx, K, K2.", "7 个胡都木弓形辅音单元之一：B、P、F、G、Gx、K、K2。"],
   ];
   const terms = new Map(glossary.flatMap(([names, en, zh]) => names.map(name => [name.toLowerCase(), { en, zh }])));
   const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

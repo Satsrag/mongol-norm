@@ -9,8 +9,9 @@ the bundled `hudum.otf`. Input stays in the browser.
 **[在线使用](https://www.satsrag.dev/norm/)**
 
 The site also includes the [overall control-character policy](https://www.satsrag.dev/norm/control-policy-review/),
-[ZWJ drop rules](https://www.satsrag.dev/norm/zwj-drop-rules/)
-and the [ZWNJ drop rules](https://www.satsrag.dev/norm/zwnj-drop-rules/), with
+[ZWJ drop rules](https://www.satsrag.dev/norm/zwj-drop-rules/),
+[ZWNJ drop rules](https://www.satsrag.dev/norm/zwnj-drop-rules/),
+and [duplicate unit unification rules](https://www.satsrag.dev/norm/duplicate-unit-rules/), with
 English/中文 switching, localized term explanations, and glyph comparisons.
 These are static reference snapshots with pinned source commits. The ZWNJ detail
 page records the reviewed design and examples; the engine implements the unified
