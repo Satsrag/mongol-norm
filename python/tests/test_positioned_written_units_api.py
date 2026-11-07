@@ -123,7 +123,8 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 if shape == [unit, "Zwj"]:
                     joined.append(unit)
                 else:
-                    self.assertEqual(shape, [unit])
+                    expected = ["O", "O"] if unit == "Cr" else [unit]
+                    self.assertEqual(shape, expected)
                     self.assertNotIn(unit, isolated)
         self.assertEqual(joined, ["A", "I", "O"])
 

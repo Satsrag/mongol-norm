@@ -1349,7 +1349,10 @@ class TestDuplicateEncodings(unittest.TestCase):
         self.assertEqual(self.s.shape("ᠪᠠᠭᠰᠢ"), ["B", "A", "A", "A", "S", "I"])  # H:medi
         self.assertEqual(self.s.shape("ᠠᠷᠭᠠᠯ"),
                          ["A", "A", "R", "N", "N", "A", "L"])                     # Hx:medi
+        self.assertEqual(self.s.shape("ᡂ"), ["O", "O"])                           # Cr:isol
         self.assertEqual(self.s.shape("ᡂ᠊"), ["O", "O", "Nirugu"])               # Cr:init
+        self.assertEqual(self.s.shape("᠊ᡂ᠊"), ["Nirugu", "O", "O", "Nirugu"])    # Cr:medi
+        self.assertEqual(self.s.shape("᠊ᡂ"), ["Nirugu", "O", "O"])               # Cr:fina
 
     def test_contracted_duplicates(self):
         # Choose the shorter form only in its verified position and bowed written unit context.
@@ -1382,15 +1385,18 @@ class TestDuplicateEncodings(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("a i g")), ["A", "A", "I", "I", "H"])   # H:fina
         self.assertEqual(self.s.shape(_mgl("n g mvs a")),
                          ["N", "Hx", "Mvs", "Aa"])                     # Hx:fina, Aa:isol
-        self.assertEqual(self.s.shape("ᡂ"), ["Cr"])       # Cr:isol, not the verified init
         self.assertEqual(self.s.shape(_mgl("a")), ["A", "A"])  # a lone `A` chain is canonical
 
     def test_dd_never_reaches_a_public_shape(self):
-        # `Dd` is a duplicate in every position it has, so it can never appear.
+        # `Dd` and `Cr` are duplicates in every position they have, so neither can appear.
         for aliases in ("o d", "o d b o", "t a l mvs ue d", "a r a d", "d a d h u"):
             with self.subTest(aliases=aliases):
                 self.assertNotIn("Dd", self.s.shape(_mgl(aliases)))
                 self.assertIn("Dd", self.s._shape_raw(_mgl(aliases)))
+        for word in ("ᡂ", "ᡂ᠊", "᠊ᡂ᠊", "᠊ᡂ", "ᡂᠢᡂ"):
+            with self.subTest(word=word):
+                self.assertNotIn("Cr", self.s.shape(word))
+                self.assertIn("Cr", self.s._shape_raw(word))
 
     def test_expansion_does_not_license_a_non_bowed_unit_contraction(self):
         # Dd expands to O A; O is not a bowed written unit, so A Aa must remain intact.
