@@ -66,18 +66,18 @@ use WrittenUnit::{
 };
 
 /// Segment-initial `Zwj U X…` → `U X…` (`U:medi` ≡ `U:init`); at the start of the word or after an MVS.
-const INITIAL_BEFORE_LETTER: &[WrittenUnit] = &[
+pub(crate) const INITIAL_BEFORE_LETTER: &[WrittenUnit] = &[
     B, C, Ch, Cr, D, Dd, F, G, Gx, I, K, K2, O, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
 
 /// Segment-initial `Zwj U` with `U` alone in its segment → `U` (`U:fina` ≡ `U:isol`).
-const INITIAL_ALONE: &[WrittenUnit] = &[Aa, Cr, Dd, I, U, Zr];
+pub(crate) const INITIAL_ALONE: &[WrittenUnit] = &[Aa, Cr, Dd, I, U, Zr];
 
 /// Segment-final `…X U Zwj` → `…X U` (`U:medi` ≡ `U:fina`); at the end of the word or before an MVS.
-const FINAL_AFTER_LETTER: &[WrittenUnit] = &[Cr, O, Zr];
+pub(crate) const FINAL_AFTER_LETTER: &[WrittenUnit] = &[Cr, O, Zr];
 
 /// Segment-final `U Zwj` with `U` alone in its segment → `U` (`U:init` ≡ `U:isol`).
-const FINAL_ALONE: &[WrittenUnit] = &[
+pub(crate) const FINAL_ALONE: &[WrittenUnit] = &[
     B, C, Ch, Cr, D, F, G, Gx, H, Hx, K, K2, L, M, N, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
 

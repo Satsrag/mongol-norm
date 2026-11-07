@@ -193,9 +193,9 @@ fn a_zwnj_is_a_unit() {
     // t a l + ZWNJ + a: the break makes the l final and the a isolated, and the font reports it.
     assert_eq!(raw("ᠲᠠᠯ\u{200C}ᠠ"), ["T", "A", "L", "Zwnj", "A", "A"]);
     assert_eq!(shape("ᠲᠠᠯ\u{200C}ᠠ"), ["T", "A", "L", "Zwnj", "A", "A"]);
-    // At a word edge too, as in the rule engine.
+    // The raw edge break survives; the public shape removes it, as in the rule engine.
     assert_eq!(raw("\u{200C}ᠪᠠ"), ["Zwnj", "B", "Aa"]);
-    assert_eq!(shape("\u{200C}ᠪᠠ"), ["Zwnj", "B", "Aa"]);
+    assert_eq!(shape("\u{200C}ᠪᠠ"), ["B", "Aa"]);
     assert_eq!(shape("\u{200C}"), ["Zwnj"]);
     assert_like_the_engine(&[
         "\u{200C}",

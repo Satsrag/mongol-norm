@@ -41,7 +41,7 @@ STRUCTURAL_UNITS = ("Mvs", "Nirugu", "Zwj", "Zwnj")
 POSITIONS = ("isol", "init", "medi", "fina")
 SCHEMA_VERSION = 1
 NORMALIZE_SCHEMA = "mongol-normalize-table/1"
-CANONICAL_VERSION = "mng-canonical/4"
+CANONICAL_VERSION = "mng-canonical/5"
 MAX_UNIT_KEY_LEN = 3  # src/normalize.rs::UnitKey capacity
 # Must equal the code points hard-coded in src/unicode.rs (MVS, NIRUGU, ZWJ, ZWNJ) and
 # src/tables.rs (Fvs::cp).
@@ -339,8 +339,8 @@ def render_enums(rules):
     out.append(render_enum(
         "WrittenUnit",
         "A written unit: an opaque glyph-form identifier produced by shaping (see `docs/data-format.md`). "
-        "The structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj` are members too: they appear verbatim in "
-        "[`Shaper::shape`](crate::Shaper::shape) output, exactly as the Python implementation emits them.",
+        "The structural tokens `Mvs`, `Nirugu`, `Zwj` and `Zwnj` are members too; "
+        "[`Shaper::shape`](crate::Shaper::shape) reports those that survive control canonicalization.",
         unit_entries, "written unit", is_structural))
     out.append("\n")
     out.append(render_enum(

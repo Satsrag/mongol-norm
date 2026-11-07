@@ -173,8 +173,8 @@ pub struct ShapedGlyph {
 /// # Output contract
 ///
 /// [`FontShaper::shape`] is the same kind of sequence as [`Shaper::shape`](crate::Shaper::shape):
-/// `Mvs`, `Nirugu` and `Zwnj` verbatim, a `Zwj` only where it changes the ink, the duplicate
-/// encodings unified — the two post-passes are shared with the rule engine — so the two
+/// redundant ZWJ/ZWNJ controls removed, identical control runs merged, every Nirugu preserved,
+/// and duplicate encodings unified. These post-passes are shared with the rule engine, so the two
 /// backends can be compared unit for unit. How the glyphs are read:
 /// * an FVS, valid or not, is never a unit. The font draws an invalid one as a visible
 ///   placeholder; the crate follows the rule engine and the GB/T 25914-2023 unit streams and
@@ -232,8 +232,8 @@ impl FontShaper {
     }
 
     /// Shape `text` into its written-unit sequence, on the same contract as
-    /// [`Shaper::shape`](crate::Shaper::shape): `Mvs`, `Nirugu` and `Zwnj` verbatim, a `Zwj`
-    /// only where it changes the ink, the duplicate encodings unified.
+    /// [`Shaper::shape`](crate::Shaper::shape): redundant ZWJ/ZWNJ controls removed, identical
+    /// ZWJ/ZWNJ/MVS runs merged, every Nirugu preserved, and duplicate encodings unified.
     pub fn shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
         let glyphs = self.run(text)?;
         let raw: Vec<WrittenUnit> = glyphs

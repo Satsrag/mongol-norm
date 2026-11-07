@@ -123,7 +123,8 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 if shape == [unit, "Zwj"]:
                     joined.append(unit)
                 else:
-                    self.assertEqual(shape, [unit])
+                    expected = ["O", "O"] if unit == "Cr" else [unit]
+                    self.assertEqual(shape, expected)
                     self.assertNotIn(unit, isolated)
         self.assertEqual(joined, ["A", "I", "O"])
 
@@ -346,7 +347,7 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         positioned.append({"unit": "F", "position": "init"})
         self.assertEqual(
             self.shaper.normalize_positioned_written_units(positioned),
-            "\u180e" * 1000 + "\u1839",
+            "\u180e\u1839",
         )
 
     def test_record_limit_fails_closed(self):

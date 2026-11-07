@@ -440,8 +440,10 @@ fn test_context_stays_in_the_mvs_segment() {
     assert_shape(&mgl("b mvs nirugu o"), &["B", "Mvs", "Nirugu", "U"]);
     assert_shape(&mgl("b mvs zwj a"), &["B", "Mvs", "Zwj", "A"]);
     // A second MVS: the a does not follow the consonant's MVS directly (III.2c, III.2f).
-    assert_shape(&mgl("a j mvs mvs a"), &["A", "A", "J", "Mvs", "Mvs", "Aa"]);
-    assert_shape(&mgl("a g mvs mvs a"), &["A", "A", "H", "Mvs", "Mvs", "Aa"]);
+    assert_shape_raw(&mgl("a j mvs mvs a"), &["A", "A", "J", "Mvs", "Mvs", "Aa"]);
+    assert_shape(&mgl("a j mvs mvs a"), &["A", "A", "J", "Mvs", "Aa"]);
+    assert_shape_raw(&mgl("a g mvs mvs a"), &["A", "A", "H", "Mvs", "Mvs", "Aa"]);
+    assert_shape(&mgl("a g mvs mvs a"), &["A", "A", "H", "Mvs", "Aa"]);
     // Within one segment nothing changes.
     assert_shape(&mgl("a n mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
     assert_shape(&mgl("b o"), &["B", "O"]);
@@ -1270,7 +1272,10 @@ fn duplicates_are_unified_in_the_public_shape() {
     assert_shape(&mgl("o d b o"), &["A", "O", "O", "A", "B", "O"]); // Dd:medi
     assert_shape(&mgl("b a g sh i"), &["B", "A", "A", "A", "S", "I"]); // H:medi
     assert_shape(&mgl("a r g a l"), &["A", "A", "R", "N", "N", "A", "L"]); // Hx:medi
+    assert_shape(&mgl("cr"), &["O", "O"]); // Cr:isol
     assert_shape(&mgl("cr nirugu"), &["O", "O", "Nirugu"]); // Cr:init
+    assert_shape(&mgl("nirugu cr nirugu"), &["Nirugu", "O", "O", "Nirugu"]); // Cr:medi
+    assert_shape(&mgl("nirugu cr"), &["Nirugu", "O", "O"]); // Cr:fina
 
     // Contracted: choose the shorter form only in the verified position and bowed written unit context.
     assert_shape(&mgl("e a fvs1"), &["A"]); // A:isol
@@ -1283,11 +1288,10 @@ fn duplicates_are_unified_in_the_public_shape() {
     assert_shape(&mgl("h o d a"), &["H", "O", "D", "A"]); // H:init
     assert_shape(&mgl("a i g"), &["A", "A", "I", "I", "H"]); // H:fina
     assert_shape(&mgl("n g mvs a"), &["N", "Hx", "Mvs", "Aa"]); // Hx:fina, and `Aa:isol`
-    assert_shape(&mgl("cr"), &["Cr"]); // `Cr:isol`, not the verified `Cr:init`
     assert_shape(&mgl("a"), &["A", "A"]); // a lone `A` chain is already canonical
 
-    // `Dd` is a duplicate in every position it has, so it can never reach a public shape (the
-    // corpus-wide form of this is `no_public_shape_contains_a_duplicate_encoding` in
+    // `Dd` and `Cr` are duplicates in every position they have, so neither can ever reach a public
+    // shape (the corpus-wide form of this is `no_public_shape_contains_a_duplicate_encoding` in
     // `tests/canonical_golden.rs`).
     for aliases in ["o d", "o d b o", "t a l mvs ue d", "a r a d", "d a d h u"] {
         let units = shape(&mgl(aliases));
@@ -1296,6 +1300,20 @@ fn duplicates_are_unified_in_the_public_shape() {
             "{aliases}: Dd leaked into the public shape {units:?}"
         );
         assert!(shape_raw(&mgl(aliases)).iter().any(|unit| unit == "Dd"));
+    }
+    for aliases in [
+        "cr",
+        "cr nirugu",
+        "nirugu cr nirugu",
+        "nirugu cr",
+        "cr i cr",
+    ] {
+        let units = shape(&mgl(aliases));
+        assert!(
+            !units.iter().any(|unit| unit == "Cr"),
+            "{aliases}: Cr leaked into the public shape {units:?}"
+        );
+        assert!(shape_raw(&mgl(aliases)).iter().any(|unit| unit == "Cr"));
     }
 }
 

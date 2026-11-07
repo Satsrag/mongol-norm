@@ -63,12 +63,12 @@ fn zwnj_normalization_accepts_text_and_both_unit_spellings() {
     ] {
         let output = run(&[command, input], None);
         assert_eq!(output.code, 0, "{}", output.stderr);
-        assert_eq!(output.stdout, format!("{text}\n"));
+        assert_eq!(output.stdout, format!("{}\n", mgl("b")));
     }
     let input = format!("Hello {text}\na\u{200C}b\n");
     let output = run(&["normalize-text", "--batch", "-"], Some(&input));
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(output.stdout, input);
+    assert_eq!(output.stdout, format!("Hello {}\na\u{200C}b\n", mgl("b")));
 }
 
 #[test]
