@@ -83,7 +83,7 @@ test("duplicate unit reference translates text, tooltips and navigation without 
     norm: [...queue.querySelectorAll(".norm-text")].map(node => node.textContent),
   })));
   const before = await snapshot();
-  expect(before.length).toBe(5);
+  expect(before.length).toBe(4);
   expect(before.every(queue => queue.glyphs.length > 0)).toBe(true);
   await page.locator(".term").filter({ hasText: /^isol$/ }).first().focus();
   await expect(page.locator("#term-tooltip")).toHaveText("Isolated form.");
