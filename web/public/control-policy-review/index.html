@@ -29,13 +29,13 @@ p { margin:16px 0; }
 <p class="eyebrow"><i18n-text data-en="Implementation plan" data-zh="执行方案">Implementation plan</i18n-text></p>
 <h1><i18n-text data-en="Control-character removal policy" data-zh="控制符删除总方案">Control-character removal policy</i18n-text></h1>
 <section id="p05-4">
-<p><i18n-text data-en="After pre-shape, repeat these steps in order:" data-zh="预 shape 后，按顺序执行：">After pre-shape, repeat these steps in order:</i18n-text></p>
+<p><i18n-text data-en="After pre-shape, first run " data-zh="预 shape 后，先执行一次">After pre-shape, first run </i18n-text><a href="../duplicate-unit-rules/#expansion-rules"><i18n-text data-en="duplicate unit expansion (Step 1: E1–E5)" data-zh="同形单单元展开（第 1 步：E1–E5）">duplicate unit expansion (Step 1: E1–E5)</i18n-text></a><i18n-text data-en=", then repeat these control-removal steps in order:" data-zh="，随后按顺序循环执行控制符删除：">, then repeat these control-removal steps in order:</i18n-text></p>
 <ol>
 <li><i18n-text data-en="Merge consecutive identical ZWJ, ZWNJ, and MVS units." data-zh="合并连续同类 ZWJ、ZWNJ、MVS。">Merge consecutive identical ZWJ, ZWNJ, and MVS units.</i18n-text></li>
 <li><a href="../zwj-drop-rules/">ZWJ drop</a></li>
 <li id="p05-3"><a href="../zwnj-drop-rules/">ZWNJ drop</a></li>
 </ol>
 <p><i18n-text data-en="Repeat the complete round until nothing changes." data-zh="整轮有变化就重跑，直到稳定。">Repeat the complete round until nothing changes.</i18n-text></p>
-<p><i18n-text data-en="Preserve Nirugu count and order. After stability, " data-zh="保留 Nirugu 的数量与顺序。稳定后执行一次">Preserve Nirugu count and order. After stability, </i18n-text><a href="../duplicate-unit-rules/"><i18n-text data-en="unify duplicate units once" data-zh="同形单元归一">unify duplicate units once</i18n-text></a><i18n-text data-en=", then encode norm." data-zh="，再编码为 norm。">, then encode norm.</i18n-text></p>
+<p><i18n-text data-en="Preserve Nirugu count and order. After stability, run " data-zh="保留 Nirugu 的数量与顺序。稳定后执行一次">Preserve Nirugu count and order. After stability, run </i18n-text><a href="../duplicate-unit-rules/#contraction-rules"><i18n-text data-en="tail-pair contraction (Step 2: C1–C4)" data-zh="同形链尾双单元收缩（第 2 步：C1–C4）">tail-pair contraction (Step 2: C1–C4)</i18n-text></a><i18n-text data-en=", then encode norm." data-zh="，再编码为 norm。">, then encode norm.</i18n-text></p>
 </section>
 </main></body></html>

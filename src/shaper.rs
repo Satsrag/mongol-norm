@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::controls::canonical_controls;
-use crate::duplicates::collapse;
+use crate::duplicates::{contract, expand};
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::generated::mng;
 use crate::generated::mng_normalize;
@@ -436,8 +436,9 @@ impl Shaper {
     /// letter after it `init` (or `isol`) — while the context rules look through it, as they do
     /// in the reference font. The control pass removes it when all affected letter positions
     /// are unchanged or reviewed as equivalent. Surviving [`WrittenUnit::Zwnj`] units are
-    /// segment edges for the ZWJ rules and duplicate unification. Consecutive identical ZWJ,
-    /// ZWNJ and MVS runs merge; complete rounds repeat until stable before duplicate unification.
+    /// segment edges for the ZWJ rules and duplicate unification. Single-unit duplicates expand
+    /// first; consecutive identical ZWJ, ZWNJ and MVS runs then merge and complete ZWJ/ZWNJ
+    /// rounds repeat until stable, followed by tail-pair contraction.
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
@@ -563,27 +564,13 @@ impl Shaper {
     }
 }
 
-/// The public shape of an engine-level unit sequence: controls processed to stability, then
-/// duplicate encodings unified — repeating if an expanded duplicate (such as `Dd` → `O A`) exposes
-/// a now-redundant control. Both backends fold their raw units with it, so [`Shaper::shape`] and
-/// `FontShaper::shape` compare unit for unit.
+/// The public shape of an engine-level unit sequence: single-unit duplicates expanded, controls
+/// processed to stability, then chain-ending duplicate pairs contracted. Both backends fold their
+/// raw units with it, so [`Shaper::shape`] and `FontShaper::shape` compare unit for unit.
 pub(crate) fn canonical_units(raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-    let mut units = canonical_controls(raw);
-    loop {
-        let collapsed = collapse(&units);
-        if collapsed == units
-            || !collapsed
-                .iter()
-                .any(|u| matches!(u, WrittenUnit::Zwj | WrittenUnit::Zwnj))
-        {
-            return collapsed;
-        }
-        let next = canonical_controls(&collapsed);
-        if next.len() == collapsed.len() {
-            return next;
-        }
-        units = next;
-    }
+    let expanded = expand(raw);
+    let controlled = canonical_controls(&expanded);
+    contract(&controlled)
 }
 
 /// Flatten resolved tokens into the public shape.

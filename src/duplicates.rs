@@ -115,13 +115,38 @@ fn contraction(
     }
 }
 
-/// Unify every duplicate encoding in `shape`.
+/// Unify every expanding duplicate encoding (`Dd`, `Cr`, medial `H`, medial `Hx`) in `shape`.
+///
+/// Runs before control-character canonicalization so that `Dd` (`O A`) and `Cr` (`O O`) are
+/// already decomposed when redundant ZWJ/ZWNJ rules inspect their neighbors.
+pub(crate) fn expand(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
+    map_chains(shape, expand_chain)
+}
+
+/// Unify every contracting tail-pair duplicate encoding (`A Aa`, `bowed A Aa`, `O Aa`, `I Aa`)
+/// in `shape`.
+///
+/// Runs after control-character canonicalization stabilizes so that a redundant leading ZWJ
+/// is removed before chain-final `O Aa` / `I Aa` contraction checks `pad_left`.
+pub(crate) fn contract(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
+    map_chains(shape, contract_chain)
+}
+
+/// Unify every duplicate encoding in `shape` (expansion followed by tail contraction).
 ///
 /// Positions are the ones `normalize` itself uses: slots within each chain between structural
 /// units, with a nirugu or ZWJ neighbour padding the chain the way it pads the rendering, so a
 /// unit joined across a ZWJ counts as medial exactly as the shaper rendered it. Joiner padding
 /// supplies a position, never a bowed written unit. Idempotent after one expansion pass and one tail check.
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn collapse(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
+    contract(&expand(shape))
+}
+
+fn map_chains(
+    shape: &[WrittenUnit],
+    f: fn(&[WrittenUnit], usize, usize) -> Vec<WrittenUnit>,
+) -> Vec<WrittenUnit> {
     let mut out = Vec::with_capacity(shape.len() + 2);
     let mut start = 0;
     while start < shape.len() {
@@ -136,14 +161,14 @@ pub(crate) fn collapse(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
         }
         let pad_left = usize::from(start > 0 && is_joiner(shape[start - 1]));
         let pad_right = usize::from(end < shape.len() && is_joiner(shape[end]));
-        out.extend(collapse_chain(&shape[start..end], pad_left, pad_right));
+        out.extend(f(&shape[start..end], pad_left, pad_right));
         start = end;
     }
     out
 }
 
-/// One chain of letter units, with the joiner padding that shifts its slot positions.
-fn collapse_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> Vec<WrittenUnit> {
+/// Expand single-unit duplicates in one chain of letter units.
+fn expand_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> Vec<WrittenUnit> {
     let position =
         |index: usize, len: usize| slot_position(index + pad_left, 1, len + pad_left + pad_right);
 
@@ -154,7 +179,15 @@ fn collapse_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> V
             None => units.push(unit),
         }
     }
+    units
+}
 
+/// Contract a chain-ending duplicate pair in one chain of letter units.
+fn contract_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> Vec<WrittenUnit> {
+    let position =
+        |index: usize, len: usize| slot_position(index + pad_left, 1, len + pad_left + pad_right);
+
+    let mut units = chain.to_vec();
     // Every contraction requires the pair to end the chain. Inspect that pair once;
     // a newly merged Aa must not be fed back to consume another A.
     if let Some(index) = units.len().checked_sub(2) {

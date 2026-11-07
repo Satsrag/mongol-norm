@@ -21,11 +21,12 @@ does with a font file, but using only the rule data from
 
 ## Control-character post-processing
 
-After raw shaping, public shape and the written-unit encoders run complete rounds:
-merge consecutive identical `Zwj`, `Zwnj`, and `Mvs`; run the existing complete ZWJ filter;
+After raw shaping, public shape and the written-unit encoders first expand single-unit
+duplicates (`Dd`, `Cr`, medial `H`, medial `Hx`), then run complete control rounds:
+merge consecutive identical `Zwj`, `Zwnj`, and `Mvs`; run the complete ZWJ filter;
 then scan ZWNJs once from left to right. Repeat until a complete round makes no change,
-then unify duplicate units once. Each changing round removes at least one control, so
-finite inputs terminate. Nirugu count and order are preserved.
+then contract chain-tail duplicate pairs once. Each changing round removes at least one
+control, so finite inputs terminate. Nirugu count and order are preserved.
 
 For each ZWNJ, simulate removing only that unit using the current sequence. MVS and ZWNJ
 break joining chains; ZWJ and Nirugu provide joining context. Remove the break only when
@@ -68,10 +69,10 @@ one such unit.
 | `Zwj Zwj` | one copy (then judged like a single one) |
 | next to a `Nirugu`, either side | dropped — the nirugu already joins |
 | between two letter units (segment interior) | dropped |
-| segment-initial (word start or directly after an `Mvs`) before `U` + more letters (`U:medi` → `U:init`) | dropped for `B C Ch Cr D Dd F G Gx I K K2 O P R Rh S Sh T W Y Z Zr` |
-| segment-initial before a lone `U` (`U:fina` → `U:isol`) | dropped for `Aa Cr Dd I U Zr` |
-| segment-final (word end or directly before an `Mvs`) after letters + `U` (`U:medi` → `U:fina`) | dropped for `Cr O Zr` |
-| segment-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch Cr D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
+| segment-initial (word start or directly after an `Mvs`) before `U` + more letters (`U:medi` → `U:init`) | dropped for `B C Ch D F G Gx I K K2 O P R Rh S Sh T W Y Z Zr` |
+| segment-initial before a lone `U` (`U:fina` → `U:isol`) | dropped for `Aa I U Zr` |
+| segment-final (word end or directly before an `Mvs`) after letters + `U` (`U:medi` → `U:fina`) | dropped for `O Zr` |
+| segment-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
 | no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`) | dropped — it has nothing to join |
 | a lone `Zwj` | kept (it is the whole shape) |
 
@@ -307,7 +308,7 @@ segment must independently reshape to its target and the rejoined word must matc
 complete canonical shape. The original nominal letters and FVS spelling need not survive.
 The unit APIs accept `Zwnj`, and the positioned API requires `Zwnj:control`.
 
-中文概括：先按完整轮次归并和删除冗余控制符，再执行一次同形单元归一，按剩余 `Zwnj`
+中文概括：先展开单单元同形项，再按完整轮次归并和删除冗余控制符，最后执行一次链尾双单元同形收缩，按剩余 `Zwnj`
 分段独立编码。已有 shape 键和规范化索引应从原文重建，并记录新的 `/5` 策略版本。
 MVS suffix 与 chachlag 仍分别编码；chachlag 在保形时用裸 `a`，必要时使用已有的 `a+FVS2`。
 

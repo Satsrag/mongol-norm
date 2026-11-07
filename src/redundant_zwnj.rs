@@ -5,24 +5,24 @@ use crate::generated::enums::WrittenUnit;
 use crate::normalize::{is_joiner, slot_position};
 use crate::tables::Position;
 use WrittenUnit::{
-    Aa, Ch, Cr, Gx, Hx, Mvs, Rh, Sh, Zr, Zwnj, B, C, D, F, G, H, I, K, K2, L, M, N, O, P, R, S, T,
-    U, W, Y, Z,
+    Aa, Ch, Gx, Hx, Mvs, Rh, Sh, Zr, Zwnj, B, C, D, F, G, H, I, K, K2, L, M, N, O, P, R, S, T, U,
+    W, Y, Z,
 };
 
 /// Right neighbor `… Zwnj U X…` → `… U X…` (`U:init` → `U:medi`).
 pub(crate) const INIT_TO_MEDI: &[WrittenUnit] = &[
-    B, C, Ch, Cr, D, F, G, Gx, I, K, K2, O, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
+    B, C, Ch, D, F, G, Gx, I, K, K2, O, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
 
 /// Left neighbor `…X U Zwnj …` → `…X U …` (`U:fina` → `U:medi`).
-pub(crate) const FINA_TO_MEDI: &[WrittenUnit] = &[Cr, O, Zr];
+pub(crate) const FINA_TO_MEDI: &[WrittenUnit] = &[O, Zr];
 
 /// Right neighbor `… Zwnj U` with `U` alone on the right → `… U` (`U:isol` → `U:fina`).
-pub(crate) const ISOL_TO_FINA: &[WrittenUnit] = &[Aa, Cr, I, U, Zr];
+pub(crate) const ISOL_TO_FINA: &[WrittenUnit] = &[Aa, I, U, Zr];
 
 /// Left neighbor `U Zwnj …` with `U` alone on the left → `U …` (`U:isol` → `U:init`).
 pub(crate) const ISOL_TO_INIT: &[WrittenUnit] = &[
-    B, C, Ch, Cr, D, F, G, Gx, H, Hx, K, K2, L, M, N, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
+    B, C, Ch, D, F, G, Gx, H, Hx, K, K2, L, M, N, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
 
 /// Remove redundant `Zwnj` units in one left-to-right scan, without revisiting kept breaks.
