@@ -22,7 +22,7 @@
 //! | `Dd:fina` | `O:medi A:fina` | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
 //! | `H:medi`  | `A:medi A:medi` | ᠪᠠᠭᠰᠢ |
 //! | `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ |
-//! | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
+//! | `Cr`      | `O O`           | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 //!
 //! Four other forms unify by **contraction**, choosing the shorter canonical form only in
 //! the verified context. In particular Aa:fina has a tooth immediately after a bowed written unit, but
@@ -62,16 +62,15 @@ use crate::tables::Position;
 /// The replacement for one unit at one position, if it is a duplicate encoding that unifies by
 /// expansion.
 ///
-/// `Dd` exists only in medial and final position and both are duplicates, so it expands wherever
-/// it occurs; `H` and `Hx` are duplicates in medial position only — their initial and final forms
-/// are distinct ink and are kept. `Cr` is gated on `init` because that is the position the pair
-/// was verified in; a lone `Cr` chain sits at `isol` and is left alone.
+/// `Dd` exists only in medial and final position and both are duplicates, and `Cr` is a duplicate
+/// in every position, so both expand wherever they occur; `H` and `Hx` are duplicates in medial
+/// position only — their initial and final forms are distinct ink and are kept.
 fn expansion(unit: WrittenUnit, position: Position) -> Option<&'static [WrittenUnit]> {
     match (unit, position) {
         (WrittenUnit::Dd, _) => Some(&[WrittenUnit::O, WrittenUnit::A]),
         (WrittenUnit::H, Position::Medi) => Some(&[WrittenUnit::A, WrittenUnit::A]),
         (WrittenUnit::Hx, Position::Medi) => Some(&[WrittenUnit::N, WrittenUnit::N]),
-        (WrittenUnit::Cr, Position::Init) => Some(&[WrittenUnit::O, WrittenUnit::O]),
+        (WrittenUnit::Cr, _) => Some(&[WrittenUnit::O, WrittenUnit::O]),
         _ => None,
     }
 }
@@ -116,13 +115,38 @@ fn contraction(
     }
 }
 
-/// Unify every duplicate encoding in `shape`.
+/// Unify every expanding duplicate encoding (`Dd`, `Cr`, medial `H`, medial `Hx`) in `shape`.
+///
+/// Runs before control-character canonicalization so that `Dd` (`O A`) and `Cr` (`O O`) are
+/// already decomposed when redundant ZWJ/ZWNJ rules inspect their neighbors.
+pub(crate) fn expand(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
+    map_chains(shape, expand_chain)
+}
+
+/// Unify every contracting tail-pair duplicate encoding (`A Aa`, `bowed A Aa`, `O Aa`, `I Aa`)
+/// in `shape`.
+///
+/// Runs after control-character canonicalization stabilizes so that a redundant leading ZWJ
+/// is removed before chain-final `O Aa` / `I Aa` contraction checks `pad_left`.
+pub(crate) fn contract(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
+    map_chains(shape, contract_chain)
+}
+
+/// Unify every duplicate encoding in `shape` (expansion followed by tail contraction).
 ///
 /// Positions are the ones `normalize` itself uses: slots within each chain between structural
 /// units, with a nirugu or ZWJ neighbour padding the chain the way it pads the rendering, so a
 /// unit joined across a ZWJ counts as medial exactly as the shaper rendered it. Joiner padding
 /// supplies a position, never a bowed written unit. Idempotent after one expansion pass and one tail check.
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn collapse(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
+    contract(&expand(shape))
+}
+
+fn map_chains(
+    shape: &[WrittenUnit],
+    f: fn(&[WrittenUnit], usize, usize) -> Vec<WrittenUnit>,
+) -> Vec<WrittenUnit> {
     let mut out = Vec::with_capacity(shape.len() + 2);
     let mut start = 0;
     while start < shape.len() {
@@ -137,14 +161,14 @@ pub(crate) fn collapse(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
         }
         let pad_left = usize::from(start > 0 && is_joiner(shape[start - 1]));
         let pad_right = usize::from(end < shape.len() && is_joiner(shape[end]));
-        out.extend(collapse_chain(&shape[start..end], pad_left, pad_right));
+        out.extend(f(&shape[start..end], pad_left, pad_right));
         start = end;
     }
     out
 }
 
-/// One chain of letter units, with the joiner padding that shifts its slot positions.
-fn collapse_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> Vec<WrittenUnit> {
+/// Expand single-unit duplicates in one chain of letter units.
+fn expand_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> Vec<WrittenUnit> {
     let position =
         |index: usize, len: usize| slot_position(index + pad_left, 1, len + pad_left + pad_right);
 
@@ -155,7 +179,15 @@ fn collapse_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> V
             None => units.push(unit),
         }
     }
+    units
+}
 
+/// Contract a chain-ending duplicate pair in one chain of letter units.
+fn contract_chain(chain: &[WrittenUnit], pad_left: usize, pad_right: usize) -> Vec<WrittenUnit> {
+    let position =
+        |index: usize, len: usize| slot_position(index + pad_left, 1, len + pad_left + pad_right);
+
+    let mut units = chain.to_vec();
     // Every contraction requires the pair to end the chain. Inspect that pair once;
     // a newly merged Aa must not be fed back to consume another A.
     if let Some(index) = units.len().checked_sub(2) {
@@ -185,7 +217,10 @@ mod tests {
         assert_eq!(collapse(&[A, O, Dd, B, O]), [A, O, O, A, B, O]); // Dd:medi
         assert_eq!(collapse(&[B, A, H, S, A]), [B, A, A, A, S, A]); // H:medi   ᠪᠠᠭᠰᠢ
         assert_eq!(collapse(&[A, A, R, Hx, A, L]), [A, A, R, N, N, A, L]); // Hx:medi  ᠠᠷᠭᠠᠯ
+        assert_eq!(collapse(&[Cr]), [O, O]); // Cr:isol
         assert_eq!(collapse(&[Cr, Nirugu]), [O, O, Nirugu]); // Cr:init  ᡂ᠊
+        assert_eq!(collapse(&[Nirugu, Cr, Nirugu]), [Nirugu, O, O, Nirugu]); // Cr:medi
+        assert_eq!(collapse(&[Nirugu, Cr]), [Nirugu, O, O]); // Cr:fina
     }
 
     #[test]
@@ -208,8 +243,6 @@ mod tests {
         // `Aa` alone is `Aa:isol` (chachlag), not the tail of a pair.
         assert_eq!(collapse(&[Aa]), [Aa]);
         assert_eq!(collapse(&[Mvs, Aa]), [Mvs, Aa]);
-        // A lone `Cr` chain is `isol`, not the verified `init`.
-        assert_eq!(collapse(&[Cr]), [Cr]);
     }
 
     #[test]
@@ -279,10 +312,10 @@ mod tests {
                 );
                 // Every unit expands to at most two, and contraction only shrinks.
                 assert!(once.len() <= 2 * shape.len(), "runaway growth: {shape:?}");
-                // `Dd` is a duplicate in both the positions it has, so it never survives.
+                // `Dd` and `Cr` are duplicates in every position they have, so neither ever survives.
                 assert!(
-                    !once.contains(&Dd),
-                    "Dd survived the collapse: {shape:?} -> {once:?}"
+                    !once.contains(&Dd) && !once.contains(&Cr),
+                    "Dd or Cr survived the collapse: {shape:?} -> {once:?}"
                 );
             }
         }

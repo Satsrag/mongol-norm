@@ -13,8 +13,8 @@
 //! normalizer: within the bundled table's domain, `shape(x) == shape(y)` implies
 //! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.
 //!
-//! * [`Shaper::shape`] — text → written-unit sequence (`Mvs`, `Nirugu` and `Zwnj` appear verbatim;
-//!   a `Zwj` only where it changes the ink), with
+//! * [`Shaper::shape`] — text → written-unit sequence (redundant controls removed, repeated MVS merged,
+//!   and every `Nirugu` preserved), with
 //!   the nine duplicate encodings unified (see [`Shaper::shape_raw`])
 //! * [`Shaper::same_shape`] — do two encodings render identically?
 //! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
@@ -36,6 +36,7 @@
 #[doc = include_str!("../README.md")]
 struct ReadmeDoctests;
 
+mod controls;
 mod duplicates;
 mod error;
 #[cfg(feature = "font")]
@@ -45,6 +46,7 @@ mod font;
 mod generated;
 mod normalize;
 mod redundant_zwj;
+mod redundant_zwnj;
 mod rules;
 mod shaper;
 mod tables;

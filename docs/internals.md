@@ -2,7 +2,7 @@
 
 Background for contributors and porters. Users only need the [README](../README.md).
 
-> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/4` policy
+> **Beta.** `shape` is considered stable. The `normalize` output (the `mng-canonical/5` policy
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
@@ -18,6 +18,32 @@ does with a font file, but using only the rule data from
 3. **Particle** — MVS particle dictionary lookup for specific suffix words
 4. **Devsger** — I after a vowel (vowel_devsger) gets double-tooth form: `I → I+I`
 5. **Post-bowed** — Vowel forms change after bowed consonants (G, B, K, P, F)
+
+## Control-character post-processing
+
+After raw shaping, public shape and the written-unit encoders first expand single-unit
+duplicates (`Dd`, `Cr`, medial `H`, medial `Hx`), then run complete control rounds:
+merge consecutive identical `Zwj`, `Zwnj`, and `Mvs`; run the complete ZWJ filter;
+then scan ZWNJs once from left to right. Repeat until a complete round makes no change,
+then contract chain-tail duplicate pairs once. Each changing round removes at least one
+control, so finite inputs terminate. Nirugu count and order are preserved.
+
+For each ZWNJ, simulate removing only that unit using the current sequence. MVS and ZWNJ
+break joining chains; ZWJ and Nirugu provide joining context. Remove the break only when
+all affected letters retain their positions or pass their reviewed per-unit positional
+equivalences. An adjacent MVS supplies the same break, so that ZWNJ can be removed.
+Four reviewed ZWNJ tables (`INIT_TO_MEDI`, `FINA_TO_MEDI`, `ISOL_TO_FINA`, and
+`ISOL_TO_INIT` in `src/redundant_zwnj.rs`) supply `init ↔ medi`, `fina ↔ medi`,
+`isol ↔ fina`, and `isol ↔ init`;
+only approved paths for that same unit establish further equivalence. Missing evidence
+keeps the ZWNJ. A sequence consisting only of `[Zwj]` or `[Zwnj]` keeps that representative.
+
+Earlier kept breaks are retried in the next round. For example,
+`N+Zwnj+B+Zwnj+I` becomes `N+Zwnj+B+I` in the first ZWNJ scan, then `N+B+I` in the next.
+Likewise `Mvs+Zwnj+Mvs` becomes `Mvs+Mvs`, and only the next round merges the MVS run.
+The positioned-unit API validates the original records before inserting implicit ZWJs
+and applying the shared policy. Raw shaping, detailed records, and trace tokens retain
+their original semantics.
 
 ## Redundant ZWJ
 
@@ -35,7 +61,7 @@ unification — so a joiner that separated `I Aa` no longer blocks the `G` contr
 the same function for `shape`, `trace` and `normalize_written_units`, so `[L, I, Zwj, Aa]` and the
 text `ᠯᠢ‍ᠡ᠋` are one contract. `shape_raw`, `shape_detailed` and the trace tokens keep every
 ZWJ of the input. Everything below is about written units: a *letter unit* is any written unit
-other than the structural `Mvs`, `Nirugu` and `Zwj` (`WrittenUnit::is_structural`), and `U` names
+other than the structural `Mvs`, `Nirugu`, `Zwj` and `Zwnj` (`WrittenUnit::is_structural`), and `U` names
 one such unit.
 
 | ZWJ context | public shape |
@@ -43,10 +69,10 @@ one such unit.
 | `Zwj Zwj` | one copy (then judged like a single one) |
 | next to a `Nirugu`, either side | dropped — the nirugu already joins |
 | between two letter units (segment interior) | dropped |
-| segment-initial (word start or directly after an `Mvs`) before `U` + more letters (`U:medi` → `U:init`) | dropped for `B C Ch Cr D Dd F G Gx I K K2 O P R Rh S Sh T W Y Z Zr` |
-| segment-initial before a lone `U` (`U:fina` → `U:isol`) | dropped for `Aa Cr Dd I U Zr` |
-| segment-final (word end or directly before an `Mvs`) after letters + `U` (`U:medi` → `U:fina`) | dropped for `Cr O Zr` |
-| segment-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch Cr D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
+| segment-initial (word start or directly after an `Mvs`) before `U` + more letters (`U:medi` → `U:init`) | dropped for `B C Ch D F G Gx I K K2 O P R Rh S Sh T W Y Z Zr` |
+| segment-initial before a lone `U` (`U:fina` → `U:isol`) | dropped for `Aa I U Zr` |
+| segment-final (word end or directly before an `Mvs`) after letters + `U` (`U:medi` → `U:fina`) | dropped for `O Zr` |
+| segment-final after a lone `U` (`U:init` → `U:isol`) | dropped for `B C Ch D F G Gx H Hx K K2 L M N P R Rh S Sh T W Y Z Zr` |
 | no letter unit on either side (`Zwj Mvs…`, `…Mvs Zwj`, `Mvs Zwj Mvs`) | dropped — it has nothing to join |
 | a lone `Zwj` | kept (it is the whole shape) |
 
@@ -131,8 +157,9 @@ letter before the break. So GB.A resets a `marked` o/u/ö/ü there (`t o` + ZWNJ
 ZWNJ + FVS3 is `T A Zwnj`), after the isolated a/e that follows an MVS it postpones the chachlag
 onset of the consonant before the MVS (`a j` NNBSP `a` + ZWNJ + FVS4 keeps `J`), and a particle
 ends unmatched (`MVS ue` + ZWNJ + FVS3 is `Mvs A Ue Zwnj`). The `Zwnj` is a segment edge for the
-ZWJ rules, and duplicate unification does not contract across it (`L I Zwnj Aa` stays, `l i e᠋` is
-`L G`). `shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
+ZWJ rules. The shared control pass removes it only under the reviewed positional rules;
+duplicate unification does not contract across a remaining break (`L I Zwnj Aa` stays,
+`l i e᠋` is `L G`). `shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
 
 ## Duplicate encodings
 
@@ -148,7 +175,7 @@ Five are unified by **expanding** the single unit into the pair:
 | `Dd:fina` | `O:medi A:fina` | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
 | `H:medi`  | `A:medi A:medi` | ᠪᠠᠭᠰᠢ / ᠪᠠᠠᠠᠰᠢ |
 | `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
-| `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
+| `Cr`      | `O O`           | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 
 Four other forms unify by **contraction**, choosing the shorter canonical form only in the
 verified position and context. `Aa:fina` has a tooth immediately after a bowed written unit and no tooth
@@ -165,7 +192,7 @@ Position is part of every rule, and it is the *chain* position `normalize` alrea
 between structural units, with a nirugu or ZWJ neighbour padding the chain the way it pads the
 rendering. That is why the `B2` and `G` witnesses are written with a leading nirugu: it is what
 makes the unit final. Forms outside a verified pair are left alone — initial and final `H`/`Hx` are
-distinct ink, a lone `Cr` chain is `Cr:isol` rather than the verified `Cr:init`, and a lone `A`
+distinct ink, and a lone `A`
 chain is already canonical.
 
 **Terminology.** UTN #57 uses **bowed written units** (圆头书写单位) and names the corresponding lookup **Post-bowed**; see [UTN #57 revision 4](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf).
@@ -215,8 +242,8 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **Read the target shape from the whole input.** MVS, nirugu and ZWNJ appear verbatim as PascalCase `Mvs` / `Nirugu` / `Zwnj` tokens, and a ZWJ as `Zwj` where it changes the ink (see "Redundant ZWJ" above). Context rules may look through ZWNJ when determining this target.
-2. **Split the target shape at `Zwnj`.** Preserve empty segments at word edges and repeated breaks. Encode each segment independently: encoding receives no context from across ZWNJ. This splits already-resolved written units, not the original Unicode text.
+1. **Read the target shape from the whole input.** Resolve raw written units, apply the complete control-character post-processing above, then unify duplicate units once. Surviving controls appear as `Mvs` / `Nirugu` / `Zwnj` / `Zwj`. Context rules may look through ZWNJ while reading the raw target.
+2. **Split the target shape at the remaining `Zwnj` units.** Encode each segment independently: encoding receives no context from across ZWNJ. This splits already-resolved canonical units, not the original Unicode text. A single `[Zwnj]` retains its empty segments and encodes as U+200C.
 3. **Encode each segment's chains.** Split at its remaining structural tokens (`Mvs`, `Nirugu`, `Zwj`), which are copied through unchanged. Encode chains right-to-left, checking them against the context within this segment:
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
@@ -253,32 +280,37 @@ context-sensitive bare form. The result is exported as JSON; the battery lives i
 > form independent of context. This is what makes "same shape ⟹ same Unicode" and prefix-stability
 > hold inside the table's domain.
 
-The exact canonical selection policy is frozen as **`mng-canonical/4`**. It is available as
+The exact canonical selection policy is frozen as **`mng-canonical/5`**. It is available as
 `Shaper::canonical_version` (Python: `shaper.canonical_version`) and embedded in
 `MNG.normalize.json`. Applications that persist normalized search/index keys should store this
 version alongside them and rebuild those keys if a future release changes it.
 
-**`mng-canonical/4` adds ZWNJ-preserving normalization.** `normalize` now accepts U+200C,
-and `normalize_text` includes it when reading a Mongolian word's target shape. The encoder then
-splits that shape at `Zwnj` and encodes each segment independently. Rebuild stored
-`normalize_text` keys for text containing ZWNJ: the older policy split the original Unicode
-before reading the shape, so it could choose a different target. For example, `n ue ZWNJ h
-nirugu` resolves to `N Ue Zwnj G Nirugu`; its right segment is encoded as `g FVS2 nirugu`,
-which independently displays as `G Nirugu`. Inputs without ZWNJ and all **1988** existing
-canonical golden vectors are unchanged. This policy update does not itself change the package
-version or publish a release.
+**`mng-canonical/5` canonicalizes control units.** The complete-round policy above removes
+redundant ZWNJs and merges identical ZWNJ/MVS runs in addition to the existing ZWJ rules.
+A joining break is retained only when required by the reviewed unit-position rules, or
+when `[Zwnj]` is the entire shape. For example, `[Zwnj,B,Zwnj,Zwnj]` folds to `[B]`, while
+`[A,N,Zwnj,A,A]` retains its break. MVS-run merging follows the accepted N-dot equivalence;
+Nirugu count and order never change. Of the 1988 `/4` golden representatives, three change by merging consecutive MVS units (merging `S A R Mvs Mvs Mvs Aa` into `S A R Mvs Aa`) and five `Cr` representatives expand to `O O` (merging `[Cr]` into `[O, O]`), leaving 1986 groups.
+All other representative outputs and all unchanged-shape encodings remain byte-identical;
+raw phase-trace fixtures are unchanged.
 
-中文概括：先读取整词 shape，再按 `Zwnj` 分段独立编码、拼回断点；各段独立显示与整词均须保形。
-这里类比的是 MVS suffix 的独立编码；MVS chachlag 在保形时用裸 `a`，在需要保住 J/W 时用已有的 `a+FVS2`。
+**Migration:** rebuild persisted shape keys, normalized search keys, and deduplication
+indexes under `/5`. In particular, recompute words containing ZWNJ or consecutive MVS;
+removing a break can expose another removable ZWJ or a duplicate-unit contraction. Retain
+the original source text for regeneration, record `canonical_version()` with the new keys,
+and do not compare keys from different policy versions as if they were interchangeable.
+This change does not itself increment the package version or publish a release.
 
-The normalizer copies every `Zwnj` to U+200C, including word edges, repeated breaks and
-control-only input. The complete ordered shape is preserved; the original nominal letters and
-FVS spelling need not be. A break separates independent encoding segments and never pads
-joining positions. Isolated `Mvs+Aa` still encodes as bare `a`; a complete target that must
-keep a J/W across that break may spell the same segment as `a+FVS2`. Both spellings
-independently display as `Aa`. The unit APIs accept `Zwnj`, and the positioned API requires
-`Zwnj:control`. The existing redundant-ZWJ and duplicate-unit rules still apply; no ZWNJ
-deletion policy is added.
+`mng-canonical/4` introduced whole-word target parsing followed by independent ZWNJ-segment
+encoding. `/5` keeps that encoding and read-back contract, but applies it to the remaining
+breaks after control canonicalization. Each surviving `Zwnj` encodes as U+200C. Every
+segment must independently reshape to its target and the rejoined word must match the
+complete canonical shape. The original nominal letters and FVS spelling need not survive.
+The unit APIs accept `Zwnj`, and the positioned API requires `Zwnj:control`.
+
+中文概括：先展开单单元同形项，再按完整轮次归并和删除冗余控制符，最后执行一次链尾双单元同形收缩，按剩余 `Zwnj`
+分段独立编码。已有 shape 键和规范化索引应从原文重建，并记录新的 `/5` 策略版本。
+MVS suffix 与 chachlag 仍分别编码；chachlag 在保形时用裸 `a`，必要时使用已有的 `a+FVS2`。
 
 A representable `J`/`W` + MVS + `Aa` target no longer needs a second MVS or a retained ZWNJ
 to encode. Isol `O` remains a genuine table gap: strict normalization reports a fallback,
@@ -332,7 +364,7 @@ checksums; `python/scripts/gen_font_shaper.py` rebuilds all of it from a clone o
 
 Shaping a word: validate the characters as the rule engine does, push them into a HarfBuzz buffer
 one cluster per character, shape under the font's `MNG` language system, map each glyph through the
-table, then run the same post-passes as the rule engine — the redundant-ZWJ filter and duplicate
+table, then run the same post-passes as the rule engine — the control-character rounds and duplicate
 unification — so `FontShaper::shape` and `Shaper::shape` are comparable unit for unit. A
 character of the block the font has no glyph for (a letter of another writing system, an Ali Gali
 sign, an unassigned code point) is `Error::UnsupportedChar`, where the rule engine shapes it to
@@ -373,7 +405,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 |---|---|
 | `tests/data/core-hud.tsv` | 177 rows — mongfontbuilder's curated regression set (225 cases) |
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
-| `tests/golden/mng-canonical-v1.jsonl` | 1988 canonical vectors |
+| `tests/golden/mng-canonical-v1.jsonl` | 1986 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
 | `tests/data/mongfontbuilder/*.tsv` | the font backend's suites: mongfontbuilder's `core-hudum` and `eac-hudum` at the pinned commit |
 

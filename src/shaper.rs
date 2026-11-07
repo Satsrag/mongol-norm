@@ -2,12 +2,12 @@
 //! public shaping entry points (`shape`, `same_shape`, `shape_detailed`, `trace`).
 use std::collections::{HashMap, HashSet};
 
-use crate::duplicates::collapse;
+use crate::controls::canonical_controls;
+use crate::duplicates::{contract, expand};
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::generated::mng;
 use crate::generated::mng_normalize;
 use crate::normalize::NormalizeTable;
-use crate::redundant_zwj::drop_redundant_zwj;
 use crate::rules::{self, Rule};
 use crate::tables::{Fvs, Letter, Locale, LocaleData, ParticleSym, Position, Variant};
 use crate::token::{assign_positions, tokenize, Token, TokenKind};
@@ -424,8 +424,9 @@ impl Shaper {
         Ok(tokens)
     }
 
-    /// Shape `text` into its written-unit sequence. MVS and nirugu appear verbatim as
-    /// [`WrittenUnit::Mvs`] and [`WrittenUnit::Nirugu`]; a ZWJ appears as [`WrittenUnit::Zwj`]
+    /// Shape `text` into its canonical written-unit sequence. Nirugu count and order are
+    /// preserved as [`WrittenUnit::Nirugu`]; consecutive MVS units merge into [`WrittenUnit::Mvs`].
+    /// A ZWJ appears as [`WrittenUnit::Zwj`]
     /// only where it changes the ink — between two letters that already join, next to a nirugu,
     /// doubled, or at a word edge whose joined and unjoined forms are the same shape, it is
     /// dropped (see `redundant_zwj.rs` for the rules and the reviewed edge table). An MVS is a
@@ -433,12 +434,15 @@ impl Shaper {
     ///
     /// A ZWNJ breaks the cursive chain — the letter before it is written `fina` (or `isol`), the
     /// letter after it `init` (or `isol`) — while the context rules look through it, as they do
-    /// in the reference font. It appears as [`WrittenUnit::Zwnj`], a segment edge for the ZWJ
-    /// rules and for duplicate unification.
+    /// in the reference font. The control pass removes it when all affected letter positions
+    /// are unchanged or reviewed as equivalent. Surviving [`WrittenUnit::Zwnj`] units are
+    /// segment edges for the ZWJ rules and duplicate unification. Single-unit duplicates expand
+    /// first; consecutive identical ZWJ, ZWNJ and MVS runs then merge and complete ZWJ/ZWNJ
+    /// rounds repeat until stable, followed by tail-pair contraction.
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
-    /// medial `Hx` and initial `Cr` come out as `O A`, `A A`, `N N` and `O O`. The other four
+    /// medial `Hx` and `Cr` (all positions) come out as `O A`, `A A`, `N N` and `O O`. The other four
     /// contract, because their expansion ends in `Aa`, which is itself a duplicate: a chain-final
     /// `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa` becomes `B2` and `I Aa`
     /// becomes `G`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ
@@ -460,13 +464,13 @@ impl Shaper {
         canonical_units(raw)
     }
 
-    /// The redundant-ZWJ filter alone (no duplicate unification).
-    pub(crate) fn without_redundant_zwj(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
-        drop_redundant_zwj(units)
+    /// Canonical control processing alone (no duplicate unification).
+    pub(crate) fn canonical_controls(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
+        canonical_controls(units)
     }
 
-    /// The engine's written-unit sequence before redundant ZWJs are dropped and duplicate
-    /// encodings are unified — the sequence UTN #57 / GB/T 25914-2023 describe, and the one
+    /// The engine's written-unit sequence before control canonicalization and duplicate
+    /// unification — the sequence UTN #57 / GB/T 25914-2023 describe, and the one
     /// their EAC conformance vectors are checked against. All nine duplicates and every ZWJ and
     /// ZWNJ of the input can appear here.
     ///
@@ -560,12 +564,13 @@ impl Shaper {
     }
 }
 
-/// The public shape of an engine-level unit sequence: redundant ZWJs dropped, then the duplicate
-/// encodings unified — in that order, so a joiner that separated `I Aa` no longer blocks the `G`
-/// contraction. Both backends fold their raw units with it, so [`Shaper::shape`] and
-/// `FontShaper::shape` compare unit for unit.
+/// The public shape of an engine-level unit sequence: single-unit duplicates expanded, controls
+/// processed to stability, then chain-ending duplicate pairs contracted. Both backends fold their
+/// raw units with it, so [`Shaper::shape`] and `FontShaper::shape` compare unit for unit.
 pub(crate) fn canonical_units(raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-    collapse(&drop_redundant_zwj(raw))
+    let expanded = expand(raw);
+    let controlled = canonical_controls(&expanded);
+    contract(&controlled)
 }
 
 /// Flatten resolved tokens into the public shape.

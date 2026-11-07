@@ -278,11 +278,11 @@ fn j_and_w_before_mvs_aa_use_a_fvs2_and_stay_idempotent() {
     use mongol_norm::WrittenUnit::*;
     assert_jw_chachlag_round_trip(&mgl("a fvs1 j mvs a fvs2"), &[A, J, Mvs, Aa]);
     assert_jw_chachlag_round_trip(&mgl("a fvs1 w mvs a fvs2"), &[A, W, Mvs, Aa]);
-    assert_jw_chachlag_round_trip(&mgl("a fvs1 j zwnj mvs a fvs2"), &[A, J, Zwnj, Mvs, Aa]);
-    assert_jw_chachlag_round_trip(&mgl("a fvs1 w zwnj mvs a fvs2"), &[A, W, Zwnj, Mvs, Aa]);
+    assert_jw_chachlag_round_trip(&mgl("a fvs1 j zwnj mvs a fvs2"), &[A, J, Mvs, Aa]);
+    assert_jw_chachlag_round_trip(&mgl("a fvs1 w zwnj mvs a fvs2"), &[A, W, Mvs, Aa]);
     // The same representable target used to be treated as a table gap (#34).
     assert_jw_chachlag_round_trip(&mgl("a j nnbsp a fvs4"), &[A, A, J, Mvs, Aa]);
-    assert_jw_chachlag_round_trip(&mgl("a j nnbsp a zwnj fvs4"), &[A, A, J, Mvs, Aa, Zwnj]);
+    assert_jw_chachlag_round_trip(&mgl("a j nnbsp a zwnj fvs4"), &[A, A, J, Mvs, Aa]);
 }
 
 #[test]

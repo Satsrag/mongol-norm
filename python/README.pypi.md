@@ -59,7 +59,7 @@ shaper.shape_str("ᠰᠠᠢᠨ")                    # → 'S+A+I+I+A'
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
-shaper.canonical_version                    # → 'mng-canonical/4'
+shaper.canonical_version                    # → 'mng-canonical/5'
 
 # Deduplicate
 {shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
@@ -67,10 +67,12 @@ shaper.canonical_version                    # → 'mng-canonical/4'
 
 - `shape` / `normalize` take **one word** and raise `ValueError` on non-Mongolian characters; use
   `normalize_text` for sentences and mixed-script text.
-- ZWNJ (U+200C) is accepted and every break is preserved, including leading, trailing,
-  repeated and control-only breaks. The whole word supplies the target shape; the shape is
-  then split at `Zwnj` and each segment encoded independently. Each segment must preserve
-  its target shape on its own, and the rejoined word must preserve the complete shape.
+- Control normalization merges consecutive identical ZWJ, ZWNJ and MVS units, removes
+  redundant ZWJ and ZWNJ, and repeats until stable. Nirugu count and order are preserved;
+  a whole shape consisting of one ZWJ or ZWNJ is kept. Remaining ZWNJs split the canonical
+  shape into independently encoded segments. Each segment and the rejoined word must
+  preserve their target shapes. Policy `mng-canonical/5` changes stored keys; rebuild them
+  from source text when migrating from earlier policies.
 - A shape the built-in table cannot encode raises `NormalizationFallbackError` (a `ValueError`,
   with `.text` and `.written_units`). Pass `strict=False` to get the input back unchanged instead.
 - Locale: `"MNG"` (Hudum), the only one. Todo, Sibe and Manchu are not supported.
@@ -160,6 +162,9 @@ shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ
 ```
 
 - `shape` / `normalize` 只处理**单个词**，遇到非蒙古文字符抛 `ValueError`；句子或混合文本用 `normalize_text`。
+- 控制符规范化逐轮归并连续同类 ZWJ、ZWNJ、MVS，并删除冗余 ZWJ、ZWNJ，直到稳定；
+  保留 Nirugu 的数量与顺序，以及整个 shape 仅有一个 ZWJ 或 ZWNJ 的情况。按剩余 ZWNJ 分段编码并验证保形。
+  `mng-canonical/5` 会改变规范键，从旧策略迁移时应从原文重建。
 - 内置表无法编码的 shape 抛 `NormalizationFallbackError`（`ValueError` 子类，带 `.text`、`.written_units`）；
   传 `strict=False` 则原样返回。
 - locale：只有 `"MNG"`（回鹘式），不支持托忒文、锡伯文、满文。

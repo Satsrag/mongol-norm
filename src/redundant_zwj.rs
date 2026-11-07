@@ -8,10 +8,11 @@
 //! also stops duplicate unification from crossing it: ᠯᠢᠡ᠋ is `L G`, ᠯᠢ+ZWJ+ᠡ᠋ was `L I Zwj Aa`.
 //!
 //! The filter runs on the written-unit sequence — after the rules resolved every letter and
-//! **before** duplicate unification ([`crate::duplicates::collapse`]) — so it has the same view
-//! of the word whether the units came from `shape` or were handed in through
-//! `normalize_written_units`. FVS marks are already bound to their letters at this point, so
-//! removing the token can never re-attach a selector to a different letter.
+//! single-unit duplicates expanded ([`crate::duplicates::expand`]), and **before** tail-pair
+//! contraction ([`crate::duplicates::contract`]) — so it has the same view of the word whether
+//! the units came from `shape` or were handed in through `normalize_written_units`. FVS marks are
+//! already bound to their letters at this point, so removing the token can never re-attach a
+//! selector to a different letter.
 //!
 //! # Rules (left to right, repeated until nothing changes)
 //!
@@ -61,24 +62,24 @@
 use crate::generated::enums::WrittenUnit;
 
 use WrittenUnit::{
-    Aa, Ch, Cr, Dd, Gx, Hx, Mvs, Nirugu, Rh, Sh, Zr, Zwj, Zwnj, B, C, D, F, G, H, I, K, K2, L, M,
-    N, O, P, R, S, T, U, W, Y, Z,
+    Aa, Ch, Gx, Hx, Mvs, Nirugu, Rh, Sh, Zr, Zwj, Zwnj, B, C, D, F, G, H, I, K, K2, L, M, N, O, P,
+    R, S, T, U, W, Y, Z,
 };
 
 /// Segment-initial `Zwj U X…` → `U X…` (`U:medi` ≡ `U:init`); at the start of the word or after an MVS.
-const INITIAL_BEFORE_LETTER: &[WrittenUnit] = &[
-    B, C, Ch, Cr, D, Dd, F, G, Gx, I, K, K2, O, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
+pub(crate) const INITIAL_BEFORE_LETTER: &[WrittenUnit] = &[
+    B, C, Ch, D, F, G, Gx, I, K, K2, O, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
 
 /// Segment-initial `Zwj U` with `U` alone in its segment → `U` (`U:fina` ≡ `U:isol`).
-const INITIAL_ALONE: &[WrittenUnit] = &[Aa, Cr, Dd, I, U, Zr];
+pub(crate) const INITIAL_ALONE: &[WrittenUnit] = &[Aa, I, U, Zr];
 
 /// Segment-final `…X U Zwj` → `…X U` (`U:medi` ≡ `U:fina`); at the end of the word or before an MVS.
-const FINAL_AFTER_LETTER: &[WrittenUnit] = &[Cr, O, Zr];
+pub(crate) const FINAL_AFTER_LETTER: &[WrittenUnit] = &[O, Zr];
 
 /// Segment-final `U Zwj` with `U` alone in its segment → `U` (`U:init` ≡ `U:isol`).
-const FINAL_ALONE: &[WrittenUnit] = &[
-    B, C, Ch, Cr, D, F, G, Gx, H, Hx, K, K2, L, M, N, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
+pub(crate) const FINAL_ALONE: &[WrittenUnit] = &[
+    B, C, Ch, D, F, G, Gx, H, Hx, K, K2, L, M, N, P, R, Rh, S, Sh, T, W, Y, Z, Zr,
 ];
 
 /// Remove every redundant `Zwj` from a written-unit sequence (see the module docs).

@@ -38,10 +38,10 @@ mongol-norm runs the [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html
 - `same_shape(a, b)` — do two encodings render identically?
 - `normalize(word)` / `normalize_text(text)` — one canonical Unicode string per shape
 
-Normalization accepts ZWNJ (U+200C) and preserves every break, including word edges,
-repeated breaks and control-only input. The target shape is read from the whole word, then
-encoded independently on each side of ZWNJ. Each encoded segment preserves its target shape
-when displayed alone, and the rejoined word preserves the complete shape.
+Normalization removes redundant ZWJ and ZWNJ controls and merges consecutive identical
+ZWJ, ZWNJ, and MVS units. Nirugu count and order are preserved. Remaining ZWNJ breaks
+separate independently encoded segments; each segment and the rejoined word must preserve
+its canonical target shape. Stored keys use the `mng-canonical/5` policy.
 See the [canonical policy and migration notes](docs/internals.md#normalization-strategy) for stored keys.
 
 Use it for search and indexing, deduplication, corpus counts, spell-check lookup, and cleaning OCR
@@ -218,8 +218,9 @@ mongol-norm 按 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) 的
 - `same_shape(a, b)` —— 两种编码渲染结果是否相同
 - `normalize(word)` / `normalize_text(text)` —— 同一个 shape 只输出一个 Unicode 字符串
 
-规范化接受 ZWNJ（U+200C），保留每个断点，包括词首、词尾、重复及纯控制符输入。
-先读取整词 shape，再按 `Zwnj` 分段独立编码；每段单独显示及拼接后的整词都保形。
+规范化删除冗余 ZWJ、ZWNJ，并归并连续同类 ZWJ、ZWNJ、MVS；保留 Nirugu 的数量与顺序。
+按剩余 `Zwnj` 分段独立编码，每段及拼回的整词都须保持规范目标 shape。
+规范键策略已更新为 `mng-canonical/5`；已有存储键的迁移见[规范策略说明](docs/internals.md#normalization-strategy)。
 
 用途：搜索和索引、去重、语料词频统计、拼写检查前的查词、清洗 OCR 或输入法输出。
 

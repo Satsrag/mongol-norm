@@ -9,13 +9,13 @@ the bundled `hudum.otf`. Input stays in the browser.
 **[在线使用](https://www.satsrag.dev/norm/)**
 
 The site also includes the [overall control-character policy](https://www.satsrag.dev/norm/control-policy-review/),
-[ZWJ drop rules](https://www.satsrag.dev/norm/zwj-drop-rules/)
-and the [ZWNJ drop plan](https://www.satsrag.dev/norm/zwnj-drop-rules/), with
+[ZWJ drop rules](https://www.satsrag.dev/norm/zwj-drop-rules/),
+[ZWNJ drop rules](https://www.satsrag.dev/norm/zwnj-drop-rules/),
+and [duplicate unit unification rules](https://www.satsrag.dev/norm/duplicate-unit-rules/), with
 English/中文 switching, localized term explanations, and glyph comparisons.
-These are static reference snapshots, with pinned source commits; the ZWNJ
-page describes a proposed pass, not an implemented library feature. The overall
-policy summarizes the three-step loop and links to the two detailed references.
-The unified loop and repeated-MVS merging are also planned behavior. The HTML
+These are static reference snapshots with pinned source commits. The ZWNJ detail
+page records the reviewed design and examples; the engine implements the unified
+control policy. The overview summarizes its three-step loop and links to both references. The HTML
 under `public/control-policy-review/`, `public/*-drop-rules/`, and shared `rules.js`/`rules.css` ship with every
 playground deployment. Update both languages when revising these snapshots.
 
@@ -68,10 +68,11 @@ directory. See [release setup](../docs/releasing.md#the-web-playground).
 
 The UI uses `shape` and `normalize`, which accept a single Mongolian word.
 It does not trim, split, or silently rewrite the input. Spaces and mixed-script
-text produce the engine's actual errors. ZWNJ is accepted and every joining break
-is preserved by normalization, including leading, trailing and repeated breaks. The engine
-reads the whole word's target shape, then independently encodes the segments separated by
-`Zwnj`; each segment and the rejoined word must preserve their target shapes.
+text produce the engine's actual errors. The engine merges identical ZWJ/ZWNJ/MVS
+runs, removes redundant ZWJ and ZWNJ, and repeats until stable before duplicate
+unification. Nirugu count and order are preserved. It then encodes segments
+separated by the remaining `Zwnj` units; each segment and the rejoined word must
+preserve their target shapes.
 The match indicator compares the engine's shape sequences, not rendered pixels.
 Norm is a canonical encoding by shape, not an orthographic spelling correction.
 

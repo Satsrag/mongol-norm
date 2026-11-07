@@ -1,10 +1,11 @@
 //! ZWNJ (U+200C) as an in-word joining break (issue #34): the letter before it is written
 //! `fina`/`isol`, the letter after it `init`/`isol`, the context rules look through it as the
-//! reference font does (Kushim-Jiang/mongolian#58), and the public shape keeps the break as a
-//! `Zwnj` unit. Twin of `python/tests/test_zwnj.py`.
+//! reference font does (Kushim-Jiang/mongolian#58), and the public shape keeps only breaks required by the
+//! reviewed control policy. Twin of `python/tests/test_zwnj.py`.
 //!
-//! Every expected shape below was cross-checked against HarfBuzz with the bundled
-//! `web/public/fonts/hudum.otf` (the glyph names carry the written units): all agree.
+//! The raw shaping contexts were cross-checked against HarfBuzz with the bundled
+//! `web/public/fonts/hudum.otf`; canonical expectations additionally apply the reviewed
+//! control policy before duplicate unification.
 
 mod common;
 
@@ -23,29 +24,30 @@ fn shape(text: &str) -> String {
     shaper().shape_str(text).unwrap()
 }
 
-/// `(aliases, shape with the ZWNJ(s), shape without them)` — the table of the pull request. Every
-/// break keeps its `Zwnj`, exactly where it was.
+/// `(aliases, canonical shape with ZWNJ input, canonical shape with ZWNJ removed from Unicode)`.
+/// Removing a redundant parsed unit need not equal deleting its original Unicode character:
+/// contextual shaping has already resolved the letters when control processing starts.
 const TABLE: &[(&str, &str, &str)] = &[
     // word edges: nothing changes position
-    ("zwnj b a", "Zwnj+B+Aa", "B+Aa"),
-    ("b a zwnj", "B+Aa+Zwnj", "B+Aa"),
-    ("zwnj n a", "Zwnj+N+A", "N+A"),
-    ("n a zwnj", "N+A+Zwnj", "N+A"),
-    ("zwnj a", "Zwnj+A+A", "A+A"),
-    ("a zwnj", "A+A+Zwnj", "A+A"),
+    ("zwnj b a", "B+Aa", "B+Aa"),
+    ("b a zwnj", "B+Aa", "B+Aa"),
+    ("zwnj n a", "N+A", "N+A"),
+    ("n a zwnj", "N+A", "N+A"),
+    ("zwnj a", "A+A", "A+A"),
+    ("a zwnj", "A+A", "A+A"),
     // control-only input: a lone ZWNJ is the whole shape (like a lone ZWJ)
     ("zwnj", "Zwnj", ""),
-    ("zwnj zwnj", "Zwnj+Zwnj", ""),
+    ("zwnj zwnj", "Zwnj", ""),
     ("zwnj fvs1", "Zwnj", ""),
-    ("zwnj mvs", "Zwnj+Mvs", "Mvs"),
-    ("mvs zwnj", "Mvs+Zwnj", "Mvs"),
+    ("zwnj mvs", "Mvs", "Mvs"),
+    ("mvs zwnj", "Mvs", "Mvs"),
     ("zwj zwnj", "Zwnj", "Zwj"),
     ("zwnj zwj", "Zwnj", "Zwj"),
     // repeated breaks
-    ("a zwnj zwnj b", "A+A+Zwnj+Zwnj+B", "A+A+B"),
-    ("zwnj b zwnj", "Zwnj+B+Zwnj", "B"),
+    ("a zwnj zwnj b", "A+A+Zwnj+B", "A+A+B"),
+    ("zwnj b zwnj", "B", "B"),
     // between letters
-    ("b zwnj b a", "B+Zwnj+B+Aa", "B+B+Aa"),
+    ("b zwnj b a", "B+B+Aa", "B+B+Aa"),
     ("a o zwnj b a", "A+A+U+Zwnj+B+Aa", "A+A+O+B+Aa"),
     ("b zwnj a", "B+Zwnj+A+A", "B+Aa"),
     ("n zwnj a", "N+Zwnj+A+A", "N+A"),
@@ -58,42 +60,42 @@ const TABLE: &[(&str, &str, &str)] = &[
     ("a zwnj b zwnj a", "A+A+Zwnj+B+Zwnj+A+A", "A+A+B+Aa"),
     ("a zwnj n zwnj a", "A+A+Zwnj+N+Zwnj+A+A", "A+A+N+A"),
     // beside an MVS / NNBSP: the MVS already breaks joining, and context looks through the ZWNJ
-    ("mvs zwnj a", "Mvs+Zwnj+Aa", "Mvs+Aa"), // chachlag through the break
-    ("zwnj mvs a", "Zwnj+Mvs+Aa", "Mvs+Aa"),
-    ("a zwnj mvs a", "A+A+Zwnj+Mvs+Aa", "A+A+Mvs+Aa"),
-    ("a zwnj nnbsp a", "A+A+Zwnj+Mvs+Aa", "A+A+Mvs+Aa"),
-    ("mvs zwnj i", "Mvs+Zwnj+I", "Mvs+I"), // particle through the break
-    ("mvs zwnj u n", "Mvs+Zwnj+O+A", "Mvs+O+A"),
-    ("mvs zwnj y i n", "Mvs+Zwnj+I+I+A", "Mvs+I+I+A"),
-    ("n zwnj mvs a", "N+Zwnj+Mvs+Aa", "N+Mvs+Aa"),
-    ("a n zwnj mvs a", "A+A+N+Zwnj+Mvs+Aa", "A+A+N+Mvs+Aa"), // chachlag onset
-    ("s g zwnj mvs a", "S+H+Zwnj+Mvs+Aa", "S+H+Mvs+Aa"),     // dotless g through the break
-    ("g zwnj mvs a", "Hx+Zwnj+Mvs+Aa", "Hx+Mvs+Aa"),
-    ("t a l mvs zwnj a", "T+A+L+Mvs+Zwnj+Aa", "T+A+L+Mvs+Aa"),
+    ("mvs zwnj a", "Mvs+Aa", "Mvs+Aa"), // chachlag through the break
+    ("zwnj mvs a", "Mvs+Aa", "Mvs+Aa"),
+    ("a zwnj mvs a", "A+A+Mvs+Aa", "A+A+Mvs+Aa"),
+    ("a zwnj nnbsp a", "A+A+Mvs+Aa", "A+A+Mvs+Aa"),
+    ("mvs zwnj i", "Mvs+I", "Mvs+I"), // particle through the break
+    ("mvs zwnj u n", "Mvs+O+A", "Mvs+O+A"),
+    ("mvs zwnj y i n", "Mvs+I+I+A", "Mvs+I+I+A"),
+    ("n zwnj mvs a", "N+Mvs+Aa", "N+Mvs+Aa"),
+    ("a n zwnj mvs a", "A+A+N+Mvs+Aa", "A+A+N+Mvs+Aa"), // chachlag onset
+    ("s g zwnj mvs a", "S+H+Mvs+Aa", "S+H+Mvs+Aa"),     // dotless g through the break
+    ("g zwnj mvs a", "Hx+Mvs+Aa", "Hx+Mvs+Aa"),
+    ("t a l mvs zwnj a", "T+A+L+Mvs+Aa", "T+A+L+Mvs+Aa"),
     // a break inside a particle ends it — the font's patterns are keyed on joining positions
     ("mvs i zwnj y a r", "Mvs+I+Zwnj+Y+A+R", "Mvs+I+I+A+R"),
     ("mvs y zwnj i n", "Mvs+Y+Zwnj+A+I+A", "Mvs+I+I+A"),
     ("mvs u zwnj u", "Mvs+U+Zwnj+A+O", "Mvs+O+U"),
     ("a mvs d u zwnj r", "A+A+Mvs+D+U+Zwnj+R", "A+A+Mvs+D+O+R"),
     // beside a nirugu: the nirugu joins its own side
-    ("n zwnj nirugu", "N+Zwnj+Nirugu", "N+Nirugu"),
-    ("zwnj nirugu i e fvs1", "Zwnj+Nirugu+G", "Nirugu+G"),
+    ("n zwnj nirugu", "N+Nirugu", "N+Nirugu"),
+    ("zwnj nirugu i e fvs1", "Nirugu+G", "Nirugu+G"),
     ("a zwnj nirugu b", "A+A+Zwnj+Nirugu+B", "A+A+Nirugu+B"),
     ("a nirugu zwnj b", "A+A+Nirugu+Zwnj+B", "A+A+Nirugu+B"),
     ("nirugu zwnj b", "Nirugu+Zwnj+B", "Nirugu+B"),
     // beside a ZWJ, both orders
-    ("b zwnj zwj a", "B+Zwnj+Aa", "B+Aa"),
-    ("n zwnj zwj a", "N+Zwnj+Zwj+A", "N+A"),
-    ("zwj zwnj n a", "Zwnj+N+A", "Zwj+N+A"),
-    ("n a zwnj zwj", "N+A+Zwnj", "N+A+Zwj"),
-    ("a zwj zwnj b a", "A+A+Zwj+Zwnj+B+Aa", "A+A+B+Aa"),
+    ("b zwnj zwj a", "B+Aa", "B+Aa"),
+    ("n zwnj zwj a", "N+A", "N+A"),
+    ("zwj zwnj n a", "N+A", "Zwj+N+A"),
+    ("n a zwnj zwj", "N+A", "N+A+Zwj"),
+    ("a zwj zwnj b a", "A+A+B+Aa", "A+A+B+Aa"),
     ("a zwj zwnj b", "A+A+Zwj+Zwnj+B", "A+A+B"),
     ("a zwnj zwj b", "A+A+Zwnj+Zwj+B", "A+A+B"),
     ("b zwj zwnj a", "B+Zwnj+A+A", "B+Aa"),
     // an FVS after a ZWNJ selects nothing (it is the ZWNJ's); one before it is the letter's
     ("a zwnj fvs1 a", "A+A+Zwnj+A+A", "A+A"),
     ("a fvs1 zwnj a", "A+Zwnj+A+A", "A+A"),
-    ("b a fvs1 zwnj", "B+Aa+Zwnj", "B+Aa"),
+    ("b a fvs1 zwnj", "B+Aa", "B+Aa"),
     // gender and harmony cross the break (positions do not)
     ("n ue zwnj h nirugu", "N+Ue+Zwnj+G+Nirugu", "N+O+I+G+Nirugu"),
     ("h zwnj oe", "H+Zwnj+A+Ue", "G+Ue"),
@@ -106,26 +108,27 @@ const TABLE: &[(&str, &str, &str)] = &[
     ("e b zwnj i g", "A+B+Zwnj+A+I+G", "A+B+I+G"),
     ("s g zwnj a", "S+G+Zwnj+A+A", "S+N+N+A"),
     ("m n oe zwnj g e", "M+N+U+Zwnj+G+Aa", "M+N+O+I+G+Aa"),
-    // the issue's corpus (ZWJ + ZWNJ): the ZWJ keeps the letter before the break joined, and
-    // the first word's `ue` stays marked because the break makes the `p` initial
+    // In the issue's input corpus, ZWJ keeps the letter before the break joined during raw
+    // shaping. The first word's `ue` stays marked because the break makes `p` initial;
+    // subsequent control removal preserves these already-resolved units.
     (
         "l a l a zwj zwnj p ue d",
-        "L+A+L+A+Zwj+Zwnj+P+O+I+O+A",
+        "L+A+L+A+P+O+I+O+A",
         "L+A+L+A+P+O+O+A",
     ),
     (
         "t a ng zwj zwnj p u r u m",
-        "T+A+A+G+Zwj+Zwnj+P+O+R+O+M",
+        "T+A+A+G+P+O+R+O+M",
         "T+A+A+G+P+O+R+O+M",
     ),
     (
         "t i l zwj zwnj p u r u g",
-        "T+I+L+Zwj+Zwnj+P+O+R+O+H",
+        "T+I+L+P+O+R+O+H",
         "T+I+L+P+O+R+O+H",
     ),
     (
         "s e ng zwj zwnj p u r u m",
-        "S+A+A+G+Zwj+Zwnj+P+O+R+O+M",
+        "S+A+A+G+P+O+R+O+M",
         "S+A+A+G+P+O+R+O+M",
     ),
     // the same words with the ZWNJ alone
@@ -147,7 +150,7 @@ const TABLE: &[(&str, &str, &str)] = &[
 ];
 
 #[test]
-fn every_break_stays() {
+fn only_required_breaks_stay() {
     let shaper = shaper();
     for (aliases, with, without) in TABLE {
         let text = mgl(aliases);
@@ -155,10 +158,9 @@ fn every_break_stays() {
         let breaks = text.chars().filter(|&c| c == ZWNJ).count();
         assert_eq!(shape(&text), *with, "shape({aliases})");
         assert_eq!(shape(&plain), *without, "shape({aliases} without ZWNJ)");
-        assert_eq!(
-            with.split('+').filter(|&unit| unit == "Zwnj").count(),
-            breaks,
-            "{aliases}: every break stays"
+        assert!(
+            with.split('+').filter(|&unit| unit == "Zwnj").count() <= breaks,
+            "{aliases}: control processing never inserts breaks"
         );
         // every ZWNJ of the input is still in the engine's own output
         let raw = shaper.shape_raw(&text).unwrap();
@@ -188,10 +190,10 @@ fn issue_corpus_words() {
         unit_names(&shaper.shape_raw(word1).unwrap()),
         ["L", "A", "L", "A", "Zwj", "Zwnj", "P", "O", "I", "Dd"]
     );
-    assert_eq!(shape(word1), "L+A+L+A+Zwj+Zwnj+P+O+I+O+A");
-    assert_eq!(shape(word2), "T+A+A+G+Zwj+Zwnj+P+O+R+O+M");
-    assert_eq!(shape(word3), "T+I+L+Zwj+Zwnj+P+O+R+O+H");
-    assert_eq!(shape(word4), "S+A+A+G+Zwj+Zwnj+P+O+R+O+M");
+    assert_eq!(shape(word1), "L+A+L+A+P+O+I+O+A");
+    assert_eq!(shape(word2), "T+A+A+G+P+O+R+O+M");
+    assert_eq!(shape(word3), "T+I+L+P+O+R+O+H");
+    assert_eq!(shape(word4), "S+A+A+G+P+O+R+O+M");
 }
 
 #[test]
@@ -259,45 +261,45 @@ fn fvs_after_a_break_is_the_breaks() {
     // GB.A's lookup skips the ZWNJ, as it skips a joiner, and reads the FVS as one after the
     // vowel before the break: the marked o after an initial t goes back to its default, as in
     // the font.
-    assert_eq!(shape(&mgl("t o zwnj")), "T+O+Zwnj");
-    assert_eq!(shape(&mgl("t o zwnj fvs3")), "T+U+Zwnj");
-    assert_eq!(shape(&mgl("sh ue zwnj fvs3 nnbsp o")), "Sh+U+Zwnj+Mvs+A+O");
+    assert_eq!(shape(&mgl("t o zwnj")), "T+O");
+    assert_eq!(shape(&mgl("t o zwnj fvs3")), "T+U");
+    assert_eq!(shape(&mgl("sh ue zwnj fvs3 nnbsp o")), "Sh+U+Mvs+A+O");
 }
 
 /// Where a ZWNJ meets an FVS, a joiner, a particle or an MVS, the engine shapes as the reference
 /// font does (each row checked with `FontShaper`; `tests/font_vs_engine.rs` keeps them aligned).
 const FONT_CASES: &[(&str, &str)] = &[
     // An FVS a ZWNJ carries counts for the FVS-reading lookups, which skip the ZWNJ.
-    ("t o zwnj fvs3", "T+U+Zwnj"),
-    ("t o zwnj", "T+O+Zwnj"),
-    ("d e zwnj fvs3", "T+A+Zwnj"),
-    ("d e zwnj", "D+A+Zwnj"),
-    ("a j nnbsp a zwnj fvs4", "A+A+J+Mvs+Aa+Zwnj"),
-    ("a g mvs zwnj fvs1 a zwnj fvs3", "A+A+Hx+Mvs+Zwnj+Aa+Zwnj"),
-    ("a n mvs zwnj fvs1 a zwnj fvs3", "A+A+N+Mvs+Zwnj+Aa+Zwnj"),
-    ("a j nnbsp a zwnj", "A+A+I+Mvs+Aa+Zwnj"),
-    ("nnbsp ue zwnj fvs3", "Mvs+A+Ue+Zwnj"),
-    ("nnbsp ue zwnj", "Mvs+U+Zwnj"),
-    ("mvs y i n zwnj fvs1", "Mvs+Y+I+A+Zwnj"),
-    ("mvs y i n zwnj", "Mvs+I+I+A+Zwnj"),
-    ("mvs i zwnj zwj fvs2", "Mvs+A+I+Zwnj"),
+    ("t o zwnj fvs3", "T+U"),
+    ("t o zwnj", "T+O"),
+    ("d e zwnj fvs3", "T+A"),
+    ("d e zwnj", "D+A"),
+    ("a j nnbsp a zwnj fvs4", "A+A+J+Mvs+Aa"),
+    ("a g mvs zwnj fvs1 a zwnj fvs3", "A+A+Hx+Mvs+Aa"),
+    ("a n mvs zwnj fvs1 a zwnj fvs3", "A+A+N+Mvs+Aa"),
+    ("a j nnbsp a zwnj", "A+A+I+Mvs+Aa"),
+    ("nnbsp ue zwnj fvs3", "Mvs+A+Ue"),
+    ("nnbsp ue zwnj", "Mvs+U"),
+    ("mvs y i n zwnj fvs1", "Mvs+Y+I+A"),
+    ("mvs y i n zwnj", "Mvs+I+I+A"),
+    ("mvs i zwnj zwj fvs2", "Mvs+A+I"),
     // A particle follows the joining chain: two ZWJs join across a ZWNJ.
-    ("u zwnj zwj u", "A+O+Zwnj+U"),
-    ("a r nirugu zwnj ue ue", "A+A+R+Nirugu+Zwnj+O+U"),
+    ("u zwnj zwj u", "A+O+U"),
+    ("a r nirugu zwnj ue ue", "A+A+R+Nirugu+O+U"),
     // post_bowed reads a final or isolated consonant before its FVS applies.
-    ("g fvs2 zwnj zwj e", "G+Zwnj+Zwj+A"),
+    ("g fvs2 zwnj zwj e", "G+A"),
     ("a b fvs1 zwnj zwj e", "A+A+B2+Zwnj+Aa"),
     ("a g fvs1 zwnj zwj e", "A+A+H+Zwnj+Zwj+A"),
     ("a g fvs2 zwnj zwj o", "A+A+G+Zwnj+Zwj+O"),
     ("t g fvs2 zwnj nirugu o", "T+G+Zwnj+Nirugu+O"),
     // The lookups that need an MVS beside a letter look through a run that holds a ZWNJ.
-    ("a n mvs zwj zwnj a", "A+A+N+Mvs+Zwnj+Aa"),
-    ("a n mvs zwnj zwj a", "A+A+A+Mvs+Zwnj+Zwj+A"),
-    ("e g mvs zwj zwnj e", "A+H+Mvs+Zwnj+Aa"),
-    ("a y a g mvs zwj zwnj a", "A+A+Y+A+Hx+Mvs+Zwnj+Aa"),
+    ("a n mvs zwj zwnj a", "A+A+N+Mvs+Aa"),
+    ("a n mvs zwnj zwj a", "A+A+A+Mvs+Zwj+A"),
+    ("e g mvs zwj zwnj e", "A+H+Mvs+Aa"),
+    ("a y a g mvs zwj zwnj a", "A+A+Y+A+Hx+Mvs+Aa"),
     (
         "i g sh i n fvs2 mvs zwnj fvs2 zwnj zwnj a",
-        "A+I+A+A+S+I+A+Mvs+Zwnj+Zwnj+Zwnj+Aa",
+        "A+I+A+A+S+I+A+Mvs+Aa",
     ),
 ];
 
@@ -348,14 +350,17 @@ fn error_message_names_zwnj() {
     );
 }
 
-/// Successful normalization preserves the complete ordered shape, including every break.
+/// Successful normalization preserves the canonical shape, including each retained break.
 fn assert_normalization(shaper: &Shaper, text: &str) -> String {
     let units = shaper.shape(text).unwrap();
     let normalized = shaper
         .normalize(text)
         .unwrap_or_else(|e| panic!("{}: {e}", hex(text)));
     assert_eq!(shaper.shape(&normalized).unwrap(), units, "{}", hex(text));
-    assert_eq!(normalized.matches(ZWNJ).count(), text.matches(ZWNJ).count());
+    assert_eq!(
+        normalized.matches(ZWNJ).count(),
+        units.iter().filter(|&&u| u == WrittenUnit::Zwnj).count()
+    );
     assert_eq!(shaper.normalize(&normalized).unwrap(), normalized);
     assert_eq!(shaper.normalize_text(text).unwrap(), normalized);
     assert_eq!(shaper.normalize_allow_fallback(text).unwrap(), normalized);
@@ -453,7 +458,7 @@ fn zwnj_segments_use_the_same_standalone_encoding_as_an_mvs_suffix() {
     for aliases in ["mvs zwnj y i n", "mvs zwnj zwnj y i n"] {
         let text = mgl(aliases);
         let normalized = assert_normalization(&shaper, &text);
-        assert_eq!(normalized.rsplit(ZWNJ).next().unwrap(), encoded_suffix);
+        assert_eq!(normalized, mvs);
     }
 }
 
@@ -501,10 +506,7 @@ fn structural_vocabulary_and_positioned_breaks() {
                 WrittenUnit::Zwnj
             ]
         );
-        assert_eq!(
-            shaper.normalize_written_units(&units).unwrap(),
-            mgl("zwnj b zwnj zwnj")
-        );
+        assert_eq!(shaper.normalize_written_units(&units).unwrap(), mgl("b"));
     }
     let rec = PositionedWrittenUnit::new;
     let controls = [rec(WrittenUnit::Zwnj, UnitPosition::Control); 2];
@@ -512,7 +514,7 @@ fn structural_vocabulary_and_positioned_breaks() {
         shaper
             .normalize_positioned_written_units(&controls)
             .unwrap(),
-        "\u{200C}\u{200C}"
+        "\u{200C}"
     );
     let records = [
         controls[0],
@@ -561,7 +563,7 @@ fn structural_vocabulary_and_positioned_breaks() {
     for fvs in ["fvs1", "fvs2", "fvs3", "fvs4"] {
         assert_eq!(
             assert_normalization(&shaper, &mgl(&format!("zwnj {fvs} zwnj"))),
-            "\u{200C}\u{200C}"
+            "\u{200C}"
         );
     }
 }
@@ -605,9 +607,9 @@ fn fuzz_normalization(alphabet: &[u32]) {
             "{}",
             hex(&text)
         );
-        assert_eq!(
-            shape.iter().filter(|&&u| u == WrittenUnit::Zwnj).count(),
-            raw.iter().filter(|&&u| u == WrittenUnit::Zwnj).count()
+        assert!(
+            shape.iter().filter(|&&u| u == WrittenUnit::Zwnj).count()
+                <= raw.iter().filter(|&&u| u == WrittenUnit::Zwnj).count()
         );
         if shape.contains(&WrittenUnit::Zwnj) {
             kept += 1;
