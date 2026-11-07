@@ -22,7 +22,7 @@
 //! | `Dd:fina` | `O:medi A:fina` | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
 //! | `H:medi`  | `A:medi A:medi` | ᠪᠠᠭᠰᠢ |
 //! | `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ |
-//! | `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
+//! | `Cr`      | `O O`           | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 //!
 //! Four other forms unify by **contraction**, choosing the shorter canonical form only in
 //! the verified context. In particular Aa:fina has a tooth immediately after a bowed written unit, but
@@ -62,16 +62,15 @@ use crate::tables::Position;
 /// The replacement for one unit at one position, if it is a duplicate encoding that unifies by
 /// expansion.
 ///
-/// `Dd` exists only in medial and final position and both are duplicates, so it expands wherever
-/// it occurs; `H` and `Hx` are duplicates in medial position only — their initial and final forms
-/// are distinct ink and are kept. `Cr` is gated on `init` because that is the position the pair
-/// was verified in; a lone `Cr` chain sits at `isol` and is left alone.
+/// `Dd` exists only in medial and final position and both are duplicates, and `Cr` is a duplicate
+/// in every position, so both expand wherever they occur; `H` and `Hx` are duplicates in medial
+/// position only — their initial and final forms are distinct ink and are kept.
 fn expansion(unit: WrittenUnit, position: Position) -> Option<&'static [WrittenUnit]> {
     match (unit, position) {
         (WrittenUnit::Dd, _) => Some(&[WrittenUnit::O, WrittenUnit::A]),
         (WrittenUnit::H, Position::Medi) => Some(&[WrittenUnit::A, WrittenUnit::A]),
         (WrittenUnit::Hx, Position::Medi) => Some(&[WrittenUnit::N, WrittenUnit::N]),
-        (WrittenUnit::Cr, Position::Init) => Some(&[WrittenUnit::O, WrittenUnit::O]),
+        (WrittenUnit::Cr, _) => Some(&[WrittenUnit::O, WrittenUnit::O]),
         _ => None,
     }
 }
@@ -185,7 +184,10 @@ mod tests {
         assert_eq!(collapse(&[A, O, Dd, B, O]), [A, O, O, A, B, O]); // Dd:medi
         assert_eq!(collapse(&[B, A, H, S, A]), [B, A, A, A, S, A]); // H:medi   ᠪᠠᠭᠰᠢ
         assert_eq!(collapse(&[A, A, R, Hx, A, L]), [A, A, R, N, N, A, L]); // Hx:medi  ᠠᠷᠭᠠᠯ
+        assert_eq!(collapse(&[Cr]), [O, O]); // Cr:isol
         assert_eq!(collapse(&[Cr, Nirugu]), [O, O, Nirugu]); // Cr:init  ᡂ᠊
+        assert_eq!(collapse(&[Nirugu, Cr, Nirugu]), [Nirugu, O, O, Nirugu]); // Cr:medi
+        assert_eq!(collapse(&[Nirugu, Cr]), [Nirugu, O, O]); // Cr:fina
     }
 
     #[test]
@@ -208,8 +210,6 @@ mod tests {
         // `Aa` alone is `Aa:isol` (chachlag), not the tail of a pair.
         assert_eq!(collapse(&[Aa]), [Aa]);
         assert_eq!(collapse(&[Mvs, Aa]), [Mvs, Aa]);
-        // A lone `Cr` chain is `isol`, not the verified `init`.
-        assert_eq!(collapse(&[Cr]), [Cr]);
     }
 
     #[test]
@@ -279,10 +279,10 @@ mod tests {
                 );
                 // Every unit expands to at most two, and contraction only shrinks.
                 assert!(once.len() <= 2 * shape.len(), "runaway growth: {shape:?}");
-                // `Dd` is a duplicate in both the positions it has, so it never survives.
+                // `Dd` and `Cr` are duplicates in every position they have, so neither ever survives.
                 assert!(
-                    !once.contains(&Dd),
-                    "Dd survived the collapse: {shape:?} -> {once:?}"
+                    !once.contains(&Dd) && !once.contains(&Cr),
+                    "Dd or Cr survived the collapse: {shape:?} -> {once:?}"
                 );
             }
         }

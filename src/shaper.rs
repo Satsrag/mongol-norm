@@ -441,7 +441,7 @@ impl Shaper {
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and each
     /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
-    /// medial `Hx` and initial `Cr` come out as `O A`, `A A`, `N N` and `O O`. The other four
+    /// medial `Hx` and `Cr` (all positions) come out as `O A`, `A A`, `N N` and `O O`. The other four
     /// contract, because their expansion ends in `Aa`, which is itself a duplicate: a chain-final
     /// `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa` becomes `B2` and `I Aa`
     /// becomes `G`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ

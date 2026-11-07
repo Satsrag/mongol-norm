@@ -174,7 +174,7 @@ Five are unified by **expanding** the single unit into the pair:
 | `Dd:fina` | `O:medi A:fina` | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
 | `H:medi`  | `A:medi A:medi` | ᠪᠠᠭᠰᠢ / ᠪᠠᠠᠠᠰᠢ |
 | `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
-| `Cr:init` | `O:init O:medi` | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
+| `Cr`      | `O O`           | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 
 Four other forms unify by **contraction**, choosing the shorter canonical form only in the
 verified position and context. `Aa:fina` has a tooth immediately after a bowed written unit and no tooth
@@ -191,7 +191,7 @@ Position is part of every rule, and it is the *chain* position `normalize` alrea
 between structural units, with a nirugu or ZWJ neighbour padding the chain the way it pads the
 rendering. That is why the `B2` and `G` witnesses are written with a leading nirugu: it is what
 makes the unit final. Forms outside a verified pair are left alone — initial and final `H`/`Hx` are
-distinct ink, a lone `Cr` chain is `Cr:isol` rather than the verified `Cr:init`, and a lone `A`
+distinct ink, and a lone `A`
 chain is already canonical.
 
 **Terminology.** UTN #57 uses **bowed written units** (圆头书写单位) and names the corresponding lookup **Post-bowed**; see [UTN #57 revision 4](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf).
@@ -289,9 +289,7 @@ redundant ZWNJs and merges identical ZWNJ/MVS runs in addition to the existing Z
 A joining break is retained only when required by the reviewed unit-position rules, or
 when `[Zwnj]` is the entire shape. For example, `[Zwnj,B,Zwnj,Zwnj]` folds to `[B]`, while
 `[A,N,Zwnj,A,A]` retains its break. MVS-run merging follows the accepted N-dot equivalence;
-Nirugu count and order never change. Of the 1988 `/4` golden representatives, three
-change only by merging consecutive MVS units. One now shares its shape with an existing
-representative (`S A R Mvs Mvs Mvs Aa` → `S A R Mvs Aa`), leaving 1987 groups.
+Nirugu count and order never change. Of the 1988 `/4` golden representatives, three change by merging consecutive MVS units (merging `S A R Mvs Mvs Mvs Aa` into `S A R Mvs Aa`) and five `Cr` representatives expand to `O O` (merging `[Cr]` into `[O, O]`), leaving 1986 groups.
 All other representative outputs and all unchanged-shape encodings remain byte-identical;
 raw phase-trace fixtures are unchanged.
 
@@ -406,7 +404,7 @@ Both test suites read the same fixtures, which live once under the crate's `test
 |---|---|
 | `tests/data/core-hud.tsv` | 177 rows — mongfontbuilder's curated regression set (225 cases) |
 | `tests/data/eac-hud.tsv` | 3512 rows — GB/T 25914-2023 (3513 cases, 5 UTN-xfail) |
-| `tests/golden/mng-canonical-v1.jsonl` | 1987 canonical vectors |
+| `tests/golden/mng-canonical-v1.jsonl` | 1986 canonical vectors |
 | `tests/golden/mng-phase-trace-v1.json` | 15 phase-trace vectors |
 | `tests/data/mongfontbuilder/*.tsv` | the font backend's suites: mongfontbuilder's `core-hudum` and `eac-hudum` at the pinned commit |
 

@@ -93,7 +93,7 @@ class MongolianShaper:
 
         Nine written units render as exactly the same ink as a sequence of other
         units, and each is unified with that sequence here. Five expand: ``Dd`` (both
-        positions), medial ``H``, medial ``Hx`` and initial ``Cr`` come out as ``O A``,
+        positions), medial ``H``, medial ``Hx`` and ``Cr`` (all positions) come out as ``O A``,
         ``A A``, ``N N`` and ``O O``. The other four contract, because their expansion
         ends in ``Aa``, which is itself a duplicate: a chain-final ``A Aa`` becomes
         ``Aa`` (or ``A`` when it is the whole chain), ``O Aa`` becomes ``B2`` and
@@ -102,7 +102,7 @@ class MongolianShaper:
         standard's own unit sequence, which keeps all nine apart, is the non-public
         :meth:`_shape_raw`.
         九个书写单元与另一串单元的墨迹完全相同,此处统一为后者:五个展开
-        (``Dd``、词中 ``H``、词中 ``Hx``、词首 ``Cr``),另四个收缩(展开式以 ``Aa``
+        (``Dd``、词中 ``H``、词中 ``Hx``、``Cr``),另四个收缩(展开式以 ``Aa``
         结尾,而 ``Aa`` 本身就是重复编码,永不收敛)。
 
         For the same reason a ZWJ appears as ``Zwj`` only where it changes the ink.

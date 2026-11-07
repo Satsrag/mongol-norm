@@ -76,19 +76,19 @@ fn fixture_covers_every_current_corpus_shape_group() {
 #[test]
 fn fixture_has_frozen_unique_cardinality() {
     let (_, vectors) = load();
-    // 1993 raw groups: three verified duplicate pairs merge, and two redundant-ZWJ pairs
-    // (`A A R A Zwj O A` / `A A R A O A`, `Zwj O A` / `O A`), then /5 merges the repeated-MVS
+    // 1993 raw groups: four duplicate pairs merge (including `Cr` -> `O O`), and two redundant-ZWJ
+    // pairs (`A A R A Zwj O A` / `A A R A O A`, `Zwj O A` / `O A`), then /5 merges the repeated-MVS
     // S A R Mvs Mvs Mvs Aa group with S A R Mvs Aa. H A D A Aa and H A D Aa remain
     // distinct: D is not a bowed written unit, so deleting that A would lose a tooth.
-    assert_eq!(vectors.len(), 1987);
+    assert_eq!(vectors.len(), 1986);
     let ids: Vec<String> = vectors
         .iter()
         .map(|v| v.index("id").as_str().to_owned())
         .collect();
-    let expected: Vec<String> = (1..=1987).map(|i| format!("shape-{i:04}")).collect();
+    let expected: Vec<String> = (1..=1986).map(|i| format!("shape-{i:04}")).collect();
     assert_eq!(ids, expected);
     let shapes: HashSet<Vec<String>> = vectors.iter().map(|v| v.index("shape").strings()).collect();
-    assert_eq!(shapes.len(), 1987);
+    assert_eq!(shapes.len(), 1986);
 }
 
 #[test]
@@ -119,17 +119,17 @@ fn canonical_codepoints_are_frozen() {
     }
 }
 
-/// `Dd` is a duplicate encoding in both the positions it has, so it can never reach a public
-/// shape. The other eight are duplicates only at particular positions and legitimately appear
-/// elsewhere — those are checked case by case in `tests/shaper.rs::every_duplicate_pair_unifies`.
+/// `Dd` and `Cr` are duplicate encodings in every position they have, so neither can ever reach a
+/// public shape. The other seven are duplicates only at particular positions and legitimately
+/// appear elsewhere — those are checked case by case in `tests/shaper.rs::every_duplicate_pair_unifies`.
 #[test]
 fn no_public_shape_contains_a_duplicate_encoding() {
     let (_, vectors) = load();
     for vector in &vectors {
         let shape = vector.index("shape").strings();
         assert!(
-            !shape.iter().any(|unit| unit == "Dd"),
-            "{}: Dd in the public shape {shape:?}",
+            !shape.iter().any(|unit| unit == "Dd" || unit == "Cr"),
+            "{}: Dd or Cr in the public shape {shape:?}",
             vector.index("id").as_str()
         );
     }

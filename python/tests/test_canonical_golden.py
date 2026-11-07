@@ -74,17 +74,17 @@ class TestMNGCanonicalGolden(unittest.TestCase):
         self.assertEqual(golden_shapes, corpus_shapes)
 
     def test_fixture_has_frozen_unique_cardinality(self):
-        # 1993 raw groups minus three verified duplicate pairs and two redundant-ZWJ pairs
-        # (A A R A Zwj O A / A A R A O A, Zwj O A / O A), then /5 merges the repeated-MVS
+        # 1993 raw groups minus four duplicate pairs (including Cr -> O O) and two redundant-ZWJ
+        # pairs (A A R A Zwj O A / A A R A O A, Zwj O A / O A), then /5 merges the repeated-MVS
         # S A R Mvs Mvs Mvs Aa group with S A R Mvs Aa. H A D A Aa and H A D Aa
         # remain distinct: D is not a bowed written unit, so deleting A would lose a tooth.
-        self.assertEqual(len(self.vectors), 1987)
+        self.assertEqual(len(self.vectors), 1986)
         self.assertEqual(
             [vector["id"] for vector in self.vectors],
-            ["shape-{:04d}".format(index) for index in range(1, 1988)],
+            ["shape-{:04d}".format(index) for index in range(1, 1987)],
         )
         self.assertEqual(len({tuple(vector["shape"])
-                              for vector in self.vectors}), 1987)
+                              for vector in self.vectors}), 1986)
 
     def test_canonical_codepoints_are_frozen(self):
         for vector in self.vectors:

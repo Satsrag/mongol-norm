@@ -205,7 +205,12 @@ fn test_every_singleton_init_reads_back_as_init() {
         if shape == [unit, WrittenUnit::Zwj] {
             joined.push(unit);
         } else {
-            assert_eq!(shape, [unit], "{unit}: {result:?}");
+            let expected: &[WrittenUnit] = if unit == WrittenUnit::Cr {
+                &[WrittenUnit::O, WrittenUnit::O]
+            } else {
+                std::slice::from_ref(&unit)
+            };
+            assert_eq!(shape, expected, "{unit}: {result:?}");
             assert!(
                 !inventory.contains(&(unit, Position::Isol)),
                 "{unit}: bare {result:?} reads back as {unit}:isol, not {unit}:init"

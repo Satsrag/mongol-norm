@@ -530,7 +530,7 @@ fn public_written_unit_api_covers_all_shape_groups() {
     }
     assert_eq!(
         representatives.len(),
-        1987, // /5 also merges the repeated-MVS group after /4's five duplicate/ZWJ merges
+        1986, // /5 also merges the repeated-MVS group and `Cr` -> `O O`
         "corpus shape-group coverage drifted"
     );
     let mut failures = Vec::new();
