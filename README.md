@@ -34,30 +34,13 @@ converted to UTN #57 (GB/T 25914—2023) before this library can be used. For en
 you may consider [`mongol-convert`](https://github.com/Satsrag/mongol-convert); that library is
 also currently in Beta, so use it with care and verify the conversion results.
 
-### Why
+### An example
 
-The same visible Mongolian word can be typed as many different Unicode sequences — A/E look alike
-in medial and final position, O/U and OE/UE share forms, FVS selectors and joining controls
-(nirugu, ZWJ, ZWNJ) can produce the same glyph in several ways. So search misses matches,
-deduplication fails and index keys differ for words that look identical.
+The following spellings look the same, but their Unicode encodings differ, so a direct string
+comparison treats them as different text. mongol-norm can tell that they have the same shape
+and produce the same normalized result.
 
 ![Five encodings of "sain" all normalizing to the same canonical form](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
-
-mongol-norm runs the [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) shaping rules
-(no font needed) to get the *written units* a font would draw:
-
-- `shape(word)` — the written-unit sequence, a fingerprint of the visible word
-- `same_shape(a, b)` — do two encodings render identically?
-- `normalize(word)` / `normalize_text(text)` — one canonical Unicode string per shape
-
-Normalization removes redundant ZWJ and ZWNJ controls and merges consecutive identical
-ZWJ, ZWNJ, and MVS units. Nirugu count and order are preserved. Remaining ZWNJ breaks
-separate independently encoded segments; each segment and the rejoined word must preserve
-its canonical target shape. Stored keys use the `mng-canonical/5` policy.
-See the [canonical policy and migration notes](docs/internals.md#normalization-strategy) for stored keys.
-
-Use it for search and indexing, deduplication, corpus counts, spell-check lookup, and cleaning OCR
-or input-method output.
 
 ### Web playground
 
@@ -98,6 +81,13 @@ Windows x64. On other platforms pip builds from the source distribution, which n
 cargo install mongol-norm
 pip install mongol-norm
 ```
+
+### Usage
+
+`shape` returns the written-unit sequence, a fingerprint of the visible word. `same_shape`
+reports whether two encodings render identically. `normalize` maps a single word to one
+canonical Unicode string per shape; `normalize_text` does the same for free-form text,
+normalizing Mongolian words and leaving everything else unchanged.
 
 ### Rust
 
@@ -175,6 +165,9 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
 ### Notes
 
 - **Hudum** (`MNG`) only. Todo, Sibe and Manchu are not supported.
+- Stored keys use the `mng-canonical/5` policy. ZWJ/ZWNJ filtering and merging, nirugu
+  preservation, independent ZWNJ-segment encoding, and migration notes are in the
+  [canonical policy and migration notes](docs/internals.md#normalization-strategy).
 - A word whose shape the built-in table cannot encode fails with an error rather than being
   guessed; `normalize_allow_fallback` (Python: `strict=False`) returns it unchanged instead.
 - Shaping passes 100% of mongfontbuilder's `core-hud` and GB/T 25914-2023 `eac-hud` suites;
@@ -219,26 +212,11 @@ Rust crate，另有 Python 包和命令行工具。
 
 本库面向 UTN #57（GB/T 25914—2023）规则下的蒙古文文本。采用其他标准或编码的文本，例如 GB/T 25914—2010 相关的 Delehi、Oyun、Menk，以及 Menk 旧形码、ZCode、Zvvnmod 等，需要先转换为 UTN #57（GB/T 25914—2023），才能使用本库。编码转换可考虑使用 [`mongol-convert`](https://github.com/Satsrag/mongol-convert)，该库目前也处于 Beta 阶段，请谨慎使用，并核对转换结果。
 
-### 为什么
+### 一个例子
 
-同一个看起来一样的蒙古文词，可以用很多种 Unicode 序列输入——A/E 在词中、词尾同形，O/U、OE/UE 共享字形，
-FVS 和连接控制符（nirugu、ZWJ、ZWNJ）也能用不同方式得到同一个字形。结果是：搜索找不到、去重失败、同一个词索引 key
-不同。
+下面几种写法看起来相同，但 Unicode 编码不同，直接比较字符串会被当作不同文本。mongol-norm 可以判断它们同形，并生成相同的规范化结果。
 
 ![五种 sain 编码全部规范化为同一个形式](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
-
-mongol-norm 按 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) 的整形规则（不需要字体）
-算出字体会画出的**书写单元**：
-
-- `shape(word)` —— 书写单元序列，即可见词形的指纹
-- `same_shape(a, b)` —— 两种编码渲染结果是否相同
-- `normalize(word)` / `normalize_text(text)` —— 同一个 shape 只输出一个 Unicode 字符串
-
-规范化删除冗余 ZWJ、ZWNJ，并归并连续同类 ZWJ、ZWNJ、MVS；保留 Nirugu 的数量与顺序。
-按剩余 `Zwnj` 分段独立编码，每段及拼回的整词都须保持规范目标 shape。
-规范键策略已更新为 `mng-canonical/5`；已有存储键的迁移见[规范策略说明](docs/internals.md#normalization-strategy)。
-
-用途：搜索和索引、去重、语料词频统计、拼写检查前的查词、清洗 OCR 或输入法输出。
 
 ### 在线体验
 
@@ -279,6 +257,8 @@ pip install mongol-norm
 ```
 
 ### 用法
+
+`shape` 返回书写单元序列，即可见词形的指纹。`same_shape` 判断两种编码渲染结果是否相同。`normalize` 把单个词映射成同一 shape 对应的一个规范 Unicode 字符串；`normalize_text` 用于自由文本，只规范化其中的蒙古文词，其余原样保留。
 
 Rust：
 
@@ -332,6 +312,7 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
 ### 说明
 
 - 只支持 **回鹘式**（`MNG`），不支持托忒文、锡伯文、满文。
+- 存储键使用 `mng-canonical/5` 策略。ZWJ/ZWNJ 过滤与归并、Nirugu 保留、按 ZWNJ 分段独立编码及迁移说明见[规范策略说明](docs/internals.md#normalization-strategy)。
 - 内置表无法编码的 shape 会报错而不是乱猜；`normalize_allow_fallback`（Python：`strict=False`）则原样返回。
 - 整形 100% 通过 mongfontbuilder 的 `core-hud` 与 GB/T 25914-2023 `eac-hud` 测试集；规范化对全部语料词
   满足 `shape(normalize(x)) == shape(x)`。字体后端（Rust feature `font`，需要 Rust 1.85）用
