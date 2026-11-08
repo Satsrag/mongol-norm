@@ -70,7 +70,7 @@ class MongolianShaper:
 
     Usage / 用法:
         shaper = MongolianShaper(locale="MNG")
-        shaper.shape("ᠰᠠᠢᠨ")  # U+1830 U+1820 U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
+        shaper.shape("ᠰᠠᠢᠨ")  # U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
     """
 
     def __init__(self, locale="MNG"):

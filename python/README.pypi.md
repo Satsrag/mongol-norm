@@ -66,11 +66,11 @@ from mongol_norm import MongolianShaper
 
 shaper = MongolianShaper(locale="MNG")
 
-shaper.shape("ᠰᠠᠢᠨ")          # U+1830 U+1820 U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠡᠢᠨ")          # U+1830 U+1821 U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠨ᠌ᠢᠢᠨ")        # U+1830 U+1828 U+180C U+1822 U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠠᠶ᠋ᠢᠨ")        # U+1830 U+1820 U+1836 U+180B U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ")      # U+1830 U+1820 U+1836 U+180B U+1836 U+180B U+1828 → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠢᠨ")          # U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠡᠢᠨ")          # U+1830 (SA) U+1821 (E) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠨ᠌ᠢᠢᠨ")        # U+1830 (SA) U+1828 (NA) U+180C (FVS2) U+1822 (I) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠢᠨ")        # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ")      # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1836 (YA) U+180B (FVS1) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
 shaper.shape_str("ᠰᠠᠢᠨ")                    # → 'S+A+I+I+A'
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
@@ -164,11 +164,11 @@ from mongol_norm import MongolianShaper
 
 shaper = MongolianShaper(locale="MNG")
 
-shaper.shape("ᠰᠠᠢᠨ")          # U+1830 U+1820 U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠡᠢᠨ")          # U+1830 U+1821 U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠨ᠌ᠢᠢᠨ")        # U+1830 U+1828 U+180C U+1822 U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠠᠶ᠋ᠢᠨ")        # U+1830 U+1820 U+1836 U+180B U+1822 U+1828 → ['S', 'A', 'I', 'I', 'A']
-shaper.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ")      # U+1830 U+1820 U+1836 U+180B U+1836 U+180B U+1828 → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠢᠨ")          # U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠡᠢᠨ")          # U+1830 (SA) U+1821 (E) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠨ᠌ᠢᠢᠨ")        # U+1830 (SA) U+1828 (NA) U+180C (FVS2) U+1822 (I) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠢᠨ")        # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ")      # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1836 (YA) U+180B (FVS1) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
 shaper.shape_str("ᠰᠠᠢᠨ")                    # → 'S+A+I+I+A'
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
