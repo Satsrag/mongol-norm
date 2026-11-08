@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Shape-aware normalizer for Traditional Mongolian script: the UTN #57 v4 shaping engine and FVS-pinned canonical normalizer, pure Rust with zero dependencies (optional font backend)."
+description = "Same-shape comparison and normalization for Traditional Mongolian (Hudum) under UTN #57 (GB/T 25914—2023). Pure Rust, zero dependencies (optional font backend)."
 readme = "README.md"
 keywords = ["mongolian", "unicode", "shaping", "normalization", "utn57"]
 categories = ["text-processing", "internationalization"]
@@ -55,7 +55,7 @@ members = ["python"]
 # package (python/pyproject.toml has `dynamic = ["version"]`), and mongol_norm.__version__
 # reports it at runtime (checked by python/tests/test_rust_twin.py).
 [workspace.package]
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"

@@ -11,6 +11,15 @@ does with a font file, but using only the rule data from
 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) and the
 [mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder) project. No font files needed.
 
+## Why encodings differ
+
+The same visible Traditional Mongolian (Hudum) word can be typed as many Unicode sequences.
+A and E look alike in medial and final position; O/U and OE/UE share written forms; Free
+Variation Selectors (FVS) and joining controls (nirugu, ZWJ, ZWNJ) can produce the same
+glyph in several ways. Public `shape` fingerprints that visible word; `normalize` maps each
+shape to one Unicode string. Control-character filtering and the stored-key policy are in
+the sections below.
+
 ## Shaping pipeline (UTN #57 v4 Mongolian-specific phase)
 
 1. **Chachlag** — Chachlag forms for A/E after MVS (Mongolian Vowel Separator)

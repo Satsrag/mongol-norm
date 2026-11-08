@@ -52,8 +52,9 @@ def _call(fn, *args):
 
 class MongolianShaper:
     """
-    Full UTN57 Hudum shaping engine.
-    完整的 UTN57 回鹘式蒙古文字形引擎。
+    Traditional Mongolian (Hudum) same-shape comparison and normalization
+    under UTN #57 (GB/T 25914—2023).
+    传统蒙古文（回鹘式）同形比较与规范化，依据 UTN #57（GB/T 25914—2023）。
 
     The engine (the Rust crate ``mongol-norm``) carries the glyph variant data
     derived from the mongfontbuilder package, and provides three core operations:
@@ -64,12 +65,12 @@ class MongolianShaper:
                          正向字形处理：文本 → 视觉字形序列
       same_shape(a, b) — Visual identity comparison (do a and b look the same?)
                          视觉一致性比较（a 和 b 看起来一样吗？）
-      normalize(text)  — Canonical encoding: many-to-one mapping via shape+harmony
-                         规范化编码：通过字形+元音和谐实现多对一映射
+      normalize(text)  — Canonical encoding: many-to-one mapping via shape
+                         规范化编码：按字形做多对一映射
 
     Usage / 用法:
         shaper = MongolianShaper(locale="MNG")
-        shape = shaper.shape("ᠰᠠᠢᠨ")  # → ['S', 'A', 'I', 'I', 'A']
+        shaper.shape("ᠰᠠᠢᠨ")  # U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
     """
 
     def __init__(self, locale="MNG"):

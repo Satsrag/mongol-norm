@@ -2,15 +2,27 @@
 #![deny(missing_docs)]
 //! # mongol-norm
 //!
-//! Shape-aware normalizer for Traditional Mongolian (Hudum) script — the engine behind the
-//! `mongol-norm` PyPI package, whose PyO3 binding lives in the same repository under `python/`.
+//! Traditional Mongolian (Hudum) same-shape comparison and normalization tool — the engine
+//! behind the `mongol-norm` PyPI package, whose PyO3 binding lives in the same repository
+//! under `python/`. It implements the Mongolian shaping rules of
+//! [UTN #57](https://www.unicode.org/notes/tn57/tn57-4.html) (GB/T 25914—2023). It converts
+//! Mongolian text that has the same written form but different Unicode encodings into a
+//! unified encoding, making search, deduplication, and corpus processing easier.
 //!
-//! Traditional Mongolian in Unicode has a fundamental problem: the same visible word can be
-//! encoded in many different code-point sequences (letters share glyphs, FVS selectors create
-//! equivalent spellings, joiners and MVS suffixes collapse more letters together). This crate
-//! implements a lightweight shaping engine — the UTN #57 v4 Mongolian-specific phase, driven only
-//! by the rule data of UTN #57 / mongfontbuilder, no font needed — and, on top of it, a canonical
-//! normalizer: within the bundled table's domain, `shape(x) == shape(y)` implies
+//! This crate is intended for Mongolian text under the UTN #57 (GB/T 25914—2023) rules.
+//! Text that uses other standards or encodings — for example Delehi, Oyun, and Menk related
+//! to GB/T 25914—2010, as well as Menk old shape codes, ZCode, Zvvnmod, and the like — must
+//! first be converted to UTN #57 (GB/T 25914—2023) before this crate can be used. For encoding
+//! conversion you may consider [mongol-convert](https://github.com/Satsrag/mongol-convert);
+//! that library is also currently in Beta, so use it with care and verify the conversion
+//! results.
+//!
+//! > **Beta.** `normalize` output is a unified encoding by **glyph shape**, **not standard
+//! > spelling**, and may change in a later release. Keep the original text; when storing
+//! > normalized keys, also record [`Shaper::canonical_version`] and rebuild after a version
+//! > change.
+//!
+//! Within the bundled table's domain, `shape(x) == shape(y)` implies
 //! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.
 //!
 //! * [`Shaper::shape`] — text → written-unit sequence (redundant controls removed, repeated MVS merged,

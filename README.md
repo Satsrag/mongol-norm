@@ -12,40 +12,28 @@
 <a id="english"></a>
 ## English
 
-> [!WARNING]
-> **Beta.** `shape` / `same_shape` should be stable. The `normalize` output currently encodes by
-> **glyph shape**, not the standard **phonetic (nominal-character) spelling**, and may change in a
-> later release. For example ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) normalizes to ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
-> (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`). If you store normalized keys, store
-> `canonical_version()` with them and rebuild when it changes.
+**mongol-norm** is a Traditional Mongolian (Hudum) same-shape comparison and normalization tool.
+It is implemented according to the Mongolian shaping rules of UTN #57 (GB/T 25914—2023). It
+converts Mongolian text that has the same written form but different Unicode encodings into a
+unified encoding, making search, deduplication, and corpus processing easier. Rust crate with
+zero dependencies, plus a Python package and a CLI.
 
-**mongol-norm** tells whether two Traditional Mongolian (Hudum) strings look the same, and maps
-them to one key. Rust crate with zero dependencies, plus a Python package and a CLI.
+### Input requirements
 
-### Why
+This library is intended for Mongolian text under the UTN #57 (GB/T 25914—2023) rules. Text that
+uses other standards or encodings — for example Delehi, Oyun, and Menk related to
+GB/T 25914—2010, as well as Menk old shape codes, ZCode, Zvvnmod, and the like — must first be
+converted to UTN #57 (GB/T 25914—2023) before this library can be used. For encoding conversion,
+you may consider [`mongol-convert`](https://github.com/Satsrag/mongol-convert); that library is
+also currently in Beta, so use it with care and verify the conversion results.
 
-The same visible Mongolian word can be typed as many different Unicode sequences — A/E look alike
-in medial and final position, O/U and OE/UE share forms, FVS selectors and joining controls
-(nirugu, ZWJ, ZWNJ) can produce the same glyph in several ways. So search misses matches,
-deduplication fails and index keys differ for words that look identical.
+### An example
 
-![Five encodings of "sain" all normalizing to the same canonical form](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
+The following spellings look the same, but their Unicode encodings differ, so a direct string
+comparison treats them as different text. mongol-norm can tell that they have the same shape
+and produce the same normalized result.
 
-mongol-norm runs the [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) shaping rules
-(no font needed) to get the *written units* a font would draw:
-
-- `shape(word)` — the written-unit sequence, a fingerprint of the visible word
-- `same_shape(a, b)` — do two encodings render identically?
-- `normalize(word)` / `normalize_text(text)` — one canonical Unicode string per shape
-
-Normalization removes redundant ZWJ and ZWNJ controls and merges consecutive identical
-ZWJ, ZWNJ, and MVS units. Nirugu count and order are preserved. Remaining ZWNJ breaks
-separate independently encoded segments; each segment and the rejoined word must preserve
-its canonical target shape. Stored keys use the `mng-canonical/5` policy.
-See the [canonical policy and migration notes](docs/internals.md#normalization-strategy) for stored keys.
-
-Use it for search and indexing, deduplication, corpus counts, spell-check lookup, and cleaning OCR
-or input-method output.
+![Five encodings of sain all normalizing to the same canonical form](assets/sain-variants.png)
 
 ### Web playground
 
@@ -68,7 +56,7 @@ or in `Cargo.toml`:
 
 ```toml
 [dependencies]
-mongol-norm = "0.3.1"
+mongol-norm = "0.4.0"
 ```
 
 **Python** (CPython ≥ 3.9, no runtime dependencies, no Rust toolchain needed):
@@ -87,6 +75,18 @@ cargo install mongol-norm
 pip install mongol-norm
 ```
 
+### Usage
+
+`shape` returns the written-unit sequence, a fingerprint of the visible word. `same_shape`
+reports whether two encodings render identically. `normalize` maps a single word to one
+canonical Unicode string per shape; `normalize_text` does the same for free-form text,
+normalizing Mongolian words and leaving everything else unchanged.
+
+> [!WARNING]
+> **Beta.** `normalize` output is a unified encoding by **glyph shape**, **not standard spelling**,
+> and may change in a later release. Keep the original text; when storing normalized keys, also
+> record `canonical_version()` and rebuild after a version change.
+
 ### Rust
 
 ```rust
@@ -95,18 +95,14 @@ use mongol_norm::{Error, Locale, Shaper};
 fn main() -> Result<(), Error> {
     let shaper = Shaper::new(Locale::Mng);
 
-    // Shape: the written units a font would draw
-    assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");
-
-    // Compare: two encodings, one visible word
-    assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);
-
-    // Normalize: every encoding of a shape → the same string
-    assert_eq!(shaper.normalize("ᠰᠡᠢᠨ")?, shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")?);
-
-    // Free-form text: Mongolian words normalized, everything else kept
-    let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
-    assert!(text.starts_with("Hello ") && text.ends_with(" world"));
+    shaper.shape_str("ᠰᠠᠢᠨ")?;     // U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠡᠢᠨ")?;     // U+1830 (SA) U+1821 (E) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠨ᠌ᠢᠢᠨ")?;   // U+1830 (SA) U+1828 (NA) U+180C (FVS2) U+1822 (I) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠠᠶ᠋ᠢᠨ")?;   // U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠠᠶ᠋ᠶ᠋ᠨ")?; // U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1836 (YA) U+180B (FVS1) U+1828 (NA) → "S+A+I+I+A"
+    shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?;            // → true
+    shaper.normalize("ᠰᠡᠢᠨ")?;                     // → "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
+    shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;     // → "Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world"
     Ok(())
 }
 ```
@@ -137,13 +133,17 @@ from mongol_norm import MongolianShaper
 
 shaper = MongolianShaper(locale="MNG")
 
-shaper.shape("ᠰᠠᠢᠨ")                        # → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠢᠨ")          # U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠡᠢᠨ")          # U+1830 (SA) U+1821 (E) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠨ᠌ᠢᠢᠨ")        # U+1830 (SA) U+1828 (NA) U+180C (FVS2) U+1822 (I) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠢᠨ")        # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ")      # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1836 (YA) U+180B (FVS1) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
 
 # Deduplicate
-{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
+{shaper.normalize(w) for w in ["ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ", "ᠰᠨ᠌ᠢᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ", "ᠰᠠᠶ᠋ᠶ᠋ᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
 ```
 
 More in the [Python README](https://github.com/Satsrag/mongol-norm/blob/main/python/README.pypi.md).
@@ -194,35 +194,18 @@ Notices in [NOTICE](https://github.com/Satsrag/mongol-norm/blob/main/NOTICE).
 <a id="中文"></a>
 ## 中文
 
-> [!WARNING]
-> **Beta 版。** `shape` / `same_shape` 应该是稳定的。`normalize` 的输出目前是**按字形**编码的，**不是**按读音
-> 书写的标准名义字符序列，后续版本有可能修改。例如 ᠮᠣᠩᠭᠣᠯ（`MA+O+ANG+GA+O+LA`）规范化后是 ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ
-> （`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`）。如果要持久化规范化后的
-> key，请同时保存 `canonical_version()`，版本变化时重建。
-
-**mongol-norm** 判断两段传统蒙古文（回鹘式，Hudum）是否外形相同，并把它们映射成同一个 key。零依赖
+**mongol-norm** 是一个传统蒙古文（回鹘式）的同形比较与规范化工具，依据 UTN #57（GB/T 25914—2023）的蒙古文整形规则实现。它将书写形态相同、Unicode 编码不同的蒙古文转换为统一编码，方便搜索、去重和语料处理。零依赖
 Rust crate，另有 Python 包和命令行工具。
 
-### 为什么
+### 输入要求
 
-同一个看起来一样的蒙古文词，可以用很多种 Unicode 序列输入——A/E 在词中、词尾同形，O/U、OE/UE 共享字形，
-FVS 和连接控制符（nirugu、ZWJ、ZWNJ）也能用不同方式得到同一个字形。结果是：搜索找不到、去重失败、同一个词索引 key
-不同。
+本库面向 UTN #57（GB/T 25914—2023）规则下的蒙古文文本。采用其他标准或编码的文本，例如 GB/T 25914—2010 相关的 Delehi、Oyun、Menk，以及 Menk 旧形码、ZCode、Zvvnmod 等，需要先转换为 UTN #57（GB/T 25914—2023），才能使用本库。编码转换可考虑使用 [`mongol-convert`](https://github.com/Satsrag/mongol-convert)，该库目前也处于 Beta 阶段，请谨慎使用，并核对转换结果。
 
-![五种 sain 编码全部规范化为同一个形式](https://raw.githubusercontent.com/Satsrag/mongol-norm/main/assets/sain-variants.png)
+### 一个例子
 
-mongol-norm 按 [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) 的整形规则（不需要字体）
-算出字体会画出的**书写单元**：
+下面几种写法看起来相同，但 Unicode 编码不同，直接比较字符串会被当作不同文本。mongol-norm 可以判断它们同形，并生成相同的规范化结果。
 
-- `shape(word)` —— 书写单元序列，即可见词形的指纹
-- `same_shape(a, b)` —— 两种编码渲染结果是否相同
-- `normalize(word)` / `normalize_text(text)` —— 同一个 shape 只输出一个 Unicode 字符串
-
-规范化删除冗余 ZWJ、ZWNJ，并归并连续同类 ZWJ、ZWNJ、MVS；保留 Nirugu 的数量与顺序。
-按剩余 `Zwnj` 分段独立编码，每段及拼回的整词都须保持规范目标 shape。
-规范键策略已更新为 `mng-canonical/5`；已有存储键的迁移见[规范策略说明](docs/internals.md#normalization-strategy)。
-
-用途：搜索和索引、去重、语料词频统计、拼写检查前的查词、清洗 OCR 或输入法输出。
+![五种 sain 编码全部规范化为同一个形式](assets/sain-variants.png)
 
 ### 在线体验
 
@@ -243,7 +226,7 @@ cargo add mongol-norm
 
 ```toml
 [dependencies]
-mongol-norm = "0.3.1"
+mongol-norm = "0.4.0"
 ```
 
 **Python**（CPython ≥ 3.9，无运行时依赖，不需要 Rust 工具链）：
@@ -264,6 +247,11 @@ pip install mongol-norm
 
 ### 用法
 
+`shape` 返回书写单元序列，即可见词形的指纹。`same_shape` 判断两种编码渲染结果是否相同。`normalize` 把单个词映射成同一 shape 对应的一个规范 Unicode 字符串；`normalize_text` 用于自由文本，只规范化其中的蒙古文词，其余原样保留。
+
+> [!WARNING]
+> **Beta 提醒：** `normalize` 输出的是**按字形统一的编码**，**不是标准拼写**，后续版本可能变化。建议保留原文；保存规范化键时，同时记录 `canonical_version()`，版本变化后重建。
+
 Rust：
 
 ```rust
@@ -272,13 +260,14 @@ use mongol_norm::{Error, Locale, Shaper};
 fn main() -> Result<(), Error> {
     let shaper = Shaper::new(Locale::Mng);
 
-    assert_eq!(shaper.shape_str("ᠰᠠᠢᠨ")?, "S+A+I+I+A");               // 整形
-    assert!(shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?);                      // 是否同形
-    assert_eq!(shaper.normalize("ᠰᠡᠢᠨ")?, shaper.normalize("ᠰᠠᠶ᠋ᠢᠨ")?); // 规范化
-
-    // 自由文本：只规范化蒙古文词，其余原样保留
-    let text = shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;
-    assert!(text.starts_with("Hello ") && text.ends_with(" world"));
+    shaper.shape_str("ᠰᠠᠢᠨ")?;     // U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠡᠢᠨ")?;     // U+1830 (SA) U+1821 (E) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠨ᠌ᠢᠢᠨ")?;   // U+1830 (SA) U+1828 (NA) U+180C (FVS2) U+1822 (I) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠠᠶ᠋ᠢᠨ")?;   // U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1822 (I) U+1828 (NA) → "S+A+I+I+A"
+    shaper.shape_str("ᠰᠠᠶ᠋ᠶ᠋ᠨ")?; // U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1836 (YA) U+180B (FVS1) U+1828 (NA) → "S+A+I+I+A"
+    shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")?;            // → true
+    shaper.normalize("ᠰᠡᠢᠨ")?;                     // → "ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌"
+    shaper.normalize_text("Hello ᠰᠡᠢᠨ world")?;     // → "Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world"
     Ok(())
 }
 ```
@@ -290,13 +279,17 @@ from mongol_norm import MongolianShaper
 
 shaper = MongolianShaper(locale="MNG")
 
-shaper.shape("ᠰᠠᠢᠨ")                        # → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠢᠨ")          # U+1830 (SA) U+1820 (A) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠡᠢᠨ")          # U+1830 (SA) U+1821 (E) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠨ᠌ᠢᠢᠨ")        # U+1830 (SA) U+1828 (NA) U+180C (FVS2) U+1822 (I) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠢᠨ")        # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1822 (I) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
+shaper.shape("ᠰᠠᠶ᠋ᠶ᠋ᠨ")      # U+1830 (SA) U+1820 (A) U+1836 (YA) U+180B (FVS1) U+1836 (YA) U+180B (FVS1) U+1828 (NA) → ['S', 'A', 'I', 'I', 'A']
 shaper.same_shape("ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ")           # → True
 shaper.normalize("ᠰᠡᠢᠨ")                    # → 'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'
 shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌ world'
 
 # 去重
-{shaper.normalize(w) for w in ["ᠰᠡᠢᠨ", "ᠰᠠᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
+{shaper.normalize(w) for w in ["ᠰᠠᠢᠨ", "ᠰᠡᠢᠨ", "ᠰᠨ᠌ᠢᠢᠨ", "ᠰᠠᠶ᠋ᠢᠨ", "ᠰᠠᠶ᠋ᠶ᠋ᠨ"]}   # → {'ᠰᠠᠢ᠍ᠢ᠍ᠠ᠌'}
 ```
 
 命令行：
