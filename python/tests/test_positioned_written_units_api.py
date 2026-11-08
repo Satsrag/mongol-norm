@@ -330,8 +330,13 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
 
     def test_long_invalid_chain_fails_closed_without_recursion_error(self):
         positioned = [
-            {"unit": "A", "position": "isol"}
-            for _index in range(1000)
+            {"unit": "Nirugu", "position": "control"},
+            {"unit": "A", "position": "init"},
+            *(
+                {"unit": "A", "position": "medi"}
+                for _index in range(997)
+            ),
+            {"unit": "A", "position": "fina"},
         ]
         with self.assertRaisesRegex(
             ValueError,
@@ -396,6 +401,58 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             self.shaper.normalize_positioned_written_units(positioned),
             self.shaper.normalize_written_units(["B", "Aa"]),
         )
+
+    def test_synthesizes_zwnj_across_sub_chain_boundaries(self):
+        cases = [
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "L", "position": "fina"},
+                    {"unit": "M", "position": "init"},
+                    {"unit": "A", "position": "fina"},
+                ],
+                "\u1820\u180b\u1820\u182f\u200c\u182e\u1820\u180c",
+            ),
+            (
+                [
+                    {"unit": "B", "position": "init"},
+                    {"unit": "A", "position": "init"},
+                    {"unit": "A", "position": "fina"},
+                ],
+                "\u182a\u200c\u1820\u180b\u1820\u180c",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "O", "position": "fina"},
+                    {"unit": "O", "position": "init"},
+                    {"unit": "A", "position": "fina"},
+                ],
+                "\u1820\u180b\u1823\u1823\u1820\u180c",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "M", "position": "init"},
+                    {"unit": "A", "position": "fina"},
+                ],
+                "\u1820\u180b\u200d\u200c\u182e\u1820\u180c",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "isol"},
+                    {"unit": "A", "position": "isol"},
+                ],
+                "\u1820\u180b\u200c\u1820\u180b",
+            ),
+        ]
+        for positioned, expected in cases:
+            with self.subTest(positioned=positioned):
+                self.assertEqual(
+                    self.shaper.normalize_positioned_written_units(positioned),
+                    expected,
+                )
 
 
 if __name__ == "__main__":

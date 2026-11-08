@@ -90,7 +90,10 @@ impl Shaper {
     /// record — every consonant, whose isolated form is its initial unit — and takes a trailing
     /// ZWJ where it would not: `A` and `I`, which the inventory also carries at `isol`, and `O`,
     /// which has no bare spelling; single `medi` / `fina` records get the joining context their
-    /// position needs. `Mvs`,
+    /// position needs. Adjacent letter records whose positions mark a sub-chain boundary (after
+    /// `fina` / `isol` or a lone `init`, or before a new `init` / `isol`) are split into separate
+    /// sub-chains with an implicit `Zwnj` between them, which the canonical control pass keeps
+    /// only where needed. `Mvs`,
     /// `Nirugu` and `Zwnj` require `Control`; explicit `Zwj` is rejected; at most
     /// [`MAX_POSITIONED_RECORDS`] records.
     ///
@@ -105,7 +108,7 @@ impl Shaper {
     /// 3. empty request — returns `""`;
     /// 4. per record, the control/inventory check (`Mvs`, `Nirugu` and `Zwnj` need `Control`;
     ///    every other `(unit, position)` must be in the HUD inventory), reporting the first offender;
-    /// 5. per multi-record chain, that the declared positions match the padded chain;
+    /// 5. per multi-record sub-chain, that the declared positions match the padded chain;
     /// 6. delegation to [`Shaper::normalize_written_units`].
     ///
     /// # Errors
@@ -114,7 +117,7 @@ impl Shaper {
     ///   [`Error::ControlRequiresControlPosition`], [`Error::UnsupportedPositionedUnit`],
     ///   [`Error::ChainPositionMismatch`] — as numbered above.
     /// - Anything [`Shaper::normalize_written_units`] returns. **Its indices point into the
-    ///   expanded written-unit sequence — after implicit ZWJs were inserted — not into
+    ///   expanded written-unit sequence — after implicit ZWJs and ZWNJs were inserted — not into
     ///   `records`.**
     pub fn normalize_positioned_written_units(
         &self,
@@ -168,7 +171,16 @@ impl Shaper {
                     }
                     parts.push(PositionedPart::Control(record.unit));
                 }
-                Some(position) => chain.push((record.unit, position)),
+                Some(position) => {
+                    if chain.last().is_some_and(|&(_, prev)| {
+                        matches!(prev, Position::Fina | Position::Isol)
+                            || matches!(position, Position::Init | Position::Isol)
+                    }) {
+                        parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
+                        parts.push(PositionedPart::Control(WrittenUnit::Zwnj));
+                    }
+                    chain.push((record.unit, position));
+                }
             }
         }
         if !chain.is_empty() {
@@ -187,11 +199,13 @@ impl Shaper {
             let joined_right = index + 1 < parts.len() && is_joiner_part(&parts[index + 1]);
             if body.len() == 1 {
                 let (unit, position) = body[0];
-                // `records.len()`, not `body.len()`: the trailing ZWJ is for a request that is
-                // NOTHING but the `init` record. `[Nirugu:control, O:init]` also has a one-unit
+                // A one-unit sub-chain at `init` with no adjacent joiner control (`Nirugu`) needs
+                // a trailing ZWJ when its bare letter would read back as another record (`A`, `I`)
+                // or has no bare spelling (`O`). `[Nirugu:control, O:init]` also has a one-unit
                 // body, but the nirugu already supplies the joining context — it must not get the
                 // ZWJ.
-                if records.len() == 1
+                if !joined_left
+                    && !joined_right
                     && position == Position::Init
                     && self.lone_init_needs_zwj(table, unit)
                 {
