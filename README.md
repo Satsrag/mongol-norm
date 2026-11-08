@@ -56,7 +56,7 @@ or in `Cargo.toml`:
 
 ```toml
 [dependencies]
-mongol-norm = "0.4.0"
+mongol-norm = "0.4.1"
 ```
 
 **Python** (CPython ≥ 3.9, no runtime dependencies, no Rust toolchain needed):
@@ -226,7 +226,7 @@ cargo add mongol-norm
 
 ```toml
 [dependencies]
-mongol-norm = "0.4.0"
+mongol-norm = "0.4.1"
 ```
 
 **Python**（CPython ≥ 3.9，无运行时依赖，不需要 Rust 工具链）：
