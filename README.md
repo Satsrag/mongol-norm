@@ -19,8 +19,20 @@
 > (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`). If you store normalized keys, store
 > `canonical_version()` with them and rebuild when it changes.
 
-**mongol-norm** tells whether two Traditional Mongolian (Hudum) strings look the same, and maps
-them to one key. Rust crate with zero dependencies, plus a Python package and a CLI.
+**mongol-norm** is a Traditional Mongolian (Hudum) same-shape comparison and normalization tool.
+It is implemented according to the Mongolian shaping rules of UTN #57 (GB/T 25914—2023). It
+converts Mongolian text that has the same written form but different Unicode encodings into a
+unified encoding, making search, deduplication, and corpus processing easier. Rust crate with
+zero dependencies, plus a Python package and a CLI.
+
+### Input requirements
+
+This library is intended for Mongolian text under the UTN #57 (GB/T 25914—2023) rules. Text that
+uses other standards or encodings — for example Delehi, Oyun, and Menk text related to
+GB/T 25914—2010, as well as Menk old shape codes, ZCode, Zvvnmod, and the like — must first be
+converted to UTN #57 (GB/T 25914—2023) before this library can be used. For encoding conversion,
+you may consider `mongol-convert`; that library is also currently in Beta, so use it with care
+and verify the conversion results.
 
 ### Why
 
@@ -200,8 +212,12 @@ Notices in [NOTICE](https://github.com/Satsrag/mongol-norm/blob/main/NOTICE).
 > （`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`）。如果要持久化规范化后的
 > key，请同时保存 `canonical_version()`，版本变化时重建。
 
-**mongol-norm** 判断两段传统蒙古文（回鹘式，Hudum）是否外形相同，并把它们映射成同一个 key。零依赖
+**mongol-norm** 是一个传统蒙古文（回鹘式）的同形比较与规范化工具，依据 UTN #57（GB/T 25914—2023）的蒙古文整形规则实现。它将书写形态相同、Unicode 编码不同的蒙古文转换为统一编码，方便搜索、去重和语料处理。零依赖
 Rust crate，另有 Python 包和命令行工具。
+
+### 输入要求
+
+本库面向 UTN #57（GB/T 25914—2023）规则下的蒙古文文本。采用其他标准或编码的文本，例如 GB/T 25914—2010 相关的 Delehi、Oyun、Menk 文本，以及 Menk 旧形码、ZCode、Zvvnmod 等，需要先转换为 UTN #57（GB/T 25914—2023），才能使用本库。编码转换可考虑使用 `mongol-convert`，该库目前也处于 Beta 阶段，请谨慎使用，并核对转换结果。
 
 ### 为什么
 
