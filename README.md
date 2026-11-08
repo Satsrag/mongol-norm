@@ -28,11 +28,11 @@ zero dependencies, plus a Python package and a CLI.
 ### Input requirements
 
 This library is intended for Mongolian text under the UTN #57 (GB/T 25914—2023) rules. Text that
-uses other standards or encodings — for example Delehi, Oyun, and Menk text related to
+uses other standards or encodings — for example Delehi, Oyun, and Menk related to
 GB/T 25914—2010, as well as Menk old shape codes, ZCode, Zvvnmod, and the like — must first be
 converted to UTN #57 (GB/T 25914—2023) before this library can be used. For encoding conversion,
-you may consider `mongol-convert`; that library is also currently in Beta, so use it with care
-and verify the conversion results.
+you may consider [`mongol-convert`](https://github.com/Satsrag/mongol-convert); that library is
+also currently in Beta, so use it with care and verify the conversion results.
 
 ### Why
 
@@ -217,7 +217,7 @@ Rust crate，另有 Python 包和命令行工具。
 
 ### 输入要求
 
-本库面向 UTN #57（GB/T 25914—2023）规则下的蒙古文文本。采用其他标准或编码的文本，例如 GB/T 25914—2010 相关的 Delehi、Oyun、Menk 文本，以及 Menk 旧形码、ZCode、Zvvnmod 等，需要先转换为 UTN #57（GB/T 25914—2023），才能使用本库。编码转换可考虑使用 `mongol-convert`，该库目前也处于 Beta 阶段，请谨慎使用，并核对转换结果。
+本库面向 UTN #57（GB/T 25914—2023）规则下的蒙古文文本。采用其他标准或编码的文本，例如 GB/T 25914—2010 相关的 Delehi、Oyun、Menk，以及 Menk 旧形码、ZCode、Zvvnmod 等，需要先转换为 UTN #57（GB/T 25914—2023），才能使用本库。编码转换可考虑使用 [`mongol-convert`](https://github.com/Satsrag/mongol-convert)，该库目前也处于 Beta 阶段，请谨慎使用，并核对转换结果。
 
 ### 为什么
 
