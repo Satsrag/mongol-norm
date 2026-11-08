@@ -1,5 +1,6 @@
 """
-mongol-norm — shape-aware normalizer for Traditional Mongolian script.
+mongol-norm — Traditional Mongolian (Hudum) same-shape comparison and
+normalization under UTN #57 (GB/T 25914—2023).
 
 The engine is the Rust crate ``mongol-norm`` (the repository root), compiled
 into the ``mongol_norm._native`` extension; :mod:`mongol_norm._api` wraps it.

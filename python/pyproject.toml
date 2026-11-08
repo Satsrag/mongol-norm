@@ -8,7 +8,7 @@ name = "mongol-norm"
 # through ./Cargo.toml, the binding crate); mongol_norm.__version__ is read from the
 # extension module at import time.
 dynamic = ["version"]
-description = "Shape-aware normalizer for Traditional Mongolian script. Implements the UTN #57 v4 shaping pipeline — Rust core with Python bindings."
+description = "Same-shape comparison and normalization for Traditional Mongolian (Hudum) under UTN #57 (GB/T 25914—2023). Rust core with Python bindings."
 # A distinct name on purpose. maturin re-roots this file at the sdist root, where
 # README.md is already the crate's (crates.io) README; with the same name, a wheel
 # built from the sdist would carry the crate README as its long description.
