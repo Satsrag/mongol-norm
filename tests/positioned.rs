@@ -386,7 +386,10 @@ fn test_one_sided_joiners_and_repeated_controls() {
 #[test]
 fn test_long_invalid_chain_fails_closed_without_recursion_error() {
     let shaper = shaper();
-    let records = vec![rec(WrittenUnit::A, UnitPosition::Isol); 1000];
+    let mut records = vec![rec(WrittenUnit::Nirugu, UnitPosition::Control)];
+    records.push(rec(WrittenUnit::A, UnitPosition::Init));
+    records.extend(vec![rec(WrittenUnit::A, UnitPosition::Medi); 997]);
+    records.push(rec(WrittenUnit::A, UnitPosition::Fina));
     let error = positioned(&shaper, &records).unwrap_err();
     assert_eq!(error, Error::ChainPositionMismatch);
     assert!(error
@@ -456,4 +459,174 @@ fn test_encodes_a_valid_positioned_sequence() {
         positioned(&shaper, &records).unwrap(),
         plain(&shaper, &[WrittenUnit::B, WrittenUnit::Aa])
     );
+}
+
+#[test]
+fn test_synthesizes_zwnj_across_sub_chain_boundaries() {
+    let shaper = shaper();
+    // Issue #68 Example 1: [A:init, A:medi, L:fina] + [M:init, A:fina] -> ᠠ᠋ᠠᠯ‌ᠮᠠ᠌
+    let records = [
+        rec(WrittenUnit::A, UnitPosition::Init),
+        rec(WrittenUnit::A, UnitPosition::Medi),
+        rec(WrittenUnit::L, UnitPosition::Fina),
+        rec(WrittenUnit::M, UnitPosition::Init),
+        rec(WrittenUnit::A, UnitPosition::Fina),
+    ];
+    assert_eq!(
+        positioned(&shaper, &records).unwrap(),
+        "\u{1820}\u{180B}\u{1820}\u{182F}\u{200C}\u{182E}\u{1820}\u{180C}"
+    );
+    assert_eq!(
+        positioned(&shaper, &records).unwrap(),
+        plain(
+            &shaper,
+            &[
+                WrittenUnit::A,
+                WrittenUnit::A,
+                WrittenUnit::L,
+                WrittenUnit::Zwnj,
+                WrittenUnit::M,
+                WrittenUnit::A,
+            ]
+        )
+    );
+
+    // Issue #68 Example 2: lone consonant [B:init] + [A:init, A:fina] (from ᠪ‌ᠠ)
+    let records = [
+        rec(WrittenUnit::B, UnitPosition::Init),
+        rec(WrittenUnit::A, UnitPosition::Init),
+        rec(WrittenUnit::A, UnitPosition::Fina),
+    ];
+    assert_eq!(
+        positioned(&shaper, &records).unwrap(),
+        shaper.normalize("\u{182A}\u{200C}\u{1820}").unwrap()
+    );
+    assert_eq!(
+        positioned(&shaper, &records).unwrap(),
+        "\u{182A}\u{200C}\u{1820}\u{180B}\u{1820}\u{180C}"
+    );
+    assert_eq!(
+        positioned(&shaper, &records).unwrap(),
+        plain(
+            &shaper,
+            &[
+                WrittenUnit::B,
+                WrittenUnit::Zwnj,
+                WrittenUnit::A,
+                WrittenUnit::A,
+            ]
+        )
+    );
+}
+
+#[test]
+fn test_sub_chain_zwnj_drops_when_redundant_and_pads_open_edges() {
+    let shaper = shaper();
+    let cases: &[(&[PositionedWrittenUnit], &[WrittenUnit], &str)] = &[
+        // Redundant synthesized ZWNJ is omitted by canonical control reduction.
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::O, UnitPosition::Fina),
+                rec(WrittenUnit::O, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::A,
+                WrittenUnit::O,
+                WrittenUnit::O,
+                WrittenUnit::A,
+            ],
+            "\u{1820}\u{180B}\u{1823}\u{1823}\u{1820}\u{180C}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::N, UnitPosition::Init),
+                rec(WrittenUnit::B, UnitPosition::Init),
+                rec(WrittenUnit::Aa, UnitPosition::Fina),
+            ],
+            &[WrittenUnit::N, WrittenUnit::B, WrittenUnit::Aa],
+            "\u{1828}\u{182A}\u{1820}\u{180B}",
+        ),
+        // Lone A:init / O:init sub-chains still get their trailing ZWJ before a sub-chain break.
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::M, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::A,
+                WrittenUnit::Zwj,
+                WrittenUnit::Zwnj,
+                WrittenUnit::M,
+                WrittenUnit::A,
+            ],
+            "\u{1820}\u{180B}\u{200D}\u{200C}\u{182E}\u{1820}\u{180C}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::O, UnitPosition::Init),
+                rec(WrittenUnit::M, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::O,
+                WrittenUnit::Zwj,
+                WrittenUnit::Zwnj,
+                WrittenUnit::M,
+                WrittenUnit::A,
+            ],
+            "\u{1824}\u{180B}\u{200D}\u{200C}\u{182E}\u{1820}\u{180C}",
+        ),
+        // Open medi edges on sub-chains get ZWJ alongside the synthesized ZWNJ.
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::L, UnitPosition::Medi),
+                rec(WrittenUnit::M, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::A,
+                WrittenUnit::L,
+                WrittenUnit::Zwj,
+                WrittenUnit::Zwnj,
+                WrittenUnit::M,
+                WrittenUnit::A,
+            ],
+            "\u{1820}\u{180B}\u{182F}\u{200D}\u{200C}\u{182E}\u{1820}\u{180C}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::L, UnitPosition::Fina),
+                rec(WrittenUnit::N, UnitPosition::Medi),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::A,
+                WrittenUnit::L,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Zwj,
+                WrittenUnit::N,
+                WrittenUnit::A,
+            ],
+            "\u{1820}\u{180B}\u{182F}\u{200C}\u{200D}\u{1828}\u{180B}\u{1820}\u{180C}",
+        ),
+        // Adjacent isol sub-chains.
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Isol),
+                rec(WrittenUnit::A, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::A, WrittenUnit::Zwnj, WrittenUnit::A],
+            "\u{1820}\u{180B}\u{200C}\u{1820}\u{180B}",
+        ),
+    ];
+    for &(records, units, expected) in cases {
+        let actual = positioned(&shaper, records).unwrap();
+        assert_eq!(actual, plain(&shaper, units), "{records:?}");
+        assert_eq!(actual, expected, "{records:?}");
+    }
 }

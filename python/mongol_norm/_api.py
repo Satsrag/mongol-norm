@@ -313,7 +313,10 @@ class MongolianShaper:
         authoritative HUD written-unit positions ``isol``/``init``/``medi``/
         ``fina``. Encoding delegates to :meth:`normalize_written_units`: a
         complete multi-record chain runs from ``init`` to ``fina``; an incomplete
-        edge gets an implicit ZWJ. A single ``init`` record is encoded without ZWJ
+        edge gets an implicit ZWJ; adjacent letter records whose positions mark a
+        sub-chain boundary (after ``fina``/``isol`` or a lone ``init``, or before
+        a new ``init``/``isol``) are split with an implicit ZWNJ, which is kept
+        only where needed. A single ``init`` record is encoded without ZWJ
         when its bare letter reads back as that record (every consonant); ``A:init``,
         ``I:init`` and ``O:init``, whose bare letter would read back as another
         record, receive a trailing ZWJ. Single
@@ -324,7 +327,8 @@ class MongolianShaper:
         每项必须严格为内建 ``{"unit": str, "position": str}`` dict。字母position
         是权威HUD written-unit position：``isol``/``init``/``medi``/``fina``。
         编码直接交给 :meth:`normalize_written_units`：完整复合链从``init``开始、
-        到``fina``结束；边界不完整时自动补ZWJ。单个``init``在裸字母能读回
+        到``fina``结束；边界不完整时自动补ZWJ；相邻字母记录在子链断开处自动补
+        ZWNJ（并由规范化规则省去冗余ZWNJ）。单个``init``在裸字母能读回
         同一record时不补ZWJ（所有辅音）；``A:init``、``I:init``、``O:init``裸写会读回
         成别的record，在末尾补ZWJ。单个``medi``和``fina``补足其位置所需的连接
         上下文。``Mvs``、``Nirugu``与``Zwnj``使用``control``；显式``Zwj``输入被拒绝。
