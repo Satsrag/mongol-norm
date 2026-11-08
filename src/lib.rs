@@ -17,9 +17,10 @@
 //! that library is also currently in Beta, so use it with care and verify the conversion
 //! results.
 //!
-//! `normalize` output is a unified encoding by glyph shape, not standard spelling, and may
-//! change in a later release. Keep the original text; when storing normalized keys, also
-//! record [`Shaper::canonical_version`] and rebuild after a version change.
+//! > **Beta.** `normalize` output is a unified encoding by **glyph shape**, **not standard
+//! > spelling**, and may change in a later release. Keep the original text; when storing
+//! > normalized keys, also record [`Shaper::canonical_version`] and rebuild after a version
+//! > change.
 //!
 //! Within the bundled table's domain, `shape(x) == shape(y)` implies
 //! `normalize(x) == normalize(y)`, and `shape(normalize(x)) == shape(x)`.

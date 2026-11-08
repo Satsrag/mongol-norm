@@ -35,7 +35,7 @@ The following spellings look the same, but their Unicode encodings differ, so a 
 comparison treats them as different text. mongol-norm can tell that they have the same shape
 and produce the same normalized result.
 
-![Five encodings of "sain" all normalizing to the same canonical form](https://github.com/Satsrag/mongol-norm/raw/main/assets/sain-variants.png)
+![Five encodings of sain all normalizing to the same canonical form](https://github.com/Satsrag/mongol-norm/raw/main/assets/sain-variants.png)
 
 ### Install
 
@@ -57,9 +57,9 @@ locally and needs Rust ≥ 1.83. The install also puts the `mongol-norm` command
 
 ### Usage
 
-**Beta note:** `normalize` output is a unified encoding by glyph shape, not standard spelling,
-and may change in a later release. Keep the original text; when storing normalized keys, also
-record `shaper.canonical_version` and rebuild after a version change.
+> **Beta.** `normalize` output is a unified encoding by **glyph shape**, **not standard spelling**,
+> and may change in a later release. Keep the original text; when storing normalized keys, also
+> record `shaper.canonical_version` and rebuild after a version change.
 
 ```python
 from mongol_norm import MongolianShaper
@@ -157,7 +157,7 @@ CPython ≥ 3.9。引擎已编译进扩展模块，无运行时依赖，也不�
 
 ### 用法
 
-**Beta 提醒：** `normalize` 输出的是按字形统一的编码，不是标准拼写，后续版本可能变化。建议保留原文；保存规范化键时，同时记录 `shaper.canonical_version`，版本变化后重建。
+> **Beta 提醒：** `normalize` 输出的是**按字形统一的编码**，**不是标准拼写**，后续版本可能变化。建议保留原文；保存规范化键时，同时记录 `shaper.canonical_version`，版本变化后重建。
 
 ```python
 from mongol_norm import MongolianShaper
