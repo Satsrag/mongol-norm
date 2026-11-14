@@ -89,13 +89,11 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             ),
             (
                 [
-                    {"unit": "Nirugu", "position": "control"},
-                    {"unit": "A", "position": "init"},
-                    {"unit": "A", "position": "fina"},
                     {"unit": "Mvs", "position": "control"},
                     {"unit": "Aa", "position": "isol"},
+                    {"unit": "Mvs", "position": "control"},
                 ],
-                "positioned_units[3] has redundant 'Mvs' before 'Aa:isol'",
+                "positioned_units[0] has redundant 'Mvs' before 'Aa:isol'",
             ),
             (
                 [
@@ -430,7 +428,21 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 )
 
     def test_long_invalid_chain_fails_closed_without_recursion_error(self):
-        positioned = [
+        invalid = [
+            {"unit": "Mvs", "position": "control"},
+            *(
+                {"unit": "A", "position": "medi"}
+                for _index in range(998)
+            ),
+            {"unit": "A", "position": "fina"},
+        ]
+        with self.assertRaisesRegex(
+            ValueError,
+            "no canonical MNG encoding in the supplied context",
+        ):
+            self.shaper.normalize_positioned_written_units(invalid)
+
+        nirugu_chain = [
             {"unit": "Nirugu", "position": "control"},
             {"unit": "A", "position": "init"},
             *(
@@ -439,11 +451,10 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             ),
             {"unit": "A", "position": "fina"},
         ]
-        with self.assertRaisesRegex(
-            ValueError,
-            "no canonical MNG encoding in the supplied context",
-        ):
-            self.shaper.normalize_positioned_written_units(positioned)
+        self.assertEqual(
+            self.shaper.normalize_positioned_written_units(nirugu_chain),
+            self.shaper.normalize_written_units(["Nirugu", "Zwnj"] + ["A"] * 999),
+        )
 
     def test_long_control_sequence_stays_iterative(self):
         nirugus = [
@@ -762,6 +773,229 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                     "no canonical MNG encoding in the supplied context",
                 ):
                     self.shaper.normalize_positioned_written_units(positioned)
+
+    def test_synthesizes_zwnj_across_nirugu_boundaries(self):
+        cases = [
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "isol"},
+                ],
+                ["Nirugu", "Zwnj", "A"],
+                "\u180a\u200c\u1820\u180b",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Ix", "position": "isol"},
+                ],
+                ["Nirugu", "Zwnj", "Ix"],
+                "\u180a\u200c\u1822\u180c",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Ux", "position": "isol"},
+                ],
+                ["Nirugu", "Zwnj", "Ux"],
+                "\u180a\u200c\u1824\u180c",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "I", "position": "isol"},
+                ],
+                ["Nirugu", "Zwnj", "I"],
+                "\u180a\u1822",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "U", "position": "isol"},
+                ],
+                ["Nirugu", "Zwnj", "U"],
+                "\u180a\u1823\u180c",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "isol"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["A", "Zwnj", "Nirugu"],
+                "\u1820\u180b\u200c\u180a",
+            ),
+            (
+                [
+                    {"unit": "Aa", "position": "isol"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Mvs", "Aa", "Zwnj", "Nirugu"],
+                "\u180e\u1820\u200c\u180a",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "fina"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Zwj", "A", "Zwnj", "Nirugu"],
+                "\u200d\u1820\u180c\u200c\u180a",
+            ),
+            (
+                [
+                    {"unit": "B2", "position": "fina"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Zwj", "B2", "Zwnj", "Nirugu"],
+                "\u200d\u182a\u180b\u200c\u180a",
+            ),
+            (
+                [
+                    {"unit": "T", "position": "init"},
+                    {"unit": "G", "position": "fina"},
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "O", "position": "fina"},
+                ],
+                ["T", "G", "Zwnj", "Nirugu", "O"],
+                "\u1832\u182d\u180c\u200c\u180a\u1823\u180b",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "init"},
+                ],
+                ["Nirugu", "Zwnj", "A", "Zwj"],
+                "\u180a\u200c\u1820\u180b\u200d",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "I", "position": "init"},
+                ],
+                ["Nirugu", "Zwnj", "I", "Zwj"],
+                "\u180a\u1822\u180d\u200d",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "O", "position": "init"},
+                ],
+                ["Nirugu", "Zwnj", "O", "Zwj"],
+                "\u180a\u1823\u180b",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "B", "position": "init"},
+                ],
+                ["Nirugu", "Zwnj", "B"],
+                "\u180a\u200c\u182a",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "init"},
+                    {"unit": "A", "position": "fina"},
+                ],
+                ["Nirugu", "Zwnj", "A", "A"],
+                "\u180a\u200c\u1820\u180b\u1820\u180c",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Zr", "position": "init"},
+                ],
+                ["Nirugu", "Zwnj", "Zr"],
+                "\u180a\u1841",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Zr", "position": "init"},
+                    {"unit": "I", "position": "fina"},
+                ],
+                ["Nirugu", "Zwnj", "Zr", "I"],
+                "\u180a\u1841\u1822",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Cr", "position": "init"},
+                ],
+                ["Nirugu", "Zwnj", "Cr"],
+                "\u180a\u1823\u1823\u180b",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Cr", "position": "init"},
+                    {"unit": "I", "position": "fina"},
+                ],
+                ["Nirugu", "Zwnj", "Cr", "I"],
+                "\u180a\u1823\u1823\u1822",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "isol"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Nirugu", "Zwnj", "A", "Zwnj", "Nirugu"],
+                "\u180a\u200c\u1820\u180b\u200c\u180a",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "init"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Nirugu", "Zwnj", "A", "Nirugu"],
+                "\u180a\u200c\u1820\u180b\u180a",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Nirugu", "A", "Nirugu"],
+                "\u180a\u1820\u180a",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "fina"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Nirugu", "A", "Zwnj", "Nirugu"],
+                "\u180a\u1820\u180c\u200c\u180a",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Zr", "position": "init"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Nirugu", "Zwnj", "Zr", "Nirugu"],
+                "\u180a\u1841\u180a",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Cr", "position": "init"},
+                    {"unit": "Nirugu", "position": "control"},
+                ],
+                ["Nirugu", "Zwnj", "Cr", "Nirugu"],
+                "\u180a\u1823\u1823\u180a",
+            ),
+        ]
+        for positioned, plain, expected in cases:
+            with self.subTest(positioned=positioned):
+                actual = self.shaper.normalize_positioned_written_units(positioned)
+                self.assertEqual(
+                    actual,
+                    self.shaper.normalize_written_units(plain),
+                )
+                self.assertEqual(actual, expected)
 
 
 if __name__ == "__main__":

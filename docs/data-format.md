@@ -90,10 +90,11 @@ lone `F:init` record encodes as bare `U+1839`; `F:isol` is not a valid pair and 
 rejected. Letter positions are `isol`, `init`, `medi`, or `fina`; structural units
 `Mvs` and `Nirugu` require `control`. Explicit `Zwj` and `Zwnj` input is rejected, but the
 encoder may insert ZWJ in its Unicode output when a valid HUD position needs
-joining context, inserts ZWNJ between adjacent letter records whose positions
-mark a sub-chain boundary (emitting U+200C where needed after canonical control
-reduction), and inserts an implicit leading `Mvs` before every `Aa:isol`
-(chachlag) record. An explicit `Mvs:control` directly before `Aa:isol`, at the
+joining context, inserts ZWNJ across sub-chain boundaries between adjacent letter
+records and between `Nirugu` and a non-joining letter edge (`fina`/`isol` before
+`Nirugu`, or `init`/`isol` after `Nirugu`, emitting U+200C where needed after
+canonical control reduction), and inserts an implicit leading `Mvs` before every
+`Aa:isol` (chachlag) record. An explicit `Mvs:control` directly before `Aa:isol`, at the
 end of the sequence, or followed by `control`, `medi`, or `fina` is rejected.
 Borrowed forms with a bare candidate remain bare: a lone `init`
 record whose bare letter reads back as that record — every consonant, whose isolated
