@@ -94,7 +94,8 @@ fn test_validation_order_precedence() {
         Error::ExplicitZwnj
     );
 
-    // 4. Per-record check reports the first offender once no zero-width control is present.
+    // 4. Per-record check reports the first offender once no zero-width control is present,
+    //    ahead of explicit-MVS right-neighbor checks.
     assert_eq!(
         positioned(
             &shaper,
@@ -108,6 +109,63 @@ fn test_validation_order_precedence() {
             index: 0,
             unit: WrittenUnit::Mvs,
         }
+    );
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::F, UnitPosition::Isol),
+            ]
+        )
+        .unwrap_err(),
+        Error::UnsupportedPositionedUnit {
+            index: 2,
+            unit: WrittenUnit::F,
+            position: UnitPosition::Isol,
+        }
+    );
+
+    // 5. Explicit Mvs:control right-neighbor check runs left-to-right before sub-chain checks.
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ]
+        )
+        .unwrap_err(),
+        Error::RedundantChachlagMvs { index: 3 }
+    );
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ]
+        )
+        .unwrap_err(),
+        Error::ChainPositionMismatch
+    );
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::I, UnitPosition::Isol),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ]
+        )
+        .unwrap_err(),
+        Error::RedundantChachlagMvs { index: 2 }
     );
 }
 
@@ -347,32 +405,47 @@ fn test_medi_started_compound_gets_a_leading_zwj() {
 #[test]
 fn test_mvs_splits_letter_position_chains_without_joining() {
     let shaper = shaper();
-    let records = [
-        rec(WrittenUnit::T, UnitPosition::Init),
-        rec(WrittenUnit::A, UnitPosition::Medi),
-        rec(WrittenUnit::L, UnitPosition::Fina),
-        rec(WrittenUnit::Mvs, UnitPosition::Control),
-        rec(WrittenUnit::Aa, UnitPosition::Isol),
-    ];
-    let units: Vec<WrittenUnit> = records.iter().map(|r| r.unit).collect();
-    assert_eq!(
-        positioned(&shaper, &records).unwrap(),
-        plain(&shaper, &units)
-    );
-    assert_eq!(
-        positioned(
-            &shaper,
-            &[
+    for (records, units) in [
+        (
+            vec![
+                rec(WrittenUnit::T, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Medi),
+                rec(WrittenUnit::L, UnitPosition::Fina),
                 rec(WrittenUnit::Mvs, UnitPosition::Control),
-                rec(WrittenUnit::Aa, UnitPosition::Fina)
-            ]
-        )
-        .unwrap(),
-        plain(
-            &shaper,
-            &[WrittenUnit::Mvs, WrittenUnit::Zwj, WrittenUnit::Aa]
-        )
-    );
+                rec(WrittenUnit::I, UnitPosition::Isol),
+            ],
+            vec![
+                WrittenUnit::T,
+                WrittenUnit::A,
+                WrittenUnit::L,
+                WrittenUnit::Mvs,
+                WrittenUnit::I,
+            ],
+        ),
+        (
+            vec![
+                rec(WrittenUnit::T, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Medi),
+                rec(WrittenUnit::L, UnitPosition::Fina),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::D, UnitPosition::Init),
+                rec(WrittenUnit::U, UnitPosition::Fina),
+            ],
+            vec![
+                WrittenUnit::T,
+                WrittenUnit::A,
+                WrittenUnit::L,
+                WrittenUnit::Mvs,
+                WrittenUnit::D,
+                WrittenUnit::U,
+            ],
+        ),
+    ] {
+        assert_eq!(
+            positioned(&shaper, &records).unwrap(),
+            plain(&shaper, &units)
+        );
+    }
 }
 
 #[test]
@@ -447,11 +520,11 @@ fn test_one_sided_joiners_and_repeated_controls() {
         ),
         (
             vec![
-                rec(WrittenUnit::Mvs, UnitPosition::Control),
-                rec(WrittenUnit::Mvs, UnitPosition::Control),
-                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::U, UnitPosition::Fina),
             ],
-            vec![WrittenUnit::Mvs, WrittenUnit::Mvs, WrittenUnit::Aa],
+            vec![WrittenUnit::Nirugu, WrittenUnit::Nirugu, WrittenUnit::U],
         ),
     ];
     for (records, units) in &cases {
@@ -480,9 +553,21 @@ fn test_long_invalid_chain_fails_closed_without_recursion_error() {
 #[test]
 fn test_long_control_sequence_stays_iterative() {
     let shaper = shaper();
-    let mut records = vec![rec(WrittenUnit::Mvs, UnitPosition::Control); 1000];
-    records.push(rec(WrittenUnit::F, UnitPosition::Init));
-    assert_eq!(positioned(&shaper, &records).unwrap(), "\u{180E}\u{1839}");
+    let mut nirugus = vec![rec(WrittenUnit::Nirugu, UnitPosition::Control); 1000];
+    nirugus.push(rec(WrittenUnit::U, UnitPosition::Fina));
+    let mut units = vec![WrittenUnit::Nirugu; 1000];
+    units.push(WrittenUnit::U);
+    assert_eq!(
+        positioned(&shaper, &nirugus).unwrap(),
+        plain(&shaper, &units)
+    );
+
+    let mut repeated_mvs = vec![rec(WrittenUnit::Mvs, UnitPosition::Control); 1000];
+    repeated_mvs.push(rec(WrittenUnit::F, UnitPosition::Init));
+    assert_eq!(
+        positioned(&shaper, &repeated_mvs).unwrap_err(),
+        Error::ChainPositionMismatch
+    );
 }
 
 #[test]
@@ -708,5 +793,254 @@ fn test_sub_chain_zwnj_drops_when_redundant_and_pads_open_edges() {
         let actual = positioned(&shaper, records).unwrap();
         assert_eq!(actual, plain(&shaper, units), "{records:?}");
         assert_eq!(actual, expected, "{records:?}");
+    }
+}
+
+#[test]
+fn test_aa_isol_synthesizes_leading_mvs() {
+    let shaper = shaper();
+    let cases: &[(&[PositionedWrittenUnit], &[WrittenUnit], &str)] = &[
+        (
+            &[rec(WrittenUnit::Aa, UnitPosition::Isol)],
+            &[WrittenUnit::Mvs, WrittenUnit::Aa],
+            "\u{180E}\u{1820}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::S, UnitPosition::Init),
+                rec(WrittenUnit::I, UnitPosition::Medi),
+                rec(WrittenUnit::N, UnitPosition::Fina),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            &[
+                WrittenUnit::S,
+                WrittenUnit::I,
+                WrittenUnit::N,
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+            ],
+            "\u{1830}\u{1822}\u{180D}\u{1828}\u{180B}\u{180E}\u{1820}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Ch, UnitPosition::Init),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::Ch, WrittenUnit::Mvs, WrittenUnit::Aa],
+            "\u{1834}\u{180E}\u{1820}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Medi),
+                rec(WrittenUnit::J, UnitPosition::Fina),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            &[
+                WrittenUnit::A,
+                WrittenUnit::A,
+                WrittenUnit::J,
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+            ],
+            "\u{1820}\u{180B}\u{1820}\u{1835}\u{180E}\u{1820}\u{180C}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Medi),
+                rec(WrittenUnit::W, UnitPosition::Fina),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            &[
+                WrittenUnit::A,
+                WrittenUnit::A,
+                WrittenUnit::W,
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+            ],
+            "\u{1820}\u{180B}\u{1820}\u{1838}\u{180E}\u{1820}\u{180C}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::L, UnitPosition::Medi),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            &[
+                WrittenUnit::A,
+                WrittenUnit::L,
+                WrittenUnit::Zwj,
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+            ],
+            "\u{1820}\u{180B}\u{182F}\u{200D}\u{180E}\u{1820}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Mvs, WrittenUnit::Aa],
+            "\u{180A}\u{180E}\u{1820}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Fina),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Aa],
+            "\u{180A}\u{1820}\u{180B}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            &[
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+            ],
+            "\u{180E}\u{1820}\u{180E}\u{1820}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::B, UnitPosition::Init),
+                rec(WrittenUnit::Aa, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+                WrittenUnit::Zwnj,
+                WrittenUnit::B,
+                WrittenUnit::Aa,
+            ],
+            "\u{180E}\u{1820}\u{200C}\u{182A}\u{1820}\u{180B}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::S, UnitPosition::Init),
+                rec(WrittenUnit::I, UnitPosition::Medi),
+                rec(WrittenUnit::N, UnitPosition::Fina),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::I, UnitPosition::Init),
+                rec(WrittenUnit::I, UnitPosition::Medi),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::S,
+                WrittenUnit::I,
+                WrittenUnit::N,
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+                WrittenUnit::Mvs,
+                WrittenUnit::I,
+                WrittenUnit::I,
+                WrittenUnit::A,
+            ],
+            "\u{1830}\u{1822}\u{180D}\u{1828}\u{180B}\u{180E}\u{1820}\u{180E}\u{1822}\u{180B}\u{1822}\u{180D}\u{1820}\u{180C}",
+        ),
+    ];
+    for &(records, units, expected) in cases {
+        let actual = positioned(&shaper, records).unwrap();
+        assert_eq!(actual, plain(&shaper, units), "{records:?}");
+        assert_eq!(actual, expected, "{records:?}");
+    }
+
+    for unit in [
+        WrittenUnit::A,
+        WrittenUnit::I,
+        WrittenUnit::Ix,
+        WrittenUnit::U,
+        WrittenUnit::Ux,
+    ] {
+        let actual = positioned(&shaper, &[rec(unit, UnitPosition::Isol)]).unwrap();
+        assert!(!actual.contains('\u{180E}'), "{unit}: {actual:?}");
+    }
+}
+
+#[test]
+fn test_rejects_invalid_and_redundant_explicit_mvs() {
+    let shaper = shaper();
+    for (records, index) in [
+        (
+            vec![
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            0,
+        ),
+        (
+            vec![
+                rec(WrittenUnit::T, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Medi),
+                rec(WrittenUnit::L, UnitPosition::Fina),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            3,
+        ),
+        (
+            vec![
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            1,
+        ),
+    ] {
+        let error = positioned(&shaper, &records).unwrap_err();
+        assert_eq!(error, Error::RedundantChachlagMvs { index }, "{records:?}");
+        assert_eq!(
+            error.to_string(),
+            format!("positioned_units[{index}] has redundant 'Mvs' before 'Aa:isol'")
+        );
+    }
+
+    for records in [
+        vec![rec(WrittenUnit::Mvs, UnitPosition::Control)],
+        vec![
+            rec(WrittenUnit::B, UnitPosition::Init),
+            rec(WrittenUnit::Aa, UnitPosition::Fina),
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+        ],
+        vec![
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::Aa, UnitPosition::Fina),
+        ],
+        vec![
+            rec(WrittenUnit::T, UnitPosition::Init),
+            rec(WrittenUnit::A, UnitPosition::Medi),
+            rec(WrittenUnit::L, UnitPosition::Fina),
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::Aa, UnitPosition::Fina),
+        ],
+        vec![
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::N, UnitPosition::Medi),
+        ],
+        vec![
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::B, UnitPosition::Medi),
+            rec(WrittenUnit::O, UnitPosition::Medi),
+            rec(WrittenUnit::G, UnitPosition::Fina),
+        ],
+        vec![
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            rec(WrittenUnit::U, UnitPosition::Fina),
+        ],
+        vec![
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::I, UnitPosition::Isol),
+        ],
+    ] {
+        let error = positioned(&shaper, &records).unwrap_err();
+        assert_eq!(error, Error::ChainPositionMismatch, "{records:?}");
     }
 }

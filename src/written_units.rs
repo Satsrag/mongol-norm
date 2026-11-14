@@ -93,8 +93,11 @@ impl Shaper {
     /// position needs. Adjacent letter records whose positions mark a sub-chain boundary (after
     /// `fina` / `isol` or a lone `init`, or before a new `init` / `isol`) are split into separate
     /// sub-chains with an implicit `Zwnj` between them, which the canonical control pass keeps
-    /// only where needed. `Mvs` and
-    /// `Nirugu` require `Control`; explicit `Zwj` and `Zwnj` are rejected; at most
+    /// only where needed. Every `Aa:isol` record (chachlag) automatically receives an implicit
+    /// leading `Mvs`; an explicit `Mvs:control` directly before `Aa:isol` is rejected with
+    /// [`Error::RedundantChachlagMvs`], and an explicit `Mvs:control` at the end of `records` or
+    /// followed by `control` / `medi` / `fina` is rejected with [`Error::ChainPositionMismatch`].
+    /// `Mvs` and `Nirugu` require `Control`; explicit `Zwj` and `Zwnj` are rejected; at most
     /// [`MAX_POSITIONED_RECORDS`] records.
     ///
     /// # Validation order
@@ -108,17 +111,20 @@ impl Shaper {
     /// 3. empty request — returns `""`;
     /// 4. per record, the control/inventory check (`Mvs` and `Nirugu` need `Control`;
     ///    every other `(unit, position)` must be in the HUD inventory), reporting the first offender;
-    /// 5. per multi-record sub-chain, that the declared positions match the padded chain;
-    /// 6. delegation to [`Shaper::normalize_written_units`].
+    /// 5. per explicit `Mvs:control`, its right-hand record (`Aa:isol` raises
+    ///    [`Error::RedundantChachlagMvs`]; end-of-sequence or `control` / `medi` / `fina` raises
+    ///    [`Error::ChainPositionMismatch`]), reporting the first offender;
+    /// 6. per multi-record sub-chain, that the declared positions match the padded chain;
+    /// 7. delegation to [`Shaper::normalize_written_units`].
     ///
     /// # Errors
     ///
     /// - [`Error::TooManyRecords`], [`Error::ExplicitZwj`], [`Error::ExplicitZwnj`],
     ///   [`Error::ControlRequiresControlPosition`], [`Error::UnsupportedPositionedUnit`],
-    ///   [`Error::ChainPositionMismatch`] — as numbered above.
+    ///   [`Error::RedundantChachlagMvs`], [`Error::ChainPositionMismatch`] — as numbered above.
     /// - Anything [`Shaper::normalize_written_units`] returns. **Its indices point into the
-    ///   expanded written-unit sequence — after implicit ZWJs and ZWNJs were inserted — not into
-    ///   `records`.**
+    ///   expanded written-unit sequence — after implicit MVS, ZWJs and ZWNJs were inserted — not
+    ///   into `records`.**
     pub fn normalize_positioned_written_units(
         &self,
         records: &[PositionedWrittenUnit],
@@ -161,6 +167,26 @@ impl Shaper {
                 });
             }
         }
+        for (index, record) in records.iter().enumerate() {
+            if record.unit != WrittenUnit::Mvs {
+                continue;
+            }
+            match records.get(index + 1) {
+                Some(PositionedWrittenUnit {
+                    unit: WrittenUnit::Aa,
+                    position: UnitPosition::Isol,
+                }) => return Err(Error::RedundantChachlagMvs { index }),
+                Some(PositionedWrittenUnit {
+                    position: UnitPosition::Init | UnitPosition::Isol,
+                    ..
+                }) => {}
+                None
+                | Some(PositionedWrittenUnit {
+                    position: UnitPosition::Control | UnitPosition::Medi | UnitPosition::Fina,
+                    ..
+                }) => return Err(Error::ChainPositionMismatch),
+            }
+        }
 
         let mut parts: Vec<PositionedPart> = Vec::new();
         let mut chain: Vec<(WrittenUnit, Position)> = Vec::new();
@@ -173,6 +199,14 @@ impl Shaper {
                     parts.push(PositionedPart::Control(record.unit));
                 }
                 Some(position) => {
+                    if record.unit == WrittenUnit::Aa && position == Position::Isol {
+                        if !chain.is_empty() {
+                            parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
+                        }
+                        parts.push(PositionedPart::Control(WrittenUnit::Mvs));
+                        chain.push((record.unit, position));
+                        continue;
+                    }
                     if chain.last().is_some_and(|&(_, prev)| {
                         matches!(prev, Position::Fina | Position::Isol)
                             || matches!(position, Position::Init | Position::Isol)
