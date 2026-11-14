@@ -127,7 +127,8 @@ fn test_validation_order_precedence() {
         }
     );
 
-    // 5. Explicit Mvs:control right-neighbor check runs left-to-right before sub-chain checks.
+    // 5. Explicit Mvs:control right-neighbor check runs left-to-right, reporting whichever
+    //    Mvs:control violation comes first.
     assert_eq!(
         positioned(
             &shaper,
@@ -141,6 +142,18 @@ fn test_validation_order_precedence() {
         )
         .unwrap_err(),
         Error::RedundantChachlagMvs { index: 3 }
+    );
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+            ]
+        )
+        .unwrap_err(),
+        Error::RedundantChachlagMvs { index: 0 }
     );
     assert_eq!(
         positioned(
@@ -271,34 +284,48 @@ fn test_o_init_gets_its_required_trailing_zwj() {
     assert_eq!(result_cps, [0x1824, 0x180B, 0x200D]);
 }
 
-/// The `O:init` trailing ZWJ is for a request that is nothing but `O:init`. With a nirugu in
-/// front the joining context already exists, so no ZWJ is invented. Confirmed against Python:
-/// `normalize_positioned_written_units([Nirugu:control, O:init])` → U+180A U+1823 U+180B.
+/// With a nirugu on the *right* (`[X:init, Nirugu:control]`), the nirugu supplies the
+/// right-hand joining context, so `A:init` / `I:init` / `O:init` need no trailing ZWJ.
 #[test]
-fn test_nirugu_then_o_init_gets_no_trailing_zwj() {
+fn test_init_then_nirugu_gets_no_trailing_zwj() {
     let shaper = shaper();
-    let records = [
-        rec(WrittenUnit::Nirugu, UnitPosition::Control),
-        rec(WrittenUnit::O, UnitPosition::Init),
-    ];
-    let result = positioned(&shaper, &records).unwrap();
-    assert_eq!(
-        result,
-        plain(&shaper, &[WrittenUnit::Nirugu, WrittenUnit::O])
-    );
-    assert!(!result.contains(ZWJ), "{result:?} must not contain U+200D");
-    assert_eq!(
-        result.chars().map(|c| c as u32).collect::<Vec<_>>(),
-        [0x180A, 0x1823, 0x180B]
-    );
+    for (unit, expected) in [
+        (WrittenUnit::A, "\u{1820}\u{180B}\u{180A}"),
+        (WrittenUnit::I, "\u{1822}\u{180B}\u{180A}"),
+        (WrittenUnit::O, "\u{1824}\u{180B}\u{180A}"),
+    ] {
+        let records = [
+            rec(unit, UnitPosition::Init),
+            rec(WrittenUnit::Nirugu, UnitPosition::Control),
+        ];
+        let result = positioned(&shaper, &records).unwrap();
+        assert_eq!(
+            result,
+            plain(&shaper, &[unit, WrittenUnit::Nirugu]),
+            "{unit}"
+        );
+        assert!(
+            !result.contains(ZWJ),
+            "{unit}: {result:?} must not contain U+200D"
+        );
+        assert_eq!(result, expected, "{unit}");
+    }
 }
 
-/// With a nirugu in front the joining context already exists, so a lone `A:init` / `I:init`
-/// after it takes no ZWJ either — the same reason as for `O:init` above.
+/// With a nirugu on the *left* (`[Nirugu:control, X:init]`), `init` cannot join leftward into
+/// the nirugu, so an implicit `Zwnj` separates them and `A:init` / `I:init` / `O:init` still
+/// receive their lone-`init` trailing `Zwj` before canonical control reduction:
+/// - `A:init`: neither control is redundant (`\u{180A}\u{200C}\u{1820}\u{180B}\u{200D}`);
+/// - `I:init`: `I:init ≡ I:medi` drops the `Zwnj`, keeping the `Zwj` (`\u{180A}\u{1822}\u{180D}\u{200D}`);
+/// - `O:init`: `O:init ≡ O:medi ≡ O:fina` drops both controls (`\u{180A}\u{1823}\u{180B}`).
 #[test]
-fn test_nirugu_then_a_or_i_init_gets_no_trailing_zwj() {
+fn test_nirugu_then_a_i_o_init_synthesizes_zwnj_and_lone_init_zwj() {
     let shaper = shaper();
-    for unit in [WrittenUnit::A, WrittenUnit::I] {
+    for (unit, expected) in [
+        (WrittenUnit::A, "\u{180A}\u{200C}\u{1820}\u{180B}\u{200D}"),
+        (WrittenUnit::I, "\u{180A}\u{1822}\u{180D}\u{200D}"),
+        (WrittenUnit::O, "\u{180A}\u{1823}\u{180B}"),
+    ] {
         let records = [
             rec(WrittenUnit::Nirugu, UnitPosition::Control),
             rec(unit, UnitPosition::Init),
@@ -306,13 +333,18 @@ fn test_nirugu_then_a_or_i_init_gets_no_trailing_zwj() {
         let result = positioned(&shaper, &records).unwrap();
         assert_eq!(
             result,
-            plain(&shaper, &[WrittenUnit::Nirugu, unit]),
+            plain(
+                &shaper,
+                &[
+                    WrittenUnit::Nirugu,
+                    WrittenUnit::Zwnj,
+                    unit,
+                    WrittenUnit::Zwj,
+                ]
+            ),
             "{unit}"
         );
-        assert!(
-            !result.contains(ZWJ),
-            "{unit}: {result:?} must not contain U+200D"
-        );
+        assert_eq!(result, expected, "{unit}");
     }
 }
 
@@ -539,15 +571,25 @@ fn test_one_sided_joiners_and_repeated_controls() {
 #[test]
 fn test_long_invalid_chain_fails_closed_without_recursion_error() {
     let shaper = shaper();
-    let mut records = vec![rec(WrittenUnit::Nirugu, UnitPosition::Control)];
-    records.push(rec(WrittenUnit::A, UnitPosition::Init));
-    records.extend(vec![rec(WrittenUnit::A, UnitPosition::Medi); 997]);
-    records.push(rec(WrittenUnit::A, UnitPosition::Fina));
-    let error = positioned(&shaper, &records).unwrap_err();
+    let mut invalid = vec![rec(WrittenUnit::Mvs, UnitPosition::Control)];
+    invalid.extend(vec![rec(WrittenUnit::A, UnitPosition::Medi); 998]);
+    invalid.push(rec(WrittenUnit::A, UnitPosition::Fina));
+    let error = positioned(&shaper, &invalid).unwrap_err();
     assert_eq!(error, Error::ChainPositionMismatch);
     assert!(error
         .to_string()
         .contains("no canonical MNG encoding in the supplied context"));
+
+    let mut nirugu_chain = vec![rec(WrittenUnit::Nirugu, UnitPosition::Control)];
+    nirugu_chain.push(rec(WrittenUnit::A, UnitPosition::Init));
+    nirugu_chain.extend(vec![rec(WrittenUnit::A, UnitPosition::Medi); 997]);
+    nirugu_chain.push(rec(WrittenUnit::A, UnitPosition::Fina));
+    let mut expected_units = vec![WrittenUnit::Nirugu, WrittenUnit::Zwnj];
+    expected_units.extend(vec![WrittenUnit::A; 999]);
+    assert_eq!(
+        positioned(&shaper, &nirugu_chain).unwrap(),
+        plain(&shaper, &expected_units)
+    );
 }
 
 #[test]
@@ -1042,5 +1084,332 @@ fn test_rejects_invalid_and_redundant_explicit_mvs() {
     ] {
         let error = positioned(&shaper, &records).unwrap_err();
         assert_eq!(error, Error::ChainPositionMismatch, "{records:?}");
+    }
+}
+
+#[test]
+fn test_synthesizes_zwnj_across_nirugu_boundaries() {
+    let shaper = shaper();
+    let cases: &[(&[PositionedWrittenUnit], &[WrittenUnit], &str)] = &[
+        // Nirugu followed by `isol`: ZWNJ prevents silent mutation to `fina`.
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::A, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::A],
+            "\u{180A}\u{200C}\u{1820}\u{180B}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Ix, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::Ix],
+            "\u{180A}\u{200C}\u{1822}\u{180C}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Ux, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::Ux],
+            "\u{180A}\u{200C}\u{1824}\u{180C}",
+        ),
+        // `I:isol` and `U:isol` have `isol ≡ fina`, so canonical control reduction drops ZWNJ.
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::I, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::I],
+            "\u{180A}\u{1822}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::U, UnitPosition::Isol),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::U],
+            "\u{180A}\u{1823}\u{180C}",
+        ),
+        // `isol` followed by Nirugu: ZWNJ prevents silent mutation to `init` (including chachlag `Aa:isol`).
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[WrittenUnit::A, WrittenUnit::Zwnj, WrittenUnit::Nirugu],
+            "\u{1820}\u{180B}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::I, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[WrittenUnit::I, WrittenUnit::Zwnj, WrittenUnit::Nirugu],
+            "\u{1822}\u{180B}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Ix, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[WrittenUnit::Ix, WrittenUnit::Zwnj, WrittenUnit::Nirugu],
+            "\u{1822}\u{180C}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::U, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[WrittenUnit::U, WrittenUnit::Zwnj, WrittenUnit::Nirugu],
+            "\u{1824}\u{180B}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Ux, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[WrittenUnit::Ux, WrittenUnit::Zwnj, WrittenUnit::Nirugu],
+            "\u{1824}\u{180C}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{180E}\u{1820}\u{200C}\u{180A}",
+        ),
+        // `fina` followed by Nirugu (single-record and multi-record): ZWNJ prevents mutation to `medi`.
+        (
+            &[
+                rec(WrittenUnit::A, UnitPosition::Fina),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Zwj,
+                WrittenUnit::A,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{200D}\u{1820}\u{180C}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::B, UnitPosition::Fina),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Zwj,
+                WrittenUnit::B,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{200D}\u{182A}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::B2, UnitPosition::Fina),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Zwj,
+                WrittenUnit::B2,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{200D}\u{182A}\u{180B}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::T, UnitPosition::Init),
+                rec(WrittenUnit::G, UnitPosition::Fina),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::O, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::T,
+                WrittenUnit::G,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+                WrittenUnit::O,
+            ],
+            "\u{1832}\u{182D}\u{180C}\u{200C}\u{180A}\u{1823}\u{180B}",
+        ),
+        // Nirugu followed by `init` (single-record, multi-record, and borrowed `Zr:init` / `Cr:init`).
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::B, UnitPosition::Init),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::B],
+            "\u{180A}\u{200C}\u{182A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Zwnj,
+                WrittenUnit::A,
+                WrittenUnit::A,
+            ],
+            "\u{180A}\u{200C}\u{1820}\u{180B}\u{1820}\u{180C}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Zr, UnitPosition::Init),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::Zr],
+            "\u{180A}\u{1841}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Zr, UnitPosition::Init),
+                rec(WrittenUnit::I, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Zr,
+                WrittenUnit::I,
+            ],
+            "\u{180A}\u{1841}\u{1822}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Cr, UnitPosition::Init),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::Zwnj, WrittenUnit::Cr],
+            "\u{180A}\u{1823}\u{1823}\u{180B}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Cr, UnitPosition::Init),
+                rec(WrittenUnit::I, UnitPosition::Fina),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Cr,
+                WrittenUnit::I,
+            ],
+            "\u{180A}\u{1823}\u{1823}\u{1822}",
+        ),
+        // All four positions of `A` (plus `Zr:init` / `Cr:init` / `Aa:isol`) flanked by Nirugu on both sides.
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::A, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Zwnj,
+                WrittenUnit::A,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{180A}\u{200C}\u{1820}\u{180B}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::A, UnitPosition::Init),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Zwnj,
+                WrittenUnit::A,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{180A}\u{200C}\u{1820}\u{180B}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::A, UnitPosition::Medi),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[WrittenUnit::Nirugu, WrittenUnit::A, WrittenUnit::Nirugu],
+            "\u{180A}\u{1820}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::A, UnitPosition::Fina),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::A,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{180A}\u{1820}\u{180C}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Mvs,
+                WrittenUnit::Aa,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{180A}\u{180E}\u{1820}\u{200C}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Zr, UnitPosition::Init),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Zr,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{180A}\u{1841}\u{180A}",
+        ),
+        (
+            &[
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+                rec(WrittenUnit::Cr, UnitPosition::Init),
+                rec(WrittenUnit::Nirugu, UnitPosition::Control),
+            ],
+            &[
+                WrittenUnit::Nirugu,
+                WrittenUnit::Zwnj,
+                WrittenUnit::Cr,
+                WrittenUnit::Nirugu,
+            ],
+            "\u{180A}\u{1823}\u{1823}\u{180A}",
+        ),
+    ];
+    for &(records, units, expected) in cases {
+        let actual = positioned(&shaper, records).unwrap();
+        assert_eq!(actual, plain(&shaper, units), "{records:?}");
+        assert_eq!(actual, expected, "{records:?}");
     }
 }

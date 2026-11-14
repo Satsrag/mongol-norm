@@ -91,9 +91,10 @@ impl Shaper {
     /// ZWJ where it would not: `A` and `I`, which the inventory also carries at `isol`, and `O`,
     /// which has no bare spelling; single `medi` / `fina` records get the joining context their
     /// position needs. Adjacent letter records whose positions mark a sub-chain boundary (after
-    /// `fina` / `isol` or a lone `init`, or before a new `init` / `isol`) are split into separate
-    /// sub-chains with an implicit `Zwnj` between them, which the canonical control pass keeps
-    /// only where needed. Every `Aa:isol` record (chachlag) automatically receives an implicit
+    /// `fina` / `isol` or a lone `init`, or before a new `init` / `isol`), as well as a `Nirugu`
+    /// beside a non-joining letter edge (after `fina` / `isol`, or before `init` / `isol`), are
+    /// separated with an implicit `Zwnj`, which the canonical control pass keeps only where
+    /// needed. Every `Aa:isol` record (chachlag) automatically receives an implicit
     /// leading `Mvs`; an explicit `Mvs:control` directly before `Aa:isol` is rejected with
     /// [`Error::RedundantChachlagMvs`], and an explicit `Mvs:control` at the end of `records` or
     /// followed by `control` / `medi` / `fina` is rejected with [`Error::ChainPositionMismatch`].
@@ -114,8 +115,7 @@ impl Shaper {
     /// 5. per explicit `Mvs:control`, its right-hand record (`Aa:isol` raises
     ///    [`Error::RedundantChachlagMvs`]; end-of-sequence or `control` / `medi` / `fina` raises
     ///    [`Error::ChainPositionMismatch`]), reporting the first offender;
-    /// 6. per multi-record sub-chain, that the declared positions match the padded chain;
-    /// 7. delegation to [`Shaper::normalize_written_units`].
+    /// 6. delegation to [`Shaper::normalize_written_units`].
     ///
     /// # Errors
     ///
@@ -194,7 +194,13 @@ impl Shaper {
             match record.position.as_position() {
                 None => {
                     if !chain.is_empty() {
+                        let closed_right = chain.last().is_some_and(|&(_, prev)| {
+                            matches!(prev, Position::Fina | Position::Isol)
+                        });
                         parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
+                        if closed_right && is_joiner(record.unit) {
+                            parts.push(PositionedPart::Control(WrittenUnit::Zwnj));
+                        }
                     }
                     parts.push(PositionedPart::Control(record.unit));
                 }
@@ -212,6 +218,10 @@ impl Shaper {
                             || matches!(position, Position::Init | Position::Isol)
                     }) {
                         parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
+                        parts.push(PositionedPart::Control(WrittenUnit::Zwnj));
+                    } else if matches!(position, Position::Init | Position::Isol)
+                        && parts.last().is_some_and(is_joiner_part)
+                    {
                         parts.push(PositionedPart::Control(WrittenUnit::Zwnj));
                     }
                     chain.push((record.unit, position));
@@ -234,11 +244,11 @@ impl Shaper {
             let joined_right = index + 1 < parts.len() && is_joiner_part(&parts[index + 1]);
             if body.len() == 1 {
                 let (unit, position) = body[0];
-                // A one-unit sub-chain at `init` with no adjacent joiner control (`Nirugu`) needs
+                // A one-unit sub-chain at `init` with no right-hand joiner control (`Nirugu`) needs
                 // a trailing ZWJ when its bare letter would read back as another record (`A`, `I`)
-                // or has no bare spelling (`O`). `[Nirugu:control, O:init]` also has a one-unit
-                // body, but the nirugu already supplies the joining context — it must not get the
-                // ZWJ.
+                // or has no bare spelling (`O`). `[O:init, Nirugu:control]` already has `Nirugu`
+                // supplying the right-hand joiner (`joined_right`), whereas `[Nirugu:control, O:init]`
+                // was split from the preceding `Nirugu` with `Zwnj` (`!joined_left && !joined_right`).
                 if !joined_left
                     && !joined_right
                     && position == Position::Init
