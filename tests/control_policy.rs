@@ -146,8 +146,17 @@ fn positioned_records_are_validated_before_redundant_controls_disappear() {
             position: UnitPosition::Isol,
         })
     );
+    assert_eq!(
+        shaper.normalize_positioned_written_units(&[
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::N, UnitPosition::Init),
+            rec(WrittenUnit::B, UnitPosition::Init),
+            rec(WrittenUnit::I, UnitPosition::Fina),
+        ]),
+        Err(Error::ChainPositionMismatch)
+    );
     let records = [
-        rec(WrittenUnit::Mvs, UnitPosition::Control),
         rec(WrittenUnit::Mvs, UnitPosition::Control),
         rec(WrittenUnit::N, UnitPosition::Init),
         rec(WrittenUnit::B, UnitPosition::Init),
@@ -156,7 +165,7 @@ fn positioned_records_are_validated_before_redundant_controls_disappear() {
     let normalized = shaper.normalize_positioned_written_units(&records).unwrap();
     assert_eq!(
         normalized,
-        assert_units(&shaper, "Mvs+Mvs+N+Zwnj+B+I", "Mvs+N+B+I")
+        assert_units(&shaper, "Mvs+N+Zwnj+B+I", "Mvs+N+B+I")
     );
 }
 

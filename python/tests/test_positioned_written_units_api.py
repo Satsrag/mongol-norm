@@ -79,6 +79,41 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 ],
                 "positioned_units[0] control 'Mvs' requires position 'control'",
             ),
+            (
+                [
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                    {"unit": "F", "position": "isol"},
+                ],
+                "unsupported positioned written unit 'F:isol'",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "init"},
+                    {"unit": "A", "position": "fina"},
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                "positioned_units[3] has redundant 'Mvs' before 'Aa:isol'",
+            ),
+            (
+                [
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                "positioned written-unit sequence has no canonical MNG encoding in the supplied context",
+            ),
+            (
+                [
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "I", "position": "isol"},
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                "positioned_units[2] has redundant 'Mvs' before 'Aa:isol'",
+            ),
         ):
             with self.subTest(records=records):
                 with self.assertRaises(ValueError) as raised:
@@ -242,26 +277,29 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         )
 
     def test_mvs_splits_letter_position_chains_without_joining(self):
-        positioned = [
-            {"unit": "T", "position": "init"},
-            {"unit": "A", "position": "medi"},
-            {"unit": "L", "position": "fina"},
-            {"unit": "Mvs", "position": "control"},
-            {"unit": "Aa", "position": "isol"},
-        ]
-        plain = [record["unit"] for record in positioned]
-
-        self.assertEqual(
-            self.shaper.normalize_positioned_written_units(positioned),
-            self.shaper.normalize_written_units(plain),
-        )
-        self.assertEqual(
-            self.shaper.normalize_positioned_written_units([
+        for positioned in (
+            [
+                {"unit": "T", "position": "init"},
+                {"unit": "A", "position": "medi"},
+                {"unit": "L", "position": "fina"},
                 {"unit": "Mvs", "position": "control"},
-                {"unit": "Aa", "position": "fina"},
-            ]),
-            self.shaper.normalize_written_units(["Mvs", "Zwj", "Aa"]),
-        )
+                {"unit": "I", "position": "isol"},
+            ],
+            [
+                {"unit": "T", "position": "init"},
+                {"unit": "A", "position": "medi"},
+                {"unit": "L", "position": "fina"},
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "D", "position": "init"},
+                {"unit": "U", "position": "fina"},
+            ],
+        ):
+            plain = [record["unit"] for record in positioned]
+            with self.subTest(plain=plain):
+                self.assertEqual(
+                    self.shaper.normalize_positioned_written_units(positioned),
+                    self.shaper.normalize_written_units(plain),
+                )
 
 
     def test_controls_require_control_position_and_letters_reject_it(self):
@@ -379,10 +417,10 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 {"unit": "Nirugu", "position": "control"},
             ], ["A", "Nirugu"]),
             ([
-                {"unit": "Mvs", "position": "control"},
-                {"unit": "Mvs", "position": "control"},
-                {"unit": "Aa", "position": "isol"},
-            ], ["Mvs", "Mvs", "Aa"]),
+                {"unit": "Nirugu", "position": "control"},
+                {"unit": "Nirugu", "position": "control"},
+                {"unit": "U", "position": "fina"},
+            ], ["Nirugu", "Nirugu", "U"]),
         ]
         for positioned, plain in cases:
             with self.subTest(plain=plain):
@@ -408,15 +446,26 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
             self.shaper.normalize_positioned_written_units(positioned)
 
     def test_long_control_sequence_stays_iterative(self):
-        positioned = [
+        nirugus = [
+            {"unit": "Nirugu", "position": "control"}
+            for _index in range(1000)
+        ]
+        nirugus.append({"unit": "U", "position": "fina"})
+        self.assertEqual(
+            self.shaper.normalize_positioned_written_units(nirugus),
+            self.shaper.normalize_written_units(["Nirugu"] * 1000 + ["U"]),
+        )
+
+        repeated_mvs = [
             {"unit": "Mvs", "position": "control"}
             for _index in range(1000)
         ]
-        positioned.append({"unit": "F", "position": "init"})
-        self.assertEqual(
-            self.shaper.normalize_positioned_written_units(positioned),
-            "\u180e\u1839",
-        )
+        repeated_mvs.append({"unit": "F", "position": "init"})
+        with self.assertRaisesRegex(
+            ValueError,
+            "no canonical MNG encoding in the supplied context",
+        ):
+            self.shaper.normalize_positioned_written_units(repeated_mvs)
 
     def test_record_limit_fails_closed(self):
         positioned = [
@@ -516,6 +565,203 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                     self.shaper.normalize_positioned_written_units(positioned),
                     expected,
                 )
+
+    def test_aa_isol_synthesizes_leading_mvs(self):
+        cases = [
+            (
+                [{"unit": "Aa", "position": "isol"}],
+                ["Mvs", "Aa"],
+                "\u180e\u1820",
+            ),
+            (
+                [
+                    {"unit": "S", "position": "init"},
+                    {"unit": "I", "position": "medi"},
+                    {"unit": "N", "position": "fina"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["S", "I", "N", "Mvs", "Aa"],
+                "\u1830\u1822\u180d\u1828\u180b\u180e\u1820",
+            ),
+            (
+                [
+                    {"unit": "Ch", "position": "init"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["Ch", "Mvs", "Aa"],
+                "\u1834\u180e\u1820",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "J", "position": "fina"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["A", "A", "J", "Mvs", "Aa"],
+                "\u1820\u180b\u1820\u1835\u180e\u1820\u180c",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "W", "position": "fina"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["A", "A", "W", "Mvs", "Aa"],
+                "\u1820\u180b\u1820\u1838\u180e\u1820\u180c",
+            ),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "L", "position": "medi"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["A", "L", "Zwj", "Mvs", "Aa"],
+                "\u1820\u180b\u182f\u200d\u180e\u1820",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["Nirugu", "Mvs", "Aa"],
+                "\u180a\u180e\u1820",
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Aa", "position": "fina"},
+                ],
+                ["Nirugu", "Aa"],
+                "\u180a\u1820\u180b",
+            ),
+            (
+                [
+                    {"unit": "Aa", "position": "isol"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["Mvs", "Aa", "Mvs", "Aa"],
+                "\u180e\u1820\u180e\u1820",
+            ),
+            (
+                [
+                    {"unit": "Aa", "position": "isol"},
+                    {"unit": "B", "position": "init"},
+                    {"unit": "Aa", "position": "fina"},
+                ],
+                ["Mvs", "Aa", "Zwnj", "B", "Aa"],
+                "\u180e\u1820\u200c\u182a\u1820\u180b",
+            ),
+            (
+                [
+                    {"unit": "S", "position": "init"},
+                    {"unit": "I", "position": "medi"},
+                    {"unit": "N", "position": "fina"},
+                    {"unit": "Aa", "position": "isol"},
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "I", "position": "init"},
+                    {"unit": "I", "position": "medi"},
+                    {"unit": "A", "position": "fina"},
+                ],
+                ["S", "I", "N", "Mvs", "Aa", "Mvs", "I", "I", "A"],
+                "\u1830\u1822\u180d\u1828\u180b\u180e\u1820\u180e\u1822\u180b\u1822\u180d\u1820\u180c",
+            ),
+        ]
+        for positioned, plain, expected in cases:
+            with self.subTest(positioned=positioned):
+                actual = self.shaper.normalize_positioned_written_units(positioned)
+                self.assertEqual(actual, self.shaper.normalize_written_units(plain))
+                self.assertEqual(actual, expected)
+
+        for unit in ("A", "I", "Ix", "U", "Ux"):
+            with self.subTest(unit=unit):
+                actual = self.shaper.normalize_positioned_written_units([
+                    {"unit": unit, "position": "isol"},
+                ])
+                self.assertNotIn("\u180e", actual)
+
+    def test_rejects_invalid_and_redundant_explicit_mvs(self):
+        for positioned, index in (
+            (
+                [
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                0,
+            ),
+            (
+                [
+                    {"unit": "T", "position": "init"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "L", "position": "fina"},
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                3,
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                1,
+            ),
+        ):
+            with self.subTest(positioned=positioned):
+                with self.assertRaises(ValueError) as raised:
+                    self.shaper.normalize_positioned_written_units(positioned)
+                self.assertEqual(
+                    str(raised.exception),
+                    f"positioned_units[{index}] has redundant 'Mvs' before 'Aa:isol'",
+                )
+
+        for positioned in (
+            [{"unit": "Mvs", "position": "control"}],
+            [
+                {"unit": "B", "position": "init"},
+                {"unit": "Aa", "position": "fina"},
+                {"unit": "Mvs", "position": "control"},
+            ],
+            [
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "Aa", "position": "fina"},
+            ],
+            [
+                {"unit": "T", "position": "init"},
+                {"unit": "A", "position": "medi"},
+                {"unit": "L", "position": "fina"},
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "Aa", "position": "fina"},
+            ],
+            [
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "N", "position": "medi"},
+            ],
+            [
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "B", "position": "medi"},
+                {"unit": "O", "position": "medi"},
+                {"unit": "G", "position": "fina"},
+            ],
+            [
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "Nirugu", "position": "control"},
+                {"unit": "U", "position": "fina"},
+            ],
+            [
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "Mvs", "position": "control"},
+                {"unit": "I", "position": "isol"},
+            ],
+        ):
+            with self.subTest(positioned=positioned):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "no canonical MNG encoding in the supplied context",
+                ):
+                    self.shaper.normalize_positioned_written_units(positioned)
 
 
 if __name__ == "__main__":

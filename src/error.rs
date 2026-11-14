@@ -73,6 +73,12 @@ pub enum Error {
         /// The requested position.
         position: UnitPosition,
     },
+    /// `normalize_positioned_written_units`: explicit `Mvs` directly before `Aa:isol` is
+    /// rejected because `Aa:isol` synthesizes its leading `Mvs` automatically.
+    RedundantChachlagMvs {
+        /// Index of the redundant `Mvs` record.
+        index: usize,
+    },
     /// `normalize_positioned_written_units`: the records do not form a valid init…fina chain in
     /// the supplied joining context.
     ChainPositionMismatch,
@@ -154,6 +160,10 @@ impl fmt::Display for Error {
                 "unsupported positioned written unit '{}:{}'",
                 unit.as_str(),
                 position.as_str()
+            ),
+            Error::RedundantChachlagMvs { index } => write!(
+                f,
+                "positioned_units[{index}] has redundant 'Mvs' before 'Aa:isol'"
             ),
             Error::ChainPositionMismatch => f.write_str(
                 "positioned written-unit sequence has no canonical MNG encoding in the \
@@ -278,6 +288,10 @@ mod tests {
             }
             .to_string(),
             "unsupported positioned written unit 'F:isol'"
+        );
+        assert_eq!(
+            Error::RedundantChachlagMvs { index: 3 }.to_string(),
+            "positioned_units[3] has redundant 'Mvs' before 'Aa:isol'"
         );
         assert_eq!(
             Error::ChainPositionMismatch.to_string(),
