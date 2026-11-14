@@ -315,7 +315,8 @@ encoding. `/5` keeps that encoding and read-back contract, but applies it to the
 breaks after control canonicalization. Each surviving `Zwnj` encodes as U+200C. Every
 segment must independently reshape to its target and the rejoined word must match the
 complete canonical shape. The original nominal letters and FVS spelling need not survive.
-The unit APIs accept `Zwnj`, and the positioned API requires `Zwnj:control`.
+The plain written-unit APIs accept `Zwnj`; the positioned API rejects explicit `Zwnj` (like
+`Zwj`) and synthesizes breaks across sub-chain boundaries instead.
 
 中文概括：先展开单单元同形项，再按完整轮次归并和删除冗余控制符，最后执行一次链尾双单元同形收缩，按剩余 `Zwnj`
 分段独立编码。已有 shape 键和规范化索引应从原文重建，并记录新的 `/5` 策略版本。

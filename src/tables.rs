@@ -109,7 +109,7 @@ impl fmt::Display for Position {
 /// [`Shaper::normalize_positioned_written_units`](crate::Shaper::normalize_positioned_written_units).
 ///
 /// This is *not* a Unicode letter's joining topology ([`Position`]): isolated FA borrows
-/// `F:init`, and the structural units `Mvs` / `Nirugu` / `Zwnj` use `Control`.
+/// `F:init`, and the structural units `Mvs` / `Nirugu` use `Control`.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum UnitPosition {
     /// `"isol"`.
@@ -120,7 +120,7 @@ pub enum UnitPosition {
     Medi,
     /// `"fina"`.
     Fina,
-    /// `"control"` — for `Mvs`, `Nirugu` and `Zwnj`.
+    /// `"control"` — for `Mvs` and `Nirugu`.
     Control,
 }
 

@@ -370,18 +370,27 @@ class TestApis(_Base):
 
     def test_positioned_breaks_and_validation_order(self):
         control = {'unit': 'Zwnj', 'position': 'control'}
-        self.assertEqual(self.s.normalize_positioned_written_units([control] * 2), ZWNJ)
-        records = [control, {'unit': 'B', 'position': 'init'},
-                   {'unit': 'Aa', 'position': 'fina'}, control, control,
-                   {'unit': 'N', 'position': 'medi'}, control]
-        units = ['Zwnj', 'B', 'Aa', 'Zwnj', 'Zwnj', 'Zwj', 'N', 'Zwj', 'Zwnj']
-        self.assertEqual(self.s.normalize_positioned_written_units(records),
-                         self.s.normalize_written_units(units))
         bad = {'unit': 'Zwnj', 'position': 'isol'}
-        with self.assertRaisesRegex(ValueError, r"positioned_units\[1\] control 'Zwnj' requires position 'control'"):
-            self.s.normalize_positioned_written_units([records[1], bad])
-        with self.assertRaisesRegex(ValueError, "unsupported positioned control 'Zwj'"):
-            self.s.normalize_positioned_written_units([bad, {'unit': 'Zwj', 'position': 'control'}])
+        for records in (
+            [control],
+            [{'unit': 'B', 'position': 'init'}, control, {'unit': 'Aa', 'position': 'fina'}],
+            [{'unit': 'B', 'position': 'init'}, bad],
+            [{'unit': 'Mvs', 'position': 'isol'}, control],
+            [bad, {'unit': 'Zwj', 'position': 'control'}],
+        ):
+            with self.subTest(records=records):
+                with self.assertRaises(ValueError) as raised:
+                    self.s.normalize_positioned_written_units(records)
+                self.assertEqual(
+                    str(raised.exception),
+                    "unsupported positioned control 'Zwnj'",
+                )
+        with self.assertRaises(ValueError) as raised:
+            self.s.normalize_positioned_written_units([
+                {'unit': 'Zwj', 'position': 'control'},
+                bad,
+            ])
+        self.assertEqual(str(raised.exception), "unsupported positioned control 'Zwj'")
         with self.assertRaisesRegex(ValueError, 'at most 1024'):
             self.s.normalize_positioned_written_units([bad] * 1025)
 

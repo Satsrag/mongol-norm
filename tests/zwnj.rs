@@ -509,50 +509,29 @@ fn structural_vocabulary_and_positioned_breaks() {
         assert_eq!(shaper.normalize_written_units(&units).unwrap(), mgl("b"));
     }
     let rec = PositionedWrittenUnit::new;
-    let controls = [rec(WrittenUnit::Zwnj, UnitPosition::Control); 2];
-    assert_eq!(
-        shaper
-            .normalize_positioned_written_units(&controls)
-            .unwrap(),
-        "\u{200C}"
-    );
-    let records = [
-        controls[0],
-        rec(WrittenUnit::B, UnitPosition::Init),
-        rec(WrittenUnit::Aa, UnitPosition::Fina),
-        controls[0],
-        controls[0],
-        rec(WrittenUnit::N, UnitPosition::Medi),
-        controls[0],
-    ];
-    let expected = [
-        WrittenUnit::Zwnj,
-        WrittenUnit::B,
-        WrittenUnit::Aa,
-        WrittenUnit::Zwnj,
-        WrittenUnit::Zwnj,
-        WrittenUnit::Zwj,
-        WrittenUnit::N,
-        WrittenUnit::Zwj,
-        WrittenUnit::Zwnj,
-    ];
-    assert_eq!(
-        shaper.normalize_positioned_written_units(&records).unwrap(),
-        shaper.normalize_written_units(&expected).unwrap()
-    );
+    let control = rec(WrittenUnit::Zwnj, UnitPosition::Control);
     let bad = rec(WrittenUnit::Zwnj, UnitPosition::Isol);
-    assert_eq!(
-        shaper.normalize_positioned_written_units(&[records[1], bad]),
-        Err(Error::ControlRequiresControlPosition {
-            index: 1,
-            unit: WrittenUnit::Zwnj
-        })
-    );
-    // Existing validation precedence: record limit, explicit ZWJ, then per-record controls.
+    for records in [
+        vec![control],
+        vec![
+            rec(WrittenUnit::B, UnitPosition::Init),
+            control,
+            rec(WrittenUnit::Aa, UnitPosition::Fina),
+        ],
+        vec![rec(WrittenUnit::B, UnitPosition::Init), bad],
+        vec![rec(WrittenUnit::Mvs, UnitPosition::Isol), control],
+        vec![bad, rec(WrittenUnit::Zwj, UnitPosition::Control)],
+    ] {
+        assert_eq!(
+            shaper.normalize_positioned_written_units(&records),
+            Err(Error::ExplicitZwnj)
+        );
+    }
+    // Validation precedence: record limit, first explicit ZWJ/ZWNJ, then per-record controls.
     assert_eq!(
         shaper.normalize_positioned_written_units(&[
+            rec(WrittenUnit::Zwj, UnitPosition::Control),
             bad,
-            rec(WrittenUnit::Zwj, UnitPosition::Control)
         ]),
         Err(Error::ExplicitZwj)
     );
