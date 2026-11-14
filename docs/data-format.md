@@ -88,7 +88,7 @@ inventory, not the emitted Unicode letter's joining topology. Resolved variant
 references preserve that distinction: isolated Unicode FA borrows `F:init`, so a
 lone `F:init` record encodes as bare `U+1839`; `F:isol` is not a valid pair and is
 rejected. Letter positions are `isol`, `init`, `medi`, or `fina`; structural units
-`Mvs`, `Nirugu` and `Zwnj` require `control`. Explicit `Zwj` input is rejected, but the
+`Mvs` and `Nirugu` require `control`. Explicit `Zwj` and `Zwnj` input is rejected, but the
 encoder may insert ZWJ in its Unicode output when a valid HUD position needs
 joining context, and inserts ZWNJ between adjacent letter records whose positions
 mark a sub-chain boundary (emitting U+200C where needed after canonical control

@@ -14,13 +14,76 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
         self.shaper = MongolianShaper(locale="MNG")
 
     def test_rejects_explicit_zwj_input(self):
-        with self.assertRaisesRegex(
-            ValueError,
-            "unsupported positioned control 'Zwj'",
+        for position in ("control", "isol", "init", "medi", "fina"):
+            with self.subTest(position=position):
+                with self.assertRaises(ValueError) as raised:
+                    self.shaper.normalize_positioned_written_units([
+                        {"unit": "Zwj", "position": position},
+                    ])
+                self.assertEqual(
+                    str(raised.exception),
+                    "unsupported positioned control 'Zwj'",
+                )
+
+    def test_rejects_explicit_zwnj_input(self):
+        for position in ("control", "isol", "init", "medi", "fina"):
+            with self.subTest(position=position):
+                with self.assertRaises(ValueError) as raised:
+                    self.shaper.normalize_positioned_written_units([
+                        {"unit": "Zwnj", "position": position},
+                    ])
+                self.assertEqual(
+                    str(raised.exception),
+                    "unsupported positioned control 'Zwnj'",
+                )
+
+    def test_validation_order_precedence(self):
+        # 1. Record limit beats ExplicitZwj / ExplicitZwnj and per-record checks.
+        too_many = [{"unit": "Mvs", "position": "isol"}] * 1023 + [
+            {"unit": "Zwnj", "position": "isol"},
+            {"unit": "Zwj", "position": "control"},
+        ]
+        with self.assertRaisesRegex(ValueError, "at most 1024 records"):
+            self.shaper.normalize_positioned_written_units(too_many)
+
+        # 2. First explicit zero-width control wins (regardless of its valid position),
+        #    ahead of earlier per-record control/inventory checks.
+        for records, expected in (
+            (
+                [
+                    {"unit": "Mvs", "position": "isol"},
+                    {"unit": "Zwj", "position": "isol"},
+                    {"unit": "Zwnj", "position": "control"},
+                ],
+                "unsupported positioned control 'Zwj'",
+            ),
+            (
+                [
+                    {"unit": "Mvs", "position": "isol"},
+                    {"unit": "Zwnj", "position": "isol"},
+                    {"unit": "Zwj", "position": "control"},
+                ],
+                "unsupported positioned control 'Zwnj'",
+            ),
+            (
+                [
+                    {"unit": "F", "position": "isol"},
+                    {"unit": "Zwnj", "position": "control"},
+                ],
+                "unsupported positioned control 'Zwnj'",
+            ),
+            (
+                [
+                    {"unit": "Mvs", "position": "isol"},
+                    {"unit": "F", "position": "isol"},
+                ],
+                "positioned_units[0] control 'Mvs' requires position 'control'",
+            ),
         ):
-            self.shaper.normalize_positioned_written_units([
-                {"unit": "Zwj", "position": "control"},
-            ])
+            with self.subTest(records=records):
+                with self.assertRaises(ValueError) as raised:
+                    self.shaper.normalize_positioned_written_units(records)
+                self.assertEqual(str(raised.exception), expected)
 
     def test_rejects_unsupported_f_isol_pair(self):
         with self.assertRaisesRegex(

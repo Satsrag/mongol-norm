@@ -113,11 +113,31 @@ fn raw_units_and_positions_precede_control_canonicalization() {
 fn positioned_records_are_validated_before_redundant_controls_disappear() {
     let shaper = Shaper::new(Locale::Mng);
     let rec = PositionedWrittenUnit::new;
-    // A leading break will be dropped, but must not shift the reported record index
-    // or hide an unsupported letter/position pair.
+    // Explicit zero-width controls are rejected up front; repeated MVS controls or an
+    // implicit sub-chain boundary will be merged/dropped later, so per-record validation
+    // must still report the original record index.
     assert_eq!(
         shaper.normalize_positioned_written_units(&[
             rec(WrittenUnit::Zwnj, UnitPosition::Control),
+            rec(WrittenUnit::F, UnitPosition::Isol),
+        ]),
+        Err(Error::ExplicitZwnj)
+    );
+    assert_eq!(
+        shaper.normalize_positioned_written_units(&[
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::Mvs, UnitPosition::Control),
+            rec(WrittenUnit::F, UnitPosition::Isol),
+        ]),
+        Err(Error::UnsupportedPositionedUnit {
+            index: 2,
+            unit: WrittenUnit::F,
+            position: UnitPosition::Isol,
+        })
+    );
+    assert_eq!(
+        shaper.normalize_positioned_written_units(&[
+            rec(WrittenUnit::N, UnitPosition::Init),
             rec(WrittenUnit::F, UnitPosition::Isol),
         ]),
         Err(Error::UnsupportedPositionedUnit {
@@ -129,11 +149,15 @@ fn positioned_records_are_validated_before_redundant_controls_disappear() {
     let records = [
         rec(WrittenUnit::Mvs, UnitPosition::Control),
         rec(WrittenUnit::Mvs, UnitPosition::Control),
-        rec(WrittenUnit::Zwnj, UnitPosition::Control),
-        rec(WrittenUnit::I, UnitPosition::Isol),
+        rec(WrittenUnit::N, UnitPosition::Init),
+        rec(WrittenUnit::B, UnitPosition::Init),
+        rec(WrittenUnit::I, UnitPosition::Fina),
     ];
     let normalized = shaper.normalize_positioned_written_units(&records).unwrap();
-    assert_eq!(normalized, assert_units(&shaper, "Mvs+Mvs+Zwnj+I", "Mvs+I"));
+    assert_eq!(
+        normalized,
+        assert_units(&shaper, "Mvs+Mvs+N+Zwnj+B+I", "Mvs+N+B+I")
+    );
 }
 
 #[test]

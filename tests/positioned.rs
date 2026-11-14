@@ -27,9 +27,88 @@ fn plain(shaper: &Shaper, units: &[WrittenUnit]) -> String {
 #[test]
 fn test_rejects_explicit_zwj_input() {
     let shaper = shaper();
-    let error = positioned(&shaper, &[rec(WrittenUnit::Zwj, UnitPosition::Control)]).unwrap_err();
-    assert_eq!(error, Error::ExplicitZwj);
-    assert_eq!(error.to_string(), "unsupported positioned control 'Zwj'");
+    for position in UnitPosition::ALL {
+        let error = positioned(&shaper, &[rec(WrittenUnit::Zwj, position)]).unwrap_err();
+        assert_eq!(error, Error::ExplicitZwj);
+        assert_eq!(error.to_string(), "unsupported positioned control 'Zwj'");
+    }
+}
+
+#[test]
+fn test_rejects_explicit_zwnj_input() {
+    let shaper = shaper();
+    for position in UnitPosition::ALL {
+        let error = positioned(&shaper, &[rec(WrittenUnit::Zwnj, position)]).unwrap_err();
+        assert_eq!(error, Error::ExplicitZwnj);
+        assert_eq!(error.to_string(), "unsupported positioned control 'Zwnj'");
+    }
+}
+
+#[test]
+fn test_validation_order_precedence() {
+    let shaper = shaper();
+    // 1. TooManyRecords beats ExplicitZwj / ExplicitZwnj and per-record errors.
+    let mut too_many = vec![rec(WrittenUnit::Mvs, UnitPosition::Isol); 1023];
+    too_many.push(rec(WrittenUnit::Zwnj, UnitPosition::Isol));
+    too_many.push(rec(WrittenUnit::Zwj, UnitPosition::Control));
+    assert_eq!(
+        positioned(&shaper, &too_many).unwrap_err(),
+        Error::TooManyRecords { max: 1024 }
+    );
+
+    // 2. First explicit zero-width control wins (regardless of its position), ahead of
+    //    earlier per-record control/inventory errors.
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Isol),
+                rec(WrittenUnit::Zwj, UnitPosition::Isol),
+                rec(WrittenUnit::Zwnj, UnitPosition::Control),
+            ]
+        )
+        .unwrap_err(),
+        Error::ExplicitZwj
+    );
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Isol),
+                rec(WrittenUnit::Zwnj, UnitPosition::Isol),
+                rec(WrittenUnit::Zwj, UnitPosition::Control),
+            ]
+        )
+        .unwrap_err(),
+        Error::ExplicitZwnj
+    );
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::F, UnitPosition::Isol),
+                rec(WrittenUnit::Zwnj, UnitPosition::Control),
+            ]
+        )
+        .unwrap_err(),
+        Error::ExplicitZwnj
+    );
+
+    // 4. Per-record check reports the first offender once no zero-width control is present.
+    assert_eq!(
+        positioned(
+            &shaper,
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Isol),
+                rec(WrittenUnit::F, UnitPosition::Isol),
+            ]
+        )
+        .unwrap_err(),
+        Error::ControlRequiresControlPosition {
+            index: 0,
+            unit: WrittenUnit::Mvs,
+        }
+    );
 }
 
 #[test]
@@ -196,7 +275,8 @@ fn test_every_singleton_init_reads_back_as_init() {
             Err(
                 Error::UnsupportedPositionedUnit { .. }
                 | Error::ControlRequiresControlPosition { .. }
-                | Error::ExplicitZwj,
+                | Error::ExplicitZwj
+                | Error::ExplicitZwnj,
             ) => continue,
             Err(other) => panic!("{unit}: {other}"),
         };

@@ -8,7 +8,7 @@ use crate::tables::{Position, UnitPosition};
 use crate::Error;
 
 /// One record of [`Shaper::normalize_positioned_written_units`]: a written unit with its
-/// authoritative HUD inventory position (`Control` for `Mvs` / `Nirugu` / `Zwnj`).
+/// authoritative HUD inventory position (`Control` for `Mvs` / `Nirugu`).
 ///
 /// This is an *input* type: both fields are public and it is deliberately not
 /// `#[non_exhaustive]` (unlike the crate's result types), so callers can build records with a
@@ -93,8 +93,8 @@ impl Shaper {
     /// position needs. Adjacent letter records whose positions mark a sub-chain boundary (after
     /// `fina` / `isol` or a lone `init`, or before a new `init` / `isol`) are split into separate
     /// sub-chains with an implicit `Zwnj` between them, which the canonical control pass keeps
-    /// only where needed. `Mvs`,
-    /// `Nirugu` and `Zwnj` require `Control`; explicit `Zwj` is rejected; at most
+    /// only where needed. `Mvs` and
+    /// `Nirugu` require `Control`; explicit `Zwj` and `Zwnj` are rejected; at most
     /// [`MAX_POSITIONED_RECORDS`] records.
     ///
     /// # Validation order
@@ -102,18 +102,18 @@ impl Shaper {
     /// Checks run in a fixed order, and it is observable — callers such as `zvvnmod-utn57`
     /// dispatch on the variant, so the *first* failing check decides which one they see:
     ///
-    /// 1. record limit — 2000 records containing a `Zwj` is [`Error::TooManyRecords`], not
-    ///    [`Error::ExplicitZwj`];
-    /// 2. explicit `Zwj` anywhere in the request;
+    /// 1. record limit — 2000 records containing a `Zwj` or `Zwnj` is [`Error::TooManyRecords`],
+    ///    not [`Error::ExplicitZwj`] or [`Error::ExplicitZwnj`];
+    /// 2. explicit `Zwj` or `Zwnj` anywhere in the request, reporting whichever comes first;
     /// 3. empty request — returns `""`;
-    /// 4. per record, the control/inventory check (`Mvs`, `Nirugu` and `Zwnj` need `Control`;
+    /// 4. per record, the control/inventory check (`Mvs` and `Nirugu` need `Control`;
     ///    every other `(unit, position)` must be in the HUD inventory), reporting the first offender;
     /// 5. per multi-record sub-chain, that the declared positions match the padded chain;
     /// 6. delegation to [`Shaper::normalize_written_units`].
     ///
     /// # Errors
     ///
-    /// - [`Error::TooManyRecords`], [`Error::ExplicitZwj`],
+    /// - [`Error::TooManyRecords`], [`Error::ExplicitZwj`], [`Error::ExplicitZwnj`],
     ///   [`Error::ControlRequiresControlPosition`], [`Error::UnsupportedPositionedUnit`],
     ///   [`Error::ChainPositionMismatch`] — as numbered above.
     /// - Anything [`Shaper::normalize_written_units`] returns. **Its indices point into the
@@ -128,18 +128,19 @@ impl Shaper {
                 max: MAX_POSITIONED_RECORDS,
             });
         }
-        if records.iter().any(|record| record.unit == WrittenUnit::Zwj) {
-            return Err(Error::ExplicitZwj);
+        for record in records {
+            match record.unit {
+                WrittenUnit::Zwj => return Err(Error::ExplicitZwj),
+                WrittenUnit::Zwnj => return Err(Error::ExplicitZwnj),
+                _ => {}
+            }
         }
         if records.is_empty() {
             return Ok(String::new());
         }
         let table = self.table();
         for (index, record) in records.iter().enumerate() {
-            if matches!(
-                record.unit,
-                WrittenUnit::Mvs | WrittenUnit::Nirugu | WrittenUnit::Zwnj
-            ) {
+            if matches!(record.unit, WrittenUnit::Mvs | WrittenUnit::Nirugu) {
                 if record.position != UnitPosition::Control {
                     return Err(Error::ControlRequiresControlPosition {
                         index,

@@ -321,8 +321,8 @@ class MongolianShaper:
         ``I:init`` and ``O:init``, whose bare letter would read back as another
         record, receive a trailing ZWJ. Single
         ``medi`` and ``fina`` records receive the joining context their positions
-        need. ``Mvs``, ``Nirugu`` and ``Zwnj`` require ``control``; explicit ``Zwj``
-        input is rejected.
+        need. ``Mvs`` and ``Nirugu`` require ``control``; explicit ``Zwj`` and
+        ``Zwnj`` input is rejected.
 
         每项必须严格为内建 ``{"unit": str, "position": str}`` dict。字母position
         是权威HUD written-unit position：``isol``/``init``/``medi``/``fina``。
@@ -331,7 +331,7 @@ class MongolianShaper:
         ZWNJ（并由规范化规则省去冗余ZWNJ）。单个``init``在裸字母能读回
         同一record时不补ZWJ（所有辅音）；``A:init``、``I:init``、``O:init``裸写会读回
         成别的record，在末尾补ZWJ。单个``medi``和``fina``补足其位置所需的连接
-        上下文。``Mvs``、``Nirugu``与``Zwnj``使用``control``；显式``Zwj``输入被拒绝。
+        上下文。``Mvs``与``Nirugu``使用``control``；显式``Zwj``与``Zwnj``输入被拒绝。
 
         This word-level API accepts at most 1024 records.
 
@@ -372,13 +372,16 @@ class MongolianShaper:
                     f"{position!r}"
                 )
             records.append((unit, position))
-        if any(unit == "Zwj" for unit, _position in records):
-            raise ValueError("unsupported positioned control 'Zwj'")
+        for unit, _position in records:
+            if unit == "Zwj":
+                raise ValueError("unsupported positioned control 'Zwj'")
+            if unit == "Zwnj":
+                raise ValueError("unsupported positioned control 'Zwnj'")
         if not records:
             return ""
         positioned_units_inventory = self._positioned_units()
         for index, (unit, position) in enumerate(records):
-            if unit in ("Mvs", "Nirugu", "Zwnj"):
+            if unit in ("Mvs", "Nirugu"):
                 if position != "control":
                     raise ValueError(
                         f"positioned_units[{index}] control {unit!r} "

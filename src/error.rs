@@ -54,6 +54,8 @@ pub enum Error {
     NoCanonicalEncoding,
     /// `normalize_positioned_written_units`: explicit `Zwj` records are rejected.
     ExplicitZwj,
+    /// `normalize_positioned_written_units`: explicit `Zwnj` records are rejected.
+    ExplicitZwnj,
     /// `normalize_positioned_written_units`: `Mvs` / `Nirugu` need [`UnitPosition::Control`].
     ControlRequiresControlPosition {
         /// Index of the record.
@@ -141,6 +143,7 @@ impl fmt::Display for Error {
                 f.write_str("written-unit sequence has no canonical MNG encoding")
             }
             Error::ExplicitZwj => f.write_str("unsupported positioned control 'Zwj'"),
+            Error::ExplicitZwnj => f.write_str("unsupported positioned control 'Zwnj'"),
             Error::ControlRequiresControlPosition { index, unit } => write!(
                 f,
                 "positioned_units[{index}] control '{}' requires position 'control'",
@@ -254,6 +257,10 @@ mod tests {
         assert_eq!(
             Error::ExplicitZwj.to_string(),
             "unsupported positioned control 'Zwj'"
+        );
+        assert_eq!(
+            Error::ExplicitZwnj.to_string(),
+            "unsupported positioned control 'Zwnj'"
         );
         assert_eq!(
             Error::ControlRequiresControlPosition {
