@@ -79,8 +79,8 @@ pub enum Error {
         /// Index of the redundant `Mvs` record.
         index: usize,
     },
-    /// `normalize_positioned_written_units`: the records do not form a valid init…fina chain in
-    /// the supplied joining context.
+    /// `normalize_positioned_written_units`: an explicit `Mvs` is at the end of the sequence or
+    /// is followed by `control` / `medi` / `fina` instead of an `init` / `isol` suffix head.
     ChainPositionMismatch,
     /// `normalize_positioned_written_units`: more than the maximum number of records.
     TooManyRecords {

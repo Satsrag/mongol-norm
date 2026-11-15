@@ -315,8 +315,10 @@ class MongolianShaper:
         complete multi-record chain runs from ``init`` to ``fina``; an incomplete
         edge gets an implicit ZWJ; adjacent letter records whose positions mark a
         sub-chain boundary (after ``fina``/``isol`` or a lone ``init``, or before
-        a new ``init``/``isol``) are split with an implicit ZWNJ, which is kept
-        only where needed. Every ``Aa:isol`` record (chachlag) receives an
+        a new ``init``/``isol``), as well as ``Nirugu`` beside a non-joining letter
+        edge (after ``fina``/``isol``, or before ``init``/``isol``), are separated
+        with an implicit ZWNJ, which is kept only where needed. Every ``Aa:isol``
+        record (chachlag) receives an
         implicit leading ``Mvs``; an explicit ``Mvs:control`` directly before
         ``Aa:isol``, at the end of the sequence, or followed by ``control``/
         ``medi``/``fina`` is rejected. A single ``init`` record is encoded without ZWJ
@@ -330,8 +332,10 @@ class MongolianShaper:
         每项必须严格为内建 ``{"unit": str, "position": str}`` dict。字母position
         是权威HUD written-unit position：``isol``/``init``/``medi``/``fina``。
         编码直接交给 :meth:`normalize_written_units`：完整复合链从``init``开始、
-        到``fina``结束；边界不完整时自动补ZWJ；相邻字母记录在子链断开处自动补
-        ZWNJ（并由规范化规则省去冗余ZWNJ）；``Aa:isol``（chachlag）前自动补隐式
+        到``fina``结束；边界不完整时自动补ZWJ；相邻字母记录在子链断开处以及
+        ``Nirugu``与相邻非连写字母边界（``fina``/``isol``后接``Nirugu``，或
+        ``Nirugu``后接``init``/``isol``）自动补ZWNJ（并由规范化规则省去冗余ZWNJ）；
+        ``Aa:isol``（chachlag）前自动补隐式
         ``Mvs``，显式``Mvs:control``若后接``Aa:isol``、``control``/``medi``/``fina``
         或位于序列末尾则被拒绝。单个``init``在裸字母能读回
         同一record时不补ZWJ（所有辅音）；``A:init``、``I:init``、``O:init``裸写会读回

@@ -2,7 +2,7 @@
 //! `normalize_positioned_written_units` and `_parse_written_units` from `mongol_norm/shaper.py`.
 
 use crate::generated::enums::WrittenUnit;
-use crate::normalize::{is_joiner, slot_position, NormalizeTable};
+use crate::normalize::{is_joiner, NormalizeTable};
 use crate::shaper::Shaper;
 use crate::tables::{Position, UnitPosition};
 use crate::Error;
@@ -36,11 +36,27 @@ enum PositionedPart {
     Chain(Vec<(WrittenUnit, Position)>),
 }
 
-/// Does `part` cursively join the chain next to it? Only a joiner control does; a neighbouring
-/// chain never does (Python tests `parts[i][0] in _JOINER_TOKENS`, and a chain part's tag is the
-/// literal `"chain"`).
+/// Does `part` cursively join the chain next to it? Only a joiner control (`Nirugu`) does; a
+/// neighbouring chain or break control (`Mvs`, `Zwnj`) never does.
 fn is_joiner_part(part: &PositionedPart) -> bool {
     matches!(part, PositionedPart::Control(unit) if is_joiner(*unit))
+}
+
+/// Must an implicit `Zwnj` be inserted between two adjacent positioned records?
+///
+/// `Mvs` is already a cursive break (`!is_joiner(WrittenUnit::Mvs)`), so any boundary touching
+/// `Mvs` needs no `Zwnj`. Between letters and/or joiner controls (`Nirugu`), a `Zwnj` is needed
+/// whenever the left record's right edge is closed (`fina` / `isol`) or the right record's left
+/// edge is closed (`init` / `isol`).
+fn needs_zwnj_between(prev: PositionedWrittenUnit, next: PositionedWrittenUnit) -> bool {
+    let prev_participates = prev.position != UnitPosition::Control || is_joiner(prev.unit);
+    let next_participates = next.position != UnitPosition::Control || is_joiner(next.unit);
+    if !prev_participates || !next_participates {
+        return false;
+    }
+    let prev_closed_right = matches!(prev.position, UnitPosition::Fina | UnitPosition::Isol);
+    let next_closed_left = matches!(next.position, UnitPosition::Init | UnitPosition::Isol);
+    prev_closed_right || next_closed_left
 }
 
 impl Shaper {
@@ -91,9 +107,10 @@ impl Shaper {
     /// ZWJ where it would not: `A` and `I`, which the inventory also carries at `isol`, and `O`,
     /// which has no bare spelling; single `medi` / `fina` records get the joining context their
     /// position needs. Adjacent letter records whose positions mark a sub-chain boundary (after
-    /// `fina` / `isol` or a lone `init`, or before a new `init` / `isol`) are split into separate
-    /// sub-chains with an implicit `Zwnj` between them, which the canonical control pass keeps
-    /// only where needed. Every `Aa:isol` record (chachlag) automatically receives an implicit
+    /// `fina` / `isol` or a lone `init`, or before a new `init` / `isol`), as well as a `Nirugu`
+    /// beside a non-joining letter edge (after `fina` / `isol`, or before `init` / `isol`), are
+    /// separated with an implicit `Zwnj`, which the canonical control pass keeps only where
+    /// needed. Every `Aa:isol` record (chachlag) automatically receives an implicit
     /// leading `Mvs`; an explicit `Mvs:control` directly before `Aa:isol` is rejected with
     /// [`Error::RedundantChachlagMvs`], and an explicit `Mvs:control` at the end of `records` or
     /// followed by `control` / `medi` / `fina` is rejected with [`Error::ChainPositionMismatch`].
@@ -114,8 +131,7 @@ impl Shaper {
     /// 5. per explicit `Mvs:control`, its right-hand record (`Aa:isol` raises
     ///    [`Error::RedundantChachlagMvs`]; end-of-sequence or `control` / `medi` / `fina` raises
     ///    [`Error::ChainPositionMismatch`]), reporting the first offender;
-    /// 6. per multi-record sub-chain, that the declared positions match the padded chain;
-    /// 7. delegation to [`Shaper::normalize_written_units`].
+    /// 6. delegation to [`Shaper::normalize_written_units`].
     ///
     /// # Errors
     ///
@@ -190,7 +206,25 @@ impl Shaper {
 
         let mut parts: Vec<PositionedPart> = Vec::new();
         let mut chain: Vec<(WrittenUnit, Position)> = Vec::new();
-        for record in records {
+        let mut prev_record: Option<PositionedWrittenUnit> = None;
+        for &record in records {
+            // `Aa:isol` (chachlag) always owns a leading `Mvs`, which already breaks joining from
+            // whatever preceded it; every other adjacent pair goes through `needs_zwnj_between`.
+            if record.unit == WrittenUnit::Aa && record.position == UnitPosition::Isol {
+                if !chain.is_empty() {
+                    parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
+                }
+                parts.push(PositionedPart::Control(WrittenUnit::Mvs));
+                chain.push((WrittenUnit::Aa, Position::Isol));
+                prev_record = Some(record);
+                continue;
+            }
+            if prev_record.is_some_and(|prev| needs_zwnj_between(prev, record)) {
+                if !chain.is_empty() {
+                    parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
+                }
+                parts.push(PositionedPart::Control(WrittenUnit::Zwnj));
+            }
             match record.position.as_position() {
                 None => {
                     if !chain.is_empty() {
@@ -198,32 +232,21 @@ impl Shaper {
                     }
                     parts.push(PositionedPart::Control(record.unit));
                 }
-                Some(position) => {
-                    if record.unit == WrittenUnit::Aa && position == Position::Isol {
-                        if !chain.is_empty() {
-                            parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
-                        }
-                        parts.push(PositionedPart::Control(WrittenUnit::Mvs));
-                        chain.push((record.unit, position));
-                        continue;
-                    }
-                    if chain.last().is_some_and(|&(_, prev)| {
-                        matches!(prev, Position::Fina | Position::Isol)
-                            || matches!(position, Position::Init | Position::Isol)
-                    }) {
-                        parts.push(PositionedPart::Chain(std::mem::take(&mut chain)));
-                        parts.push(PositionedPart::Control(WrittenUnit::Zwnj));
-                    }
-                    chain.push((record.unit, position));
-                }
+                Some(position) => chain.push((record.unit, position)),
             }
+            prev_record = Some(record);
         }
         if !chain.is_empty() {
             parts.push(PositionedPart::Chain(chain));
         }
+
+        // Because `needs_zwnj_between` splits whenever a letter closes on the right (`fina` /
+        // `isol`) or opens on the left (`init` / `isol`), every resulting `Chain` is either a
+        // single letter or a valid cursive run `[init|medi, medi*, medi|fina]`. Only open edges
+        // without an adjacent `Nirugu` (plus lone `A:init` / `I:init` / `O:init`) need a `Zwj`.
         let mut written: Vec<WrittenUnit> = Vec::new();
-        for index in 0..parts.len() {
-            let body = match &parts[index] {
+        for (index, part) in parts.iter().enumerate() {
+            let body = match part {
                 PositionedPart::Control(unit) => {
                     written.push(*unit);
                     continue;
@@ -232,50 +255,18 @@ impl Shaper {
             };
             let joined_left = index > 0 && is_joiner_part(&parts[index - 1]);
             let joined_right = index + 1 < parts.len() && is_joiner_part(&parts[index + 1]);
-            if body.len() == 1 {
-                let (unit, position) = body[0];
-                // A one-unit sub-chain at `init` with no adjacent joiner control (`Nirugu`) needs
-                // a trailing ZWJ when its bare letter would read back as another record (`A`, `I`)
-                // or has no bare spelling (`O`). `[Nirugu:control, O:init]` also has a one-unit
-                // body, but the nirugu already supplies the joining context — it must not get the
-                // ZWJ.
-                if !joined_left
-                    && !joined_right
-                    && position == Position::Init
-                    && self.lone_init_needs_zwj(table, unit)
-                {
-                    written.extend([unit, WrittenUnit::Zwj]);
-                    continue;
-                }
-                if matches!(position, Position::Medi | Position::Fina) && !joined_left {
-                    written.push(WrittenUnit::Zwj);
-                }
-                written.push(unit);
-                if position == Position::Medi && !joined_right {
-                    written.push(WrittenUnit::Zwj);
-                }
-                continue;
-            }
-            // One flag per side folds together the two ways a side can be non-initial/non-final:
-            // a joiner control already sits there, or the chain simply does not start at `init` /
-            // end at `fina` (so a ZWJ has to be invented). Either way the chain's positions are
-            // computed as if one extra unit padded that side, which is exactly `padded_count`.
-            let padded_left = joined_left || body[0].1 != Position::Init;
-            let padded_right = joined_right || body[body.len() - 1].1 != Position::Fina;
-            let padded_count = body.len() + usize::from(padded_left) + usize::from(padded_right);
-            // `length = 1` because each record is one written unit occupying one slot; multi-unit
-            // letters are the *encoder's* concern (`unit_partition`), not the caller's request.
-            for (offset, (_unit, position)) in body.iter().enumerate() {
-                let expected = slot_position(offset + usize::from(padded_left), 1, padded_count);
-                if *position != expected {
-                    return Err(Error::ChainPositionMismatch);
-                }
-            }
-            if padded_left && !joined_left {
+            let (_, first_pos) = body[0];
+            let &(last_unit, last_pos) = body.last().expect("letter sub-chain is non-empty");
+            if !joined_left && matches!(first_pos, Position::Medi | Position::Fina) {
                 written.push(WrittenUnit::Zwj);
             }
-            written.extend(body.iter().map(|(unit, _)| *unit));
-            if padded_right && !joined_right {
+            written.extend(body.iter().map(|&(unit, _)| unit));
+            let needs_right_zwj = last_pos == Position::Medi
+                || (body.len() == 1
+                    && !joined_left
+                    && last_pos == Position::Init
+                    && self.lone_init_needs_zwj(table, last_unit));
+            if !joined_right && needs_right_zwj {
                 written.push(WrittenUnit::Zwj);
             }
         }
