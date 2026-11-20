@@ -72,8 +72,8 @@ pub struct ShapeTrace {
     pub shape: Vec<WrittenUnit>,
 }
 
-/// The UTN #57 shaping engine and the canonical normalizer for Hudum ([`Locale::Mng`], the only
-/// locale).
+/// The abstract UTN #57 v4 / `mongfontbuilder`-derived shaping engine and canonical normalizer
+/// for Hudum ([`Locale::Mng`], the only locale).
 ///
 /// Construction is cheap (microseconds) and the value is `Send + Sync`, so one instance can be
 /// shared behind a reference for the lifetime of a program.
@@ -440,13 +440,14 @@ impl Shaper {
     /// first; consecutive identical ZWJ, ZWNJ and MVS runs then merge and complete ZWJ/ZWNJ
     /// rounds repeat until stable, followed by tail-pair contraction.
     ///
-    /// Nine written units render as exactly the same ink as a sequence of other units, and each
-    /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
-    /// medial `Hx` and `Cr` (all positions) come out as `O A`, `A A`, `N N` and `O O`. The other four
-    /// contract, because their expansion ends in `Aa`, which is itself a duplicate: a chain-final
-    /// `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa` becomes `B2` and `I Aa`
-    /// becomes `G`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ
-    /// are one word and shape identically. The standard's own unit sequence, which keeps all
+    /// Nine written units match the ink of a sequence of other units in the reference Hudum
+    /// model, and each is unified with that sequence here. Five expand — `Dd` (both positions),
+    /// medial `H`, medial `Hx` and `Cr` (all positions) come out as `O A`, `A A`, `N N` and
+    /// `O O`. The other four contract, because their expansion ends in `Aa`, which is itself a
+    /// duplicate: a chain-final `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa`
+    /// becomes `B2` and `I Aa` becomes `G`. That makes `shape` a canonical fingerprint of the
+    /// word's abstract written form under this model — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ produce the same
+    /// written-unit sequence. The standard's own unit sequence, which keeps all
     /// nine apart, is [`Shaper::shape_raw`]. `docs/internals.md` ("Duplicate encodings") has the
     /// evidence and the termination argument.
     ///
@@ -495,7 +496,17 @@ impl Shaper {
         Ok(out)
     }
 
-    /// Do `a` and `b` render the same glyph sequence?
+    /// Report whether `a` and `b` produce the same canonical written-unit sequence under
+    /// `mongol-norm`'s abstract shaping model (UTN #57 v4 plus `mongfontbuilder`-derived
+    /// data and rules, with control canonicalization and duplicate-unit unification).
+    ///
+    /// This checks **Mongolian-specific shaping equivalence**, not **font-specific rendering
+    /// equivalence**: it does not invoke HarfBuzz with a specific font or compare rendered
+    /// glyph IDs or outlines. Real-world fonts may differ in FVS support, OpenType rules, or
+    /// implementation details, so two strings that compare equal here can still render
+    /// differently in a particular font. Applications that require a specific font's final
+    /// rendering to match should validate directly with HarfBuzz (or the target shaper) and
+    /// that font.
     pub fn same_shape(&self, a: &str, b: &str) -> Result<bool, Error> {
         Ok(self.shape(a)? == self.shape(b)?)
     }

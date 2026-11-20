@@ -65,7 +65,7 @@ commands:
   normalize               Normalize a single Mongolian WORD to canonical Unicode
   normalize-written-units Encode compact or '+'-joined PascalCase units as canonical Unicode
   normalize-text          Normalize full text (multi-word, mixed script)
-  same TEXT1 TEXT2        Exit 0 if both inputs shape identically, 1 otherwise
+  same TEXT1 TEXT2        Exit 0 if both inputs have the same UTN #57 model shape, 1 otherwise
 
 I/O modes (shape / normalize / normalize-text / normalize-written-units):
   inline      :  mongol-norm <cmd> 'TEXT'

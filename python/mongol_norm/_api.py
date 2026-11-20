@@ -53,20 +53,24 @@ def _call(fn, *args):
 class MongolianShaper:
     """
     Traditional Mongolian (Hudum) same-shape comparison and normalization
-    under UTN #57 (GB/T 25914—2023).
-    传统蒙古文（回鹘式）同形比较与规范化，依据 UTN #57（GB/T 25914—2023）。
+    under UTN #57 v4 (GB/T 25914—2023) and mongfontbuilder-derived data/rules.
+    传统蒙古文（回鹘式）同形比较与规范化，基于 UTN #57 v4（GB/T 25914—2023）
+    及源自 mongfontbuilder 的数据与规则。
 
-    The engine (the Rust crate ``mongol-norm``) carries the glyph variant data
-    derived from the mongfontbuilder package, and provides three core operations:
-    引擎（Rust crate ``mongol-norm``）内置源自 mongfontbuilder 的字形变体数据，
-    提供三个核心操作：
+    The engine (the Rust crate ``mongol-norm``) implements an abstract
+    Mongolian shaping model (it does not invoke HarfBuzz with a specific font
+    or compare rendered glyph IDs or outlines) and provides three core
+    operations:
+    引擎（Rust crate ``mongol-norm``）实现抽象蒙古文整形模型（不调用 HarfBuzz
+    加载具体字体，也不比较渲染后的字形 ID 或轮廓），提供三个核心操作：
 
-      shape(text)      — Forward shaping: text → visual glyph sequence
-                         正向字形处理：文本 → 视觉字形序列
-      same_shape(a, b) — Visual identity comparison (do a and b look the same?)
-                         视觉一致性比较（a 和 b 看起来一样吗？）
+      shape(text)      — Forward shaping: text → canonical written-unit sequence
+                         正向整形：文本 → 规范书写单元序列
+      same_shape(a, b) — Abstract shaping equivalence (same written-unit sequence
+                         under this model, not font-specific rendering equivalence)
+                         抽象整形等价比较（模型下是否同形，不保证所有字体渲染一致）
       normalize(text)  — Canonical encoding: many-to-one mapping via shape
-                         规范化编码：按字形做多对一映射
+                         规范化编码：按书写单元序列做多对一映射
 
     Usage / 用法:
         shaper = MongolianShaper(locale="MNG")
@@ -92,14 +96,16 @@ class MongolianShaper:
         Shape *text* into its written-unit sequence.
         将 *text* 处理为书写单元序列。
 
-        Nine written units render as exactly the same ink as a sequence of other
-        units, and each is unified with that sequence here. Five expand: ``Dd`` (both
-        positions), medial ``H``, medial ``Hx`` and ``Cr`` (all positions) come out as ``O A``,
-        ``A A``, ``N N`` and ``O O``. The other four contract, because their expansion
-        ends in ``Aa``, which is itself a duplicate: a chain-final ``A Aa`` becomes
-        ``Aa`` (or ``A`` when it is the whole chain), ``O Aa`` becomes ``B2`` and
-        ``I Aa`` becomes ``G``. That is what makes ``shape`` a fingerprint of the
-        visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one word and shape identically. The
+        Nine written units match the ink of a sequence of other units in the
+        reference Hudum model, and each is unified with that sequence here. Five
+        expand: ``Dd`` (both positions), medial ``H``, medial ``Hx`` and ``Cr``
+        (all positions) come out as ``O A``, ``A A``, ``N N`` and ``O O``. The
+        other four contract, because their expansion ends in ``Aa``, which is
+        itself a duplicate: a chain-final ``A Aa`` becomes ``Aa`` (or ``A`` when
+        it is the whole chain), ``O Aa`` becomes ``B2`` and ``I Aa`` becomes ``G``.
+        That makes ``shape`` a canonical fingerprint of the word's abstract
+        written form under this model — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ produce the same
+        written-unit sequence. The
         standard's own unit sequence, which keeps all nine apart, is the non-public
         :meth:`_shape_raw`.
         九个书写单元与另一串单元的墨迹完全相同,此处统一为后者:五个展开
@@ -157,7 +163,26 @@ class MongolianShaper:
         return self._native.shape_str(text)
 
     def same_shape(self, text1, text2):
-        """Do *text1* and *text2* render identically?"""
+        """
+        Return whether *text1* and *text2* produce the same canonical written-unit
+        sequence under mongol-norm's abstract shaping model (UTN #57 v4 plus
+        mongfontbuilder-derived data and rules, with control canonicalization
+        and duplicate-unit unification).
+        判断 *text1* 与 *text2* 在 mongol-norm 抽象整形模型（UTN #57 v4 及源自
+        mongfontbuilder 的数据与规则，结合控制符规范化与同形单元归一）下是否
+        产生相同的规范书写单元序列。
+
+        This checks Mongolian-specific shaping equivalence, not font-specific
+        rendering equivalence: it does not invoke HarfBuzz with a specific font
+        or compare rendered glyph IDs or outlines. Real-world fonts may differ in
+        FVS support, OpenType rules, or implementation details; applications
+        requiring a particular font's final rendering to match should validate
+        directly with HarfBuzz (or the target shaper) and that font.
+        该方法比较的是抽象整形等价，而非特定字体的渲染等价：不调用 HarfBuzz
+        加载字体，也不比较渲染后的字形 ID 或轮廓。实际字体在 FVS 支持、OpenType
+        规则或实现细节上可能存在差异；若应用需要确保某款特定字体的最终渲染一致，
+        请直接使用 HarfBuzz（或目标排版引擎）与该字体进行验证。
+        """
         return self._native.same_shape(text1, text2)
 
     def shape_detailed(self, text):

@@ -29,9 +29,10 @@ also currently in Beta, so use it with care and verify the conversion results.
 
 ### An example
 
-The following spellings look the same, but their Unicode encodings differ, so a direct string
-comparison treats them as different text. mongol-norm can tell that they have the same shape
-and produce the same normalized result.
+Under the UTN #57 v4 shaping model, the following spellings have the same written form, but
+their Unicode encodings differ, so a direct string comparison treats them as different text.
+mongol-norm recognizes them as having the same abstract shape and produces the same normalized
+result.
 
 ![Five encodings of sain all normalizing to the same canonical form](assets/sain-variants.png)
 
@@ -77,10 +78,12 @@ pip install mongol-norm
 
 ### Usage
 
-`shape` returns the written-unit sequence, a fingerprint of the visible word. `same_shape`
-reports whether two encodings render identically. `normalize` maps a single word to one
-canonical Unicode string per shape; `normalize_text` does the same for free-form text,
-normalizing Mongolian words and leaving everything else unchanged.
+`shape` returns the canonical written-unit sequence under mongol-norm's abstract shaping model
+(UTN #57 v4 plus `mongfontbuilder`-derived data and rules). `same_shape` reports whether two
+encodings produce the same written-unit sequence under that model — not whether they render
+identically in every font. `normalize` maps a single word to one canonical Unicode string per
+shape; `normalize_text` does the same for free-form text, normalizing Mongolian words and
+leaving everything else unchanged.
 
 > [!WARNING]
 > **Beta.** `normalize` output is a unified encoding by **glyph shape**, **not standard spelling**,
@@ -152,13 +155,40 @@ More in the [Python README](https://github.com/Satsrag/mongol-norm/blob/main/pyt
 
 ```bash
 mongol-norm shape 'ᠰᠠᠢᠨ'                  # → S+A+I+I+A
-mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'            # exit 0 if identical, 1 if not
+mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'            # exit 0 if same model shape, 1 if not
 mongol-norm normalize 'ᠰᠡᠢᠨ'              # one word
 mongol-norm normalize-text -i in.txt -o out.txt
 mongol-norm normalize --batch -i words.txt -o keys.txt   # one word per line
 ```
 
 `mongol-norm --help` lists every option.
+
+### Model and limitations
+
+`shape()` and `same_shape()` implement **Mongolian-specific shaping equivalence** under
+mongol-norm's abstract shaping model — **UTN #57 v4** (GB/T 25914—2023) plus
+[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder)-derived data and rules,
+together with mongol-norm's control-character canonicalization and duplicate-unit unification.
+The default rule engine (`Shaper` / `MongolianShaper`) does not invoke HarfBuzz with a specific
+font or compare rendered glyph IDs or outlines.
+
+This is distinct from **font-specific rendering equivalence**:
+
+- **Abstract shaping equivalence (`same_shape()`)** checks whether two strings map to the same
+  canonical written-unit sequence in mongol-norm's UTN #57 v4 / `mongfontbuilder` model.
+- **Font-specific rendering equivalence** depends on a particular font's FVS support, OpenType
+  GSUB/GPOS rules, ligatures, fallback/placeholder behavior, and platform shaping engine.
+
+For example, `"ᠰᠠᠢᠨ"` (`SA + A + I + NA`) and `"ᠰᠨ᠌ᠢᠢᠨ"` (`SA + NA+FVS2 + I + I + NA`) both
+shape to `S+A+I+I+A`, so `same_shape()` returns `true`. A real-world font that follows an older
+encoding standard (such as GB/T 25914—2010), has incomplete FVS support for `NA+FVS2`, or uses
+different OpenType rules may still render those two strings differently. Likewise, the optional
+Rust `FontShaper` (`features = ["font"]`) runs `harfrust` only against the single bundled
+`mongfontbuilder` reference font (`fonts/hudum.otf`, stripped of outlines) and compares the
+resulting written units — not arbitrary third-party fonts or rendered outlines.
+
+If your application requires two strings to render identically with a specific font and
+platform, validate them directly with HarfBuzz (or your target text shaper) and that font.
 
 ### Notes
 
@@ -203,7 +233,7 @@ Rust crate，另有 Python 包和命令行工具。
 
 ### 一个例子
 
-下面几种写法看起来相同，但 Unicode 编码不同，直接比较字符串会被当作不同文本。mongol-norm 可以判断它们同形，并生成相同的规范化结果。
+在 UTN #57 v4 整形模型下，下面几种写法对应相同的书写形态，但 Unicode 编码不同，直接比较字符串会被当作不同文本。mongol-norm 可以判断它们在模型下同形，并生成相同的规范化结果。
 
 ![五种 sain 编码全部规范化为同一个形式](assets/sain-variants.png)
 
@@ -247,7 +277,7 @@ pip install mongol-norm
 
 ### 用法
 
-`shape` 返回书写单元序列，即可见词形的指纹。`same_shape` 判断两种编码渲染结果是否相同。`normalize` 把单个词映射成同一 shape 对应的一个规范 Unicode 字符串；`normalize_text` 用于自由文本，只规范化其中的蒙古文词，其余原样保留。
+`shape` 返回 mongol-norm 抽象整形模型（UTN #57 v4 及源自 `mongfontbuilder` 的数据与规则）下的规范书写单元序列。`same_shape` 判断两种编码在该模型下是否得到相同的书写单元序列，并不保证在所有字体下渲染结果完全一致。`normalize` 把单个词映射成同一 shape 对应的一个规范 Unicode 字符串；`normalize_text` 用于自由文本，只规范化其中的蒙古文词，其余原样保留。
 
 > [!WARNING]
 > **Beta 提醒：** `normalize` 输出的是**按字形统一的编码**，**不是标准拼写**，后续版本可能变化。建议保留原文；保存规范化键时，同时记录 `canonical_version()`，版本变化后重建。
@@ -296,7 +326,7 @@ shaper.normalize_text("Hello ᠰᠡᠢᠨ world")   # → 'Hello ᠰᠠᠢ᠍ᠢ
 
 ```bash
 mongol-norm shape 'ᠰᠠᠢᠨ'                  # → S+A+I+I+A
-mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'            # 同形退出码 0，否则 1
+mongol-norm same 'ᠰᠠᠢᠨ' 'ᠰᠡᠢᠨ'            # 模型下同形退出码 0，否则 1
 mongol-norm normalize 'ᠰᠡᠢᠨ'              # 单个词
 mongol-norm normalize-text -i in.txt -o out.txt
 mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
@@ -305,6 +335,31 @@ mongol-norm normalize --batch -i words.txt -o keys.txt   # 一行一个词
 完整 API 见 [docs.rs](https://docs.rs/mongol-norm) 和
 [Python 文档](https://github.com/Satsrag/mongol-norm/blob/main/python/README.pypi.md)；`mongol-norm --help`
 列出全部参数。
+
+### 模型与局限
+
+`shape()` 与 `same_shape()` 实现的是 mongol-norm 抽象整形模型下的**蒙古文整形等价**——该模型基于
+**UTN #57 v4**（GB/T 25914—2023）以及源自
+[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder) 的数据与规则，并结合本库的
+控制符规范化与同形单元归一规则。默认规则引擎（`Shaper` / `MongolianShaper`）不调用 HarfBuzz
+加载具体字体，也不比较渲染后的字形 ID 或轮廓。
+
+这与**特定字体的渲染等价**是两个不同概念：
+
+- **抽象整形等价（`same_shape()`）**：判断两个字符串在 mongol-norm 的 UTN #57 v4 / `mongfontbuilder`
+  模型下是否产生相同的规范书写单元序列。
+- **特定字体渲染等价**：取决于具体字体的 FVS 支持情况、OpenType GSUB/GPOS 规则、连字设计、无效控制符
+  占位显示以及平台排版引擎实现。
+
+例如，`"ᠰᠠᠢᠨ"`（`SA + A + I + NA`）与 `"ᠰᠨ᠌ᠢᠢᠨ"`（`SA + NA+FVS2 + I + I + NA`）在模型下都整形为
+`S+A+I+I+A`，因此 `same_shape()` 返回 `true`。但在采用旧标准（如 GB/T 25914—2010）、对
+`NA+FVS2` 等变体支持不完整或 OpenType 规则不同的实际字体中，这两串文本仍可能渲染出不同外观。
+同样，Rust 可选的 `FontShaper`（`features = ["font"]`）也只是用 `harfrust` 运行内置的那一份
+`mongfontbuilder` 参考字体（去轮廓的 `fonts/hudum.otf`）并比较还原后的书写单元，并不代表任意第三方字体
+或最终轮廓。
+
+如果应用需要确认两个字符串在**某款特定字体**和目标平台上的最终渲染完全一致，请直接使用 HarfBuzz（或目标
+平台的排版引擎）配合该字体进行验证。
 
 ### 说明
 

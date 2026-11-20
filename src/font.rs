@@ -271,7 +271,13 @@ impl FontShaper {
         Ok(out)
     }
 
-    /// Do `a` and `b` render the same glyph sequence?
+    /// Report whether `a` and `b` produce the same canonical written-unit sequence when
+    /// shaped with the bundled `mongfontbuilder` reference font (`fonts/hudum.otf`).
+    ///
+    /// Although this backend uses `harfrust`, equality is still over canonical written-unit
+    /// sequences mapped from that single reference font — it does not guarantee identical
+    /// rendering across arbitrary third-party fonts or outlines. Applications requiring a
+    /// particular font's final rendering to match should validate with HarfBuzz and that font.
     pub fn same_shape(&self, a: &str, b: &str) -> Result<bool, Error> {
         Ok(self.shape(a)? == self.shape(b)?)
     }

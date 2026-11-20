@@ -6,19 +6,25 @@ Background for contributors and porters. Users only need the [README](../README.
 > described below) encodes by glyph shape, not the standard phonetic (nominal-character) spelling —
 > e.g. ᠮᠣᠩᠭᠣᠯ (`MA+O+ANG+GA+O+LA`) → ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ (`MA+O+A+GA+FVS2+NA+FVS1+NA+FVS1+O+LA`) — and may change in a later release.
 
-The normalizer implements a **lightweight Mongolian shaping engine** — equivalent to what HarfBuzz
-does with a font file, but using only the rule data from
-[UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) and the
-[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder) project. No font files needed.
+The normalizer implements a **lightweight abstract Mongolian shaping engine** using the rule data
+from [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) and the
+[mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder) project. No font files are
+needed for the default rule engine: it computes abstract written-unit sequences rather than
+invoking HarfBuzz with a specific font or comparing rendered glyph IDs or outlines (the optional
+Rust `font` feature separately runs `harfrust` against `mongfontbuilder`'s bundled reference
+Hudum font for cross-checking). Real-world fonts can still differ in FVS support or OpenType
+rules; applications needing font-specific rendering equivalence should validate directly with
+HarfBuzz and the target font.
 
 ## Why encodings differ
 
-The same visible Traditional Mongolian (Hudum) word can be typed as many Unicode sequences.
-A and E look alike in medial and final position; O/U and OE/UE share written forms; Free
-Variation Selectors (FVS) and joining controls (nirugu, ZWJ, ZWNJ) can produce the same
-glyph in several ways. Public `shape` fingerprints that visible word; `normalize` maps each
-shape to one Unicode string. Control-character filtering and the stored-key policy are in
-the sections below.
+The same written Traditional Mongolian (Hudum) word can be typed as many Unicode sequences under
+UTN #57 v4. A and E share written forms in medial and final position; O/U and OE/UE share written
+forms; Free Variation Selectors (FVS) and joining controls (nirugu, ZWJ, ZWNJ) can select the
+same written unit in several ways. Public `shape` fingerprints that abstract written-unit
+sequence, `same_shape` compares sequences under this model, and `normalize` maps each shape to
+one Unicode string. Control-character filtering and the stored-key policy are in the sections
+below.
 
 ## Shaping pipeline (UTN #57 v4 Mongolian-specific phase)
 

@@ -5,7 +5,9 @@
 //! Traditional Mongolian (Hudum) same-shape comparison and normalization tool — the engine
 //! behind the `mongol-norm` PyPI package, whose PyO3 binding lives in the same repository
 //! under `python/`. It implements the Mongolian shaping rules of
-//! [UTN #57](https://www.unicode.org/notes/tn57/tn57-4.html) (GB/T 25914—2023). It converts
+//! [UTN #57 v4](https://www.unicode.org/notes/tn57/tn57-4.html) (GB/T 25914—2023) using
+//! data and rules derived from [mongfontbuilder](https://github.com/Kushim-Jiang/mongfontbuilder).
+//! It converts
 //! Mongolian text that has the same written form but different Unicode encodings into a
 //! unified encoding, making search, deduplication, and corpus processing easier.
 //!
@@ -28,7 +30,9 @@
 //! * [`Shaper::shape`] — text → written-unit sequence (redundant controls removed, repeated MVS merged,
 //!   and every `Nirugu` preserved), with
 //!   the nine duplicate encodings unified (see [`Shaper::shape_raw`])
-//! * [`Shaper::same_shape`] — do two encodings render identically?
+//! * [`Shaper::same_shape`] — do two encodings produce the same canonical written-unit sequence
+//!   under the abstract UTN #57 v4 / `mongfontbuilder` shaping model? (Not font-specific
+//!   rendering equivalence.)
 //! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
 //! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —
 //!   encode written units directly
@@ -36,6 +40,20 @@
 //! * [`FontShaper`] (Cargo feature `font`) — the same `shape` through HarfBuzz rules: harfrust
 //!   running mongfontbuilder's unified font, bundled without its outlines, for every writing
 //!   system of the block
+//!
+//! ## Model and limitations
+//!
+//! [`Shaper::shape`] and [`Shaper::same_shape`] define **Mongolian-specific shaping
+//! equivalence** under `mongol-norm`'s abstract shaping model (UTN #57 v4 plus
+//! `mongfontbuilder`-derived data and rules, along with control canonicalization and
+//! duplicate-unit unification). The rule engine does not invoke HarfBuzz with a specific font
+//! or compare rendered glyph IDs or outlines. For example, `"ᠰᠠᠢᠨ"` (`SA + A + I + NA`) and
+//! `"ᠰᠨ᠌ᠢᠢᠨ"` (`SA + NA+FVS2 + I + I + NA`) both shape to `S+A+I+I+A`, yet a real-world font
+//! with different FVS coverage or OpenType rules may render them differently. Even the
+//! optional [`FontShaper`] (`font` feature) runs `harfrust` only on the single bundled
+//! `mongfontbuilder` reference font (`fonts/hudum.otf`, without outlines) and compares
+//! written units rather than arbitrary fonts or outlines. Applications requiring a specific
+//! font's final rendering to match should validate directly with HarfBuzz and that font.
 //!
 //! The crate has no dependencies by default and builds for `wasm32-unknown-unknown` (the `font`
 //! feature adds harfrust and needs Rust 1.85). Its data tables are generated from the
