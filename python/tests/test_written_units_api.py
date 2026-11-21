@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from mongol_norm import MongolianShaper
-from tests._support import run_cli
+from tests._support import empty_table_shaper, needs_testing_hook, run_cli
 
 
 class TestNormalizeWrittenUnitsCli(unittest.TestCase):
@@ -323,6 +323,67 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
 
         self.assertEqual(result, "\u182A\u1820\u180B")
         self.assertEqual(self.shaper.shape(result), ["B", "Aa"])
+
+
+class TestCanonicalUnitsApi(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.shaper = MongolianShaper(locale="MNG")
+
+    def test_empty_sequence_returns_empty_list(self):
+        self.assertEqual(self.shaper.canonical_units([]), [])
+        self.assertEqual(self.shaper.canonical_units(()), [])
+
+    def test_unifies_duplicates_and_controls_idempotently(self):
+        cases = [
+            (["A", "A", "R", "A", "Dd"], ["A", "A", "R", "A", "O", "A"]),
+            (["B", "A", "H", "S", "A"], ["B", "A", "A", "A", "S", "A"]),
+            (["A", "A", "R", "Hx", "A", "L"], ["A", "A", "R", "N", "N", "A", "L"]),
+            (["Cr", "Nirugu"], ["O", "O", "Nirugu"]),
+            (["T", "A", "H", "Mvs", "Aa"], ["T", "A", "H", "Mvs", "Aa"]),
+            (["A", "Aa"], ["A"]),
+            (["B", "A", "Aa"], ["B", "Aa"]),
+            (["N", "A", "Aa"], ["N", "A", "Aa"]),
+            (["A", "O", "Aa"], ["A", "B2"]),
+            (["B", "I", "Aa"], ["B", "G"]),
+            (["L", "I", "Zwj", "Aa"], ["L", "G"]),
+            (["N", "Zwnj", "B", "Zwnj", "I"], ["N", "B", "I"]),
+            (["Mvs", "Zwnj", "Mvs"], ["Mvs"]),
+        ]
+        for raw, expected in cases:
+            with self.subTest(raw=raw):
+                canonical = self.shaper.canonical_units(tuple(raw))
+                self.assertEqual(canonical, expected)
+                self.assertEqual(self.shaper.canonical_units(canonical), canonical)
+
+    def test_matches_shape_over_shape_raw(self):
+        for word in ("ᠰᠠᠢᠨ", "ᠠᠷᠠᠳ", "ᠪᠠᠭᠰᠢ", "ᠠᠷᠭᠠᠯ", "ᠤᠠ\u180B", "ᠯᠢ\u200Dᠡ\u180B"):
+            with self.subTest(word=word):
+                self.assertEqual(
+                    self.shaper.canonical_units(self.shaper._shape_raw(word)),
+                    self.shaper.shape(word),
+                )
+
+    @needs_testing_hook
+    def test_does_not_depend_on_normalize_table(self):
+        shaper = empty_table_shaper()
+        self.assertEqual(shaper.canonical_units(["A", "O", "Aa"]), ["A", "B2"])
+
+    def test_rejects_invalid_sequences_and_unknown_units(self):
+        for invalid in ("B", b"B", {"B", "Aa"}, iter(["B", "Aa"])):
+            with self.subTest(invalid=type(invalid).__name__):
+                with self.assertRaisesRegex(TypeError, "ordered sequence"):
+                    self.shaper.canonical_units(invalid)
+
+        with self.assertRaisesRegex(TypeError, r"written_units\[1\].*string"):
+            self.shaper.canonical_units(["B", None])
+
+        for bad in ("Unknown", "E", "mvs", "MVS"):
+            with self.subTest(bad=bad):
+                with self.assertRaisesRegex(
+                    ValueError, rf"written_units\[1\] is unknown: {bad!r}"
+                ):
+                    self.shaper.canonical_units(["B", bad])
 
 
 if __name__ == "__main__":

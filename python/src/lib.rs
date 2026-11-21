@@ -102,6 +102,14 @@ impl PyShaper {
             .map_err(to_py)
     }
 
+    fn canonical_units(&self, units: Vec<String>) -> PyResult<Names> {
+        let units = units
+            .iter()
+            .map(|name| WrittenUnit::from_str(name).map_err(to_py))
+            .collect::<PyResult<Vec<_>>>()?;
+        Ok(names(&self.inner.canonical_units(&units)))
+    }
+
     fn shape_str(&self, text: &str) -> PyResult<String> {
         self.inner.shape_str(text).map_err(to_py)
     }
@@ -248,6 +256,12 @@ impl PyShaper {
     }
 }
 
+/// Every `WrittenUnit` contract name, in declaration order.
+#[pyfunction]
+fn written_units() -> Names {
+    names(&WrittenUnit::ALL)
+}
+
 /// The crate version (also the Python package version).
 #[pyfunction]
 fn version() -> &'static str {
@@ -273,6 +287,7 @@ fn _shaper_with_empty_normalize_table(locale: &str) -> PyResult<PyShaper> {
 #[pymodule(name = "_native")]
 fn native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyShaper>()?;
+    m.add_function(wrap_pyfunction!(written_units, m)?)?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
     m.add_function(wrap_pyfunction!(cli_main, m)?)?;
     #[cfg(feature = "testing")]

@@ -90,6 +90,7 @@ shaper.canonical_version                    # → 'mng-canonical/5'
 Written-unit input, if you already have a shape:
 
 ```python
+shaper.canonical_units(["A", "O", "Aa"])               # → ['A', 'B2']
 shaper.normalize_written_units(["B", "Aa"])            # → 'ᠪᠠ᠋'
 shaper.normalize_positioned_written_units([
     {"unit": "B", "position": "init"},
