@@ -2,13 +2,14 @@
 //! `normalize_positioned_written_units` and `_parse_written_units` from `mongol_norm/shaper.py`.
 
 use crate::generated::enums::WrittenUnit;
-use crate::normalize::{is_joiner, NormalizeTable};
+use crate::normalize::is_joiner;
 use crate::shaper::Shaper;
 use crate::tables::{Position, UnitPosition};
 use crate::Error;
 
-/// One record of [`Shaper::normalize_positioned_written_units`]: a written unit with its
-/// authoritative HUD inventory position (`Control` for `Mvs` / `Nirugu`).
+/// One record of [`Shaper::canonical_positioned_units`] and
+/// [`Shaper::normalize_positioned_written_units`]: a written unit with its authoritative HUD
+/// inventory position (`Control` for `Mvs` / `Nirugu`).
 ///
 /// This is an *input* type: both fields are public and it is deliberately not
 /// `#[non_exhaustive]` (unlike the crate's result types), so callers can build records with a
@@ -145,6 +146,65 @@ impl Shaper {
         &self,
         records: &[PositionedWrittenUnit],
     ) -> Result<String, Error> {
+        let written = self.expand_positioned_written_units(records)?;
+        self.normalize_written_units(&written)
+    }
+
+    /// Fold explicit HUD-position records into their canonical written-unit shape without
+    /// encoding to Unicode or running a [`Shaper::shape`] round trip.
+    ///
+    /// Validates `records` and synthesizes implicit controls identically to
+    /// [`Shaper::normalize_positioned_written_units`]:
+    ///
+    /// - every `Aa:isol` record (chachlag) receives an implicit leading `Mvs`, while an explicit
+    ///   `Mvs:control` directly before `Aa:isol` raises [`Error::RedundantChachlagMvs`] and an
+    ///   explicit `Mvs:control` at the end of `records` or followed by `control` / `medi` /
+    ///   `fina` raises [`Error::ChainPositionMismatch`];
+    /// - adjacent letter records whose positions mark a sub-chain boundary (after `fina` / `isol`
+    ///   or a lone `init`, or before a new `init` / `isol`), as well as a `Nirugu` beside a
+    ///   non-joining letter edge (after `fina` / `isol`, or before `init` / `isol`), receive an
+    ///   implicit `Zwnj`;
+    /// - incomplete `medi` / `fina` edges without an adjacent `Nirugu`, plus lone `A:init`,
+    ///   `I:init` and `O:init` sub-chains, receive an implicit `Zwj`;
+    /// - the expanded written-unit sequence is then folded with [`Shaper::canonical_units`]
+    ///   (single-unit duplicate expansion, control canonicalization, and chain-tail contraction).
+    ///
+    /// Whenever [`Shaper::normalize_positioned_written_units`] succeeds on `records`, its output
+    /// reshapes via [`Shaper::shape`] to the exact sequence returned here. An empty slice returns
+    /// an empty `Vec`.
+    ///
+    /// # Validation order
+    ///
+    /// Identical to steps 1–5 of [`Shaper::normalize_positioned_written_units`]:
+    ///
+    /// 1. record limit ([`MAX_POSITIONED_RECORDS`]) → [`Error::TooManyRecords`];
+    /// 2. explicit `Zwj` or `Zwnj` anywhere in `records` → [`Error::ExplicitZwj`] /
+    ///    [`Error::ExplicitZwnj`];
+    /// 3. empty request → `Ok(Vec::new())`;
+    /// 4. per record, control position and HUD inventory membership →
+    ///    [`Error::ControlRequiresControlPosition`] / [`Error::UnsupportedPositionedUnit`];
+    /// 5. per explicit `Mvs:control`, its right-hand neighbor →
+    ///    [`Error::RedundantChachlagMvs`] / [`Error::ChainPositionMismatch`].
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::TooManyRecords`], [`Error::ExplicitZwj`], [`Error::ExplicitZwnj`],
+    ///   [`Error::ControlRequiresControlPosition`], [`Error::UnsupportedPositionedUnit`],
+    ///   [`Error::RedundantChachlagMvs`], [`Error::ChainPositionMismatch`] — as numbered above.
+    pub fn canonical_positioned_units(
+        &self,
+        records: &[PositionedWrittenUnit],
+    ) -> Result<Vec<WrittenUnit>, Error> {
+        let written = self.expand_positioned_written_units(records)?;
+        Ok(self.canonical_units(&written))
+    }
+
+    /// Validate `records` in observable steps 1–5 and expand implicit `Mvs`, `Zwnj` and `Zwj`
+    /// controls before [`Shaper::canonical_units`] / [`Shaper::normalize_written_units`].
+    fn expand_positioned_written_units(
+        &self,
+        records: &[PositionedWrittenUnit],
+    ) -> Result<Vec<WrittenUnit>, Error> {
         if records.len() > MAX_POSITIONED_RECORDS {
             return Err(Error::TooManyRecords {
                 max: MAX_POSITIONED_RECORDS,
@@ -158,7 +218,7 @@ impl Shaper {
             }
         }
         if records.is_empty() {
-            return Ok(String::new());
+            return Ok(Vec::new());
         }
         let table = self.table();
         for (index, record) in records.iter().enumerate() {
@@ -265,26 +325,26 @@ impl Shaper {
                 || (body.len() == 1
                     && !joined_left
                     && last_pos == Position::Init
-                    && self.lone_init_needs_zwj(table, last_unit));
+                    && Self::lone_init_needs_zwj(last_unit));
             if !joined_right && needs_right_zwj {
                 written.push(WrittenUnit::Zwj);
             }
         }
-        self.normalize_written_units(&written)
+        Ok(written)
     }
 
-    /// Does a request that is nothing but `unit` at `init` need a trailing ZWJ to read back as
-    /// `init`?
+    /// Does a lone `init` sub-chain (`[unit:init]` with no adjacent joiner) need a trailing ZWJ
+    /// to keep its `init` shape?
     ///
-    /// Bare, a lone letter is an isolated chain. That is still the `init` record wherever the
-    /// isolated form *is* the initial written unit — an isolated consonant borrows it (`B`, `Ch`,
-    /// `D`, …) — so those stay bare. Two kinds of letter would read back as something else and
-    /// take the joiner (Satsrag/meco-rust#45): one the inventory also carries at `isol` under the
-    /// same bare spelling (`A`, `I`), and one with no bare spelling of its own (`O`, whose bare
-    /// letter is `U:isol`).
-    fn lone_init_needs_zwj(&self, table: &NormalizeTable, unit: WrittenUnit) -> bool {
-        table.positioned_units.contains(&(unit, Position::Isol))
-            || self.normalize_written_units(&[unit]).is_err()
+    /// Bare, a lone letter is an isolated chain. That is already the `init` shape wherever
+    /// `unit:init ≡ unit:isol` ([`crate::redundant_zwj::FINAL_ALONE`] — every single-unit
+    /// consonant, plus `Cr`, whose `init` and `isol` both expand to `O O`) — so those stay bare.
+    /// Two kinds of letter would read back as something else and take the joiner
+    /// (Satsrag/meco-rust#45): one the inventory also carries at `isol` under the same bare
+    /// spelling (`A`, `I`), and one with no bare spelling of its own (`O`, whose bare letter is
+    /// `U:isol`).
+    fn lone_init_needs_zwj(unit: WrittenUnit) -> bool {
+        !crate::redundant_zwj::FINAL_ALONE.contains(&unit) && unit != WrittenUnit::Cr
     }
 
     /// Parse the CLI's written-unit spelling: explicit `+`-separated names (`B+Aa`) or a
@@ -343,7 +403,8 @@ impl Shaper {
     }
 
     /// The HUD positioned inventory: every `(unit, position)` pair that
-    /// [`Shaper::normalize_positioned_written_units`] accepts for a letter record (letter
+    /// [`Shaper::canonical_positioned_units`] and [`Shaper::normalize_positioned_written_units`]
+    /// accept for a letter record (letter
     /// positions only — controls are not part of the inventory), sorted by unit name then
     /// position.
     ///
@@ -532,5 +593,19 @@ mod tests {
         assert_eq!(parse_unit_names("A\n", &["A"]).unwrap(), ["A"]);
         assert_eq!(parse_unit_names("\n", &["A"]).unwrap(), Vec::<&str>::new());
         assert!(parse_unit_names("A\n\n", &["A"]).is_err());
+    }
+
+    #[test]
+    fn lone_init_needs_zwj_matches_inventory_and_bare_encoding_rule() {
+        let shaper = Shaper::new(Locale::Mng);
+        let table = shaper.table();
+        for &(unit, position) in &table.positioned_units {
+            if position != Position::Init {
+                continue;
+            }
+            let expected = table.positioned_units.contains(&(unit, Position::Isol))
+                || shaper.normalize_written_units(&[unit]).is_err();
+            assert_eq!(Shaper::lone_init_needs_zwj(unit), expected, "{unit:?}");
+        }
     }
 }

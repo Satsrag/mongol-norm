@@ -65,9 +65,18 @@ fn exercise(shaper: &Shaper, rng: &mut XorShift, text: &str, other: &str) {
     let _ = shaper.normalize_text_allow_fallback(text);
     // Whatever parses as a unit stream must also survive being encoded again.
     if let Ok(units) = shaper.parse_written_units(text) {
+        let _ = shaper.canonical_units(&units);
         let _ = shaper.normalize_written_units(&units);
     }
-    let _ = shaper.normalize_positioned_written_units(&random_records(rng));
+    let records = random_records(rng);
+    let canonical_pos = shaper.canonical_positioned_units(&records);
+    if let Ok(norm_pos) = shaper.normalize_positioned_written_units(&records) {
+        assert_eq!(
+            canonical_pos.unwrap(),
+            shaper.shape(&norm_pos).unwrap(),
+            "records={records:?}"
+        );
+    }
 }
 
 #[test]

@@ -1413,3 +1413,245 @@ fn test_synthesizes_zwnj_across_nirugu_boundaries() {
         assert_eq!(actual, expected, "{records:?}");
     }
 }
+
+#[test]
+fn test_canonical_positioned_units_public_api() {
+    use WrittenUnit::{
+        Aa, Cr, Dd, Hx, Mvs, Nirugu, Zwj, Zwnj, A, B, B2, G, H, I, L, M, N, O, R, S, T, U,
+    };
+
+    let shaper = shaper();
+    assert_eq!(
+        shaper.canonical_positioned_units(&[]).unwrap(),
+        Vec::<WrittenUnit>::new()
+    );
+
+    let cases: &[(&[PositionedWrittenUnit], &[WrittenUnit])] = &[
+        // Ordinary chain & chachlag `Aa:isol`
+        (
+            &[
+                rec(B, UnitPosition::Init),
+                rec(A, UnitPosition::Medi),
+                rec(I, UnitPosition::Medi),
+                rec(I, UnitPosition::Medi),
+                rec(N, UnitPosition::Fina),
+                rec(Aa, UnitPosition::Isol),
+            ],
+            &[B, A, I, I, N, Mvs, Aa],
+        ),
+        (&[rec(Aa, UnitPosition::Isol)], &[Mvs, Aa]),
+        // Duplicate expansion & chain-tail contractions
+        (
+            &[
+                rec(A, UnitPosition::Init),
+                rec(A, UnitPosition::Medi),
+                rec(R, UnitPosition::Medi),
+                rec(A, UnitPosition::Medi),
+                rec(Dd, UnitPosition::Fina),
+            ],
+            &[A, A, R, A, O, A],
+        ),
+        (
+            &[
+                rec(B, UnitPosition::Init),
+                rec(A, UnitPosition::Medi),
+                rec(H, UnitPosition::Medi),
+                rec(S, UnitPosition::Medi),
+                rec(A, UnitPosition::Fina),
+            ],
+            &[B, A, A, A, S, A],
+        ),
+        (
+            &[
+                rec(A, UnitPosition::Init),
+                rec(A, UnitPosition::Medi),
+                rec(R, UnitPosition::Medi),
+                rec(Hx, UnitPosition::Medi),
+                rec(A, UnitPosition::Medi),
+                rec(L, UnitPosition::Fina),
+            ],
+            &[A, A, R, N, N, A, L],
+        ),
+        (&[rec(Cr, UnitPosition::Init)], &[O, O]),
+        (
+            &[
+                rec(T, UnitPosition::Init),
+                rec(A, UnitPosition::Medi),
+                rec(H, UnitPosition::Fina),
+                rec(Aa, UnitPosition::Isol),
+            ],
+            &[T, A, H, Mvs, Aa],
+        ),
+        (
+            &[rec(A, UnitPosition::Init), rec(Aa, UnitPosition::Fina)],
+            &[A],
+        ),
+        (
+            &[
+                rec(B, UnitPosition::Init),
+                rec(A, UnitPosition::Medi),
+                rec(Aa, UnitPosition::Fina),
+            ],
+            &[B, Aa],
+        ),
+        (
+            &[
+                rec(A, UnitPosition::Init),
+                rec(O, UnitPosition::Medi),
+                rec(Aa, UnitPosition::Fina),
+            ],
+            &[A, B2],
+        ),
+        (
+            &[
+                rec(B, UnitPosition::Init),
+                rec(I, UnitPosition::Medi),
+                rec(Aa, UnitPosition::Fina),
+            ],
+            &[B, G],
+        ),
+        // Incomplete edges & lone init rules
+        (&[rec(A, UnitPosition::Init)], &[A, Zwj]),
+        (&[rec(I, UnitPosition::Init)], &[I, Zwj]),
+        (&[rec(O, UnitPosition::Init)], &[O, Zwj]),
+        (&[rec(B, UnitPosition::Init)], &[B]),
+        (&[rec(I, UnitPosition::Isol)], &[I]),
+        (&[rec(N, UnitPosition::Medi)], &[Zwj, N, Zwj]),
+        (&[rec(O, UnitPosition::Medi)], &[O, Zwj]),
+        (&[rec(U, UnitPosition::Fina)], &[U]),
+        // Sub-chain & Nirugu boundary ZWNJ synthesis + redundant-control folding
+        (
+            &[rec(A, UnitPosition::Isol), rec(A, UnitPosition::Isol)],
+            &[A, Zwnj, A],
+        ),
+        (
+            &[
+                rec(A, UnitPosition::Init),
+                rec(A, UnitPosition::Medi),
+                rec(L, UnitPosition::Fina),
+                rec(M, UnitPosition::Init),
+                rec(A, UnitPosition::Fina),
+            ],
+            &[A, A, L, Zwnj, M, A],
+        ),
+        (
+            &[
+                rec(N, UnitPosition::Init),
+                rec(B, UnitPosition::Init),
+                rec(Aa, UnitPosition::Fina),
+            ],
+            &[N, B, Aa],
+        ),
+        (
+            &[
+                rec(Nirugu, UnitPosition::Control),
+                rec(A, UnitPosition::Isol),
+            ],
+            &[Nirugu, Zwnj, A],
+        ),
+        (
+            &[
+                rec(Nirugu, UnitPosition::Control),
+                rec(I, UnitPosition::Isol),
+            ],
+            &[Nirugu, I],
+        ),
+    ];
+
+    for &(records, expected) in cases {
+        let canonical = shaper.canonical_positioned_units(records).unwrap();
+        assert_eq!(canonical, expected, "records={records:?}");
+        assert_eq!(
+            shaper.canonical_units(&canonical),
+            canonical,
+            "idempotence on {records:?}"
+        );
+        let text = shaper.normalize_positioned_written_units(records).unwrap();
+        assert_eq!(
+            shaper.shape(&text).unwrap(),
+            canonical,
+            "reshape parity on {records:?}"
+        );
+    }
+}
+
+#[test]
+fn test_canonical_positioned_units_validation_precedence_matches_normalize() {
+    let shaper = shaper();
+    let too_many = vec![rec(WrittenUnit::Zwj, UnitPosition::Isol); 1025];
+
+    let error_cases: &[(&[PositionedWrittenUnit], Error)] = &[
+        (&too_many, Error::TooManyRecords { max: 1024 }),
+        (
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Isol),
+                rec(WrittenUnit::Zwj, UnitPosition::Isol),
+                rec(WrittenUnit::Zwnj, UnitPosition::Control),
+            ],
+            Error::ExplicitZwj,
+        ),
+        (
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Isol),
+                rec(WrittenUnit::Zwnj, UnitPosition::Isol),
+                rec(WrittenUnit::Zwj, UnitPosition::Control),
+            ],
+            Error::ExplicitZwnj,
+        ),
+        (
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Isol),
+                rec(WrittenUnit::F, UnitPosition::Isol),
+            ],
+            Error::ControlRequiresControlPosition {
+                index: 0,
+                unit: WrittenUnit::Mvs,
+            },
+        ),
+        (
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+                rec(WrittenUnit::F, UnitPosition::Isol),
+            ],
+            Error::UnsupportedPositionedUnit {
+                index: 2,
+                unit: WrittenUnit::F,
+                position: UnitPosition::Isol,
+            },
+        ),
+        (
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::Aa, UnitPosition::Isol),
+            ],
+            Error::RedundantChachlagMvs { index: 0 },
+        ),
+        (
+            &[rec(WrittenUnit::Mvs, UnitPosition::Control)],
+            Error::ChainPositionMismatch,
+        ),
+        (
+            &[
+                rec(WrittenUnit::Mvs, UnitPosition::Control),
+                rec(WrittenUnit::N, UnitPosition::Medi),
+            ],
+            Error::ChainPositionMismatch,
+        ),
+    ];
+
+    for &(records, ref expected) in error_cases {
+        assert_eq!(
+            shaper.canonical_positioned_units(records).unwrap_err(),
+            *expected,
+            "records={records:?}"
+        );
+        assert_eq!(
+            shaper
+                .normalize_positioned_written_units(records)
+                .unwrap_err(),
+            *expected,
+            "parity on records={records:?}"
+        );
+    }
+}
