@@ -456,12 +456,18 @@ impl Shaper {
         Ok(self.canonical_units(&self.shape_raw(text)?))
     }
 
-    /// The public shape of an engine-level unit sequence ([`canonical_units`]). Shared by
-    /// [`Shaper::shape`], [`Shaper::trace`] and the written-unit encoders, which is what keeps
-    /// `normalize_written_units([L, I, Zwj, Aa])` and `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one
-    /// contract.
-    pub(crate) fn canonical_units(&self, raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-        canonical_units(raw)
+    /// Fold an ordered written-unit sequence into its canonical shape — the post-processing
+    /// shared by [`Shaper::shape`], [`Shaper::trace`] and [`Shaper::normalize_written_units`],
+    /// which keeps `normalize_written_units([L, I, Zwj, Aa])` and `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on
+    /// one contract.
+    ///
+    /// Single-unit duplicates (`Dd`, `Cr`, medial `H` and medial `Hx`) expand first, consecutive
+    /// identical `Zwj` / `Zwnj` / `Mvs` runs merge and redundant `Zwj` / `Zwnj` controls are
+    /// dropped until stable, and chain-ending duplicate pairs (`A Aa` → `A` at `isol` or `Aa`
+    /// after a bowed unit, `O Aa` → `B2` at `fina`, `I Aa` → `G` at `fina`) contract last. The
+    /// transform is idempotent, and an empty slice returns an empty `Vec`.
+    pub fn canonical_units(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
+        canonical_units(units)
     }
 
     /// Canonical control processing alone (no duplicate unification).

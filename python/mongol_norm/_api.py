@@ -24,6 +24,7 @@ ZWNJ_CP = 0x200C
 _STRUCTURAL_ALIASES = {
     MVS_CP: "mvs", NIRUGU_CP: "nirugu", ZWJ_CP: "zwj", ZWNJ_CP: "zwnj",
 }
+_WRITTEN_UNITS = frozenset(_native.written_units())
 _POSITIONED_UNIT_POSITIONS = frozenset({
     "isol", "init", "medi", "fina", "control",
 })
@@ -151,6 +152,44 @@ class MongolianShaper:
         unified sequence, and may change to unify further duplicates without notice.
         """
         return self._native.shape_raw(text)
+
+    def canonical_units(self, written_units):
+        """
+        Fold an ordered written-unit sequence into its canonical shape.
+        将有序书写单元序列规整为规范 shape。
+
+        Applies the exact post-processing shared by :meth:`shape`, :meth:`trace`
+        and :meth:`normalize_written_units`: single-unit duplicates (``Dd``,
+        ``Cr``, medial ``H`` and medial ``Hx``) expand first, consecutive
+        identical ``Zwj`` / ``Zwnj`` / ``Mvs`` runs merge and redundant ``Zwj``
+        and ``Zwnj`` controls are dropped until stable, and chain-ending
+        duplicate pairs (``A Aa`` → ``A`` at ``isol`` or ``Aa`` after a bowed
+        unit, ``O Aa`` → ``B2`` at ``fina``, ``I Aa`` → ``G`` at ``fina``)
+        contract last. Idempotent; ``[]`` returns ``[]``.
+        执行与 :meth:`shape`、:meth:`trace` 及 :meth:`normalize_written_units`
+        完全一致的后处理：先展开单单元同形异码（``Dd``、``Cr``、词中 ``H``、词中 ``Hx``），
+        再归并连续同类控制符并循环剔除冗余 ``Zwj`` / ``Zwnj`` 直至稳定，最后收缩链尾同形对
+        （独立 ``A Aa`` → ``A``、弓形辅音后 ``A Aa`` → ``Aa``、词尾 ``O Aa`` → ``B2``、
+        词尾 ``I Aa`` → ``G``）。幂等；空序列返回 ``[]``。
+
+        Raises:
+            TypeError: ``written_units`` is not an ordered string sequence.
+            ValueError: an item is not a known ``WrittenUnit`` name.
+        """
+        if (isinstance(written_units, (str, bytes))
+                or not isinstance(written_units, Sequence)):
+            raise TypeError("written_units must be an ordered sequence of strings")
+        target = []
+        for index, unit in enumerate(written_units):
+            if not isinstance(unit, str):
+                raise TypeError(f"written_units[{index}] must be a string")
+            target.append(unit)
+        if not target:
+            return []
+        for index, unit in enumerate(target):
+            if unit not in _WRITTEN_UNITS:
+                raise ValueError(f"written_units[{index}] is unknown: {unit!r}")
+        return self._native.canonical_units(target)
 
     def shape_str(self, text):
         """``"+".join(shape(text))``."""

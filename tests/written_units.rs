@@ -244,3 +244,60 @@ fn test_parse_rejects_units_outside_this_locales_table_at_pythons_index() {
         );
     }
 }
+
+#[test]
+fn test_canonical_units_public_api() {
+    use WrittenUnit::{
+        Aa, Cr, Dd, Hx, Mvs, Nirugu, Zwj, Zwnj, A, B, B2, G, H, I, L, N, O, R, S, T,
+    };
+
+    let shaper = shaper();
+    assert_eq!(shaper.canonical_units(&[]), Vec::<WrittenUnit>::new());
+
+    let cases: &[(&[WrittenUnit], &[WrittenUnit])] = &[
+        // Expanding duplicates
+        (&[A, A, R, A, Dd], &[A, A, R, A, O, A]),
+        (&[B, A, H, S, A], &[B, A, A, A, S, A]),
+        (&[A, A, R, Hx, A, L], &[A, A, R, N, N, A, L]),
+        (&[Cr, Nirugu], &[O, O, Nirugu]),
+        // Non-medial H stays unexpanded (final before Mvs)
+        (&[T, A, H, Mvs, Aa], &[T, A, H, Mvs, Aa]),
+        // Tail contractions
+        (&[A, Aa], &[A]),
+        (&[B, A, Aa], &[B, Aa]),
+        (&[N, A, Aa], &[N, A, Aa]),
+        (&[A, O, Aa], &[A, B2]),
+        (&[B, I, Aa], &[B, G]),
+        // Control canonicalization + duplicate interaction
+        (&[L, I, Zwj, Aa], &[L, G]),
+        (&[N, Zwnj, B, Zwnj, I], &[N, B, I]),
+        (&[Mvs, Zwnj, Mvs], &[Mvs]),
+    ];
+
+    for &(raw, expected) in cases {
+        let canonical = shaper.canonical_units(raw);
+        assert_eq!(canonical, expected, "raw={raw:?}");
+        assert_eq!(
+            shaper.canonical_units(&canonical),
+            canonical,
+            "idempotence on {raw:?}"
+        );
+    }
+
+    // Matches `shape()` on raw engine output word for word.
+    for word in [
+        "ᠰᠠᠢᠨ",
+        "ᠠᠷᠠᠳ",
+        "ᠪᠠᠭᠰᠢ",
+        "ᠠᠷᠭᠠᠯ",
+        "ᠤᠠ\u{180B}",
+        "ᠯᠢ\u{200D}ᠡ\u{180B}",
+    ] {
+        let raw = shaper.shape_raw(word).unwrap();
+        assert_eq!(
+            shaper.canonical_units(&raw),
+            shaper.shape(word).unwrap(),
+            "word={word:?}"
+        );
+    }
+}
