@@ -2,7 +2,7 @@
 //! `normalize_positioned_written_units` and `_parse_written_units` from `mongol_norm/shaper.py`.
 
 use crate::generated::enums::WrittenUnit;
-use crate::normalize::is_joiner;
+use crate::normalize::{is_joiner, NormalizeTable};
 use crate::shaper::Shaper;
 use crate::tables::{Position, UnitPosition};
 use crate::Error;
@@ -325,7 +325,7 @@ impl Shaper {
                 || (body.len() == 1
                     && !joined_left
                     && last_pos == Position::Init
-                    && Self::lone_init_needs_zwj(last_unit));
+                    && self.lone_init_needs_zwj(table, last_unit));
             if !joined_right && needs_right_zwj {
                 written.push(WrittenUnit::Zwj);
             }
@@ -333,18 +333,18 @@ impl Shaper {
         Ok(written)
     }
 
-    /// Does a lone `init` sub-chain (`[unit:init]` with no adjacent joiner) need a trailing ZWJ
-    /// to keep its `init` shape?
+    /// Does a request that is nothing but `unit` at `init` need a trailing ZWJ to read back as
+    /// `init`?
     ///
-    /// Bare, a lone letter is an isolated chain. That is already the `init` shape wherever
-    /// `unit:init ≡ unit:isol` ([`crate::redundant_zwj::FINAL_ALONE`] — every single-unit
-    /// consonant, plus `Cr`, whose `init` and `isol` both expand to `O O`) — so those stay bare.
-    /// Two kinds of letter would read back as something else and take the joiner
-    /// (Satsrag/meco-rust#45): one the inventory also carries at `isol` under the same bare
-    /// spelling (`A`, `I`), and one with no bare spelling of its own (`O`, whose bare letter is
-    /// `U:isol`).
-    fn lone_init_needs_zwj(unit: WrittenUnit) -> bool {
-        !crate::redundant_zwj::FINAL_ALONE.contains(&unit) && unit != WrittenUnit::Cr
+    /// Bare, a lone letter is an isolated chain. That is still the `init` record wherever the
+    /// isolated form *is* the initial written unit — an isolated consonant borrows it (`B`, `Ch`,
+    /// `D`, …) — so those stay bare. Two kinds of letter would read back as something else and
+    /// take the joiner (Satsrag/meco-rust#45): one the inventory also carries at `isol` under the
+    /// same bare spelling (`A`, `I`), and one with no bare spelling of its own (`O`, whose bare
+    /// letter is `U:isol`).
+    fn lone_init_needs_zwj(&self, table: &NormalizeTable, unit: WrittenUnit) -> bool {
+        table.positioned_units.contains(&(unit, Position::Isol))
+            || self.normalize_written_units(&[unit]).is_err()
     }
 
     /// Parse the CLI's written-unit spelling: explicit `+`-separated names (`B+Aa`) or a
@@ -593,19 +593,5 @@ mod tests {
         assert_eq!(parse_unit_names("A\n", &["A"]).unwrap(), ["A"]);
         assert_eq!(parse_unit_names("\n", &["A"]).unwrap(), Vec::<&str>::new());
         assert!(parse_unit_names("A\n\n", &["A"]).is_err());
-    }
-
-    #[test]
-    fn lone_init_needs_zwj_matches_inventory_and_bare_encoding_rule() {
-        let shaper = Shaper::new(Locale::Mng);
-        let table = shaper.table();
-        for &(unit, position) in &table.positioned_units {
-            if position != Position::Init {
-                continue;
-            }
-            let expected = table.positioned_units.contains(&(unit, Position::Isol))
-                || shaper.normalize_written_units(&[unit]).is_err();
-            assert_eq!(Shaper::lone_init_needs_zwj(unit), expected, "{unit:?}");
-        }
     }
 }
