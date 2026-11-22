@@ -91,6 +91,10 @@ Written-unit input, if you already have a shape:
 
 ```python
 shaper.canonical_units(["A", "O", "Aa"])               # → ['A', 'B2']
+shaper.canonical_positioned_units([
+    {"unit": "B", "position": "init"},
+    {"unit": "Aa", "position": "isol"},
+])                                                     # → ['B', 'Mvs', 'Aa']
 shaper.normalize_written_units(["B", "Aa"])            # → 'ᠪᠠ᠋'
 shaper.normalize_positioned_written_units([
     {"unit": "B", "position": "init"},

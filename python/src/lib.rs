@@ -229,20 +229,21 @@ impl PyShaper {
         self.inner.normalize_written_units(&units).map_err(to_py)
     }
 
+    /// Python `canonical_positioned_units` after its validation: name pairs.
+    fn canonical_positioned_units(&self, records: Vec<(String, String)>) -> PyResult<Names> {
+        let records = parse_positioned_records(&records)?;
+        self.inner
+            .canonical_positioned_units(&records)
+            .map(|units| names(&units))
+            .map_err(to_py)
+    }
+
     /// Python `normalize_positioned_written_units` after its validation: name pairs.
     fn normalize_positioned_written_units(
         &self,
         records: Vec<(String, String)>,
     ) -> PyResult<String> {
-        let records = records
-            .iter()
-            .map(|(unit, position)| {
-                Ok(PositionedWrittenUnit::new(
-                    WrittenUnit::from_str(unit).map_err(to_py)?,
-                    UnitPosition::from_str(position).map_err(to_py)?,
-                ))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
+        let records = parse_positioned_records(&records)?;
         self.inner
             .normalize_positioned_written_units(&records)
             .map_err(to_py)
@@ -254,6 +255,18 @@ impl PyShaper {
             .map(|units| names(&units))
             .map_err(to_py)
     }
+}
+
+fn parse_positioned_records(records: &[(String, String)]) -> PyResult<Vec<PositionedWrittenUnit>> {
+    records
+        .iter()
+        .map(|(unit, position)| {
+            Ok(PositionedWrittenUnit::new(
+                WrittenUnit::from_str(unit).map_err(to_py)?,
+                UnitPosition::from_str(position).map_err(to_py)?,
+            ))
+        })
+        .collect()
 }
 
 /// Every `WrittenUnit` contract name, in declaration order.

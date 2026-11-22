@@ -998,5 +998,130 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                 self.assertEqual(actual, expected)
 
 
+class TestCanonicalPositionedUnitsApi(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.shaper = MongolianShaper(locale="MNG")
+
+    def test_empty_sequence_returns_empty_list(self):
+        self.assertEqual(self.shaper.canonical_positioned_units([]), [])
+        self.assertEqual(self.shaper.canonical_positioned_units(()), [])
+
+    def test_folds_positioned_records_and_matches_reshaped_normalize(self):
+        cases = [
+            (
+                [
+                    {"unit": "B", "position": "init"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "I", "position": "medi"},
+                    {"unit": "I", "position": "medi"},
+                    {"unit": "N", "position": "fina"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ["B", "A", "I", "I", "N", "Mvs", "Aa"],
+            ),
+            ([{"unit": "Aa", "position": "isol"}], ["Mvs", "Aa"]),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "O", "position": "medi"},
+                    {"unit": "Aa", "position": "fina"},
+                ],
+                ["A", "B2"],
+            ),
+            (
+                [
+                    {"unit": "B", "position": "init"},
+                    {"unit": "I", "position": "medi"},
+                    {"unit": "Aa", "position": "fina"},
+                ],
+                ["B", "G"],
+            ),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "R", "position": "medi"},
+                    {"unit": "A", "position": "medi"},
+                    {"unit": "Dd", "position": "fina"},
+                ],
+                ["A", "A", "R", "A", "O", "A"],
+            ),
+            ([{"unit": "Cr", "position": "init"}], ["O", "O"]),
+            ([{"unit": "A", "position": "init"}], ["A", "Zwj"]),
+            ([{"unit": "I", "position": "init"}], ["I", "Zwj"]),
+            ([{"unit": "O", "position": "init"}], ["O", "Zwj"]),
+            ([{"unit": "B", "position": "init"}], ["B"]),
+            ([{"unit": "N", "position": "medi"}], ["Zwj", "N", "Zwj"]),
+            (
+                [
+                    {"unit": "A", "position": "isol"},
+                    {"unit": "A", "position": "isol"},
+                ],
+                ["A", "Zwnj", "A"],
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "A", "position": "isol"},
+                ],
+                ["Nirugu", "Zwnj", "A"],
+            ),
+            (
+                [
+                    {"unit": "Nirugu", "position": "control"},
+                    {"unit": "I", "position": "isol"},
+                ],
+                ["Nirugu", "I"],
+            ),
+        ]
+        for records, expected in cases:
+            with self.subTest(records=records):
+                canonical = self.shaper.canonical_positioned_units(tuple(records))
+                self.assertEqual(canonical, expected)
+                self.assertEqual(self.shaper.canonical_units(canonical), canonical)
+                normalized = self.shaper.normalize_positioned_written_units(records)
+                self.assertEqual(self.shaper.shape(normalized), canonical)
+
+    def test_rejects_invalid_records_with_identical_precedence(self):
+        for invalid in ("B:init", b"B:init", {"B": "init"}, iter([])):
+            with self.subTest(invalid=type(invalid).__name__):
+                with self.assertRaisesRegex(TypeError, "ordered sequence"):
+                    self.shaper.canonical_positioned_units(invalid)
+
+        too_many = [{"unit": "Zwj", "position": "isol"}] * 1025
+        with self.assertRaisesRegex(ValueError, "at most 1024 records"):
+            self.shaper.canonical_positioned_units(too_many)
+
+        error_cases = [
+            ([("B", "init")], TypeError, r"positioned_units\[0\] must be a record"),
+            ([{"unit": "B"}], ValueError, "must contain exactly 'unit' and 'position'"),
+            ([{"unit": 1, "position": "init"}], TypeError, r"\.unit must be a string"),
+            ([{"unit": "B", "position": 1}], TypeError, r"\.position must be a string"),
+            ([{"unit": "B", "position": "bad"}], ValueError, "unknown position"),
+            ([{"unit": "Zwj", "position": "control"}], ValueError, "unsupported positioned control 'Zwj'"),
+            ([{"unit": "Zwnj", "position": "control"}], ValueError, "unsupported positioned control 'Zwnj'"),
+            ([{"unit": "Mvs", "position": "isol"}], ValueError, "requires position 'control'"),
+            ([{"unit": "F", "position": "isol"}], ValueError, "unsupported positioned written unit 'F:isol'"),
+            (
+                [
+                    {"unit": "Mvs", "position": "control"},
+                    {"unit": "Aa", "position": "isol"},
+                ],
+                ValueError,
+                "redundant 'Mvs' before 'Aa:isol'",
+            ),
+            (
+                [{"unit": "Mvs", "position": "control"}],
+                ValueError,
+                "no canonical MNG encoding in the supplied context",
+            ),
+        ]
+        for records, exc_type, pattern in error_cases:
+            with self.subTest(records=records):
+                with self.assertRaisesRegex(exc_type, pattern):
+                    self.shaper.canonical_positioned_units(records)
+
+
 if __name__ == "__main__":
     unittest.main()

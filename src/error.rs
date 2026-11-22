@@ -52,18 +52,18 @@ pub enum Error {
     /// `normalize_written_units`: the sequence has no canonical MNG encoding (or the candidate
     /// does not reshape to exactly the requested sequence).
     NoCanonicalEncoding,
-    /// `normalize_positioned_written_units`: explicit `Zwj` records are rejected.
+    /// `canonical_positioned_units` / `normalize_positioned_written_units`: explicit `Zwj` records are rejected.
     ExplicitZwj,
-    /// `normalize_positioned_written_units`: explicit `Zwnj` records are rejected.
+    /// `canonical_positioned_units` / `normalize_positioned_written_units`: explicit `Zwnj` records are rejected.
     ExplicitZwnj,
-    /// `normalize_positioned_written_units`: `Mvs` / `Nirugu` need [`UnitPosition::Control`].
+    /// `canonical_positioned_units` / `normalize_positioned_written_units`: `Mvs` / `Nirugu` need [`UnitPosition::Control`].
     ControlRequiresControlPosition {
         /// Index of the record.
         index: usize,
         /// The control unit.
         unit: WrittenUnit,
     },
-    /// `normalize_positioned_written_units`: `(unit, position)` is not in the HUD inventory
+    /// `canonical_positioned_units` / `normalize_positioned_written_units`: `(unit, position)` is not in the HUD inventory
     /// (a letter with `Control` lands here too).
     UnsupportedPositionedUnit {
         /// Index of the record.
@@ -73,16 +73,16 @@ pub enum Error {
         /// The requested position.
         position: UnitPosition,
     },
-    /// `normalize_positioned_written_units`: explicit `Mvs` directly before `Aa:isol` is
+    /// `canonical_positioned_units` / `normalize_positioned_written_units`: explicit `Mvs` directly before `Aa:isol` is
     /// rejected because `Aa:isol` synthesizes its leading `Mvs` automatically.
     RedundantChachlagMvs {
         /// Index of the redundant `Mvs` record.
         index: usize,
     },
-    /// `normalize_positioned_written_units`: an explicit `Mvs` is at the end of the sequence or
+    /// `canonical_positioned_units` / `normalize_positioned_written_units`: an explicit `Mvs` is at the end of the sequence or
     /// is followed by `control` / `medi` / `fina` instead of an `init` / `isol` suffix head.
     ChainPositionMismatch,
-    /// `normalize_positioned_written_units`: more than the maximum number of records.
+    /// `canonical_positioned_units` / `normalize_positioned_written_units`: more than the maximum number of records.
     TooManyRecords {
         /// The maximum accepted.
         max: usize,

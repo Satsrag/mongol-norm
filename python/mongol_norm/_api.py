@@ -388,6 +388,43 @@ class MongolianShaper:
             ValueError: record keys, unit, position, contextual position, or exact
                 canonical encoding is invalid.
         """
+        records = self._validate_positioned_records(positioned_units)
+        if not records:
+            return ""
+        return self._native.normalize_positioned_written_units(records)
+
+    def canonical_positioned_units(self, positioned_units):
+        """
+        Fold explicit-position records into their canonical written-unit shape.
+        将显式位置 record 规整为规范书写单元序列（不经过 Unicode 字符串编码与重新 shape）。
+
+        Validates *positioned_units* and synthesizes implicit ``Mvs`` (before
+        ``Aa:isol``), ``Zwnj`` (across sub-chain and non-joining ``Nirugu``
+        boundaries), and ``Zwj`` (open ``medi``/``fina`` edges and lone
+        ``A:init``/``I:init``/``O:init``) identically to
+        :meth:`normalize_positioned_written_units`, then folds the expanded
+        sequence with :meth:`canonical_units` without encoding to Unicode or
+        requiring a :meth:`shape` round trip. ``[]`` returns ``[]``.
+        按与 :meth:`normalize_positioned_written_units` 完全一致的规则校验
+        *positioned_units* 并补全隐式 ``Mvs``（``Aa:isol`` 前）、``Zwnj``
+        （子链及非连写 ``Nirugu`` 边界）与 ``Zwj``（不完整 ``medi``/``fina``
+        边界及独立 ``A:init``/``I:init``/``O:init``），再经 :meth:`canonical_units`
+        执行同形展开、控制符规整与链尾收缩；不查表编码为 Unicode 字符串，也不做重新
+        :meth:`shape` 往返。空序列返回 ``[]``。
+
+        This word-level API accepts at most 1024 records.
+
+        Raises:
+            TypeError: the outer value, a record, or a field has the wrong type.
+            ValueError: record keys, unit, position, or explicit ``Mvs``
+                context is invalid.
+        """
+        records = self._validate_positioned_records(positioned_units)
+        if not records:
+            return []
+        return self._native.canonical_positioned_units(records)
+
+    def _validate_positioned_records(self, positioned_units):
         if (isinstance(positioned_units, (str, bytes))
                 or not isinstance(positioned_units, Sequence)):
             raise TypeError(
@@ -426,7 +463,7 @@ class MongolianShaper:
             if unit == "Zwnj":
                 raise ValueError("unsupported positioned control 'Zwnj'")
         if not records:
-            return ""
+            return []
         positioned_units_inventory = self._positioned_units()
         for index, (unit, position) in enumerate(records):
             if unit in ("Mvs", "Nirugu"):
@@ -441,7 +478,7 @@ class MongolianShaper:
                     "unsupported positioned written unit "
                     f"{unit + ':' + position!r}"
                 )
-        return self._native.normalize_positioned_written_units(records)
+        return records
 
     def parse_written_units(self, text):
         """
