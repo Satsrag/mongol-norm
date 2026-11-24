@@ -61,7 +61,7 @@ fn later_round_revisits_earlier_breaks_and_new_control_runs() {
         ("A+O+Zwnj+O+A", "A+O+O+A"),
         ("A+N+Zwnj+A+A", "A+N+Zwnj+A+A"),
         ("N+Zwnj+Nirugu", "N+Nirugu"),
-        ("A+Zwnj+Nirugu", "A+Zwnj+Nirugu"),
+        ("A+Zwnj+Nirugu", "A+Aa+Zwnj+Nirugu"),
     ] {
         assert_units(&shaper, input, expected);
     }

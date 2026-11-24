@@ -15,6 +15,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use crate::contract::contract;
 use crate::generated::enums::WrittenUnit;
 use crate::shaper::Shaper;
 use crate::tables::{Fvs, NormalizeData, Position, UnitEntry};
@@ -345,17 +346,32 @@ impl Shaper {
         Some(self.normalize.canonical_version)
     }
 
-    /// Encode an already-canonical shape, independently on each side of every ZWNJ. The target
-    /// units have already captured the original text's context; joining context is not carried
-    /// across a ZWNJ. Chachlag `Aa` tries bare `a` first and `a+FVS2` only when that is what
-    /// preserves the complete target (a J/W before the MVS, including across a break). Each
-    /// segment must reshape exactly to its target on its own, and the caller verifies the
-    /// rejoined word. Empty segments preserve leading/repeated/trailing breaks. A failed
-    /// segment invalidates the whole candidate, never just that segment.
+    /// Contracted shape used internally by normalization (`contract(&self.shape(text)?)`).
+    ///
+    /// Shaping expands all nine visual duplicates (E1–E9); normalization contracts the four
+    /// chain-tail pairs back (C1–C4) before table lookup and round-trip verification so
+    /// `MNG.normalize.json` and canonical Unicode output stay unchanged.
+    pub(crate) fn norm_shape(&self, text: &str) -> Result<Vec<WrittenUnit>, Error> {
+        Ok(contract(&self.shape(text)?))
+    }
+
+    /// Contracted canonical written units used internally by normalization
+    /// (`contract(&self.canonical_units(units))`).
+    pub(crate) fn norm_target_units(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
+        contract(&self.canonical_units(units))
+    }
+
+    /// Encode an already-contracted canonical shape, independently on each side of every ZWNJ.
+    /// The target units have already captured the original text's context; joining context is not
+    /// carried across a ZWNJ. Chachlag `Aa` tries bare `a` first and `a+FVS2` only when that is
+    /// what preserves the complete target (a J/W before the MVS, including across a break). Each
+    /// segment must reshape (via `norm_shape`) exactly to its target on its own, and the caller
+    /// verifies the rejoined word. Empty segments preserve leading/repeated/trailing breaks. A
+    /// failed segment invalidates the whole candidate, never just that segment.
     pub(crate) fn canonical_for_shape(&self, shape: &[WrittenUnit]) -> Result<String, Error> {
         for use_fvs2 in [false, true] {
             let encoded = self.encode_segments(shape, use_fvs2)?;
-            if !encoded.is_empty() && self.shape(&encoded)? == shape {
+            if !encoded.is_empty() && self.norm_shape(&encoded)? == shape {
                 return Ok(encoded);
             }
         }
@@ -369,7 +385,7 @@ impl Shaper {
         let mut canonical = String::new();
         for (index, segment) in shape.split(|unit| *unit == WrittenUnit::Zwnj).enumerate() {
             let encoded = self.canonical_for_segment(segment, chachlag_fvs2)?;
-            if self.shape(&encoded)? != segment {
+            if self.norm_shape(&encoded)? != segment {
                 return Ok(String::new());
             }
             if index > 0 {
@@ -442,7 +458,7 @@ impl Shaper {
                             let mut want = prefix_tokens.clone();
                             want.extend_from_slice(body);
                             want.extend_from_slice(&suffix_target);
-                            if self.shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
+                            if self.norm_shape(&format!("{prefix_text}{candidate}{suffix_text}"))?
                                 == self.canonical_controls(&want)
                             {
                                 chain_canonical = Some(candidate);
@@ -510,7 +526,7 @@ impl Shaper {
         let mut verify_target = prefix_tokens.to_vec();
         verify_target.extend_from_slice(chain);
         verify_target.extend_from_slice(suffix_target);
-        if self.shape(&format!("{prefix_text}{text}{suffix_text}"))?
+        if self.norm_shape(&format!("{prefix_text}{text}{suffix_text}"))?
             == self.canonical_controls(&verify_target)
         {
             Ok(Some(text))
@@ -534,8 +550,9 @@ impl Shaper {
             // dropped here: a lone nirugu/ZWJ shapes to a structural token and round-trips.)
             return Ok(String::new());
         }
-        let canonical = self.canonical_for_shape(&target)?;
-        if canonical.is_empty() || self.shape(&canonical)? != target {
+        let norm_target = contract(&target);
+        let canonical = self.canonical_for_shape(&norm_target)?;
+        if canonical.is_empty() || self.norm_shape(&canonical)? != norm_target {
             if strict {
                 return Err(Error::NormalizationFallback {
                     text: text.to_owned(),

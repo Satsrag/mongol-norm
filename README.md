@@ -77,7 +77,8 @@ pip install mongol-norm
 
 ### Usage
 
-`shape` returns the written-unit sequence, a fingerprint of the visible word. `same_shape`
+`shape` returns the written-unit sequence, a fingerprint of the visible word (all nine visual
+duplicates unified by 1→2 expansion, never merging, with redundant controls dropped). `same_shape`
 reports whether two encodings render identically. `normalize` maps a single word to one
 canonical Unicode string per shape; `normalize_text` does the same for free-form text,
 normalizing Mongolian words and leaving everything else unchanged.
@@ -247,7 +248,7 @@ pip install mongol-norm
 
 ### 用法
 
-`shape` 返回书写单元序列，即可见词形的指纹。`same_shape` 判断两种编码渲染结果是否相同。`normalize` 把单个词映射成同一 shape 对应的一个规范 Unicode 字符串；`normalize_text` 用于自由文本，只规范化其中的蒙古文词，其余原样保留。
+`shape` 返回书写单元序列，即可见词形的指纹（9 条同形规则全部按单向 1→2 展开统一、零合并，并清理冗余控制符）。`same_shape` 判断两种编码渲染结果是否相同。`normalize` 把单个词映射成同一 shape 对应的一个规范 Unicode 字符串；`normalize_text` 用于自由文本，只规范化其中的蒙古文词，其余原样保留。
 
 > [!WARNING]
 > **Beta 提醒：** `normalize` 输出的是**按字形统一的编码**，**不是标准拼写**，后续版本可能变化。建议保留原文；保存规范化键时，同时记录 `canonical_version()`，版本变化后重建。

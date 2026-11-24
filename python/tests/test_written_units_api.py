@@ -228,18 +228,19 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
         self.assertEqual(self.shaper.shape("\u200D\u1833"), ["O", "A"])
 
     def test_duplicate_encodings_are_accepted_as_input_and_unified(self):
-        # Duplicate encodings are still accepted as input and unified before encoding,
-        # so written-unit data captured from an older shape() keeps working — in both
-        # directions, expanding and contracting.
-        # 重复编码仍可作为输入并在编码前统一,旧 shape() 采集的数据继续可用。
+        # Duplicate encodings are still accepted as input and unified by expansion
+        # before encoding, so written-unit data captured from raw engine output or
+        # an older shape() keeps working across all nine rules (E1–E9).
+        # 重复编码仍可作为输入并在编码前按展开统一，旧 shape() 采集的数据继续可用。
         cases = [
             (["Zwj", "Dd"], ["O", "A"]),
-            (["L", "I", "Zwj", "Aa"], ["L", "G"]),
+            (["L", "I", "Zwj", "Aa"], ["L", "I", "Aa"]),
+            (["L", "G"], ["L", "I", "Aa"]),
             (["Cr", "Nirugu"], ["O", "O", "Nirugu"]),
-            (["A", "Aa"], ["A"]),
-            (["B", "A", "Aa"], ["B", "Aa"]),
-            (["Nirugu", "O", "Aa"], ["Nirugu", "B2"]),
-            (["Nirugu", "I", "Aa"], ["Nirugu", "G"]),
+            (["A"], ["A", "Aa"]),
+            (["B", "Aa"], ["B", "A", "Aa"]),
+            (["Nirugu", "B2"], ["Nirugu", "O", "Aa"]),
+            (["Nirugu", "G"], ["Nirugu", "I", "Aa"]),
         ]
         for spelled, unified in cases:
             with self.subTest(spelled=spelled):
@@ -322,7 +323,7 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
         result = self.shaper.normalize_written_units(["B", "Aa"])
 
         self.assertEqual(result, "\u182A\u1820\u180B")
-        self.assertEqual(self.shaper.shape(result), ["B", "Aa"])
+        self.assertEqual(self.shaper.shape(result), ["B", "A", "Aa"])
 
 
 class TestCanonicalUnitsApi(unittest.TestCase):
@@ -341,12 +342,20 @@ class TestCanonicalUnitsApi(unittest.TestCase):
             (["A", "A", "R", "Hx", "A", "L"], ["A", "A", "R", "N", "N", "A", "L"]),
             (["Cr", "Nirugu"], ["O", "O", "Nirugu"]),
             (["T", "A", "H", "Mvs", "Aa"], ["T", "A", "H", "Mvs", "Aa"]),
-            (["A", "Aa"], ["A"]),
-            (["B", "A", "Aa"], ["B", "Aa"]),
+            (["A"], ["A", "Aa"]),
+            (["A", "Aa"], ["A", "Aa"]),
+            (["B", "Aa"], ["B", "A", "Aa"]),
+            (["B", "A", "Aa"], ["B", "A", "Aa"]),
             (["N", "A", "Aa"], ["N", "A", "Aa"]),
-            (["A", "O", "Aa"], ["A", "B2"]),
-            (["B", "I", "Aa"], ["B", "G"]),
-            (["L", "I", "Zwj", "Aa"], ["L", "G"]),
+            (["A", "B2"], ["A", "O", "Aa"]),
+            (["Nirugu", "B2"], ["Nirugu", "O", "Aa"]),
+            (["B", "G"], ["B", "I", "Aa"]),
+            (["Nirugu", "G"], ["Nirugu", "I", "Aa"]),
+            (["Zwj", "G"], ["Zwj", "G"]),
+            (["Zwj", "B2"], ["Zwj", "B2"]),
+            (["L", "I", "Zwj", "Aa"], ["L", "I", "Aa"]),
+            (["B", "Zwj", "Aa"], ["B", "A", "Aa"]),
+            (["B", "Zwnj", "Aa"], ["B", "A", "Aa"]),
             (["N", "Zwnj", "B", "Zwnj", "I"], ["N", "B", "I"]),
             (["Mvs", "Zwnj", "Mvs"], ["Mvs"]),
         ]
@@ -367,7 +376,7 @@ class TestCanonicalUnitsApi(unittest.TestCase):
     @needs_testing_hook
     def test_does_not_depend_on_normalize_table(self):
         shaper = empty_table_shaper()
-        self.assertEqual(shaper.canonical_units(["A", "O", "Aa"]), ["A", "B2"])
+        self.assertEqual(shaper.canonical_units(["A", "B2"]), ["A", "O", "Aa"])
 
     def test_rejects_invalid_sequences_and_unknown_units(self):
         for invalid in ("B", b"B", {"B", "Aa"}, iter(["B", "Aa"])):

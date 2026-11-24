@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::controls::canonical_controls;
-use crate::duplicates::{contract, expand};
+use crate::expand::{expand_post, expand_pre};
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::generated::mng;
 use crate::generated::mng_normalize;
@@ -436,19 +436,21 @@ impl Shaper {
     /// letter after it `init` (or `isol`) — while the context rules look through it, as they do
     /// in the reference font. The control pass removes it when all affected letter positions
     /// are unchanged or reviewed as equivalent. Surviving [`WrittenUnit::Zwnj`] units are
-    /// segment edges for the ZWJ rules and duplicate unification. Single-unit duplicates expand
-    /// first; consecutive identical ZWJ, ZWNJ and MVS runs then merge and complete ZWJ/ZWNJ
-    /// rounds repeat until stable, followed by tail-pair contraction.
+    /// segment edges for the ZWJ rules and duplicate unification. Pre-control single-unit
+    /// duplicates expand first (`expand_pre`, E1–E5); consecutive identical ZWJ, ZWNJ and MVS
+    /// runs then merge and complete ZWJ/ZWNJ rounds repeat until stable; finally post-control
+    /// chain-tail duplicates expand (`expand_post`, E6–E9).
     ///
-    /// Nine written units render as exactly the same ink as a sequence of other units, and each
-    /// is unified with that sequence here. Five expand — `Dd` (both positions), medial `H`,
-    /// medial `Hx` and `Cr` (all positions) come out as `O A`, `A A`, `N N` and `O O`. The other four
-    /// contract, because their expansion ends in `Aa`, which is itself a duplicate: a chain-final
-    /// `A Aa` becomes `Aa` (or `A` when it is the whole chain), `O Aa` becomes `B2` and `I Aa`
-    /// becomes `G`. That is what makes `shape` a fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ
-    /// are one word and shape identically. The standard's own unit sequence, which keeps all
-    /// nine apart, is [`Shaper::shape_raw`]. `docs/internals.md` ("Duplicate encodings") has the
-    /// evidence and the termination argument.
+    /// Nine written units render as exactly the same ink as a sequence of other units, and all
+    /// nine are unified by **expansion only** (1 → 2, never merging): `Dd` (both positions),
+    /// medial `H`, medial `Hx`, and `Cr` (all positions) expand to `O A`, `A A`, `N N`, and `O O`
+    /// before control canonicalization; chain-final `G` (preceded by a same-chain letter or
+    /// `Nirugu`), chain-final `B2` (same condition), `<bowed> + Aa:fina`, and standalone `A:isol`
+    /// expand to `I Aa`, `O Aa`, `<bowed> + A + Aa`, and `A Aa` after control canonicalization.
+    /// That makes `shape` a pure-expansion fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are
+    /// one word and shape identically, as do ᠪᠠ and ᠪᠠᠠ᠋. The standard's own unit sequence, which
+    /// keeps all nine apart, is [`Shaper::shape_raw`]. `docs/internals.md` ("Duplicate encodings")
+    /// has the evidence and the termination argument.
     ///
     /// Errors with [`Error::NonMongolianChar`] on anything but Mongolian letters, FVS, MVS,
     /// NNBSP, nirugu, ZWJ and ZWNJ — use [`Shaper::normalize_text`] for mixed-script text.
@@ -457,15 +459,16 @@ impl Shaper {
     }
 
     /// Fold an ordered written-unit sequence into its canonical shape — the post-processing
-    /// shared by [`Shaper::shape`], [`Shaper::trace`] and [`Shaper::normalize_written_units`],
-    /// which keeps `normalize_written_units([L, I, Zwj, Aa])` and `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on
-    /// one contract.
+    /// shared by [`Shaper::shape`], [`Shaper::trace`], [`Shaper::canonical_positioned_units`],
+    /// `FontShaper::shape`, and the entry to [`Shaper::normalize_written_units`], which keeps
+    /// `normalize_written_units([L, I, Zwj, Aa])` and `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one contract.
     ///
-    /// Single-unit duplicates (`Dd`, `Cr`, medial `H` and medial `Hx`) expand first, consecutive
-    /// identical `Zwj` / `Zwnj` / `Mvs` runs merge and redundant `Zwj` / `Zwnj` controls are
-    /// dropped until stable, and chain-ending duplicate pairs (`A Aa` → `A` at `isol` or `Aa`
-    /// after a bowed unit, `O Aa` → `B2` at `fina`, `I Aa` → `G` at `fina`) contract last. The
-    /// transform is idempotent, and an empty slice returns an empty `Vec`.
+    /// Pre-control single-unit duplicates (`Dd`, `Cr`, medial `H`, medial `Hx`) expand first
+    /// (`expand_pre`), consecutive identical `Zwj` / `Zwnj` / `Mvs` runs merge and redundant
+    /// `Zwj` / `Zwnj` controls are dropped until stable, and chain-final duplicates (`G:fina` →
+    /// `I Aa`, `B2:fina` → `O Aa`, `<bowed> + Aa:fina` → `<bowed> + A Aa`, standalone `A:isol` →
+    /// `A Aa`) expand last (`expand_post`). The transform is idempotent, never merges units, and
+    /// an empty slice returns an empty `Vec`.
     pub fn canonical_units(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
         canonical_units(units)
     }
@@ -570,13 +573,14 @@ impl Shaper {
     }
 }
 
-/// The public shape of an engine-level unit sequence: single-unit duplicates expanded, controls
-/// processed to stability, then chain-ending duplicate pairs contracted. Both backends fold their
-/// raw units with it, so [`Shaper::shape`] and `FontShaper::shape` compare unit for unit.
+/// The public shape of an engine-level unit sequence: pre-control single-unit duplicates expanded
+/// (`expand_pre`, E1–E5), controls processed to stability, then post-control chain-tail duplicates
+/// expanded (`expand_post`, E6–E9). Both backends fold their raw units with it, so
+/// [`Shaper::shape`] and `FontShaper::shape` compare unit for unit.
 pub(crate) fn canonical_units(raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-    let expanded = expand(raw);
-    let controlled = canonical_controls(&expanded);
-    contract(&controlled)
+    let pre = expand_pre(raw);
+    let controlled = canonical_controls(&pre);
+    expand_post(&controlled)
 }
 
 /// Flatten resolved tokens into the public shape.
@@ -708,7 +712,7 @@ mod tests {
         );
         assert_eq!(
             shaper.shape("\u{1820}\u{180B}").unwrap(),
-            vec![WrittenUnit::A]
+            vec![WrittenUnit::A, WrittenUnit::Aa]
         );
         assert_eq!(shaper.shape("\u{180E}").unwrap(), vec![WrittenUnit::Mvs]);
         assert_eq!(
@@ -915,6 +919,7 @@ mod tests {
                 .unwrap(),
             vec![
                 WrittenUnit::B,
+                WrittenUnit::A,
                 WrittenUnit::Aa,
                 WrittenUnit::Mvs,
                 WrittenUnit::Nirugu,

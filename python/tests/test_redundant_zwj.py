@@ -57,7 +57,7 @@ class _Base(unittest.TestCase):
 class TestSegmentInterior(_Base):
     def test_interior_zwj_between_joined_letters_is_dropped(self):
         self.assert_same_word(L + I + ZWJ + E + FVS1, L + I + E + FVS1)
-        self.assertEqual(self.s.shape(L + I + ZWJ + E + FVS1), ['L', 'G'])
+        self.assertEqual(self.s.shape(L + I + ZWJ + E + FVS1), ['L', 'I', 'Aa'])
         self.assert_same_word(A + R + A + ZWJ + D, A + R + A + D)
         self.assert_same_word(L + A + L + A + ZWJ + P + UE + D, L + A + L + A + P + UE + D)
 
@@ -109,7 +109,7 @@ class TestWordEdges(_Base):
     def test_word_initial_zwj_follows_the_reviewed_table(self):
         # B:medi ≡ B:init, S:medi ≡ S:init (accepted near-equivalent); N differs.
         self.assert_same_word(ZWJ + B + A, B + A)
-        self.assertEqual(self.s.shape(ZWJ + B + A), ['B', 'Aa'])
+        self.assertEqual(self.s.shape(ZWJ + B + A), ['B', 'A', 'Aa'])
         self.assert_same_word(ZWJ + S + A, S + A)
         self.assert_same_word(ZWJ + D + A, D + A)
         self.assert_same_word(ZWJ + B + A + R, B + A + R)
@@ -146,8 +146,8 @@ class TestWordEdges(_Base):
 class TestWrittenUnitApis(_Base):
     def test_normalize_written_units_folds_redundant_zwj_like_shape(self):
         cases = [
-            (['L', 'I', 'Zwj', 'Aa'], ['L', 'G']),
-            (['Zwj', 'B', 'Aa'], ['B', 'Aa']),
+            (['L', 'I', 'Zwj', 'Aa'], ['L', 'I', 'Aa']),
+            (['Zwj', 'B', 'Aa'], ['B', 'A', 'Aa']),
             (['B', 'Zwj'], ['B']),
             (['Zwj', 'B', 'Zwj'], ['B']),
             (['Nirugu', 'Zwj', 'L', 'A'], ['Nirugu', 'L', 'A']),

@@ -284,6 +284,7 @@
           "O",
           "I",
           "G",
+          "A",
           "Aa"
         ],
         "transitions": [
@@ -937,6 +938,7 @@
         ],
         "shape": [
           "B",
+          "A",
           "Aa"
         ],
         "transitions": [

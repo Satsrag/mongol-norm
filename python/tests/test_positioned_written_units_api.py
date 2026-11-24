@@ -1021,13 +1021,21 @@ class TestCanonicalPositionedUnitsApi(unittest.TestCase):
                 ["B", "A", "I", "I", "N", "Mvs", "Aa"],
             ),
             ([{"unit": "Aa", "position": "isol"}], ["Mvs", "Aa"]),
+            ([{"unit": "A", "position": "isol"}], ["A", "Aa"]),
             (
                 [
                     {"unit": "A", "position": "init"},
                     {"unit": "O", "position": "medi"},
                     {"unit": "Aa", "position": "fina"},
                 ],
-                ["A", "B2"],
+                ["A", "O", "Aa"],
+            ),
+            (
+                [
+                    {"unit": "A", "position": "init"},
+                    {"unit": "B2", "position": "fina"},
+                ],
+                ["A", "O", "Aa"],
             ),
             (
                 [
@@ -1035,7 +1043,21 @@ class TestCanonicalPositionedUnitsApi(unittest.TestCase):
                     {"unit": "I", "position": "medi"},
                     {"unit": "Aa", "position": "fina"},
                 ],
-                ["B", "G"],
+                ["B", "I", "Aa"],
+            ),
+            (
+                [
+                    {"unit": "B", "position": "init"},
+                    {"unit": "G", "position": "fina"},
+                ],
+                ["B", "I", "Aa"],
+            ),
+            (
+                [
+                    {"unit": "B", "position": "init"},
+                    {"unit": "Aa", "position": "fina"},
+                ],
+                ["B", "A", "Aa"],
             ),
             (
                 [
@@ -1048,6 +1070,8 @@ class TestCanonicalPositionedUnitsApi(unittest.TestCase):
                 ["A", "A", "R", "A", "O", "A"],
             ),
             ([{"unit": "Cr", "position": "init"}], ["O", "O"]),
+            ([{"unit": "G", "position": "fina"}], ["Zwj", "G"]),
+            ([{"unit": "B2", "position": "fina"}], ["Zwj", "B2"]),
             ([{"unit": "A", "position": "init"}], ["A", "Zwj"]),
             ([{"unit": "I", "position": "init"}], ["I", "Zwj"]),
             ([{"unit": "O", "position": "init"}], ["O", "Zwj"]),
@@ -1058,14 +1082,14 @@ class TestCanonicalPositionedUnitsApi(unittest.TestCase):
                     {"unit": "A", "position": "isol"},
                     {"unit": "A", "position": "isol"},
                 ],
-                ["A", "Zwnj", "A"],
+                ["A", "Aa", "Zwnj", "A", "Aa"],
             ),
             (
                 [
                     {"unit": "Nirugu", "position": "control"},
                     {"unit": "A", "position": "isol"},
                 ],
-                ["Nirugu", "Zwnj", "A"],
+                ["Nirugu", "Zwnj", "A", "Aa"],
             ),
             (
                 [

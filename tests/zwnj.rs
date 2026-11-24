@@ -29,8 +29,8 @@ fn shape(text: &str) -> String {
 /// contextual shaping has already resolved the letters when control processing starts.
 const TABLE: &[(&str, &str, &str)] = &[
     // word edges: nothing changes position
-    ("zwnj b a", "B+Aa", "B+Aa"),
-    ("b a zwnj", "B+Aa", "B+Aa"),
+    ("zwnj b a", "B+A+Aa", "B+A+Aa"),
+    ("b a zwnj", "B+A+Aa", "B+A+Aa"),
     ("zwnj n a", "N+A", "N+A"),
     ("n a zwnj", "N+A", "N+A"),
     ("zwnj a", "A+A", "A+A"),
@@ -47,17 +47,17 @@ const TABLE: &[(&str, &str, &str)] = &[
     ("a zwnj zwnj b", "A+A+Zwnj+B", "A+A+B"),
     ("zwnj b zwnj", "B", "B"),
     // between letters
-    ("b zwnj b a", "B+B+Aa", "B+B+Aa"),
-    ("a o zwnj b a", "A+A+U+Zwnj+B+Aa", "A+A+O+B+Aa"),
-    ("b zwnj a", "B+Zwnj+A+A", "B+Aa"),
+    ("b zwnj b a", "B+B+A+Aa", "B+B+A+Aa"),
+    ("a o zwnj b a", "A+A+U+Zwnj+B+A+Aa", "A+A+O+B+A+Aa"),
+    ("b zwnj a", "B+Zwnj+A+A", "B+A+Aa"),
     ("n zwnj a", "N+Zwnj+A+A", "N+A"),
     ("a zwnj a", "A+A+Zwnj+A+A", "A+A+A"),
-    ("a b zwnj b a", "A+A+B+Zwnj+B+Aa", "A+A+B+B+Aa"),
-    ("l i zwnj e fvs1", "L+I+Zwnj+Aa", "L+G"), // no `G` across the break
-    ("s zwnj g", "S+Zwnj+Hx", "S+G"),
+    ("a b zwnj b a", "A+A+B+Zwnj+B+A+Aa", "A+A+B+B+A+Aa"),
+    ("l i zwnj e fvs1", "L+I+Zwnj+Aa", "L+I+Aa"), // break stays between L+I and Aa
+    ("s zwnj g", "S+Zwnj+Hx", "S+I+Aa"),
     ("b zwnj s", "B+Zwnj+S", "B+S"),
     ("t a l zwnj a", "T+A+L+Zwnj+A+A", "T+A+L+A"),
-    ("a zwnj b zwnj a", "A+A+Zwnj+B+Zwnj+A+A", "A+A+B+Aa"),
+    ("a zwnj b zwnj a", "A+A+Zwnj+B+Zwnj+A+A", "A+A+B+A+Aa"),
     ("a zwnj n zwnj a", "A+A+Zwnj+N+Zwnj+A+A", "A+A+N+A"),
     // beside an MVS / NNBSP: the MVS already breaks joining, and context looks through the ZWNJ
     ("mvs zwnj a", "Mvs+Aa", "Mvs+Aa"), // chachlag through the break
@@ -79,35 +79,35 @@ const TABLE: &[(&str, &str, &str)] = &[
     ("a mvs d u zwnj r", "A+A+Mvs+D+U+Zwnj+R", "A+A+Mvs+D+O+R"),
     // beside a nirugu: the nirugu joins its own side
     ("n zwnj nirugu", "N+Nirugu", "N+Nirugu"),
-    ("zwnj nirugu i e fvs1", "Nirugu+G", "Nirugu+G"),
+    ("zwnj nirugu i e fvs1", "Nirugu+I+Aa", "Nirugu+I+Aa"),
     ("a zwnj nirugu b", "A+A+Zwnj+Nirugu+B", "A+A+Nirugu+B"),
     ("a nirugu zwnj b", "A+A+Nirugu+Zwnj+B", "A+A+Nirugu+B"),
     ("nirugu zwnj b", "Nirugu+Zwnj+B", "Nirugu+B"),
     // beside a ZWJ, both orders
-    ("b zwnj zwj a", "B+Aa", "B+Aa"),
+    ("b zwnj zwj a", "B+A+Aa", "B+A+Aa"),
     ("n zwnj zwj a", "N+A", "N+A"),
     ("zwj zwnj n a", "N+A", "Zwj+N+A"),
     ("n a zwnj zwj", "N+A", "N+A+Zwj"),
-    ("a zwj zwnj b a", "A+A+B+Aa", "A+A+B+Aa"),
+    ("a zwj zwnj b a", "A+A+B+A+Aa", "A+A+B+A+Aa"),
     ("a zwj zwnj b", "A+A+Zwj+Zwnj+B", "A+A+B"),
     ("a zwnj zwj b", "A+A+Zwnj+Zwj+B", "A+A+B"),
-    ("b zwj zwnj a", "B+Zwnj+A+A", "B+Aa"),
+    ("b zwj zwnj a", "B+Zwnj+A+A", "B+A+Aa"),
     // an FVS after a ZWNJ selects nothing (it is the ZWNJ's); one before it is the letter's
     ("a zwnj fvs1 a", "A+A+Zwnj+A+A", "A+A"),
-    ("a fvs1 zwnj a", "A+Zwnj+A+A", "A+A"),
-    ("b a fvs1 zwnj", "B+Aa", "B+Aa"),
+    ("a fvs1 zwnj a", "A+Aa+Zwnj+A+A", "A+A"),
+    ("b a fvs1 zwnj", "B+A+Aa", "B+A+Aa"),
     // gender and harmony cross the break (positions do not)
     ("n ue zwnj h nirugu", "N+Ue+Zwnj+G+Nirugu", "N+O+I+G+Nirugu"),
     ("h zwnj oe", "H+Zwnj+A+Ue", "G+Ue"),
-    ("g zwnj e", "Hx+Zwnj+A", "G+Aa"),
+    ("g zwnj e", "Hx+Zwnj+A+Aa", "G+A+Aa"),
     ("a zwnj g", "A+A+Zwnj+Hx", "A+A+H"),
-    ("a l zwnj g", "A+A+L+Zwnj+Hx", "A+A+L+G"),
-    ("a b zwnj g", "A+A+B+Zwnj+Hx", "A+A+B+G"),
-    ("i g zwnj b a", "A+I+H+Zwnj+B+Aa", "A+I+A+A+B+Aa"), // backward marker crosses
-    ("i g zwnj a", "A+I+G+Zwnj+A+A", "A+I+N+N+A"),
-    ("e b zwnj i g", "A+B+Zwnj+A+I+G", "A+B+I+G"),
-    ("s g zwnj a", "S+G+Zwnj+A+A", "S+N+N+A"),
-    ("m n oe zwnj g e", "M+N+U+Zwnj+G+Aa", "M+N+O+I+G+Aa"),
+    ("a l zwnj g", "A+A+L+Zwnj+Hx", "A+A+L+I+Aa"),
+    ("a b zwnj g", "A+A+B+Zwnj+Hx", "A+A+B+I+Aa"),
+    ("i g zwnj b a", "A+I+H+Zwnj+B+A+Aa", "A+I+A+A+B+A+Aa"), // backward marker crosses
+    ("i g zwnj a", "A+I+I+Aa+Zwnj+A+A", "A+I+N+N+A"),
+    ("e b zwnj i g", "A+B+Zwnj+A+I+I+Aa", "A+B+I+I+Aa"),
+    ("s g zwnj a", "S+I+Aa+Zwnj+A+A", "S+N+N+A"),
+    ("m n oe zwnj g e", "M+N+U+Zwnj+G+A+Aa", "M+N+O+I+G+A+Aa"),
     // In the issue's input corpus, ZWJ keeps the letter before the break joined during raw
     // shaping. The first word's `ue` stays marked because the break makes `p` initial;
     // subsequent control removal preserves these already-resolved units.
@@ -139,7 +139,7 @@ const TABLE: &[(&str, &str, &str)] = &[
     ),
     (
         "t a ng zwnj p u r u m",
-        "T+A+A+G+Zwnj+P+O+R+O+M",
+        "T+A+A+I+Aa+Zwnj+P+O+R+O+M",
         "T+A+A+G+P+O+R+O+M",
     ),
     (
@@ -288,10 +288,10 @@ const FONT_CASES: &[(&str, &str)] = &[
     ("a r nirugu zwnj ue ue", "A+A+R+Nirugu+O+U"),
     // post_bowed reads a final or isolated consonant before its FVS applies.
     ("g fvs2 zwnj zwj e", "G+A"),
-    ("a b fvs1 zwnj zwj e", "A+A+B2+Zwnj+Aa"),
+    ("a b fvs1 zwnj zwj e", "A+A+O+Aa+Zwnj+Aa"),
     ("a g fvs1 zwnj zwj e", "A+A+H+Zwnj+Zwj+A"),
-    ("a g fvs2 zwnj zwj o", "A+A+G+Zwnj+Zwj+O"),
-    ("t g fvs2 zwnj nirugu o", "T+G+Zwnj+Nirugu+O"),
+    ("a g fvs2 zwnj zwj o", "A+A+I+Aa+Zwnj+Zwj+O"),
+    ("t g fvs2 zwnj nirugu o", "T+I+Aa+Zwnj+Nirugu+O"),
     // The lookups that need an MVS beside a letter look through a run that holds a ZWNJ.
     ("a n mvs zwj zwnj a", "A+A+N+Mvs+Aa"),
     ("a n mvs zwnj zwj a", "A+A+A+Mvs+Zwj+A"),

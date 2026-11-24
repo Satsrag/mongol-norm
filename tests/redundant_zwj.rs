@@ -79,7 +79,7 @@ fn interior_zwj_between_joined_letters_is_dropped() {
         &format!("{L}{I}{ZWJ}{E}{FVS1}"),
         &format!("{L}{I}{E}{FVS1}"),
     );
-    assert_eq!(shape(&format!("{L}{I}{ZWJ}{E}{FVS1}")), ["L", "G"]);
+    assert_eq!(shape(&format!("{L}{I}{ZWJ}{E}{FVS1}")), ["L", "I", "Aa"]);
     assert_same_word(&format!("{A}{R}{A}{ZWJ}{D}"), &format!("{A}{R}{A}{D}"));
     assert_same_word(
         &format!("{L}{A}{L}{A}{ZWJ}{P}{UE}{D}"),
@@ -192,7 +192,7 @@ fn zwj_before_mvs_follows_the_word_final_table() {
 fn word_initial_zwj_follows_the_reviewed_table() {
     // B:medi ≡ B:init (the ligature is drawn the same), S:medi ≡ S:init (accepted), N differs.
     assert_same_word(&format!("{ZWJ}{B}{A}"), &format!("{B}{A}"));
-    assert_eq!(shape(&format!("{ZWJ}{B}{A}")), ["B", "Aa"]);
+    assert_eq!(shape(&format!("{ZWJ}{B}{A}")), ["B", "A", "Aa"]);
     assert_same_word(&format!("{ZWJ}{S}{A}"), &format!("{S}{A}"));
     assert_same_word(&format!("{ZWJ}{D}{A}"), &format!("{D}{A}"));
     assert_same_word(&format!("{ZWJ}{B}{A}{R}"), &format!("{B}{A}{R}"));
@@ -246,8 +246,8 @@ fn normalize_written_units_folds_redundant_zwj_like_shape() {
     use WrittenUnit as W;
     let shaper = shaper();
     for (spelled, folded) in [
-        (vec![W::L, W::I, W::Zwj, W::Aa], vec![W::L, W::G]),
-        (vec![W::Zwj, W::B, W::Aa], vec![W::B, W::Aa]),
+        (vec![W::L, W::I, W::Zwj, W::Aa], vec![W::L, W::I, W::Aa]),
+        (vec![W::Zwj, W::B, W::Aa], vec![W::B, W::A, W::Aa]),
         (vec![W::B, W::Zwj], vec![W::B]),
         (vec![W::Zwj, W::B, W::Zwj], vec![W::B]),
         (

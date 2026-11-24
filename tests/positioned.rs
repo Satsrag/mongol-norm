@@ -1482,9 +1482,14 @@ fn test_canonical_positioned_units_public_api() {
             ],
             &[T, A, H, Mvs, Aa],
         ),
+        (&[rec(A, UnitPosition::Isol)], &[A, Aa]),
         (
             &[rec(A, UnitPosition::Init), rec(Aa, UnitPosition::Fina)],
-            &[A],
+            &[A, Aa],
+        ),
+        (
+            &[rec(B, UnitPosition::Init), rec(Aa, UnitPosition::Fina)],
+            &[B, A, Aa],
         ),
         (
             &[
@@ -1492,7 +1497,11 @@ fn test_canonical_positioned_units_public_api() {
                 rec(A, UnitPosition::Medi),
                 rec(Aa, UnitPosition::Fina),
             ],
-            &[B, Aa],
+            &[B, A, Aa],
+        ),
+        (
+            &[rec(A, UnitPosition::Init), rec(B2, UnitPosition::Fina)],
+            &[A, O, Aa],
         ),
         (
             &[
@@ -1500,7 +1509,11 @@ fn test_canonical_positioned_units_public_api() {
                 rec(O, UnitPosition::Medi),
                 rec(Aa, UnitPosition::Fina),
             ],
-            &[A, B2],
+            &[A, O, Aa],
+        ),
+        (
+            &[rec(B, UnitPosition::Init), rec(G, UnitPosition::Fina)],
+            &[B, I, Aa],
         ),
         (
             &[
@@ -1508,8 +1521,25 @@ fn test_canonical_positioned_units_public_api() {
                 rec(I, UnitPosition::Medi),
                 rec(Aa, UnitPosition::Fina),
             ],
-            &[B, G],
+            &[B, I, Aa],
         ),
+        (
+            &[
+                rec(Nirugu, UnitPosition::Control),
+                rec(B2, UnitPosition::Fina),
+            ],
+            &[Nirugu, O, Aa],
+        ),
+        (
+            &[
+                rec(Nirugu, UnitPosition::Control),
+                rec(G, UnitPosition::Fina),
+            ],
+            &[Nirugu, I, Aa],
+        ),
+        // Lone Zwj+G / Zwj+B2 stay unexpanded
+        (&[rec(G, UnitPosition::Fina)], &[Zwj, G]),
+        (&[rec(B2, UnitPosition::Fina)], &[Zwj, B2]),
         // Incomplete edges & lone init rules
         (&[rec(A, UnitPosition::Init)], &[A, Zwj]),
         (&[rec(I, UnitPosition::Init)], &[I, Zwj]),
@@ -1522,7 +1552,7 @@ fn test_canonical_positioned_units_public_api() {
         // Sub-chain & Nirugu boundary ZWNJ synthesis + redundant-control folding
         (
             &[rec(A, UnitPosition::Isol), rec(A, UnitPosition::Isol)],
-            &[A, Zwnj, A],
+            &[A, Aa, Zwnj, A, Aa],
         ),
         (
             &[
@@ -1540,14 +1570,14 @@ fn test_canonical_positioned_units_public_api() {
                 rec(B, UnitPosition::Init),
                 rec(Aa, UnitPosition::Fina),
             ],
-            &[N, B, Aa],
+            &[N, B, A, Aa],
         ),
         (
             &[
                 rec(Nirugu, UnitPosition::Control),
                 rec(A, UnitPosition::Isol),
             ],
-            &[Nirugu, Zwnj, A],
+            &[Nirugu, Zwnj, A, Aa],
         ),
         (
             &[

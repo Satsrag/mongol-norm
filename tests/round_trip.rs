@@ -451,9 +451,10 @@ fn ab_shared_prefix_identical() {
 /// today — all 2237 pairs hold — and both the pair count and the violation count are pinned, so a
 /// regression shows up as a failure rather than as a slightly lower percentage.
 ///
-/// The count is sensitive to shape length, so unifying the duplicates moves it: expansion
-/// lengthened the shapes that held one (2237 -> 2241 with the five expanding rules alone) and the
-/// four contracting rules shorten others back (-> 2237 again). Zero violations throughout.
+/// The count is sensitive to shape length, so unifying the duplicates moves it: with all nine
+/// rules expanding (E1–E9, zero contraction in `shape`), chain-final `G`/`B2`/`<bowed>+Aa`/`A:isol`
+/// shapes expand to `…Aa`, leaving 2006 prefix pairs (down from 2240 under tail contraction).
+/// Zero violations throughout.
 #[test]
 fn corpus_real_pair_stability() {
     let shaper = shaper();
@@ -500,7 +501,7 @@ fn corpus_real_pair_stability() {
         pairs - violations,
         rate * 100.0
     );
-    assert_eq!(pairs, 2240, "corpus prefix-pair coverage drifted");
+    assert_eq!(pairs, 2006, "corpus prefix-pair coverage drifted");
     let report: Vec<String> = examples
         .iter()
         .map(|(a, b, full, prefix)| {

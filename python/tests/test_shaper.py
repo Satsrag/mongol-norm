@@ -103,12 +103,12 @@ class TestShape(unittest.TestCase):
             ["T", "A", "L", "Mvs", "Aa", "Mvs", "I", "I", "A"],
         )
 
-    # 1-2  a/e after MVS + FVS → default (no chachlag)
+    # 1-2  a/e after MVS + FVS → default (no chachlag; E9 expands standalone A:isol → A Aa)
     def test_step1_chachlag_mvs_a_fvs_default(self):
         # tal + MVS + a+FVS1 → a gets default (not chachlag)
         self.assertEqual(
             self.s.shape(_mgl("t a l mvs a fvs1")),
-            ["T", "A", "L", "Mvs", "A"],
+            ["T", "A", "L", "Mvs", "A", "Aa"],
         )
 
     # 1-3  a/e after an MVS (or NNBSP) take chachlag; an FVS right after the MVS
@@ -121,7 +121,7 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("ch mvs fvs1 a")), ["Ch", "Mvs", "Aa"])
         # ᠴ᠎᠌ᠠ - ch + MVS + FVS2 + a
         self.assertEqual(self.s.shape(_mgl("ch mvs fvs2 a")), ["Ch", "Mvs", "Aa"])
-        self.assertEqual(self.s.shape(_mgl("ch mvs a fvs1")), ["Ch", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("ch mvs a fvs1")), ["Ch", "Mvs", "A", "Aa"])
 
     def test_step1_chachlag_ignores_invalid_fvs(self):
         # The vowel takes chachlag whatever FVS follows it, as in the font. A valid FVS
@@ -135,8 +135,8 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("ch mvs e fvs4")), ["Ch", "Mvs", "Aa"])
         # A valid FVS still selects its own variant.
         self.assertEqual(self.s.shape(_mgl("ch mvs a fvs3")), ["Ch", "Mvs", "A", "A"])
-        self.assertEqual(self.s.shape(_mgl("ch mvs e fvs2")), ["Ch", "Mvs", "A"])
-        self.assertEqual(self.s.shape(_mgl("t a l mvs a fvs1")), ["T", "A", "L", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("ch mvs e fvs2")), ["Ch", "Mvs", "A", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("t a l mvs a fvs1")), ["T", "A", "L", "Mvs", "A", "Aa"])
 
     # ══════════════════════════════════════════════════════════
     # Step 2 · Syllabic — consonant/vowel context rules
@@ -231,7 +231,7 @@ class TestShape(unittest.TestCase):
         details = self.s.shape_detailed(_mgl("m n oe g e"))
         oe_tok = [d for d in details if d["alias"] == "oe"][0]
         self.assertEqual(oe_tok["condition"], "marked")
-        self.assertEqual(self.s.shape(_mgl("m n oe g e")), ["M", "N", "O", "I", "G", "Aa"])  # ᠮᠨᠥᠭᠡ
+        self.assertEqual(self.s.shape(_mgl("m n oe g e")), ["M", "N", "O", "I", "G", "A", "Aa"])  # ᠮᠨᠥᠭᠡ
 
     # 2-3  d.init before final vowel (no FVS) → marked (Twelve Syllabaries)
     def test_step2_d_marked(self):
@@ -314,21 +314,21 @@ class TestShape(unittest.TestCase):
         # postpones the MVS shaping then, and the font resets the MVS (`III.a_e.chachlag.GB`).
         # The vowel keeps chachlag unless a valid FVS picks its own variant.
         self.assertEqual(self.s.shape(_mgl("a n mvs a")), ["A", "A", "N", "Mvs", "Aa"])
-        self.assertEqual(self.s.shape(_mgl("a n mvs a fvs1")), ["A", "A", "A", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("a n mvs a fvs1")), ["A", "A", "A", "Mvs", "A", "Aa"])
         # The `Aa` here and the dotless g at the end follow the font's code (see iii1_chachlag_at).
         self.assertEqual(self.s.shape(_mgl("a n mvs a fvs4")), ["A", "A", "A", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("a j mvs e")), ["A", "A", "I", "Mvs", "Aa"])
-        self.assertEqual(self.s.shape(_mgl("a j mvs e fvs2")), ["A", "A", "J", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("a j mvs e fvs2")), ["A", "A", "J", "Mvs", "A", "Aa"])
         self.assertEqual(self.s.shape(_mgl("a w mvs a fvs3")), ["A", "A", "W", "Mvs", "A", "A"])
         # An FVS right after the MVS is not on the vowel: the onset stays.
         self.assertEqual(self.s.shape(_mgl("a n mvs fvs2 a")), ["A", "A", "N", "Mvs", "Aa"])
         # III.2g still sees a chachlag a: g after s stays dotless.
-        self.assertEqual(self.s.shape(_mgl("s g mvs a fvs1")), ["S", "H", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("s g mvs a fvs1")), ["S", "H", "Mvs", "A", "Aa"])
         # An FVS on the MVS itself keeps the onset, even with one on the vowel: the font's
         # reset wants the vowel right after the MVS.
-        self.assertEqual(self.s.shape(_mgl("a g mvs fvs3 a fvs1")), ["A", "A", "Hx", "Mvs", "A"])
-        self.assertEqual(self.s.shape(_mgl("a n mvs fvs1 a fvs1")), ["A", "A", "N", "Mvs", "A"])
-        self.assertEqual(self.s.shape(_mgl("a j nnbsp fvs1 e fvs2")), ["A", "A", "I", "Mvs", "A"])
+        self.assertEqual(self.s.shape(_mgl("a g mvs fvs3 a fvs1")), ["A", "A", "Hx", "Mvs", "A", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a n mvs fvs1 a fvs1")), ["A", "A", "N", "Mvs", "A", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a j nnbsp fvs1 e fvs2")), ["A", "A", "I", "Mvs", "A", "Aa"])
 
     def test_step2_chachlag_onset_fvs_on_consonant(self):
         # An FVS on the consonant before the MVS counts only when it selects a variant there,
@@ -351,9 +351,9 @@ class TestShape(unittest.TestCase):
         # This follows the font against GB's masculine final g (see
         # `precedes_mvs_and_isolated_a_e` in src/rules.rs).
         # An FVS on the vowel:
-        self.assertEqual(self.s.shape(_mgl("a g mvs a fvs1")), ["A", "A", "G", "Mvs", "A"])
-        self.assertEqual(self.s.shape(_mgl("a g nnbsp e fvs2")), ["A", "A", "G", "Mvs", "A"])
-        self.assertEqual(self.s.shape(_mgl("o g mvs a fvs4")), ["A", "O", "G", "Mvs", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a g mvs a fvs1")), ["A", "A", "I", "Aa", "Mvs", "A", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("a g nnbsp e fvs2")), ["A", "A", "I", "Aa", "Mvs", "A", "Aa"])
+        self.assertEqual(self.s.shape(_mgl("o g mvs a fvs4")), ["A", "O", "I", "Aa", "Mvs", "Aa"])
         # A joiner before the MVS (III.2c needs the MVS right after g/h):
         self.assertEqual(self.s.shape(_mgl("a g nirugu mvs a")), ["A", "A", "G", "Nirugu", "Mvs", "Aa"])
         self.assertEqual(self.s.shape(_mgl("a h zwj mvs a")), ["A", "A", "G", "Zwj", "Mvs", "Aa"])
@@ -456,10 +456,11 @@ class TestShape(unittest.TestCase):
         )
 
     def test_step2_g_feminine_after_fem(self):
-        # ᠥᠭ (oeg) — g(GA) after feminine vowel oe → feminine "G"
+        # ᠥᠭ (oeg) — g(GA) after feminine vowel oe → feminine "G" (E6: G:fina → I Aa)
+        self.assertEqual(self.s._shape_raw(_mgl("oe g")), ["A", "O", "I", "G"])
         self.assertEqual(
             self.s.shape(_mgl("oe g")),
-            ["A", "O", "I", "G"],
+            ["A", "O", "I", "I", "Aa"],
         )
 
     # 2-8a  g.medi adjacent to fem vowel → feminine via iii2f main rule
@@ -490,12 +491,12 @@ class TestShape(unittest.TestCase):
         #          it sits between masc source and g/h, not downstream)
         self.assertEqual(self.s._shape_raw(_mgl("a i g r e")), ["A", "A", "I", "I", "H", "R", "A"])
 
-    # 2-8d  i + g/h with marker BLOCKED or NOT REACHING → pattern 6 → feminine
+    # 2-8d  i + g/h with marker BLOCKED or NOT REACHING → pattern 6 → feminine (E6: G:fina → I Aa)
     def test_step2_g_i_marker_blocked(self):
-        # ᠠᠡᠢᠭ - fem e between masc a and g blocks marker → pattern 6 → "G"
-        self.assertEqual(self.s.shape(_mgl("a e i g")), ["A", "A", "A", "I", "I", "G"])
-        # ᠢᠭ - prev=i but no masc vowel anywhere → pattern 6 → "G"
-        self.assertEqual(self.s.shape(_mgl("i g")), ["A", "I", "G"])
+        # ᠠᠡᠢᠭ - fem e between masc a and g blocks marker → pattern 6 → "G" (E6 → I Aa)
+        self.assertEqual(self.s.shape(_mgl("a e i g")), ["A", "A", "A", "I", "I", "I", "Aa"])
+        # ᠢᠭ - prev=i but no masc vowel anywhere → pattern 6 → "G" (E6 → I Aa)
+        self.assertEqual(self.s.shape(_mgl("i g")), ["A", "I", "I", "Aa"])
 
     # 2-8c-h  Same scenarios as 2-8c but with h instead of g. h has different
     # observability: h.fina default == "H" == masc_devsger glyph, so h.fina
@@ -539,8 +540,8 @@ class TestShape(unittest.TestCase):
     # distinguishes our impl from the broader "remote harmony" prose in
     # the web docs (`mongfontbuilder/web/docs/hudum.mdx:189-220`).
     def test_step2_g_non_i_prev_no_remote(self):
-        # ᠣᠯᠭ - prev=l → default "G" (NOT H, despite remote masc o)
-        self.assertEqual(self.s.shape(_mgl("o l g")), ["A", "O", "L", "G"])
+        # ᠣᠯᠭ - prev=l → default "G" (E6 → I Aa; NOT H, despite remote masc o)
+        self.assertEqual(self.s.shape(_mgl("o l g")), ["A", "O", "L", "I", "Aa"])
         # ᠠᠯᠭᠷ - prev=l, g.medi with r after → default "G"
         self.assertEqual(self.s.shape(_mgl("a l g r")), ["A", "A", "L", "G", "R"])
 
@@ -568,7 +569,7 @@ class TestShape(unittest.TestCase):
         # Doc rule (5): remotely follows fem — output is G either way (default
         # equals feminine glyph), so this is just a tripwire confirming the
         # default form is what we expect.
-        self.assertEqual(self.s.shape(_mgl("e l g")), ["A", "L", "G"])
+        self.assertEqual(self.s.shape(_mgl("e l g")), ["A", "L", "I", "Aa"])
         self.assertEqual(self.s.shape(_mgl("e l g r")), ["A", "L", "G", "R"])
         # Doc rule (7): remotely precedes masc — iii2f.B forces feminine "G",
         # NOT the masculine_onset "Hx" that web docs describe. Verified
@@ -699,7 +700,7 @@ class TestShape(unittest.TestCase):
         # First one invalid: the letter takes its context form, as without FVSes
         self.assertEqual(
             self.s.shape(_mgl("i fvs4 fvs1 ch ng")),
-            ["A", "I", "Ch", "A", "G"],
+            ["A", "I", "Ch", "A", "I", "Aa"],
         )
         self.assertEqual(self.s.shape(_mgl("a t fvs3 fvs1 a")), ["A", "A", "D", "A"])
         # First one valid: it wins, and the repeat changes nothing
@@ -732,11 +733,11 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("d g mvs a")), ["T", "H", "Mvs", "Aa"])
 
         # Negative: rule 1 needs masc vowel — fem/neut/consonant don't fire
-        self.assertEqual(self.s.shape(_mgl("a s g i")), ["A", "A", "S", "G", "I"])   # neut i
-        self.assertEqual(self.s.shape(_mgl("a s g e")), ["A", "A", "S", "G", "Aa"])  # fem e (iii2f → feminine = G)
-        self.assertEqual(self.s.shape(_mgl("a s g n")), ["A", "A", "S", "G", "A"])   # consonant n
-        # Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire
-        self.assertEqual(self.s.shape(_mgl("s g")), ["S", "G"])
+        self.assertEqual(self.s.shape(_mgl("a s g i")), ["A", "A", "S", "G", "I"])         # neut i
+        self.assertEqual(self.s.shape(_mgl("a s g e")), ["A", "A", "S", "G", "A", "Aa"])   # fem e (iii2f → G, E8 → G+A+Aa)
+        self.assertEqual(self.s.shape(_mgl("a s g n")), ["A", "A", "S", "G", "A"])         # consonant n
+        # Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire (raw S+G → E6 S+I+Aa)
+        self.assertEqual(self.s.shape(_mgl("s g")), ["S", "I", "Aa"])
         # Negative: prev letter must be s or d
         self.assertEqual(self.s._shape_raw(_mgl("a g a")), ["A", "A", "Hx", "A"])    # iii2f masc_onset (`Hx:medi`)
         self.assertEqual(self.s.shape(_mgl("n g mvs a")), ["N", "Hx", "Mvs", "Aa"])  # iii2c chachlag_onset
@@ -1042,41 +1043,41 @@ class TestShape(unittest.TestCase):
     #                                                 explicitly excluded)
     # All values verified against `DraftNew-Regular.otf` via hb-shape.
 
-    # 5-1  bowedB (b/p/f) + vowel.fina → post_bowed
+    # 5-1  bowedB (b/p/f) + vowel.fina → post_bowed (E8 expands <bowed>+Aa:fina → <bowed>+A+Aa)
     def test_step5_post_bowed_after_b(self):
-        # ᠪᠠ - a.fina post_bowed → "Aa"
-        self.assertEqual(self.s.shape(_mgl("b a")), ["B", "Aa"])
-        # ᠪᠡ - e.fina post_bowed → "Aa"
-        self.assertEqual(self.s.shape(_mgl("b e")), ["B", "Aa"])
+        # ᠪᠠ - a.fina post_bowed → raw Aa → E8 A+Aa
+        self.assertEqual(self.s.shape(_mgl("b a")), ["B", "A", "Aa"])
+        # ᠪᠡ - e.fina post_bowed → raw Aa → E8 A+Aa
+        self.assertEqual(self.s.shape(_mgl("b e")), ["B", "A", "Aa"])
         # ᠪᠣ - o.fina post_bowed → "O" (also iii2a.marked applies; same glyph)
         self.assertEqual(self.s.shape(_mgl("b o")), ["B", "O"])
-        # ᠫᠠ - p (bowedB) + a → "Aa"
-        self.assertEqual(self.s.shape(_mgl("p a")), ["P", "Aa"])
+        # ᠫᠠ - p (bowedB) + a → raw Aa → E8 A+Aa
+        self.assertEqual(self.s.shape(_mgl("p a")), ["P", "A", "Aa"])
         # ᠹᠢ - i.fina after F: i is NOT in the post_bowed input set → "I"
         self.assertEqual(self.s.shape(_mgl("f i")), ["F", "I"])
 
     # 5-2  bowedK (k/k2) + vowel.fina → post_bowed
     def test_step5_post_bowed_after_k(self):
-        # ᠻᠠ - k + a.fina → "Aa"
-        self.assertEqual(self.s.shape(_mgl("k a")), ["K", "Aa"])
-        # ᠺᠡ - k2 + e.fina → "Aa"
-        self.assertEqual(self.s.shape(_mgl("k2 e")), ["K2", "Aa"])
+        # ᠻᠠ - k + a.fina → raw Aa → E8 A+Aa
+        self.assertEqual(self.s.shape(_mgl("k a")), ["K", "A", "Aa"])
+        # ᠺᠡ - k2 + e.fina → raw Aa → E8 A+Aa
+        self.assertEqual(self.s.shape(_mgl("k2 e")), ["K2", "A", "Aa"])
 
     # 5-3  bowedG (g/h with feminine form G/Gx) + e.fina → post_bowed
     # G/Gx only appears when g/h gets `feminine` from iii2f. With masc
     # vowel context (g+a), g becomes Hx instead — NOT bowed.
     def test_step5_post_bowed_after_g(self):
-        # ᠭᠡ - g.init + e: g→feminine "G", e.fina post_bowed → "Aa"
-        self.assertEqual(self.s.shape(_mgl("g e")), ["G", "Aa"])
+        # ᠭᠡ - g.init + e: g→feminine "G", e.fina post_bowed → raw Aa → E8 A+Aa
+        self.assertEqual(self.s.shape(_mgl("g e")), ["G", "A", "Aa"])
         # ᠥᠭᠡ - oe.init + g.medi + e.fina: g→feminine "G", e post_bowed
         self.assertEqual(
             self.s.shape(_mgl("oe g e")),
-            ["A", "O", "I", "G", "Aa"],
+            ["A", "O", "I", "G", "A", "Aa"],
         )
         # ᠪᠣᠭᠡ - composite: b+o+g.medi+e.fina
         self.assertEqual(
             self.s.shape(_mgl("b o g e")),
-            ["B", "O", "G", "Aa"],
+            ["B", "O", "G", "A", "Aa"],
         )
 
     # 5-4  g.init + a (masc): g becomes Hx (masc_onset), NOT G — so a does
@@ -1111,10 +1112,10 @@ class TestShape(unittest.TestCase):
         self.assertEqual(self.s.shape(_mgl("ch ng ue")), ["Ch", "A", "G", "U"])
         # ᠩᠡ - ŋ.init + e.fina
         self.assertEqual(self.s.shape(_mgl("ng e")), ["A", "G", "A"])
-        # ᠡᠩᠭᠡ - the usual spelling ŋ + g: e follows g's own G, which is bowed
+        # ᠡᠩᠭᠡ - the usual spelling ŋ + g: e follows g's own G, which is bowed (E8 → G+A+Aa)
         self.assertEqual(
             self.s.shape(_mgl("e ng g e")),
-            ["A", "A", "G", "G", "Aa"],
+            ["A", "A", "G", "G", "A", "Aa"],
         )
 
     # ══════════════════════════════════════════════════════════
@@ -1200,12 +1201,16 @@ class TestShape(unittest.TestCase):
     # (counter-example: EAC XIM11-1012 expects `Hx` here.)
 
     def test_utn_g_fvs2_blocks_chachlag_onset(self):
-        # `b a g fvs2 mvs a` — UTN: g.fvs2=G (feminine, user wins).
-        # `b a g fvs2 mvs a` — UTN: g.fvs2=G (阴性变体, 用户胜)。
+        # `b a g fvs2 mvs a` — UTN: g.fvs2=G (feminine, user wins; E6 expands G:fina → I Aa).
+        # `b a g fvs2 mvs a` — UTN: g.fvs2=G (阴性变体, 用户胜; E6 展开 G:fina → I Aa)。
         # EAC counter-example: expects Hx (chachlag_onset).
         self.assertEqual(
-            self.s.shape(_mgl("b a g fvs2 mvs a")),
+            self.s._shape_raw(_mgl("b a g fvs2 mvs a")),
             ["B", "A", "G", "Mvs", "Aa"],
+        )
+        self.assertEqual(
+            self.s.shape(_mgl("b a g fvs2 mvs a")),
+            ["B", "A", "I", "Aa", "Mvs", "Aa"],
         )
 
     def test_utn_n_fvs3_keeps_chachlag_onset(self):
@@ -1354,17 +1359,25 @@ class TestDuplicateEncodings(unittest.TestCase):
         self.assertEqual(self.s.shape("᠊ᡂ᠊"), ["Nirugu", "O", "O", "Nirugu"])    # Cr:medi
         self.assertEqual(self.s.shape("᠊ᡂ"), ["Nirugu", "O", "O"])               # Cr:fina
 
-    def test_contracted_duplicates(self):
-        # Choose the shorter form only in its verified position and bowed written unit context.
-        self.assertEqual(self.s.shape("ᠡᠠ᠋"), ["A"])                # A:isol
-        self.assertEqual(self.s.shape("ᠪᠠᠠ᠋"), ["B", "Aa"])         # Aa:fina
-        self.assertEqual(self.s.shape("᠊ᠤᠠ᠋"), ["Nirugu", "B2"])    # B2:fina
-        self.assertEqual(self.s.shape("᠊ᠢᠠ᠋"), ["Nirugu", "G"])     # G:fina
+    def test_post_control_expanded_duplicates(self):
+        # All four chain-tail duplicates (E6–E9) also unify by expansion in shape().
+        self.assertEqual(self.s.shape("ᠡ"), ["A", "Aa"])                  # E9 A:isol
+        self.assertEqual(self.s.shape("ᠡᠠ᠋"), ["A", "Aa"])
+        self.assertEqual(self.s.shape("ᠪᠠ"), ["B", "A", "Aa"])            # E8 <bowed>+Aa:fina
+        self.assertEqual(self.s.shape("ᠪᠠᠠ᠋"), ["B", "A", "Aa"])
+        self.assertEqual(self.s.shape("᠊ᠪ᠋"), ["Nirugu", "O", "Aa"])      # E7 B2:fina
+        self.assertEqual(self.s.shape("᠊ᠤᠠ᠋"), ["Nirugu", "O", "Aa"])
+        self.assertEqual(self.s.shape("᠊ᠭ"), ["Nirugu", "I", "Aa"])       # E6 G:fina
+        self.assertEqual(self.s.shape("᠊ᠢᠠ᠋"), ["Nirugu", "I", "Aa"])
+        # Lone Zwj+G / Zwj+B2 stay unexpanded.
+        self.assertEqual(self.s.shape("\u200dᠭ"), ["Zwj", "G"])
+        self.assertEqual(self.s.shape("\u200dᠪ᠋"), ["Zwj", "B2"])
 
-    def test_aa_contraction_requires_immediate_bowed_unit(self):
+    def test_bowed_aa_expansion_requires_immediate_bowed_unit(self):
         for bowed_unit in ("B", "P", "F", "G", "Gx", "K", "K2"):
             for units, expected in (
-                ([bowed_unit, "A", "Aa"], [bowed_unit, "Aa"]),
+                ([bowed_unit, "Aa"], [bowed_unit, "A", "Aa"]),
+                ([bowed_unit, "A", "Aa"], [bowed_unit, "A", "Aa"]),
                 ([bowed_unit, "A", "A", "Aa"], [bowed_unit, "A", "A", "Aa"]),
                 ([bowed_unit, "H", "Aa"], [bowed_unit, "A", "A", "Aa"]),
             ):

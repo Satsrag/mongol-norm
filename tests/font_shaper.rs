@@ -106,8 +106,9 @@ fn characters_of_other_writing_systems_are_unsupported() {
 
 #[test]
 fn an_fvs_is_never_a_unit() {
-    // Valid: FVS1 selects the isolated `A` of ᠠ.
-    assert_eq!(shape("ᠠ᠋"), ["A"]);
+    // Valid: FVS1 selects the isolated `A` of ᠠ, which E9 expands to `A Aa`.
+    assert_eq!(raw("ᠠ᠋"), ["A"]);
+    assert_eq!(shape("ᠠ᠋"), ["A", "Aa"]);
     // Invalid: the font draws a placeholder for an FVS4 ᠠ has no variant for; the crate,
     // like the rule engine, reports the letter alone.
     assert_eq!(shape("ᠠ᠏"), ["A", "A"]);
@@ -155,7 +156,7 @@ fn a_zwj_the_ligature_skipped_is_dropped_from_the_public_shape() {
     assert_eq!(shape("ᠪ\u{200D}ᠣ"), ["B", "O"]);
     // Same for a final `Aa` the edge table would otherwise keep a trailing joiner after.
     assert_eq!(raw("ᠪ\u{200D}ᠠ"), ["B", "Aa", "Zwj"]);
-    assert_eq!(shape("ᠪ\u{200D}ᠠ"), ["B", "Aa"]);
+    assert_eq!(shape("ᠪ\u{200D}ᠠ"), ["B", "A", "Aa"]);
     // A joiner after the ligature is not skipped: it is a redundant interior joiner.
     let glyphs = font.shape_glyphs("ᠪᠣ\u{200D}ᠯ").unwrap();
     assert!(glyphs.iter().all(|g| !g.skipped));
@@ -185,7 +186,7 @@ fn joiners_at_the_edges_follow_the_shared_redundant_zwj_pass() {
         "ᠯᠢ\u{200D}ᠡ᠋",
     ]);
     assert_eq!(shape("\u{200D}"), ["Zwj"]);
-    assert_eq!(shape("ᠯᠢ\u{200D}ᠡ᠋"), ["L", "G"]);
+    assert_eq!(shape("ᠯᠢ\u{200D}ᠡ᠋"), ["L", "I", "Aa"]);
 }
 
 #[test]
@@ -195,7 +196,7 @@ fn a_zwnj_is_a_unit() {
     assert_eq!(shape("ᠲᠠᠯ\u{200C}ᠠ"), ["T", "A", "L", "Zwnj", "A", "A"]);
     // The raw edge break survives; the public shape removes it, as in the rule engine.
     assert_eq!(raw("\u{200C}ᠪᠠ"), ["Zwnj", "B", "Aa"]);
-    assert_eq!(shape("\u{200C}ᠪᠠ"), ["B", "Aa"]);
+    assert_eq!(shape("\u{200C}ᠪᠠ"), ["B", "A", "Aa"]);
     assert_eq!(shape("\u{200C}"), ["Zwnj"]);
     assert_like_the_engine(&[
         "\u{200C}",
