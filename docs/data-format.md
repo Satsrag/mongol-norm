@@ -363,38 +363,37 @@ tbl = load_normalize_table("MNG")   # -> dict
 Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
 
 1. `shape()` the whole word to obtain its target written units (needs the shape rules). Structural characters — MVS, nirugu, ZWJ, ZWNJ — appear in the shape as PascalCase `Mvs`/`Nirugu`/`Zwj`/`Zwnj` tokens. Context rules may look through ZWNJ while resolving this target. The shape-to-Unicode encoder works from these resolved units, not from independently reshaped pieces of the original text. Structural tokens divide letter chains; a letter directly next to a joiner (`Nirugu`/`Zwj`) looks its unit up at the shifted position (e.g. a lone unit between two nirugus is `medi`, not `isol`). `Zwnj` never pads joining positions.
-1a. **Canonicalize controls.** For a port starting from raw resolved written units, repeatedly
-   merge consecutive identical ZWJ/ZWNJ/MVS units, run the complete existing ZWJ filter, and
-   scan ZWNJs once from left to right. Stop after an unchanged complete round. Remove a ZWNJ
-   only when every affected letter's position is unchanged or covered by its reviewed
-   positional equivalence. Preserve a whole-sequence `[Zwj]` or `[Zwnj]`, and preserve Nirugu
-   count and order. See [control post-processing](internals.md#control-character-post-processing).
-   `shape()` already performs this step and the following duplicate unification.
-1b. **Unify the duplicate encodings once.** Nine written units render as exactly the same ink as a sequence of other units, so a port that leaves them in will produce two canonical texts for one visible word (ᠠᠷᠠᠳ vs ᠠᠷᠠᠤᠠ). Positions are the chain slots of step 1 — a nirugu/ZWJ neighbour pads the chain, so a unit next to one can be final even though something precedes it.
+1a. **Pre-control expansion (`expand_pre`, E1–E5) and control canonicalization.** For a port starting from raw resolved written units, first expand single-unit duplicates in one left-to-right pass over each chain (chain positions padded by adjacent `Nirugu`/`Zwj`):
 
-   First **expand**, in one left-to-right pass over each chain:
+   | Rule | unit | position | replace with |
+   |---|---|---|---|
+   | E1–E2 | `Dd` | `medi`, `fina` (its only positions) | `O A` |
+   | E3 | `H`  | `medi` | `A A` |
+   | E4 | `Hx` | `medi` | `N N` |
+   | E5 | `Cr` | `isol`, `init`, `medi`, `fina` (all positions) | `O O` |
 
-   | unit | position | replace with |
-   |---|---|---|
-   | `Dd` | `medi`, `fina` (its only positions) | `O A` |
-   | `H`  | `medi` | `A A` |
-   | `Hx` | `medi` | `N N` |
-   | `Cr` | `isol`, `init`, `medi`, `fina` (all positions) | `O O` |
+   Then repeatedly merge consecutive identical `Zwj`/`Zwnj`/`Mvs` units, run the complete existing ZWJ filter, and scan ZWNJs once from left to right. Stop after an unchanged complete round. Remove a ZWNJ only when every affected letter's position is unchanged or covered by its reviewed positional equivalence. Preserve a whole-sequence `[Zwj]` or `[Zwnj]`, and preserve Nirugu count and order. See [control post-processing](internals.md#control-character-post-processing).
 
-   Then inspect the final adjacent pair **once** and contract only in its verified context. The shorter form is canonical; this is not an unconditional fixed-point rewrite. Here *position* is the position the merged unit takes in the shortened chain:
+   In shaping (`shape()`), follow control canonicalization with **post-control chain-tail expansion** (`expand_post`, E6–E9, chain-final only with `pad_right == 0`), so public `shape()` unifies all nine duplicates strictly by expansion (never merging):
+   - **E6:** `G:fina → I Aa` when preceded by a same-chain letter or `Nirugu` (not lone `Zwj+G`);
+   - **E7:** `B2:fina → O Aa` when preceded by a same-chain letter or `Nirugu` (not lone `Zwj+B2`);
+   - **E8:** `<bowed> + Aa:fina → <bowed> + A Aa` when immediately preceded in the same chain by `<bowed> ∈ {B, P, F, G, Gx, K, K2}`;
+   - **E9:** `A:isol → A Aa` when standalone with no adjacent joiner (`pad_left == 0 && pad_right == 0`).
 
-   | pair | merged position | replace with |
-   |---|---|---|
-   | `A Aa` | `isol` | `A` |
-   | `A Aa`, immediately preceded by a bowed written unit in the same chain | `fina` | `Aa` |
-   | `O Aa` | `fina` | `B2` |
-   | `I Aa` | `fina` | `G` |
+1b. **Contract chain-tail pairs before table lookup (`contract`, C1–C4).** Normalization contracts the four chain-final expansions back to the compact unit keys in `MNG.normalize.json` (inspecting the final adjacent pair of each chain **once**, with `pad_right == 0`; here *merged position* is the position the merged unit takes in the shortened chain):
 
-   The complete Hudum bowed written unit set is `B P F G Gx K K2`, from the [Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and [upstream required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts), also reflected in `src/rules.rs`'s post-bowed classes. `Aa:fina` has a tooth immediately after a bowed written unit, but no tooth otherwise. Thus `B A Aa → B Aa`, while `N A Aa`, `A A Aa`, and `B A A Aa` remain intact. Joiner padding supplies position, not a bowed written unit; never match across structural tokens. The independent whole-chain `A:init Aa:fina → A:isol` rule stays.
+   | Rule | pair | merged position | replace with |
+   |---|---|---|---|
+   | C1 | `A Aa` | `isol` | `A` |
+   | C2 | `A Aa`, immediately preceded by a bowed written unit in the same chain | `fina` | `Aa` |
+   | C3 | `O Aa` | `fina` | `B2` |
+   | C4 | `I Aa` | `fina` | `G` |
 
-   Initial/final `H`/`Hx` and a lone `A` are unchanged. One expansion pass suffices: neither direction emits expansion targets or exposes initial/final `H`/`Hx` as medial. All contractions end the chain; `A/B2/G` cannot contract again, and a contracted `Aa` follows a bowed written unit rather than `A/O/I`. This proves idempotence without repeated deletion. In particular `Dd Aa → O A Aa` cannot then contract: `O` is not a bowed written unit. See the 168 421-input exhaustion and context regressions in `src/duplicates.rs`.
+   The complete Hudum bowed written unit set is `B P F G Gx K K2`, from the [Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and [upstream required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts), also reflected in `src/rules.rs`'s post-bowed classes. `Aa:fina` has a tooth immediately after a bowed written unit, but no tooth otherwise. Thus `B Aa ↔ B A Aa`, while `N A Aa`, `A A Aa`, and `B A A Aa` remain intact. Joiner padding supplies position, not a bowed written unit; never match across structural tokens.
 
-   UTN #57 and GB/T 25914-2023 keep all nine as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-unification sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs).
+   Initial/final `H`/`Hx` and lone `Zwj+G` / `Zwj+B2` are unchanged. `expand_post` preserves control canonicalization (`canonical_controls(expand_post(s)) == expand_post(s)`), `canonical_units` is idempotent, and `expand_post` and `contract` form an exact 1-to-1 bijection on control-canonicalized shapes. In particular `Dd Aa → O A Aa` cannot trigger E8 or C2 because `O` is not a bowed written unit. See the exhaustive regressions in [`src/duplicates.rs`](../src/duplicates.rs).
+
+   UTN #57 and GB/T 25914-2023 keep all nine as distinct units — their EAC vectors spell ᠠᠷᠭᠠᠯ `A A R Hx A L` — so a *shaping* conformance test must compare against the pre-unification sequence (mongol-norm exposes it as the non-public `Shaper::shape_raw`). Reference: [`src/duplicates.rs`](../src/duplicates.rs) (shaping calls `expand_pre`/`expand_post`; normalization calls `contract`).
 2. Split the canonical target at the remaining `Zwnj` units, retaining empty segments for a singleton `[Zwnj]`. Encode each segment independently, without passing context across ZWNJ. Within a segment, retain the existing MVS suffix and chachlag rules and split at the remaining structural tokens. For each letter chain, left-to-right, pick at each position the single unit if the table has it, else the longest multi-unit entry present; emit `cp` (+ `fvs` when non-null).
 3. Velar-feminine refinement: for an `init`/`medi` `G`/`Gx`, if the following vowel is a masculine `a`/`o`/`u`, replace it with the `velar_fem` encoding of that unit.
 4. Verify each encoded segment independently against its exact target shape, reinsert one U+200C per `Zwnj`, then verify the complete output against the whole target. No segment may depend on a neighbour across ZWNJ to display correctly. If a segment or the complete result cannot preserve its target, strict normalization raises a fallback; lenient normalization (`strict=False` / `--allow-fallback`) returns the complete original word, and unit input reports no canonical encoding. No partial output is returned.

@@ -64,9 +64,10 @@ impl Shaper {
     /// Encode an ordered written-unit sequence (e.g. the output of [`Shaper::shape`]) as
     /// canonical Unicode. Letter positions are inferred from order and the structural tokens;
     /// ZWJ is emitted only where `Zwj` is present in the request *and* changes the ink — the
-    /// request goes through the same control canonicalization and duplicate unification as
-    /// [`Shaper::shape`], so `[L, I, Zwj, Aa]` is encoded as `L G`, exactly like the text
-    /// `ᠯᠢ\u{200D}ᠡ᠋`. The result is accepted only if it reshapes to that folded sequence.
+    /// request goes through the same control canonicalization and duplicate expansion as
+    /// [`Shaper::shape`] (then contracts the four chain-tail pairs for table lookup), so
+    /// `[L, I, Zwj, Aa]` is encoded as `ᠯᠭ᠌`, exactly like the text `ᠯᠢ\u{200D}ᠡ᠋`. The result is
+    /// accepted only if it reshapes to that folded sequence.
     ///
     /// Redundant ZWNJs are removed and consecutive identical ZWJ/ZWNJ/MVS units are merged.
     /// Each segment between remaining breaks is encoded independently and must reshape to its
@@ -91,11 +92,12 @@ impl Shaper {
         }
         // Duplicate encodings and redundant controls are accepted on input — `Dd`, medial H/Hx
         // and structural controls are real units in the standard and callers' data — and folded
-        // before encoding, exactly as `shape` folds them, so they get the same canonical text as
-        // the sequence they render identically to.
-        let units = self.canonical_units(units);
-        let canonical = self.canonical_for_shape(&units)?;
-        if canonical.is_empty() || self.shape(&canonical)? != units {
+        // via `canonical_units` then contracted (`C1–C4`) before table lookup, so they get the
+        // exact same canonical text as `normalize` produces for the sequence they render
+        // identically to.
+        let norm_target = self.norm_target_units(units);
+        let canonical = self.canonical_for_shape(&norm_target)?;
+        if canonical.is_empty() || self.norm_shape(&canonical)? != norm_target {
             return Err(Error::NoCanonicalEncoding);
         }
         Ok(canonical)
@@ -167,7 +169,8 @@ impl Shaper {
     /// - incomplete `medi` / `fina` edges without an adjacent `Nirugu`, plus lone `A:init`,
     ///   `I:init` and `O:init` sub-chains, receive an implicit `Zwj`;
     /// - the expanded written-unit sequence is then folded with [`Shaper::canonical_units`]
-    ///   (single-unit duplicate expansion, control canonicalization, and chain-tail contraction).
+    ///   (pre-control duplicate expansion, control canonicalization, and post-control chain-tail
+    ///   expansion).
     ///
     /// Whenever [`Shaper::normalize_positioned_written_units`] succeeds on `records`, its output
     /// reshapes via [`Shaper::shape`] to the exact sequence returned here. An empty slice returns

@@ -5,14 +5,15 @@
 //! into their joined (`init` / `medi` / `fina`) forms. Where the neighbours already join, or
 //! where the joined form is the same ink as the unjoined one, the ZWJ is invisible. Keeping it as
 //! a `Zwj` unit would break the crate's one promise — same ink ⟹ same `shape` — because the token
-//! also stops duplicate unification from crossing it: ᠯᠢᠡ᠋ is `L G`, ᠯᠢ+ZWJ+ᠡ᠋ was `L I Zwj Aa`.
+//! also stops duplicate unification from crossing it: ᠯᠢᠡ᠋ is `L I Aa`, ᠯᠢ+ZWJ+ᠡ᠋ was
+//! `L I Zwj Aa` (and ᠪ‍ᠠ᠋ was `B Zwj Aa` instead of `B A Aa`).
 //!
 //! The filter runs on the written-unit sequence — after the rules resolved every letter and
-//! single-unit duplicates expanded ([`crate::duplicates::expand`]), and **before** tail-pair
-//! contraction ([`crate::duplicates::contract`]) — so it has the same view of the word whether
-//! the units came from `shape` or were handed in through `normalize_written_units`. FVS marks are
-//! already bound to their letters at this point, so removing the token can never re-attach a
-//! selector to a different letter.
+//! single-unit duplicates expanded ([`crate::duplicates::expand_pre`]), and **before** post-control
+//! chain-tail expansion ([`crate::duplicates::expand_post`]) — so it has the same view of the word
+//! whether the units came from `shape` or were handed in through `normalize_written_units`. FVS
+//! marks are already bound to their letters at this point, so removing the token can never
+//! re-attach a selector to a different letter.
 //!
 //! # Rules (left to right, repeated until nothing changes)
 //!

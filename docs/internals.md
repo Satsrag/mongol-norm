@@ -30,12 +30,27 @@ the sections below.
 
 ## Control-character post-processing
 
-After raw shaping, public shape and the written-unit encoders first expand single-unit
-duplicates (`Dd`, `Cr`, medial `H`, medial `Hx`), then run complete control rounds:
-merge consecutive identical `Zwj`, `Zwnj`, and `Mvs`; run the complete ZWJ filter;
-then scan ZWNJs once from left to right. Repeat until a complete round makes no change,
-then contract chain-tail duplicate pairs once. Each changing round removes at least one
-control, so finite inputs terminate. Nirugu count and order are preserved.
+After raw shaping, public shape (`Shaper::shape`, `FontShaper::shape`, `canonical_units`,
+`canonical_positioned_units`, `trace.shape`) runs a three-stage, **expansion-only** pipeline:
+
+```text
+Shaping:       raw ─► expand_pre (E1–E5) ─► canonical_controls ─► expand_post (E6–E9)
+Normalization: shape ─► contract (C1–C4) ─► encode & verify (unchanged MNG.normalize.json)
+```
+
+First, `expand_pre` expands single-unit duplicates (`Dd`, `Cr`, medial `H`, medial `Hx`). Next,
+`canonical_controls` runs complete control rounds: merge consecutive identical `Zwj`, `Zwnj`, and
+`Mvs`; run the complete ZWJ filter; then scan ZWNJs once from left to right. Repeat until a
+complete round makes no change. Each changing round removes at least one control, so finite inputs
+terminate. Nirugu count and order are preserved. Finally, `expand_post` expands the four
+chain-final duplicate units (`G:fina`, `B2:fina`, `<bowed> + Aa:fina`, standalone `A:isol`) once,
+leaving lone `Zwj+G` / `Zwj+B2` intact so no new redundant control is ever introduced (no outer
+fixpoint loop is needed).
+
+Normalization alone calls `contract` (defined alongside `expand_pre`/`expand_post` in
+`src/duplicates.rs`, invoked only from `src/normalize.rs`): right before table lookup, it applies
+the exact inverse tail-pair contractions (`C1–C4`) so `MNG.normalize.json` and canonical Unicode
+output (`mng-canonical/5`) stay 100% byte-identical.
 
 For each ZWNJ, simulate removing only that unit using the current sequence. MVS and ZWNJ
 break joining chains; ZWJ and Nirugu provide joining context. Remove the break only when
@@ -61,13 +76,16 @@ their joined (`init` / `medi` / `fina`) forms. (v1/v2 also used a mid-word ZWJ a
 delimiter* that changed the following vowel; v3 withdrew that, and so did the reference font.)
 Where the neighbours already join, or where the joined form is the same ink as the unjoined one,
 the ZWJ is invisible — yet kept as a `Zwj` token it broke "same shape ⟹ same `normalize`" (ᠯᠢᠡ᠋
-is `L G`, ᠯᠢ + ZWJ + ᠡ᠋ was `L I Zwj Aa`, because the token also stopped duplicate unification from
-crossing it). Issue #33 has the full study.
+is `L I Aa`, ᠯᠢ + ZWJ + ᠡ᠋ was `L I Zwj Aa`, and ᠪ‍ᠠ᠋ was `B Zwj Aa` instead of `B A Aa`, because
+the token also stopped post-control duplicate expansion from seeing the adjacent letters). Issue #33
+has the full study.
 
 `shape` therefore drops every ZWJ that changes no glyph. The filter (`src/redundant_zwj.rs`) runs
-on the written-unit sequence after the rules resolved every letter and **before** duplicate
-unification — so a joiner that separated `I Aa` no longer blocks the `G` contraction — and it is
-the same function for `shape`, `trace` and `normalize_written_units`, so `[L, I, Zwj, Aa]` and the
+on the written-unit sequence after the rules resolved every letter and `expand_pre` (E1–E5) ran,
+and **before** `expand_post` (E6–E9) — so dropping a redundant joiner or break automatically lets
+`expand_post` expand exposed pairs (`ᠪ‍ᠠ᠋` / `ᠪ‌ᠠ᠌` → `B Aa` → `B A Aa`) — and it is
+the same function for `shape`, `trace`, `canonical_units`, `FontShaper::shape`, and
+`normalize_written_units`, so `[L, I, Zwj, Aa]` and the
 text `ᠯᠢ‍ᠡ᠋` are one contract. `shape_raw`, `shape_detailed` and the trace tokens keep every
 ZWJ of the input. Everything below is about written units: a *letter unit* is any written unit
 other than the structural `Mvs`, `Nirugu`, `Zwj` and `Zwnj` (`WrittenUnit::is_structural`), and `U` names
@@ -167,8 +185,9 @@ ZWNJ + FVS3 is `T A Zwnj`), after the isolated a/e that follows an MVS it postpo
 onset of the consonant before the MVS (`a j` NNBSP `a` + ZWNJ + FVS4 keeps `J`), and a particle
 ends unmatched (`MVS ue` + ZWNJ + FVS3 is `Mvs A Ue Zwnj`). The `Zwnj` is a segment edge for the
 ZWJ rules. The shared control pass removes it only under the reviewed positional rules;
-duplicate unification does not contract across a remaining break (`L I Zwnj Aa` stays,
-`l i e᠋` is `L G`). `shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
+a remaining break still splits letter chains for both post-control expansion and normalization
+contraction (`L I Zwnj Aa` stays `L I Zwnj Aa`, while `l i e᠋` is `L I Aa` and encodes to `ᠯᠭ᠌`).
+`shape_raw`, `shape_detailed` and the trace tokens keep every ZWNJ.
 
 ## Duplicate encodings
 
@@ -176,33 +195,48 @@ duplicate unification does not contract across a remaining break (`L I Zwnj Aa` 
 this crate's whole reason to exist. Nine written units break that promise: they render as exactly
 the same ink as a sequence of other units, so two spellings of one word shaped differently.
 
-Five are unified by **expanding** the single unit into the pair:
+All nine are unified in `shape` strictly by **expansion** (1 → 2, never merging), split into two
+passes around `canonical_controls` (all duplicate rules live together in `src/duplicates.rs`, with
+separate call sites in `src/shaper.rs` and `src/normalize.rs`):
 
-| duplicate | public shape | witness pair |
-|---|---|---|
-| `Dd:medi` | `O:medi A:medi` | ᠣᠳᠪᠣ / ᠠ᠋ᠣᠣᠠᠪᠣ᠋ |
-| `Dd:fina` | `O:medi A:fina` | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
-| `H:medi`  | `A:medi A:medi` | ᠪᠠᠭᠰᠢ / ᠪᠠᠠᠠᠰᠢ |
-| `Hx:medi` | `N:medi N:medi` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
-| `Cr`      | `O O`           | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
+### `expand_pre` (E1–E5, before `canonical_controls`)
 
-Four other forms unify by **contraction**, choosing the shorter canonical form only in the
-verified position and context. `Aa:fina` has a tooth immediately after a bowed written unit and no tooth
-elsewhere; repeated insertion/deletion of `A` would not preserve the ink:
+| Rule | Duplicate | Expands to | Condition | Witness pair |
+|---|---|---|---|---|
+| E1 | `Dd:medi` | `O:medi A:medi` | Always (`Dd` only occurs at `medi` / `fina`) | ᠣᠳᠪᠣ / ᠠ᠋ᠣᠣᠠᠪᠣ᠋ |
+| E2 | `Dd:fina` | `O:medi A:fina` | Always | ᠠᠷᠠᠳ / ᠠᠷᠠᠤᠠ |
+| E3 | `H:medi`  | `A:medi A:medi` | `medi` only; keep `H:init` and `H:fina` | ᠪᠠᠭᠰᠢ / ᠪᠠᠠᠠᠰᠢ |
+| E4 | `Hx:medi` | `N:medi N:medi` | `medi` only; keep `Hx:init` and `Hx:fina` | ᠠᠷᠭᠠᠯ / ᠠ᠋ᠠᠷᠨ᠋ᠨ᠋ᠠᠯ |
+| E5 | `Cr`      | `O O`           | All positions (`isol` / `init` / `medi` / `fina`) | ᡂ᠊ / ᠤ᠋ᠤ᠊ |
 
-| pair | public shape | witness pair |
-|---|---|---|
-| `A Aa` spanning a whole chain | `A:isol`  | ᠡ / ᠡᠠ᠋ |
-| `bowed written unit A:medi Aa:fina` | `bowed written unit Aa:fina` | ᠪᠠ / ᠪᠠᠠ᠋ |
-| `O Aa` ending a chain         | `B2:fina` | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
-| `I Aa` ending a chain         | `G:fina`  | ᠊ᠭ / ᠊ᠢᠠ᠋ |
+### `expand_post` (E6–E9, after `canonical_controls`; chain-final only, `pad_right == 0`)
+
+| Rule | Duplicate | Expands to | Condition | Witness pair |
+|---|---|---|---|---|
+| E6 | `G:fina` | `I Aa` | Preceded by a same-chain letter or `Nirugu` (not lone `Zwj+G`) | ᠯᠭ᠌ / ᠯᠢᠡ᠋ |
+| E7 | `B2:fina` | `O Aa` | Preceded by a same-chain letter or `Nirugu` (not lone `Zwj+B2`) | ᠊ᠪ᠋ / ᠊ᠤᠠ᠋ |
+| E8 | `<bowed> + Aa:fina` | `<bowed> + A + Aa` | Preceded immediately in the same chain by `<bowed>` | ᠪᠠ / ᠪᠠᠠ᠋ |
+| E9 | `A:isol` | `A Aa` | Standalone `A` with no adjacent joiner (`pad_left == 0 && pad_right == 0`) | ᠡ / ᠡᠠ᠋ |
+
+### `contract` (C1–C4, called only by normalization)
+
+Before table lookup in `normalize`, the four chain-final expansions are contracted back to their
+short canonical table forms (`pad_right == 0` only):
+
+| Rule | Tail pair | Contracts to | Condition |
+|---|---|---|---|
+| C1 | `A + Aa` | `A:isol` | Entire chain is `A+Aa`, no adjacent joiner (`pad_left == 0`) |
+| C2 | `<bowed> + A + Aa` | `<bowed> + Aa:fina` | Preceded immediately in the same chain by `<bowed>` |
+| C3 | `O + Aa` | `B2:fina` | Merged unit lands at `fina` (`pad_left + len >= 3`) |
+| C4 | `I + Aa` | `G:fina` | Merged unit lands at `fina` (`pad_left + len >= 3`) |
 
 Position is part of every rule, and it is the *chain* position `normalize` already uses — slots
 between structural units, with a nirugu or ZWJ neighbour padding the chain the way it pads the
-rendering. That is why the `B2` and `G` witnesses are written with a leading nirugu: it is what
-makes the unit final. Forms outside a verified pair are left alone — initial and final `H`/`Hx` are
-distinct ink, and a lone `A`
-chain is already canonical.
+rendering. That is why the `B2` and `G` witnesses use a leading letter or nirugu (making the unit
+final), while lone `Zwj+G` and `Zwj+B2` stay unexpanded in `expand_post`: expanding them would turn
+`Zwj+G` into `Zwj+I+Aa`, where `I` is in `INITIAL_BEFORE_LETTER` and would create a new redundant
+`Zwj`. Forms outside a verified rule are left alone — initial and final `H`/`Hx`, `G:isol`,
+`B2:isol`, and `A` with an adjacent joiner stay unchanged.
 
 **Terminology.** UTN #57 uses **bowed written units** (圆头书写单位) and names the corresponding lookup **Post-bowed**; see [UTN #57 revision 4](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf).
 
@@ -210,27 +244,37 @@ chain is already canonical.
 Sources: the [Hudum written-unit ligated variants](https://mongfontbuilder.pages.dev/hudum/),
 [required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts)
 (`BAa`, `PAa`, `FAa`, `GAa`, `GxAa`, `KAa`, `K2Aa`), and `src/rules.rs`'s post-bowed classes.
-The bowed written unit must immediately precede the medial `A` in the same chain: `B A Aa → B Aa`, but
-`N A Aa`, `A A Aa`, and `B A A Aa` stay unchanged. Joiner padding is not a bowed written unit and does not
-let this rule cross structural tokens. The independent whole-chain `A:init Aa:fina → A:isol`
-rule is unchanged.
+`Aa:fina` carries a tooth immediately after a bowed written unit and no tooth elsewhere. Thus
+`B Aa → B A Aa` (E8) and `B A Aa → B Aa` (C2), while `N A Aa`, `A A Aa`, and `B A A Aa` stay
+unchanged in both directions. Joiner padding is not a bowed written unit and never lets E8/C2 cross
+structural tokens.
 
-**Termination and idempotence.** Expand once, then inspect the final pair once. Expansion emits
-no expansion targets, and contraction cannot expose an initial/final `H`/`Hx` as medial.
-Every contraction ends the chain: `A`, `B2`, and `G` do not end in `Aa`; a contracted `Aa` is
-preceded by a bowed written unit, not `A`/`O`/`I`, so it cannot contract again. Idempotence follows from these
-guards, not from forcing the text to a fixed point. The 20-unit alphabet (all bowed written units, expansion
-targets and structural tokens included) is exhausted through length four: **168 421 inputs**.
-Corpus written-unit re-encoding also reshapes to itself.
+**Control invariance, idempotence, and exact bijection.**
+1. **Control invariance:** for any control-canonicalized sequence `s`,
+   `canonical_controls(expand_post(s)) == expand_post(s)` — all 8 ZWJ/ZWNJ tables stay untouched
+   and no outer fixpoint loop is needed.
+2. **Idempotence:** `expand_pre` emits only `O`, `A`, `N` and never turns `init`/`fina` into
+   `medi`; `expand_post` emits only `I Aa`, `O Aa`, or `A Aa` at the end of a chain, none of which
+   matches E1–E9. Hence `canonical_units(canonical_units(u)) == canonical_units(u)`.
+3. **Exact bijection:** on every control-canonicalized sequence `s`,
+   `contract(expand_post(s)) == contract(s)` and `expand_post(contract(s)) == expand_post(s)`.
 
-Expansion does not license a non-bowed written unit contraction: ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) becomes
-`T A O A Aa`, **not** `T A B2`, because `O` is not a bowed written unit. The expansion of `B H Aa` likewise
-leaves `B A A Aa`. Both interactions are regression-tested.
+All three properties are verified exhaustively in `src/duplicates.rs` over the
+21-unit alphabet (all bowed units, expansion targets, and structural controls including `Zwnj`)
+through length four (**204,205 inputs**), plus length five over the 11-unit tail-interaction
+alphabet (**161,051 inputs**). Corpus written-unit re-encoding also reshapes to itself.
 
-Everything user-facing sees the unified sequence: `same_shape`, `normalize` and the written-unit
-encoders. `normalize_written_units` still *accepts* the duplicates as input and unifies them, so
-existing caller data keeps working. ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one visible word, and now one shape and one
-canonical text.
+Expansion never manufactures a bowed context: ᠲᠡᠳ᠌ᠡ᠋ (`T A Dd Aa`) expands to `T A O A Aa`
+(since `O` is not bowed, neither E8 nor C2 fires), and `B H Aa` expands to `B A A Aa`. Both
+interactions are regression-tested.
+
+Everything user-facing in shaping (`shape`, `shape_str`, `same_shape`, `canonical_units`,
+`canonical_positioned_units`, `trace.shape`, `FontShaper::shape`) sees the expanded sequence; the
+shaping call sites (`shaper.rs`, `controls.rs`, `font.rs`) never invoke `contract`, which is
+called exclusively by `normalize.rs`. `normalize_written_units` still accepts both expanded and raw/pre-v0.5.0 contracted
+sequences as input, applies `canonical_units` then `contract`, and produces the exact same
+canonical Unicode text. ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one visible word, and now one shape and one canonical
+text; ᠪᠠ, ᠪᠠᠠ᠋, ᠪ‍ᠠ᠋, and ᠪ‌ᠠ᠌ all shape to `B A Aa` and normalize to `ᠪᠠ᠋`.
 
 UTN #57 and GB/T 25914-2023 keep all nine as distinct written units — their EAC vectors spell
 ᠠᠷᠭᠠᠯ as `A A R Hx A L` — and the engine still produces them. The standard's own sequence stays
@@ -251,14 +295,14 @@ conflict the priority is **round-trip > prefix-stable > shortest**.
 
 Per word:
 
-1. **Read the target shape from the whole input.** Resolve raw written units, apply the complete control-character post-processing above, then unify duplicate units once. Surviving controls appear as `Mvs` / `Nirugu` / `Zwnj` / `Zwj`. Context rules may look through ZWNJ while reading the raw target.
-2. **Split the target shape at the remaining `Zwnj` units.** Encode each segment independently: encoding receives no context from across ZWNJ. This splits already-resolved canonical units, not the original Unicode text. A single `[Zwnj]` retains its empty segments and encodes as U+200C.
+1. **Read the target shape from the whole input and contract for encoding.** Resolve raw written units, apply the three-stage pure-expansion shaping pipeline (`expand_pre` → `canonical_controls` → `expand_post`), then contract the four chain-tail pairs (`contract`, C1–C4) at the normalization entry so table lookup sees the compact form (`norm_shape`). Surviving controls appear as `Mvs` / `Nirugu` / `Zwnj` / `Zwj`. Context rules may look through ZWNJ while reading the raw target.
+2. **Split the contracted target at the remaining `Zwnj` units.** Encode each segment independently: encoding receives no context from across ZWNJ. This splits already-resolved canonical units, not the original Unicode text. A single `[Zwnj]` retains its empty segments and encodes as U+200C.
 3. **Encode each segment's chains.** Split at its remaining structural tokens (`Mvs`, `Nirugu`, `Zwj`), which are copied through unchanged. Encode chains right-to-left, checking them against the context within this segment:
    1. **partition + table lookup** — the primary path. At each position take the single unit if the table has it (preferred — clean output), else the longest available multi-unit entry, and look up `(position, written-unit) → (letter, FVS)` in an FVS-pinned table. Each value renders its unit **regardless of neighbours**, so the result is a deterministic, O(N), prefix-stable function of the shape.
    2. **velar-feminine refinement** — a `G`/`Gx` velar's forward-coupled vowel (`a`/`o`/`u`) is swapped to its feminine partner (`e`/`oe`/`ue`) for clean output.
-   3. **verify** — reshape the candidate in its segment context; accept only if it equals the target chain shape.
-   4. **no search fallback** — the table is total over the corpus (with FVS-first selection there are no gap chains left). If an out-of-corpus shape ever misses the table, normalization fails closed with the input and the uncovered written-unit sequence. Callers may explicitly ask for the lenient variant to return the input unchanged (round-trip preserved, never a mis-encoding). A letter next to a joiner simply looks its unit up at the shifted (joined) position.
-4. **Verify and rejoin the ZWNJ segments.** Each encoded segment must independently reshape to exactly its target segment. Reinsert one U+200C per `Zwnj`, then verify the complete result against the whole target shape. If either check fails, strict normalization reports a fallback, lenient normalization returns the complete original word, and the unit API reports no canonical encoding.
+   3. **verify** — reshape the candidate via `norm_shape` in its segment context; accept only if it equals the contracted target chain shape.
+   4. **no search fallback** — the table is total over the corpus (with FVS-first selection there are no gap chains left). If an out-of-corpus shape ever misses the table, normalization fails closed with the input and the uncovered public `shape` written-unit sequence. Callers may explicitly ask for the lenient variant to return the input unchanged (round-trip preserved, never a mis-encoding). A letter next to a joiner simply looks its unit up at the shifted (joined) position.
+4. **Verify and rejoin the ZWNJ segments.** Each encoded segment must independently reshape (`norm_shape`) to exactly its contracted target segment. Reinsert one U+200C per `Zwnj`, then verify the complete result against the whole contracted target (which, by the `expand_post ↔ contract` bijection, is equivalent to `shape(canonical) == shape(input)`). If either check fails, strict normalization reports a fallback, lenient normalization returns the complete original word, and the unit API reports no canonical encoding.
 
 **MVS suffix encoding** works from the suffix's already-parsed written units: encode them
 standalone, reattach MVS, and verify in context. For example, `mvs y i n` shapes to
@@ -305,7 +349,7 @@ raw phase-trace fixtures are unchanged.
 
 **Migration:** rebuild persisted shape keys, normalized search keys, and deduplication
 indexes under `/5`. In particular, recompute words containing ZWNJ or consecutive MVS;
-removing a break can expose another removable ZWJ or a duplicate-unit contraction. Retain
+removing a break can expose another removable ZWJ or a post-control tail expansion (`E6–E9`). Retain
 the original source text for regeneration, record `canonical_version()` with the new keys,
 and do not compare keys from different policy versions as if they were interchangeable.
 This change does not itself increment the package version or publish a release.
@@ -318,8 +362,7 @@ complete canonical shape. The original nominal letters and FVS spelling need not
 The plain written-unit APIs accept `Zwnj`; the positioned API rejects explicit `Zwnj` (like
 `Zwj`) and synthesizes breaks across non-joining sub-chain and `Nirugu` boundaries instead.
 
-中文概括：先展开单单元同形项，再按完整轮次归并和删除冗余控制符，最后执行一次链尾双单元同形收缩，按剩余 `Zwnj`
-分段独立编码。已有 shape 键和规范化索引应从原文重建，并记录新的 `/5` 策略版本。
+中文概括：塑造阶段采用三段式纯展开（先展开前置单单元同形 `E1–E5`，再按完整轮次归并和删除冗余控制符，最后执行链尾同形展开 `E6–E9`）；规范化阶段仅在查表编码前做 4 条链尾收缩（`C1–C4`），再按剩余 `Zwnj` 分段独立编码，规范 Unicode 输出保持 `/5` 策略 100% 字节不变。
 MVS suffix 与 chachlag 仍分别编码；chachlag 在保形时用裸 `a`，必要时使用已有的 `a+FVS2`。
 
 A representable `J`/`W` + MVS + `Aa` target no longer needs a second MVS or a retained ZWNJ

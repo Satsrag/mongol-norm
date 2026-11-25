@@ -138,8 +138,8 @@ fn test_step1_chachlag_talayin() {
 
 #[test]
 fn test_step1_chachlag_mvs_a_fvs_default() {
-    // a/e after MVS + FVS -> default (no chachlag): tal + MVS + a+FVS1.
-    assert_shape(&mgl("t a l mvs a fvs1"), &["T", "A", "L", "Mvs", "A"]);
+    // a/e after MVS + FVS -> default (no chachlag): tal + MVS + a+FVS1 (raw A:isol -> E9 A+Aa).
+    assert_shape(&mgl("t a l mvs a fvs1"), &["T", "A", "L", "Mvs", "A", "Aa"]);
 }
 
 #[test]
@@ -151,7 +151,7 @@ fn test_step1_chachlag_fvs_after_mvs() {
     assert_shape(&mgl("ch mvs e"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("ch mvs fvs1 a"), &["Ch", "Mvs", "Aa"]);
     assert_shape(&mgl("ch mvs fvs2 a"), &["Ch", "Mvs", "Aa"]);
-    assert_shape(&mgl("ch mvs a fvs1"), &["Ch", "Mvs", "A"]);
+    assert_shape(&mgl("ch mvs a fvs1"), &["Ch", "Mvs", "A", "Aa"]);
 }
 
 #[test]
@@ -167,8 +167,8 @@ fn test_step1_chachlag_ignores_invalid_fvs() {
     assert_shape(&mgl("ch mvs e fvs4"), &["Ch", "Mvs", "Aa"]);
     // A valid FVS still selects its own variant.
     assert_shape(&mgl("ch mvs a fvs3"), &["Ch", "Mvs", "A", "A"]);
-    assert_shape(&mgl("ch mvs e fvs2"), &["Ch", "Mvs", "A"]);
-    assert_shape(&mgl("t a l mvs a fvs1"), &["T", "A", "L", "Mvs", "A"]);
+    assert_shape(&mgl("ch mvs e fvs2"), &["Ch", "Mvs", "A", "Aa"]);
+    assert_shape(&mgl("t a l mvs a fvs1"), &["T", "A", "L", "Mvs", "A", "Aa"]);
 }
 
 // ── Step 2 · Syllabic — consonant/vowel context rules ──
@@ -270,7 +270,7 @@ fn test_step2_oe_marked_after_cc() {
     // mnoege (m n oe g e): oe after init m + medi n -> marked
     let oe = token_with_alias(&mgl("m n oe g e"), Alias::Oe);
     assert_eq!(oe.condition, Some(Condition::Marked));
-    assert_shape(&mgl("m n oe g e"), &["M", "N", "O", "I", "G", "Aa"]);
+    assert_shape(&mgl("m n oe g e"), &["M", "N", "O", "I", "G", "A", "Aa"]);
 }
 
 #[test]
@@ -337,21 +337,30 @@ fn test_step2_chachlag_onset_postponed_by_fvs_on_vowel() {
     // the MVS shaping then, and the font resets the MVS (`III.a_e.chachlag.GB`). The vowel keeps
     // chachlag unless a valid FVS picks its own variant.
     assert_shape(&mgl("a n mvs a"), &["A", "A", "N", "Mvs", "Aa"]);
-    assert_shape(&mgl("a n mvs a fvs1"), &["A", "A", "A", "Mvs", "A"]);
+    assert_shape(&mgl("a n mvs a fvs1"), &["A", "A", "A", "Mvs", "A", "Aa"]);
     // The `Aa` here and the dotless g at the end follow the font's code (see iii1_chachlag_at).
     assert_shape(&mgl("a n mvs a fvs4"), &["A", "A", "A", "Mvs", "Aa"]);
     assert_shape(&mgl("a j mvs e"), &["A", "A", "I", "Mvs", "Aa"]);
-    assert_shape(&mgl("a j mvs e fvs2"), &["A", "A", "J", "Mvs", "A"]);
+    assert_shape(&mgl("a j mvs e fvs2"), &["A", "A", "J", "Mvs", "A", "Aa"]);
     assert_shape(&mgl("a w mvs a fvs3"), &["A", "A", "W", "Mvs", "A", "A"]);
     // An FVS right after the MVS is not on the vowel: the onset stays.
     assert_shape(&mgl("a n mvs fvs2 a"), &["A", "A", "N", "Mvs", "Aa"]);
     // III.2g still sees a chachlag a: g after s stays dotless.
-    assert_shape(&mgl("s g mvs a fvs1"), &["S", "H", "Mvs", "A"]);
+    assert_shape(&mgl("s g mvs a fvs1"), &["S", "H", "Mvs", "A", "Aa"]);
     // An FVS on the MVS itself keeps the onset, even with one on the vowel: the font's reset
     // wants the vowel right after the MVS.
-    assert_shape(&mgl("a g mvs fvs3 a fvs1"), &["A", "A", "Hx", "Mvs", "A"]);
-    assert_shape(&mgl("a n mvs fvs1 a fvs1"), &["A", "A", "N", "Mvs", "A"]);
-    assert_shape(&mgl("a j nnbsp fvs1 e fvs2"), &["A", "A", "I", "Mvs", "A"]);
+    assert_shape(
+        &mgl("a g mvs fvs3 a fvs1"),
+        &["A", "A", "Hx", "Mvs", "A", "Aa"],
+    );
+    assert_shape(
+        &mgl("a n mvs fvs1 a fvs1"),
+        &["A", "A", "N", "Mvs", "A", "Aa"],
+    );
+    assert_shape(
+        &mgl("a j nnbsp fvs1 e fvs2"),
+        &["A", "A", "I", "Mvs", "A", "Aa"],
+    );
 }
 
 #[test]
@@ -380,9 +389,15 @@ fn test_step2_g_h_before_mvs_and_isolated_a_e_take_no_gender() {
     // there, as in the font. When III.2c does not fire either, g/h keeps its default form. This
     // follows the font against GB's masculine final g (see `precedes_mvs_and_isolated_a_e`).
     // An FVS on the vowel:
-    assert_shape(&mgl("a g mvs a fvs1"), &["A", "A", "G", "Mvs", "A"]);
-    assert_shape(&mgl("a g nnbsp e fvs2"), &["A", "A", "G", "Mvs", "A"]);
-    assert_shape(&mgl("o g mvs a fvs4"), &["A", "O", "G", "Mvs", "Aa"]);
+    assert_shape(
+        &mgl("a g mvs a fvs1"),
+        &["A", "A", "I", "Aa", "Mvs", "A", "Aa"],
+    );
+    assert_shape(
+        &mgl("a g nnbsp e fvs2"),
+        &["A", "A", "I", "Aa", "Mvs", "A", "Aa"],
+    );
+    assert_shape(&mgl("o g mvs a fvs4"), &["A", "O", "I", "Aa", "Mvs", "Aa"]);
     // A joiner before the MVS (III.2c needs the MVS right after g/h):
     assert_shape(
         &mgl("a g nirugu mvs a"),
@@ -496,8 +511,9 @@ fn test_step2_g_masculine_devsger() {
 
 #[test]
 fn test_step2_g_feminine_after_fem() {
-    // g(GA) after feminine vowel oe -> feminine "G"
-    assert_shape(&mgl("oe g"), &["A", "O", "I", "G"]);
+    // g(GA) after feminine vowel oe -> feminine "G" (E6 expands G:fina -> I+Aa)
+    assert_shape_raw(&mgl("oe g"), &["A", "O", "I", "G"]);
+    assert_shape(&mgl("oe g"), &["A", "O", "I", "I", "Aa"]);
 }
 
 #[test]
@@ -526,9 +542,9 @@ fn test_step2_g_i_with_marker_masc() {
 
 #[test]
 fn test_step2_g_i_marker_blocked() {
-    // i + g/h with the marker BLOCKED or NOT REACHING -> pattern 6 -> feminine.
-    assert_shape(&mgl("a e i g"), &["A", "A", "A", "I", "I", "G"]); // fem e blocks masc a from reaching g
-    assert_shape(&mgl("i g"), &["A", "I", "G"]); // prev=i but no masc vowel anywhere
+    // i + g/h with the marker BLOCKED or NOT REACHING -> pattern 6 -> feminine (E6: G:fina -> I+Aa).
+    assert_shape(&mgl("a e i g"), &["A", "A", "A", "I", "I", "I", "Aa"]); // fem e blocks masc a from reaching g
+    assert_shape(&mgl("i g"), &["A", "I", "I", "Aa"]); // prev=i but no masc vowel anywhere
 }
 
 #[test]
@@ -562,7 +578,7 @@ fn test_step2_g_non_i_prev_no_remote() {
     // prev letter is NOT i (e.g. consonant) — iii2f.A doesn't fire even if a masc vowel is
     // reachable. This is the strict prev=i gate, narrower than the web docs' broader "remote
     // harmony" prose (mongfontbuilder/web/docs/hudum.mdx:189-220).
-    assert_shape(&mgl("o l g"), &["A", "O", "L", "G"]); // prev=l -> default "G" (not H, despite remote masc o)
+    assert_shape(&mgl("o l g"), &["A", "O", "L", "I", "Aa"]); // prev=l -> default "G" (E6 -> I+Aa), not H
     assert_shape(&mgl("a l g r"), &["A", "A", "L", "G", "R"]); // prev=l, g.medi with r after -> default "G"
 }
 
@@ -577,7 +593,7 @@ fn test_step2_gh_remote_doc_rules_NOT_implemented() {
     // glyph), and h.fina has no feminine variant (falls back to default H). Our default
     // fallthrough yields the same glyph as the doc-prescribed feminine, so this divergence is
     // invisible in output — recorded here for future reference.
-    assert_shape(&mgl("e l g"), &["A", "L", "G"]);
+    assert_shape(&mgl("e l g"), &["A", "L", "I", "Aa"]);
     assert_shape(&mgl("e l g r"), &["A", "L", "G", "R"]);
     //
     // Doc rule (7): "g/h remotely precedes masc vowel without blocking fem ->
@@ -686,7 +702,7 @@ fn test_stacked_fvs_only_the_first_selects() {
     // Only the FVS right after a letter can select; a further one is a repeat, invalid in
     // GB/T 25914-2023 and shown as an error glyph (EAC XIM11-661..672, XIM11-992..1007).
     // First one invalid: the letter takes its context form, as without FVSes.
-    assert_shape(&mgl("i fvs4 fvs1 ch ng"), &["A", "I", "Ch", "A", "G"]);
+    assert_shape(&mgl("i fvs4 fvs1 ch ng"), &["A", "I", "Ch", "A", "I", "Aa"]);
     assert_shape(&mgl("a t fvs3 fvs1 a"), &["A", "A", "D", "A"]);
     // First one valid: it wins, and the repeat changes nothing.
     assert_shape(&mgl("sh fvs2 fvs1 i l"), &["Sh", "I", "L"]);
@@ -713,11 +729,11 @@ fn test_step2_g_dotless() {
     assert_shape(&mgl("d g mvs a"), &["T", "H", "Mvs", "Aa"]);
     // Negative: rule 1 needs a masc vowel — fem/neut/consonant don't fire.
     assert_shape(&mgl("a s g i"), &["A", "A", "S", "G", "I"]); // neut i
-    assert_shape(&mgl("a s g e"), &["A", "A", "S", "G", "Aa"]); // fem e (iii2f -> feminine = G)
+    assert_shape(&mgl("a s g e"), &["A", "A", "S", "G", "A", "Aa"]); // fem e (iii2f -> feminine = G, E8 -> G+A+Aa)
     assert_shape(&mgl("a s g n"), &["A", "A", "S", "G", "A"]); // consonant n
 
-    // Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire.
-    assert_shape(&mgl("s g"), &["S", "G"]);
+    // Negative: rule 2 needs MVS + chachlag a — bare g.fina doesn't fire (raw S+G -> E6 S+I+Aa).
+    assert_shape(&mgl("s g"), &["S", "I", "Aa"]);
     // Negative: prev letter must be s or d.
     assert_shape_raw(&mgl("a g a"), &["A", "A", "Hx", "A"]); // iii2f masc_onset (`Hx:medi`)
     assert_shape(&mgl("n g mvs a"), &["N", "Hx", "Mvs", "Aa"]); // iii2c chachlag_onset
@@ -1001,11 +1017,11 @@ fn test_step4_vowel_devsger_with_stacked_fvs() {
 
 #[test]
 fn test_step5_post_bowed_after_b() {
-    // bowedB (b/p/f) + vowel.fina -> post_bowed
-    assert_shape(&mgl("b a"), &["B", "Aa"]);
-    assert_shape(&mgl("b e"), &["B", "Aa"]);
+    // bowedB (b/p/f) + vowel.fina -> post_bowed (E8 expands <bowed>+Aa:fina -> <bowed>+A+Aa)
+    assert_shape(&mgl("b a"), &["B", "A", "Aa"]);
+    assert_shape(&mgl("b e"), &["B", "A", "Aa"]);
     assert_shape(&mgl("b o"), &["B", "O"]); // also iii2a.marked applies; same glyph
-    assert_shape(&mgl("p a"), &["P", "Aa"]);
+    assert_shape(&mgl("p a"), &["P", "A", "Aa"]);
     // i.fina after F: i is NOT in the post_bowed input set -> "I"
     assert_shape(&mgl("f i"), &["F", "I"]);
 }
@@ -1013,8 +1029,8 @@ fn test_step5_post_bowed_after_b() {
 #[test]
 fn test_step5_post_bowed_after_k() {
     // bowedK (k/k2) + vowel.fina -> post_bowed
-    assert_shape(&mgl("k a"), &["K", "Aa"]);
-    assert_shape(&mgl("k2 e"), &["K2", "Aa"]);
+    assert_shape(&mgl("k a"), &["K", "A", "Aa"]);
+    assert_shape(&mgl("k2 e"), &["K2", "A", "Aa"]);
 }
 
 #[test]
@@ -1022,9 +1038,9 @@ fn test_step5_post_bowed_after_g() {
     // bowedG (g/h with feminine form G/Gx) + e.fina -> post_bowed. G/Gx only appears when g/h
     // gets `feminine` from iii2f — with masc vowel context g becomes Hx instead, which is not
     // bowed.
-    assert_shape(&mgl("g e"), &["G", "Aa"]);
-    assert_shape(&mgl("oe g e"), &["A", "O", "I", "G", "Aa"]);
-    assert_shape(&mgl("b o g e"), &["B", "O", "G", "Aa"]);
+    assert_shape(&mgl("g e"), &["G", "A", "Aa"]);
+    assert_shape(&mgl("oe g e"), &["A", "O", "I", "G", "A", "Aa"]);
+    assert_shape(&mgl("b o g e"), &["B", "O", "G", "A", "Aa"]);
 }
 
 #[test]
@@ -1052,8 +1068,8 @@ fn test_step5_no_post_bowed_after_ng() {
     assert_shape(&mgl("sh ng e"), &["Sh", "A", "G", "A"]);
     assert_shape(&mgl("ch ng ue"), &["Ch", "A", "G", "U"]);
     assert_shape(&mgl("ng e"), &["A", "G", "A"]);
-    // The usual spelling ŋ + g: the vowel follows g's own G, which is bowed.
-    assert_shape(&mgl("e ng g e"), &["A", "A", "G", "G", "Aa"]);
+    // The usual spelling ŋ + g: the vowel follows g's own G, which is bowed (E8 -> G+A+Aa).
+    assert_shape(&mgl("e ng g e"), &["A", "A", "G", "G", "A", "Aa"]);
 }
 
 // ── Position assignment ──
@@ -1133,9 +1149,13 @@ fn test_utn_g_fvs2_blocks_chachlag_onset() {
     // A. FVS attached to the pre-MVS letter blocks chachlag_onset (iii.py iii2c,
     // mongfontbuilder): user FVS on h/g/n/j/w immediately before `MVS + a/e.isol` suppresses
     // the chachlag_onset substitution, so the letter keeps its user-chosen FVS form.
-    // `b a g fvs2 mvs a` -- UTN: g.fvs2 = G (feminine, user wins). EAC counter-example
-    // (XIM11-1012) expects Hx.
-    assert_shape(&mgl("b a g fvs2 mvs a"), &["B", "A", "G", "Mvs", "Aa"]);
+    // `b a g fvs2 mvs a` -- UTN: g.fvs2 = G (feminine, user wins; E6 expands G:fina -> I+Aa).
+    // EAC counter-example (XIM11-1012) expects Hx.
+    assert_shape_raw(&mgl("b a g fvs2 mvs a"), &["B", "A", "G", "Mvs", "Aa"]);
+    assert_shape(
+        &mgl("b a g fvs2 mvs a"),
+        &["B", "A", "I", "Aa", "Mvs", "Aa"],
+    );
 }
 
 #[test]
@@ -1277,11 +1297,18 @@ fn duplicates_are_unified_in_the_public_shape() {
     assert_shape(&mgl("nirugu cr nirugu"), &["Nirugu", "O", "O", "Nirugu"]); // Cr:medi
     assert_shape(&mgl("nirugu cr"), &["Nirugu", "O", "O"]); // Cr:fina
 
-    // Contracted: choose the shorter form only in the verified position and bowed written unit context.
-    assert_shape(&mgl("e a fvs1"), &["A"]); // A:isol
-    assert_shape(&mgl("b a a fvs1"), &["B", "Aa"]); // Aa:fina
-    assert_shape(&mgl("nirugu u a fvs1"), &["Nirugu", "B2"]); // B2:fina
-    assert_shape(&mgl("nirugu i a fvs1"), &["Nirugu", "G"]); // G:fina
+    // Post-control expanded (E6–E9): all four tail duplicates also unify by expansion.
+    assert_shape(&mgl("e"), &["A", "Aa"]); // E9 A:isol
+    assert_shape(&mgl("e a fvs1"), &["A", "Aa"]);
+    assert_shape(&mgl("b a"), &["B", "A", "Aa"]); // E8 <bowed>+Aa:fina
+    assert_shape(&mgl("b a a fvs1"), &["B", "A", "Aa"]);
+    assert_shape(&mgl("nirugu b fvs1"), &["Nirugu", "O", "Aa"]); // E7 B2:fina
+    assert_shape(&mgl("nirugu u a fvs1"), &["Nirugu", "O", "Aa"]);
+    assert_shape(&mgl("nirugu g"), &["Nirugu", "I", "Aa"]); // E6 G:fina
+    assert_shape(&mgl("nirugu i a fvs1"), &["Nirugu", "I", "Aa"]);
+    // Lone Zwj+G / Zwj+B2 stay unexpanded (not preceded by a same-chain letter or Nirugu).
+    assert_shape(&mgl("zwj g"), &["Zwj", "G"]);
+    assert_shape(&mgl("zwj b fvs1"), &["Zwj", "B2"]);
 
     // Left alone: initial and final `H` / `Hx` are distinct ink, and so are the forms whose
     // position was never part of a verified pair.

@@ -58,20 +58,21 @@ fn test_shape_output_is_accepted_directly() {
 }
 
 /// Duplicate encodings and redundant ZWJs are still *accepted* as input and unified before
-/// encoding, so written-unit data captured from an older `shape()` keeps working — in both
-/// directions, expanding and contracting.
+/// encoding, so written-unit data captured from either raw engine output or an older `shape()`
+/// keeps working across all nine rules (E1–E9).
 #[test]
 fn duplicate_encodings_are_accepted_as_input_and_unified() {
     use WrittenUnit::{Aa, Cr, Dd, Nirugu, Zwj, A, B, B2, G, I, L, O};
     let shaper = shaper();
     for (spelled, unified) in [
         (vec![Zwj, Dd], vec![O, A]),
-        (vec![L, I, Zwj, Aa], vec![L, G]),
+        (vec![L, I, Zwj, Aa], vec![L, I, Aa]),
+        (vec![L, G], vec![L, I, Aa]),
         (vec![Cr, Nirugu], vec![O, O, Nirugu]),
-        (vec![A, Aa], vec![A]),
-        (vec![B, A, Aa], vec![B, Aa]),
-        (vec![Nirugu, O, Aa], vec![Nirugu, B2]),
-        (vec![Nirugu, I, Aa], vec![Nirugu, G]),
+        (vec![A], vec![A, Aa]),
+        (vec![B, Aa], vec![B, A, Aa]),
+        (vec![Nirugu, B2], vec![Nirugu, O, Aa]),
+        (vec![Nirugu, G], vec![Nirugu, I, Aa]),
     ] {
         let text = shaper
             .normalize_written_units(&spelled)
@@ -174,7 +175,7 @@ fn test_plain_units_encode_to_canonical_unicode() {
     assert_eq!(result, "\u{182A}\u{1820}\u{180B}");
     assert_eq!(
         shaper.shape(&result).unwrap(),
-        [WrittenUnit::B, WrittenUnit::Aa]
+        [WrittenUnit::B, WrittenUnit::A, WrittenUnit::Aa]
     );
 }
 
@@ -255,21 +256,30 @@ fn test_canonical_units_public_api() {
     assert_eq!(shaper.canonical_units(&[]), Vec::<WrittenUnit>::new());
 
     let cases: &[(&[WrittenUnit], &[WrittenUnit])] = &[
-        // Expanding duplicates
+        // Pre-control expanding duplicates (E1–E5)
         (&[A, A, R, A, Dd], &[A, A, R, A, O, A]),
         (&[B, A, H, S, A], &[B, A, A, A, S, A]),
         (&[A, A, R, Hx, A, L], &[A, A, R, N, N, A, L]),
         (&[Cr, Nirugu], &[O, O, Nirugu]),
         // Non-medial H stays unexpanded (final before Mvs)
         (&[T, A, H, Mvs, Aa], &[T, A, H, Mvs, Aa]),
-        // Tail contractions
-        (&[A, Aa], &[A]),
-        (&[B, A, Aa], &[B, Aa]),
+        // Post-control chain-tail expansions (E6–E9)
+        (&[A], &[A, Aa]),
+        (&[A, Aa], &[A, Aa]),
+        (&[B, Aa], &[B, A, Aa]),
+        (&[B, A, Aa], &[B, A, Aa]),
         (&[N, A, Aa], &[N, A, Aa]),
-        (&[A, O, Aa], &[A, B2]),
-        (&[B, I, Aa], &[B, G]),
+        (&[A, B2], &[A, O, Aa]),
+        (&[Nirugu, B2], &[Nirugu, O, Aa]),
+        (&[B, G], &[B, I, Aa]),
+        (&[Nirugu, G], &[Nirugu, I, Aa]),
+        // Lone Zwj+G / Zwj+B2 stay unexpanded
+        (&[Zwj, G], &[Zwj, G]),
+        (&[Zwj, B2], &[Zwj, B2]),
         // Control canonicalization + duplicate interaction
-        (&[L, I, Zwj, Aa], &[L, G]),
+        (&[L, I, Zwj, Aa], &[L, I, Aa]),
+        (&[B, Zwj, Aa], &[B, A, Aa]),
+        (&[B, Zwnj, Aa], &[B, A, Aa]),
         (&[N, Zwnj, B, Zwnj, I], &[N, B, I]),
         (&[Mvs, Zwnj, Mvs], &[Mvs]),
     ];
