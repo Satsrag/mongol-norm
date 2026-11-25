@@ -47,7 +47,8 @@ chain-final duplicate units (`G:fina`, `B2:fina`, `<bowed> + Aa:fina`, standalon
 leaving lone `Zwj+G` / `Zwj+B2` intact so no new redundant control is ever introduced (no outer
 fixpoint loop is needed).
 
-Normalization alone owns contraction (`src/contract.rs`): right before table lookup, it applies
+Normalization alone calls `contract` (defined alongside `expand_pre`/`expand_post` in
+`src/duplicates.rs`, invoked only from `src/normalize.rs`): right before table lookup, it applies
 the exact inverse tail-pair contractions (`C1–C4`) so `MNG.normalize.json` and canonical Unicode
 output (`mng-canonical/5`) stay 100% byte-identical.
 
@@ -195,7 +196,8 @@ this crate's whole reason to exist. Nine written units break that promise: they 
 the same ink as a sequence of other units, so two spellings of one word shaped differently.
 
 All nine are unified in `shape` strictly by **expansion** (1 → 2, never merging), split into two
-passes around `canonical_controls` (`src/expand.rs`):
+passes around `canonical_controls` (all duplicate rules live together in `src/duplicates.rs`, with
+separate call sites in `src/shaper.rs` and `src/normalize.rs`):
 
 ### `expand_pre` (E1–E5, before `canonical_controls`)
 
@@ -216,7 +218,7 @@ passes around `canonical_controls` (`src/expand.rs`):
 | E8 | `<bowed> + Aa:fina` | `<bowed> + A + Aa` | Preceded immediately in the same chain by `<bowed>` | ᠪᠠ / ᠪᠠᠠ᠋ |
 | E9 | `A:isol` | `A Aa` | Standalone `A` with no adjacent joiner (`pad_left == 0 && pad_right == 0`) | ᠡ / ᠡᠠ᠋ |
 
-### `contract` (C1–C4, normalization layer only, `src/contract.rs`)
+### `contract` (C1–C4, called only by normalization)
 
 Before table lookup in `normalize`, the four chain-final expansions are contracted back to their
 short canonical table forms (`pad_right == 0` only):
@@ -257,7 +259,7 @@ structural tokens.
 3. **Exact bijection:** on every control-canonicalized sequence `s`,
    `contract(expand_post(s)) == contract(s)` and `expand_post(contract(s)) == expand_post(s)`.
 
-All three properties are verified exhaustively in `src/expand.rs` and `src/contract.rs` over the
+All three properties are verified exhaustively in `src/duplicates.rs` over the
 21-unit alphabet (all bowed units, expansion targets, and structural controls including `Zwnj`)
 through length four (**204,205 inputs**), plus length five over the 11-unit tail-interaction
 alphabet (**161,051 inputs**). Corpus written-unit re-encoding also reshapes to itself.
@@ -268,8 +270,8 @@ interactions are regression-tested.
 
 Everything user-facing in shaping (`shape`, `shape_str`, `same_shape`, `canonical_units`,
 `canonical_positioned_units`, `trace.shape`, `FontShaper::shape`) sees the expanded sequence; the
-shaping modules (`shaper.rs`, `expand.rs`, `controls.rs`, `font.rs`) have zero dependency on
-`contract`. `normalize_written_units` still accepts both expanded and raw/pre-v0.5.0 contracted
+shaping call sites (`shaper.rs`, `controls.rs`, `font.rs`) never invoke `contract`, which is
+called exclusively by `normalize.rs`. `normalize_written_units` still accepts both expanded and raw/pre-v0.5.0 contracted
 sequences as input, applies `canonical_units` then `contract`, and produces the exact same
 canonical Unicode text. ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one visible word, and now one shape and one canonical
 text; ᠪᠠ, ᠪᠠᠠ᠋, ᠪ‍ᠠ᠋, and ᠪ‌ᠠ᠌ all shape to `B A Aa` and normalize to `ᠪᠠ᠋`.

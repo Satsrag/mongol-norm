@@ -51,10 +51,9 @@
 #[doc = include_str!("../README.md")]
 struct ReadmeDoctests;
 
-mod contract;
 mod controls;
+mod duplicates;
 mod error;
-mod expand;
 #[cfg(feature = "font")]
 mod font;
 // clippy::all silences style lints on generated code (see the design doc).

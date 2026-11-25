@@ -1235,7 +1235,7 @@ fn test_mori() {
 
 // ── Duplicate encodings unified in the public shape ──
 
-/// Every pair `src/expand.rs` unifies, checked from the outside: the two spellings shape
+/// Every pair `src/duplicates.rs` unifies, checked from the outside: the two spellings shape
 /// alike, `same_shape` says so, and `normalize` gives them one canonical text.
 const DUPLICATE_PAIRS: &[(&str, &str, &str)] = &[
     // (what the engine calls it, spelling A, spelling B)

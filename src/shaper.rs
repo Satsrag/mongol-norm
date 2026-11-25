@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::controls::canonical_controls;
-use crate::expand::{expand_post, expand_pre};
+use crate::duplicates::{expand_post, expand_pre};
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::generated::mng;
 use crate::generated::mng_normalize;

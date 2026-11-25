@@ -9,8 +9,8 @@
 //! `L I Zwj Aa` (and ᠪ‍ᠠ᠋ was `B Zwj Aa` instead of `B A Aa`).
 //!
 //! The filter runs on the written-unit sequence — after the rules resolved every letter and
-//! single-unit duplicates expanded ([`crate::expand::expand_pre`]), and **before** post-control
-//! chain-tail expansion ([`crate::expand::expand_post`]) — so it has the same view of the word
+//! single-unit duplicates expanded ([`crate::duplicates::expand_pre`]), and **before** post-control
+//! chain-tail expansion ([`crate::duplicates::expand_post`]) — so it has the same view of the word
 //! whether the units came from `shape` or were handed in through `normalize_written_units`. FVS
 //! marks are already bound to their letters at this point, so removing the token can never
 //! re-attach a selector to a different letter.

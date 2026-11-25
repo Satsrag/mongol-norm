@@ -15,7 +15,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::contract::contract;
+use crate::duplicates::contract;
 use crate::generated::enums::WrittenUnit;
 use crate::shaper::Shaper;
 use crate::tables::{Fvs, NormalizeData, Position, UnitEntry};
