@@ -1297,18 +1297,19 @@ fn duplicates_are_unified_in_the_public_shape() {
     assert_shape(&mgl("nirugu cr nirugu"), &["Nirugu", "O", "O", "Nirugu"]); // Cr:medi
     assert_shape(&mgl("nirugu cr"), &["Nirugu", "O", "O"]); // Cr:fina
 
-    // Post-control expanded (E6–E9): all four tail duplicates also unify by expansion.
+    // Chain-tail expanded (E6–E9): all four tail duplicates also unify by expansion.
     assert_shape(&mgl("e"), &["A", "Aa"]); // E9 A:isol
     assert_shape(&mgl("e a fvs1"), &["A", "Aa"]);
     assert_shape(&mgl("b a"), &["B", "A", "Aa"]); // E8 <bowed>+Aa:fina
     assert_shape(&mgl("b a a fvs1"), &["B", "A", "Aa"]);
+    assert_shape(&mgl("b zwj a fvs1"), &["B", "A", "Aa"]); // E8 through Zwj
     assert_shape(&mgl("nirugu b fvs1"), &["Nirugu", "O", "Aa"]); // E7 B2:fina
     assert_shape(&mgl("nirugu u a fvs1"), &["Nirugu", "O", "Aa"]);
     assert_shape(&mgl("nirugu g"), &["Nirugu", "I", "Aa"]); // E6 G:fina
     assert_shape(&mgl("nirugu i a fvs1"), &["Nirugu", "I", "Aa"]);
-    // Lone Zwj+G / Zwj+B2 stay unexpanded (not preceded by a same-chain letter or Nirugu).
-    assert_shape(&mgl("zwj g"), &["Zwj", "G"]);
-    assert_shape(&mgl("zwj b fvs1"), &["Zwj", "B2"]);
+    // Lone Zwj+G / Zwj+B2 expand unconditionally; the now-redundant leading Zwj then drops.
+    assert_shape(&mgl("zwj g"), &["I", "Aa"]);
+    assert_shape(&mgl("zwj b fvs1"), &["O", "Aa"]);
 
     // Left alone: initial and final `H` / `Hx` are distinct ink, and so are the forms whose
     // position was never part of a verified pair.

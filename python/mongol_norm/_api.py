@@ -94,47 +94,48 @@ class MongolianShaper:
         将 *text* 处理为书写单元序列。
 
         Nine written units render as exactly the same ink as a sequence of other
-        units, and all nine are unified here by **expansion only** (1 → 2, never
-        merging). Five expand before control canonicalization (``expand_pre``):
-        ``Dd`` (both positions), medial ``H``, medial ``Hx`` and ``Cr`` (all
-        positions) come out as ``O A``, ``A A``, ``N N`` and ``O O``. Four
-        chain-final units expand after control canonicalization (``expand_post``):
-        ``G:fina`` → ``I Aa`` (preceded by a same-chain letter or ``Nirugu``),
-        ``B2:fina`` → ``O Aa`` (same condition), ``<bowed> + Aa:fina`` →
-        ``<bowed> + A Aa``, and standalone ``A:isol`` → ``A Aa``. That makes
-        ``shape`` a pure-expansion fingerprint of the visible word — ᠠᠷᠠᠳ and
-        ᠠᠷᠠᠤᠠ are one word and shape identically, as do ᠪᠠ and ᠪᠠᠠ᠋. The
-        standard's own unit sequence, which keeps all nine apart, is the
-        non-public :meth:`_shape_raw`.
-        九个书写单元与另一串单元的墨迹完全相同，此处全部按**纯展开**（1→2，零合并）
-        统一：控制符清理前展开 5 条（``Dd``、词中 ``H``、词中 ``Hx``、``Cr``），
-        控制符清理后在链尾展开 4 条（``G:fina`` → ``I Aa``、``B2:fina`` → ``O Aa``、
-        ``<bowed> + Aa:fina`` → ``<bowed> + A Aa``、独立 ``A:isol`` → ``A Aa``）。
+        units, and all nine are unified here by **single-pass expansion** (1 → 2,
+        never merging) before control canonicalization: ``Dd`` (both positions) →
+        ``O A``, medial ``H`` → ``A A``, medial ``Hx`` → ``N N``, ``Cr`` (all
+        positions) → ``O O``, final ``G`` → ``I Aa`` (unconditionally, including
+        lone ``Zwj+G``), ``B2`` (all positions) → ``O Aa``,
+        ``<bowed> [Zwj*] Aa:fina`` → ``<bowed> [Zwj*] A Aa``, and standalone
+        ``A:isol`` → ``A Aa``. That makes ``shape`` a pure-expansion fingerprint
+        of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are one word and shape identically,
+        as do ᠪᠠ, ᠪᠠᠠ᠋ and ᠪ‍ᠠ᠋. The standard's own unit sequence, which keeps all
+        nine apart, is the non-public :meth:`_shape_raw`.
+        九个书写单元与另一串单元的墨迹完全相同，此处在控制符清理前一次性按**纯展开**
+        （1→2，零合并）全部统一：``Dd`` → ``O A``、词中 ``H`` → ``A A``、
+        词中 ``Hx`` → ``N N``、全位置 ``Cr`` → ``O O``、全词尾 ``G`` → ``I Aa``、
+        全位置 ``B2`` → ``O Aa``、``<bowed> [Zwj*] Aa:fina`` →
+        ``<bowed> [Zwj*] A Aa``、独立 ``A:isol`` → ``A Aa``。
 
         For the same reason a ZWJ appears as ``Zwj`` only where it changes the ink.
         One between two letters that already join, next to a nirugu, doubled, or at a
         word edge whose joined and unjoined forms are the same shape (a reviewed Hudum
-        table, see ``docs/internals.md``) is dropped before post-control expansion, so
-        ᠯᠢᠡ᠋ and ᠯᠢ + ZWJ + ᠡ᠋ are both ``L I Aa`` (and ᠪᠠ / ᠪ‍ᠠ᠋ / ᠪ‌ᠠ᠌ are all
-        ``B A Aa``). An MVS is a segment edge, so a ZWJ next to it is judged like one
-        at the word edge.
-        Consecutive identical ZWJ, ZWNJ and MVS units merge; ``Nirugu`` keeps its count and order.
+        table, see ``docs/internals.md``) is dropped after expansion, so ᠯᠢᠡ᠋ and
+        ᠯᠢ + ZWJ + ᠡ᠋ are both ``L I Aa``, ᠪᠠ / ᠪᠠᠠ᠋ / ᠪ‍ᠠ᠋ are all ``B A Aa``,
+        and lone ‍ᠭ / ‍ᠪ᠋ expand and drop their redundant ``Zwj`` to ``I Aa`` /
+        ``O Aa``. An MVS is a segment edge, so a ZWJ next to it is judged like one
+        at the word edge. Consecutive identical ZWJ, ZWNJ and MVS units merge;
+        ``Nirugu`` keeps its count and order.
         同理，ZWJ 只在改变字形时作为 ``Zwj`` 出现：两侧已连写、挨着 nirugu、重复、或词首尾
-        连写形与非连写形同形（见 ``docs/internals.md`` 的表）的 ZWJ 在链尾展开前去掉；
+        连写形与非连写形同形（见 ``docs/internals.md`` 的表）的 ZWJ 在展开后去掉；
         MVS 是段边缘，紧挨 MVS 的 ZWJ 按词首/词尾规则处理。连续同类 ZWJ、ZWNJ、MVS 归并，Nirugu 保留数量与顺序。
 
         A ZWNJ (U+200C) breaks the cursive chain — the letter before it is written
         ``fina``/``isol``, the letter after it ``init``/``isol`` — while the context
         rules (vowel harmony, gender markers, chachlag, particles) look through it,
-        as the reference font does. After shaping, redundant breaks are removed using
-        reviewed per-letter positional equivalences. A needed break remains as ``Zwnj``.
-        Pre-control single-unit duplicates expand first; then identical control runs
-        merge, ZWJ drops, and ZWNJ scans repeatedly until stable; finally chain-final
-        duplicates expand. A lone ``Zwj`` or ``Zwnj`` is kept.
+        as the reference font does. After single-pass duplicate expansion, redundant
+        breaks are removed using reviewed per-letter positional equivalences, with
+        a Z-Keep ligature guard that retains ``Zwnj`` whenever removing it would
+        join a bowed unit directly to a chain-final ``Aa`` and grow an extra tooth
+        (so ᠪ‌ᠠ᠌ stays ``B Zwnj Aa``). Identical control runs merge, ZWJ drops, and
+        ZWNJ scans repeatedly until stable. A lone ``Zwj`` or ``Zwnj`` is kept.
         ZWNJ（U+200C）打断连写：其前字母取 ``fina``/``isol``、其后字母取 ``init``/``isol``，
-        而上下文规则（元音和谐、阴阳标记、chachlag、虚词）像参考字体一样穿过它。ZWNJ
-        仅在需要保留断点时输出为 ``Zwnj``。先展开前置单单元同形，再归并连续同类控制符并循环执行
-        ZWJ、ZWNJ 删除至稳定，最后执行链尾同形展开。整个序列仅有一个 ``Zwj`` 或 ``Zwnj`` 时保留。
+        而上下文规则（元音和谐、阴阳标记、chachlag、虚词）像参考字体一样穿过它。先一次性展开全部
+        9 条同形规则，再归并连续同类控制符并循环执行 ZWJ、ZWNJ 删除至稳定（含弓形造齿连字守卫
+        Z-Keep，保留 ``<bowed>+Zwnj+Aa`` 的必要断点）。整个序列仅有一个 ``Zwj`` 或 ``Zwnj`` 时保留。
 
         Raises ValueError on characters outside the Mongolian word alphabet
         (letters, FVS, MVS, NNBSP, Nirugu, ZWJ, ZWNJ); use :meth:`normalize_text`
@@ -165,18 +166,18 @@ class MongolianShaper:
         将有序书写单元序列规整为规范 shape。
 
         Applies the exact post-processing shared by :meth:`shape`, :meth:`trace`
-        and :meth:`canonical_positioned_units`: pre-control single-unit duplicates
-        (``Dd``, ``Cr``, medial ``H`` and medial ``Hx``) expand first, consecutive
-        identical ``Zwj`` / ``Zwnj`` / ``Mvs`` runs merge and redundant ``Zwj``
-        and ``Zwnj`` controls are dropped until stable, and chain-final duplicates
-        (``G:fina`` → ``I Aa``, ``B2:fina`` → ``O Aa``, ``<bowed> + Aa:fina`` →
-        ``<bowed> + A Aa``, standalone ``A:isol`` → ``A Aa``) expand last.
-        Idempotent, never merges units; ``[]`` returns ``[]``.
+        and :meth:`canonical_positioned_units`: a single pre-control expansion
+        pass (``E1–E9``: ``Dd``, ``Cr``, medial ``H``, medial ``Hx``, final ``G``,
+        all-position ``B2``, ``<bowed> [Zwj*] Aa:fina`` and standalone ``A:isol``),
+        followed by merging consecutive identical ``Zwj`` / ``Zwnj`` / ``Mvs``
+        runs and dropping redundant ``Zwj`` and ``Zwnj`` controls until stable
+        (with the Z-Keep guard for ``<bowed>+Zwnj+Aa``). Idempotent, never merges
+        units; ``[]`` returns ``[]``.
         执行与 :meth:`shape`、:meth:`trace` 及 :meth:`canonical_positioned_units`
-        完全一致的后处理：先展开前置单单元同形异码（``Dd``、``Cr``、词中 ``H``、词中 ``Hx``），
-        再归并连续同类控制符并循环剔除冗余 ``Zwj`` / ``Zwnj`` 直至稳定，最后展开链尾同形
-        （词尾 ``G`` → ``I Aa``、词尾 ``B2`` → ``O Aa``、弓形辅音后 ``Aa`` → ``A Aa``、
-        独立 ``A`` → ``A Aa``）。幂等、零合并；空序列返回 ``[]``。
+        完全一致的后处理：先一次性展开全部 9 条同形规则（``Dd``、``Cr``、词中 ``H``、
+        词中 ``Hx``、词尾 ``G``、全位置 ``B2``、``<bowed> [Zwj*] Aa:fina``、独立 ``A``），
+        再归并连续同类控制符并循环剔除冗余 ``Zwj`` / ``Zwnj`` 直至稳定（含弓形造齿连字
+        Z-Keep 守卫）。幂等、零合并；空序列返回 ``[]``。
 
         Raises:
             TypeError: ``written_units`` is not an ordered string sequence.
@@ -416,7 +417,7 @@ class MongolianShaper:
         *positioned_units* 并补全隐式 ``Mvs``（``Aa:isol`` 前）、``Zwnj``
         （子链及非连写 ``Nirugu`` 边界）与 ``Zwj``（不完整 ``medi``/``fina``
         边界及独立 ``A:init``/``I:init``/``O:init``），再经 :meth:`canonical_units`
-        执行前置同形展开、控制符规整与链尾同形展开；不查表编码为 Unicode 字符串，也不做重新
+        执行单趟同形展开（E1–E9）与控制符规整；不查表编码为 Unicode 字符串，也不做重新
         :meth:`shape` 往返。空序列返回 ``[]``。
 
         This word-level API accepts at most 1024 records.

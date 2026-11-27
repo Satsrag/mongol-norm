@@ -91,8 +91,10 @@ TABLE = [
     ('a zwnj nirugu b', 'A+A+Zwnj+Nirugu+B', 'A+A+Nirugu+B'),
     ('a nirugu zwnj b', 'A+A+Nirugu+Zwnj+B', 'A+A+Nirugu+B'),
     ('nirugu zwnj b', 'Nirugu+Zwnj+B', 'Nirugu+B'),
-    # beside a ZWJ, both orders
-    ('b zwnj zwj a', 'B+A+Aa', 'B+A+Aa'),
+    # beside a ZWJ, both orders (Z-Keep preserves ZWNJ before bowed+Aa so no extra tooth forms)
+    ('b zwnj zwj a', 'B+Zwnj+Aa', 'B+A+Aa'),
+    ('b zwnj a fvs2', 'B+Zwnj+Aa', 'B+A'),
+    ('b zwnj e fvs1', 'B+Zwnj+Aa', 'B+A+Aa'),
     ('n zwnj zwj a', 'N+A', 'N+A'),
     ('zwj zwnj n a', 'N+A', 'Zwj+N+A'),
     ('n a zwnj zwj', 'N+A', 'N+A+Zwj'),

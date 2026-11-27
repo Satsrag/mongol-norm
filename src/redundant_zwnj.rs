@@ -1,12 +1,15 @@
-//! Redundant ZWNJ (U+200C): remove breaks whose affected letters keep equivalent positions.
+//! Redundant ZWNJ (U+200C): remove breaks whose affected letters keep equivalent positions,
+//! while keeping any break between a bowed written unit and a chain-final `Aa` (Z-Keep guard, so
+//! removing the break never triggers the tooth-bearing `<bowed> + Aa:fina` ligature).
 //! Each call scans left to right once; the control policy repeats complete rounds until stable.
 
+use crate::duplicates::is_bowed;
 use crate::generated::enums::WrittenUnit;
 use crate::normalize::{is_joiner, slot_position};
 use crate::tables::Position;
 use WrittenUnit::{
-    Aa, Ch, Gx, Hx, Mvs, Rh, Sh, Zr, Zwnj, B, C, D, F, G, H, I, K, K2, L, M, N, O, P, R, S, T, U,
-    W, Y, Z,
+    Aa, Ch, Gx, Hx, Mvs, Rh, Sh, Zr, Zwj, Zwnj, B, C, D, F, G, H, I, K, K2, L, M, N, O, P, R, S, T,
+    U, W, Y, Z,
 };
 
 /// Right neighbor `… Zwnj U X…` → `… U X…` (`U:init` → `U:medi`).
@@ -39,7 +42,8 @@ pub(crate) fn drop_redundant_zwnj(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
     units
 }
 
-/// The only letters whose positions can change are the immediate neighbors of this ZWNJ.
+/// The only letters whose positions can change are the immediate neighbors of this ZWNJ, plus
+/// the tooth-forming `<bowed> + Aa:fina` ligature across zero or more `Zwj`s.
 /// A structural neighbor stays in place, so any letter beyond it retains its joining context.
 fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
     if units.len() == 1 {
@@ -49,6 +53,22 @@ fn is_redundant(units: &[WrittenUnit], index: usize) -> bool {
     let right = units.get(index + 1).copied();
     if left == Some(Mvs) || right == Some(Mvs) {
         return true;
+    }
+    // Z-Keep guard: preserve a break separating a bowed unit from a chain-final `Aa` (skipping
+    // any adjacent `Zwj*`), because dropping it would trigger the required `<bowed> + Aa:fina`
+    // ligature and grow an extra tooth.
+    let prev_non_zwj = units[..index]
+        .iter()
+        .rev()
+        .copied()
+        .find(|&unit| unit != Zwj);
+    let next_non_zwj_idx = (index + 1..units.len()).find(|&i| units[i] != Zwj);
+    if prev_non_zwj.is_some_and(is_bowed)
+        && next_non_zwj_idx.is_some_and(|j| {
+            units[j] == Aa && units.get(j + 1).is_none_or(|&u| matches!(u, Mvs | Zwnj))
+        })
+    {
+        return false;
     }
     if let Some(unit) = left.filter(|u| !u.is_structural()) {
         let outer = index.checked_sub(2).map(|i| units[i]);
@@ -115,7 +135,7 @@ fn equivalent(unit: WrittenUnit, from: Position, to: Position) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use WrittenUnit::{Aa, Nirugu, Zwj, A, B, I, J, N, O};
+    use WrittenUnit::{Aa, Gx, Nirugu, Zwj, A, B, F, G, I, J, K, K2, N, O, P};
 
     #[test]
     fn reviewed_single_scan_examples() {
@@ -151,6 +171,46 @@ mod tests {
             let actual = drop_redundant_zwnj(input);
             assert_eq!(actual, expected, "{input:?}");
         }
+    }
+
+    #[test]
+    fn z_keep_guard_preserves_break_before_bowed_ligature_aa() {
+        for bowed in [B, P, F, G, Gx, K, K2] {
+            // Direct bowed + Zwnj + Aa:fina (at word end, before Mvs, or before another Zwnj).
+            assert_eq!(drop_redundant_zwnj(&[bowed, Zwnj, Aa]), [bowed, Zwnj, Aa]);
+            assert_eq!(
+                drop_redundant_zwnj(&[bowed, Zwnj, Aa, Mvs, A]),
+                [bowed, Zwnj, Aa, Mvs, A]
+            );
+            assert_eq!(
+                drop_redundant_zwnj(&[bowed, Zwnj, Aa, Zwnj, I]),
+                [bowed, Zwnj, Aa, Zwnj, I]
+            );
+            // Across Zwj* on either or both sides.
+            assert_eq!(
+                drop_redundant_zwnj(&[A, bowed, Zwj, Zwnj, Aa]),
+                [A, bowed, Zwj, Zwnj, Aa]
+            );
+            assert_eq!(
+                drop_redundant_zwnj(&[bowed, Zwnj, Zwj, Aa]),
+                [bowed, Zwnj, Zwj, Aa]
+            );
+            assert_eq!(
+                drop_redundant_zwnj(&[A, bowed, Zwj, Zwj, Zwnj, Zwj, Aa]),
+                [A, bowed, Zwj, Zwj, Zwnj, Zwj, Aa]
+            );
+            // Nirugu blocks the bowed unit from reaching Zwnj; Mvs already separates.
+            assert_eq!(
+                drop_redundant_zwnj(&[bowed, Nirugu, Zwnj, Aa]),
+                [bowed, Nirugu, Aa]
+            );
+            assert_eq!(
+                drop_redundant_zwnj(&[bowed, Mvs, Zwnj, Aa]),
+                [bowed, Mvs, Aa]
+            );
+        }
+        // Non-bowed unit before Zwnj + Aa still drops the redundant break.
+        assert_eq!(drop_redundant_zwnj(&[N, Zwnj, Aa]), [N, Aa]);
     }
 
     #[test]

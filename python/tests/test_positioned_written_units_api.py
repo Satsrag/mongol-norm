@@ -846,7 +846,7 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                     {"unit": "Nirugu", "position": "control"},
                 ],
                 ["Zwj", "B2", "Zwnj", "Nirugu"],
-                "\u200d\u182a\u180b\u200c\u180a",
+                "\u1824\u180b\u1820\u180b\u200c\u180a",
             ),
             (
                 [
@@ -1070,8 +1070,8 @@ class TestCanonicalPositionedUnitsApi(unittest.TestCase):
                 ["A", "A", "R", "A", "O", "A"],
             ),
             ([{"unit": "Cr", "position": "init"}], ["O", "O"]),
-            ([{"unit": "G", "position": "fina"}], ["Zwj", "G"]),
-            ([{"unit": "B2", "position": "fina"}], ["Zwj", "B2"]),
+            ([{"unit": "G", "position": "fina"}], ["I", "Aa"]),
+            ([{"unit": "B2", "position": "fina"}], ["O", "Aa"]),
             ([{"unit": "A", "position": "init"}], ["A", "Zwj"]),
             ([{"unit": "I", "position": "init"}], ["I", "Zwj"]),
             ([{"unit": "O", "position": "init"}], ["O", "Zwj"]),

@@ -1,7 +1,7 @@
-//! Canonical control policy: after expanding single-unit duplicates (`expand_pre`), merge
+//! Canonical control policy: after single-pass duplicate expansion (`expand`, E1–E9), merge
 //! identical runs, apply the complete ZWJ filter, then scan ZWNJ once. Repeat complete rounds
-//! until unchanged, before post-control chain-tail duplicate expansion (`expand_post`). This is a
-//! pure written-unit transform, shared by both shaping backends and all encoders.
+//! until unchanged. This is a pure written-unit transform, shared by both shaping backends and
+//! all encoders.
 
 use crate::generated::enums::WrittenUnit;
 use crate::redundant_zwj::drop_redundant_zwj;

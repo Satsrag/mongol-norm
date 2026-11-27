@@ -1225,7 +1225,7 @@ fn test_synthesizes_zwnj_across_nirugu_boundaries() {
                 WrittenUnit::Zwnj,
                 WrittenUnit::Nirugu,
             ],
-            "\u{200D}\u{182A}\u{180B}\u{200C}\u{180A}",
+            "\u{1824}\u{180B}\u{1820}\u{180B}\u{200C}\u{180A}",
         ),
         (
             &[
@@ -1537,9 +1537,9 @@ fn test_canonical_positioned_units_public_api() {
             ],
             &[Nirugu, I, Aa],
         ),
-        // Lone Zwj+G / Zwj+B2 stay unexpanded
-        (&[rec(G, UnitPosition::Fina)], &[Zwj, G]),
-        (&[rec(B2, UnitPosition::Fina)], &[Zwj, B2]),
+        // Lone Zwj+G / Zwj+B2 expand via E6/E7 and drop the now-redundant leading Zwj
+        (&[rec(G, UnitPosition::Fina)], &[I, Aa]),
+        (&[rec(B2, UnitPosition::Fina)], &[O, Aa]),
         // Incomplete edges & lone init rules
         (&[rec(A, UnitPosition::Init)], &[A, Zwj]),
         (&[rec(I, UnitPosition::Init)], &[I, Zwj]),

@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::controls::canonical_controls;
-use crate::duplicates::{expand_post, expand_pre};
+use crate::duplicates::expand;
 use crate::generated::enums::{Alias, Condition, WrittenUnit};
 use crate::generated::mng;
 use crate::generated::mng_normalize;
@@ -434,19 +434,19 @@ impl Shaper {
     ///
     /// A ZWNJ breaks the cursive chain — the letter before it is written `fina` (or `isol`), the
     /// letter after it `init` (or `isol`) — while the context rules look through it, as they do
-    /// in the reference font. The control pass removes it when all affected letter positions
-    /// are unchanged or reviewed as equivalent. Surviving [`WrittenUnit::Zwnj`] units are
-    /// segment edges for the ZWJ rules and duplicate unification. Pre-control single-unit
-    /// duplicates expand first (`expand_pre`, E1–E5); consecutive identical ZWJ, ZWNJ and MVS
-    /// runs then merge and complete ZWJ/ZWNJ rounds repeat until stable; finally post-control
-    /// chain-tail duplicates expand (`expand_post`, E6–E9).
+    /// in the reference font. All nine duplicate encodings expand first in one single pass
+    /// (`expand`, E1–E9); consecutive identical ZWJ, ZWNJ and MVS runs then merge and complete
+    /// ZWJ/ZWNJ rounds repeat until stable (`canonical_controls`). The control pass removes a ZWNJ
+    /// when all affected letter positions are unchanged or reviewed as equivalent, while keeping
+    /// a break between a bowed unit and a chain-final `Aa` (so it never triggers the tooth-bearing
+    /// `<bowed> + Aa:fina` ligature). Surviving [`WrittenUnit::Zwnj`] units remain segment edges.
     ///
     /// Nine written units render as exactly the same ink as a sequence of other units, and all
-    /// nine are unified by **expansion only** (1 → 2, never merging): `Dd` (both positions),
-    /// medial `H`, medial `Hx`, and `Cr` (all positions) expand to `O A`, `A A`, `N N`, and `O O`
-    /// before control canonicalization; chain-final `G` (preceded by a same-chain letter or
-    /// `Nirugu`), chain-final `B2` (same condition), `<bowed> + Aa:fina`, and standalone `A:isol`
-    /// expand to `I Aa`, `O Aa`, `<bowed> + A + Aa`, and `A Aa` after control canonicalization.
+    /// nine are unified by **expansion only** (1 → 2, never merging) before control
+    /// canonicalization: `Dd` (both positions), medial `H`, medial `Hx`, `Cr` (all positions),
+    /// final `G` (including lone `Zwj + G`), `B2` (all positions, including lone `Zwj + B2`),
+    /// `<bowed> [Zwj*] Aa:fina`, and standalone `A:isol` expand to `O A`, `A A`, `N N`, `O O`,
+    /// `I Aa`, `O Aa`, `<bowed> [Zwj*] A Aa`, and `A Aa`.
     /// That makes `shape` a pure-expansion fingerprint of the visible word — ᠠᠷᠠᠳ and ᠠᠷᠠᠤᠠ are
     /// one word and shape identically, as do ᠪᠠ and ᠪᠠᠠ᠋. The standard's own unit sequence, which
     /// keeps all nine apart, is [`Shaper::shape_raw`]. `docs/internals.md` ("Duplicate encodings")
@@ -463,12 +463,11 @@ impl Shaper {
     /// `FontShaper::shape`, and the entry to [`Shaper::normalize_written_units`], which keeps
     /// `normalize_written_units([L, I, Zwj, Aa])` and `normalize("ᠯᠢ\u{200D}ᠡ᠋")` on one contract.
     ///
-    /// Pre-control single-unit duplicates (`Dd`, `Cr`, medial `H`, medial `Hx`) expand first
-    /// (`expand_pre`), consecutive identical `Zwj` / `Zwnj` / `Mvs` runs merge and redundant
-    /// `Zwj` / `Zwnj` controls are dropped until stable, and chain-final duplicates (`G:fina` →
-    /// `I Aa`, `B2:fina` → `O Aa`, `<bowed> + Aa:fina` → `<bowed> + A Aa`, standalone `A:isol` →
-    /// `A Aa`) expand last (`expand_post`). The transform is idempotent, never merges units, and
-    /// an empty slice returns an empty `Vec`.
+    /// All nine visual duplicates (`Dd`, `Cr`, medial `H`, medial `Hx`, `G:fina`, `B2`,
+    /// `<bowed> [Zwj*] Aa:fina`, and standalone `A:isol`) expand first in one pass (`expand`,
+    /// E1–E9); consecutive identical `Zwj` / `Zwnj` / `Mvs` runs then merge and redundant
+    /// `Zwj` / `Zwnj` controls are dropped until stable (`canonical_controls`). The transform is
+    /// idempotent, never merges units, and an empty slice returns an empty `Vec`.
     pub fn canonical_units(&self, units: &[WrittenUnit]) -> Vec<WrittenUnit> {
         canonical_units(units)
     }
@@ -573,14 +572,13 @@ impl Shaper {
     }
 }
 
-/// The public shape of an engine-level unit sequence: pre-control single-unit duplicates expanded
-/// (`expand_pre`, E1–E5), controls processed to stability, then post-control chain-tail duplicates
-/// expanded (`expand_post`, E6–E9). Both backends fold their raw units with it, so
-/// [`Shaper::shape`] and `FontShaper::shape` compare unit for unit.
+/// The public shape of an engine-level unit sequence: all nine duplicate encodings expanded in one
+/// pass (`expand`, E1–E9), followed by control canonicalization to stability
+/// (`canonical_controls`). Both backends fold their raw units with it, so [`Shaper::shape`] and
+/// `FontShaper::shape` compare unit for unit.
 pub(crate) fn canonical_units(raw: &[WrittenUnit]) -> Vec<WrittenUnit> {
-    let pre = expand_pre(raw);
-    let controlled = canonical_controls(&pre);
-    expand_post(&controlled)
+    let expanded = expand(raw);
+    canonical_controls(&expanded)
 }
 
 /// Flatten resolved tokens into the public shape.

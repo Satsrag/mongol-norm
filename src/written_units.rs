@@ -169,8 +169,7 @@ impl Shaper {
     /// - incomplete `medi` / `fina` edges without an adjacent `Nirugu`, plus lone `A:init`,
     ///   `I:init` and `O:init` sub-chains, receive an implicit `Zwj`;
     /// - the expanded written-unit sequence is then folded with [`Shaper::canonical_units`]
-    ///   (pre-control duplicate expansion, control canonicalization, and post-control chain-tail
-    ///   expansion).
+    ///   (single-pass duplicate expansion followed by control canonicalization).
     ///
     /// Whenever [`Shaper::normalize_positioned_written_units`] succeeds on `records`, its output
     /// reshapes via [`Shaper::shape`] to the exact sequence returned here. An empty slice returns

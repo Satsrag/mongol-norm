@@ -339,7 +339,7 @@ impl Shaper {
         &self.normalize
     }
 
-    /// Version of the canonical Unicode selection policy (`"mng-canonical/5"`). Persist it next
+    /// Version of the canonical Unicode selection policy (`"mng-canonical/6"`). Persist it next
     /// to stored normalized keys. Always `Some`: the `Option` remains from the locales without
     /// a normalize table the crate used to have.
     pub fn canonical_version(&self) -> Option<&'static str> {
@@ -693,7 +693,7 @@ mod tests {
     #[test]
     fn empty_and_structural_shapes_normalize_without_a_letter() {
         let shaper = Shaper::new(Locale::Mng);
-        assert_eq!(shaper.canonical_version(), Some("mng-canonical/5"));
+        assert_eq!(shaper.canonical_version(), Some("mng-canonical/6"));
         assert_eq!(shaper.normalize("").unwrap(), "");
         assert_eq!(shaper.normalize("\u{180B}").unwrap(), ""); // FVS only: empty shape short-circuits
         assert_eq!(shaper.normalize("\u{180A}").unwrap(), "\u{180A}"); // structural-only shape
