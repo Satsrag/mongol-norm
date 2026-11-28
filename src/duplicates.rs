@@ -48,15 +48,22 @@
 //! # Normalization: chain-tail contraction (`contract`, C1–C4)
 //!
 //! Called only by `crate::normalize` before table lookup (never by shaping), contracting the four
-//! chain-final expansions back by their exact inverse rules so `MNG.normalize.json` and canonical
-//! Unicode output for ordinary chains stay compact (`mng-canonical/6`):
+//! chain-final expansions back to their compact `MNG.normalize.json` forms (`mng-canonical/6`):
 //!
 //! | Rule | Tail pair | Contracts to | Condition (chain-final, `pad_right == 0`) |
 //! |---|---|---|---|
 //! | C1 | `A + Aa` | `A:isol` | Entire chain is `A Aa`, no adjacent joiner (`pad_left == 0`) |
 //! | C2 | `<bowed> + A + Aa` | `<bowed> + Aa:fina` | Preceded immediately in the same chain by `<bowed>` |
-//! | C3 | `O + Aa` | `B2:fina` | Merged unit lands at `fina` (`pad_left + len >= 3`) |
-//! | C4 | `I + Aa` | `G:fina` | Merged unit lands at `fina` (`pad_left + len >= 3`) |
+//! | C3 | `O + Aa` | `B2:fina` (or `Zwj + B2` if standalone) | Always at chain tail (`pad_right == 0`) |
+//! | C4 | `I + Aa` | `G:fina` (or `Zwj + G` if standalone) | Always at chain tail (`pad_right == 0`) |
+//!
+//! For C3 and C4, when `O + Aa` or `I + Aa` stands alone as a 2-unit chain with no left joiner
+//! (`chain.len() == 2 && pad_left == 0`, e.g. word start or directly after `Mvs` / `Zwnj`),
+//! `contract` prepends `Zwj` so `B2` / `G` lands at `Position::Fina`. This keeps suffix encoding
+//! uniform (`‍ᠪ᠋` / `‍ᠭ᠌`, matching `...ᠪ᠋` / `...ᠭ᠌` in longer chains) rather than switching to the
+//! uncommon `ᠤ᠋ᠠ᠋` / `ᠢ᠋ᠠ᠋` spelling. Because `expand` unconditionally expands `B2` and `G:fina`
+//! and `canonical_controls` drops the leading `Zwj` before `O`/`I`, `canonical_units(&contract(&s)) == s`
+//! still holds across every boundary (`None`, `Mvs`, `Zwnj`).
 //!
 //! # Bowed written units, termination, and round-trip
 //!
@@ -120,32 +127,6 @@ fn preceded_by_bowed_through_zwj(prefix: &[WrittenUnit]) -> bool {
         i -= 1;
     }
     i > 0 && is_bowed(prefix[i - 1])
-}
-
-/// The single unit an adjacent tail pair contracts to (rules C1–C4).
-///
-/// `result` is the position the merged unit occupies in the shortened chain: `A Aa` becomes
-/// `A:isol` when it is the whole chain (C1) and `Aa:fina` only when a bowed written unit
-/// immediately precedes `A` in the same chain (C2). `O Aa` → `B2:fina` (C3) and `I Aa` → `G:fina`
-/// (C4) apply only when the merged unit lands at `fina` (`pad_right == 0 && pad_left + len >= 3`).
-fn contraction(
-    first: WrittenUnit,
-    second: WrittenUnit,
-    result: Position,
-    preceding: Option<WrittenUnit>,
-) -> Option<WrittenUnit> {
-    if second != WrittenUnit::Aa {
-        return None;
-    }
-    match (first, result) {
-        (WrittenUnit::A, Position::Isol) => Some(WrittenUnit::A),
-        (WrittenUnit::A, Position::Fina) if preceding.is_some_and(is_bowed) => {
-            Some(WrittenUnit::Aa)
-        }
-        (WrittenUnit::O, Position::Fina) => Some(WrittenUnit::B2),
-        (WrittenUnit::I, Position::Fina) => Some(WrittenUnit::G),
-        _ => None,
-    }
 }
 
 /// Expand all nine visual duplicate encodings (rules E1–E9) in a single pass into one flat `Vec`.
@@ -212,7 +193,10 @@ pub(crate) fn expand(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
 /// Contract the four chain-ending tail pairs (`A Aa`, `<bowed> A Aa`, `O Aa`, `I Aa`) for
 /// normalization table lookup (rules C1–C4).
 ///
-/// Called only by `crate::normalize`, never by shaping.
+/// Called only by `crate::normalize`, never by shaping. For C3 (`O Aa`) and C4 (`I Aa`) with
+/// `pad_right == 0`, a standalone 2-unit chain (`pad_left == 0 && chain.len() == 2`) contracts to
+/// `[Zwj, B2]` / `[Zwj, G]` so the merged unit lands at `Position::Fina` and encodes uniformly as
+/// `‍ᠪ᠋` / `‍ᠭ᠌`.
 pub(crate) fn contract(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
     let mut out = Vec::with_capacity(shape.len());
     let mut start = 0;
@@ -231,17 +215,45 @@ pub(crate) fn contract(shape: &[WrittenUnit]) -> Vec<WrittenUnit> {
         let pad_right = usize::from(end < shape.len() && is_joiner(shape[end]));
         let out_start = out.len();
         out.extend_from_slice(chain);
-        // Every contraction requires the pair to end the chain. Inspect that pair once;
-        // a newly merged Aa must not be fed back to consume another A.
-        if let Some(index) = chain.len().checked_sub(2) {
-            if let Some(merged) = contraction(
-                chain[index],
-                chain[index + 1],
-                chain_position(index, chain.len() - 1, pad_left, pad_right),
-                index.checked_sub(1).map(|previous| chain[previous]),
-            ) {
-                out[out_start + index] = merged;
-                out.pop();
+        // Every contraction requires the pair to end the chain with no right joiner. Inspect that
+        // pair once; a newly merged Aa must not be fed back to consume another A.
+        if pad_right == 0 {
+            if let Some(index) = chain.len().checked_sub(2) {
+                if chain[index + 1] == WrittenUnit::Aa {
+                    let result_pos = chain_position(index, chain.len() - 1, pad_left, 0);
+                    let preceding = index.checked_sub(1).map(|previous| chain[previous]);
+                    match (chain[index], result_pos) {
+                        // C1: standalone A + Aa → A:isol.
+                        (WrittenUnit::A, Position::Isol) => {
+                            out[out_start + index] = WrittenUnit::A;
+                            out.pop();
+                        }
+                        // C2: <bowed> + A + Aa → <bowed> + Aa:fina.
+                        (WrittenUnit::A, Position::Fina) if preceding.is_some_and(is_bowed) => {
+                            out[out_start + index] = WrittenUnit::Aa;
+                            out.pop();
+                        }
+                        // C3: O + Aa → B2:fina (prepend Zwj when standalone so B2 lands at fina).
+                        (WrittenUnit::O, Position::Fina) => {
+                            out[out_start + index] = WrittenUnit::B2;
+                            out.pop();
+                        }
+                        (WrittenUnit::O, Position::Isol) => {
+                            out[out_start] = WrittenUnit::Zwj;
+                            out[out_start + 1] = WrittenUnit::B2;
+                        }
+                        // C4: I + Aa → G:fina (prepend Zwj when standalone so G lands at fina).
+                        (WrittenUnit::I, Position::Fina) => {
+                            out[out_start + index] = WrittenUnit::G;
+                            out.pop();
+                        }
+                        (WrittenUnit::I, Position::Isol) => {
+                            out[out_start] = WrittenUnit::Zwj;
+                            out[out_start + 1] = WrittenUnit::G;
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
         start = end;
@@ -428,12 +440,19 @@ mod tests {
         assert_eq!(contract(&[Nirugu, O, Aa]), [Nirugu, B2]); // C3 B2:fina
         assert_eq!(contract(&[Nirugu, I, Aa]), [Nirugu, G]); // C4 G:fina
 
-        // Unpadded O+Aa / I+Aa would land at isol, not fina.
-        assert_eq!(contract(&[O, Aa]), [O, Aa]);
-        assert_eq!(contract(&[I, Aa]), [I, Aa]);
-        // Right-hand joiner keeps Aa medial.
+        // Standalone O+Aa / I+Aa prepend Zwj so the contracted B2/G lands at fina (suffix stability).
+        assert_eq!(contract(&[O, Aa]), [Zwj, B2]);
+        assert_eq!(contract(&[I, Aa]), [Zwj, G]);
+        assert_eq!(contract(&[Mvs, O, Aa]), [Mvs, Zwj, B2]);
+        assert_eq!(contract(&[Mvs, I, Aa]), [Mvs, Zwj, G]);
+        assert_eq!(contract(&[A, H, Zwnj, I, Aa]), [A, H, Zwnj, Zwj, G]);
+        assert_eq!(contract(&[I, Aa, Zwnj, B]), [Zwj, G, Zwnj, B]);
+        assert_eq!(contract(&[O, Aa, Zwnj, Nirugu]), [Zwj, B2, Zwnj, Nirugu]);
+        // Right-hand joiner keeps Aa medial (no contraction).
         assert_eq!(contract(&[A, Aa, Zwj]), [A, Aa, Zwj]);
         assert_eq!(contract(&[B, A, Aa, Zwj]), [B, A, Aa, Zwj]);
+        assert_eq!(contract(&[O, Aa, Zwj]), [O, Aa, Zwj]);
+        assert_eq!(contract(&[I, Aa, Zwj]), [I, Aa, Zwj]);
         // Bare Aa is isol (chachlag), not a tail pair.
         assert_eq!(contract(&[Aa]), [Aa]);
         assert_eq!(contract(&[Mvs, Aa]), [Mvs, Aa]);
@@ -624,21 +643,30 @@ mod tests {
                 &[B, I, Ch, I, I, Aa],
                 "\u{182A}\u{1822}\u{180D}\u{1834}\u{1822}\u{180D}\u{182D}\u{180C}",
             ),
-            // ‍ᠭ / ᠢ᠋ᠠ᠋ (lone Zwj+G expands via E6 → Zwj+I+Aa → I+Aa)
+            // ‍ᠭ / ‍ᠭ᠌ / ‍ᠢᠠ᠋ / ᠢ᠋ᠠ᠋ → shape [I, Aa], norm "‍ᠭ᠌" (C4 standalone → [Zwj, G])
             (
-                &["\u{200D}\u{182D}", "\u{1822}\u{180B}\u{1820}\u{180B}"],
+                &[
+                    "\u{200D}\u{182D}",
+                    "\u{200D}\u{182D}\u{180C}",
+                    "\u{200D}\u{1822}\u{1820}\u{180B}",
+                    "\u{1822}\u{180B}\u{1820}\u{180B}",
+                ],
                 &[I, Aa],
-                "\u{1822}\u{180B}\u{1820}\u{180B}",
+                "\u{200D}\u{182D}\u{180C}",
             ),
-            // ‍ᠪ᠋ / ᠤ᠋ᠠ᠋ (lone Zwj+B2 expands via E7 → Zwj+O+Aa → O+Aa)
+            // ‍ᠪ᠋ / ‍ᠤᠠ᠋ / ᠤ᠋ᠠ᠋ → shape [O, Aa], norm "‍ᠪ᠋" (C3 standalone → [Zwj, B2])
             (
                 &[
                     "\u{200D}\u{182A}\u{180B}",
+                    "\u{200D}\u{1824}\u{1820}\u{180B}",
                     "\u{1824}\u{180B}\u{1820}\u{180B}",
                 ],
                 &[O, Aa],
-                "\u{1824}\u{180B}\u{1820}\u{180B}",
+                "\u{200D}\u{182A}\u{180B}",
             ),
+            // Bare ᠭ᠌ stays [G] → "ᠭ᠌"; bare ᠪ᠋ stays [B] → "ᠪ".
+            (&["\u{182D}\u{180C}"], &[G], "\u{182D}\u{180C}"),
+            (&["\u{182A}\u{180B}", "\u{182A}"], &[B], "\u{182A}"),
         ];
 
         for &(inputs, expected_shape, expected_norm) in cases {

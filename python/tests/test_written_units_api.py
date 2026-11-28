@@ -241,6 +241,8 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
             (["B", "Aa"], ["B", "A", "Aa"]),
             (["Nirugu", "B2"], ["Nirugu", "O", "Aa"]),
             (["Nirugu", "G"], ["Nirugu", "I", "Aa"]),
+            (["Zwj", "B2"], ["O", "Aa"]),
+            (["Zwj", "G"], ["I", "Aa"]),
         ]
         for spelled, unified in cases:
             with self.subTest(spelled=spelled):

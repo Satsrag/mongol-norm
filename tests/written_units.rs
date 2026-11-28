@@ -73,6 +73,8 @@ fn duplicate_encodings_are_accepted_as_input_and_unified() {
         (vec![B, Aa], vec![B, A, Aa]),
         (vec![Nirugu, B2], vec![Nirugu, O, Aa]),
         (vec![Nirugu, G], vec![Nirugu, I, Aa]),
+        (vec![Zwj, B2], vec![O, Aa]),
+        (vec![Zwj, G], vec![I, Aa]),
     ] {
         let text = shaper
             .normalize_written_units(&spelled)

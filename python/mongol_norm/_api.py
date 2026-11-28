@@ -307,15 +307,18 @@ class MongolianShaper:
         independently. Both the standalone segments and the rejoined output
         must reshape to their exact targets. Letter positions are inferred
         from sequence order and structural controls; this API does not accept
-        explicit position records or infer/insert controls.
-        ZWJ is emitted only when ``Zwj`` is present in the request. An
-        empty sequence returns an empty string.
+        explicit position records or infer/insert controls, except that C3/C4
+        contracts a standalone ``O+Aa`` / ``I+Aa`` chain to ``Zwj+B2`` /
+        ``Zwj+G`` (``\u200dᠪ᠋`` / ``\u200dᠭ᠌``) for suffix stability. Aside from
+        that C3/C4 contraction, ZWJ is emitted only when ``Zwj`` is present in
+        the request. An empty sequence returns an empty string.
         ``written_units`` 可直接使用 :meth:`shape` 的输出。外部调用方也可将结构
         token 写作 PascalCase：``Mvs``、``Nirugu``、``Zwj``、``Zwnj``。
         请求经控制符规范化与同形归一后，按剩余 ``Zwnj`` 分段独立编码，每段及拼回后的整体均须精确保形。
         字母位置由序列顺序与结构 control 推导；本 API 不接受显式位置 record，
-        也不推断或插入 control。只有请求含 ``Zwj`` 时才输出
-        ZWJ；空序列返回空字符串。
+        也不推断或插入 control（仅 C3/C4 收缩独立 ``O+Aa`` / ``I+Aa`` 链时补前导
+        ``Zwj`` 编码为 ``\u200dᠪ᠋`` / ``\u200dᠭ᠌`` 以保持后缀稳定）。除此以外，
+        只有请求含 ``Zwj`` 时才输出 ZWJ；空序列返回空字符串。
 
         The request goes through the same stable control-normalization loop and
         duplicate expansion as :meth:`shape`, then contracts the four chain-tail

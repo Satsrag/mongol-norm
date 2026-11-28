@@ -725,4 +725,80 @@ mod tests {
         assert_eq!(chachlag_aa_text(false), "\u{1820}");
         assert_eq!(chachlag_aa_text(true), "\u{1820}\u{180C}");
     }
+
+    #[test]
+    fn standalone_i_aa_and_o_aa_contract_to_fina_g_and_b2_across_boundaries() {
+        use WrittenUnit::{Aa, Mvs, Nirugu, Zwj, Zwnj, A, B, H, I, L, O};
+        let shaper = Shaper::new(Locale::Mng);
+        let cases: &[(&[WrittenUnit], &str)] = &[
+            // Standalone chains (C4 → Zwj+G, C3 → Zwj+B2)
+            (&[I, Aa], "\u{200D}\u{182D}\u{180C}"),
+            (&[O, Aa], "\u{200D}\u{182A}\u{180B}"),
+            // Joined chains share the exact same suffix ("\u{182D}\u{180C}" / "\u{182A}\u{180B}")
+            (&[L, I, Aa], "\u{182F}\u{182D}\u{180C}"),
+            (&[Nirugu, I, Aa], "\u{180A}\u{182D}\u{180C}"),
+            (&[A, O, Aa], "\u{1820}\u{180B}\u{182A}\u{180B}"),
+            (&[Nirugu, O, Aa], "\u{180A}\u{182A}\u{180B}"),
+            // Across MVS boundaries
+            (&[Mvs, I, Aa], "\u{180E}\u{200D}\u{182D}\u{180C}"),
+            (&[Mvs, O, Aa], "\u{180E}\u{200D}\u{182A}\u{180B}"),
+            (
+                &[A, Aa, Mvs, I, Aa],
+                "\u{1820}\u{180B}\u{180E}\u{200D}\u{182D}\u{180C}",
+            ),
+            (
+                &[A, Aa, Mvs, O, Aa],
+                "\u{1820}\u{180B}\u{180E}\u{200D}\u{182A}\u{180B}",
+            ),
+            (
+                &[I, Aa, Mvs, Aa],
+                "\u{200D}\u{182D}\u{180C}\u{180E}\u{1820}",
+            ),
+            (
+                &[O, Aa, Mvs, Aa],
+                "\u{200D}\u{182A}\u{180B}\u{180E}\u{1820}",
+            ),
+            (
+                &[A, L, Zwj, Mvs, I, Aa],
+                "\u{1820}\u{180B}\u{182F}\u{200D}\u{180E}\u{200D}\u{182D}\u{180C}",
+            ),
+            // Across ZWNJ boundaries (both left and right of ZWNJ)
+            (
+                &[A, Aa, Zwnj, I, Aa],
+                "\u{1820}\u{180B}\u{200C}\u{200D}\u{182D}\u{180C}",
+            ),
+            (
+                &[A, Aa, Zwnj, O, Aa],
+                "\u{1820}\u{180B}\u{200C}\u{200D}\u{182A}\u{180B}",
+            ),
+            (
+                &[A, H, Zwnj, I, Aa],
+                "\u{1820}\u{180B}\u{182C}\u{200C}\u{200D}\u{182D}\u{180C}",
+            ),
+            (
+                &[I, Aa, Zwnj, B],
+                "\u{200D}\u{182D}\u{180C}\u{200C}\u{182A}",
+            ),
+            (
+                &[O, Aa, Zwnj, Nirugu],
+                "\u{200D}\u{182A}\u{180B}\u{200C}\u{180A}",
+            ),
+        ];
+        for &(units, expected_norm) in cases {
+            let norm = shaper
+                .normalize_written_units(units)
+                .unwrap_or_else(|e| panic!("normalize_written_units({units:?}) failed: {e}"));
+            assert_eq!(norm, expected_norm, "units={units:?}");
+            assert_eq!(
+                shaper.shape(&norm).unwrap(),
+                units,
+                "shape round-trip for {units:?}"
+            );
+            assert_eq!(
+                shaper.normalize(&norm).unwrap(),
+                norm,
+                "normalize idempotence for {units:?}"
+            );
+        }
+    }
 }

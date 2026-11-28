@@ -67,8 +67,10 @@ captured from an older `shape()` keeps working; they simply never come back out 
 `shape()`. Old lowercase and all-uppercase control aliases
 are rejected. Positions are inferred from order
 and structural context—the API does not accept explicit position records and
-never infers or inserts a structural control. In particular, output contains ZWJ
-only when the request contains `Zwj`. An empty sequence returns an empty string.
+never infers or inserts a structural control except for C3/C4 standalone tail
+contraction (contracting a standalone `O+Aa` / `I+Aa` chain to `Zwj+B2` /
+`Zwj+G`, encoding as `‍ᠪ᠋` / `‍ᠭ᠌`, for suffix stability). Otherwise, output
+contains ZWJ only when the request contains `Zwj`. An empty sequence returns an empty string.
 Malformed outer input or a non-string item raises `TypeError`; unknown units and
 sequences that cannot reshape to the exact requested units raise `ValueError`.
 There is no partial-output or first-candidate fallback.
@@ -385,8 +387,8 @@ Build a `(pos, tuple(unit.split("+"))) → (cp, fvs)` index, then per word:
    |---|---|---|---|
    | C1 | `A Aa` | `isol` | `A` |
    | C2 | `A Aa`, immediately preceded by a bowed written unit in the same chain | `fina` | `Aa` |
-   | C3 | `O Aa` | `fina` | `B2` |
-   | C4 | `I Aa` | `fina` | `G` |
+   | C3 | `O Aa` (any chain tail, `pad_right == 0`) | `fina` | `B2` (or `Zwj B2` when standalone: `chain.len() == 2 && pad_left == 0`) |
+   | C4 | `I Aa` (any chain tail, `pad_right == 0`) | `fina` | `G` (or `Zwj G` when standalone: `chain.len() == 2 && pad_left == 0`) |
 
    The complete Hudum bowed written unit set is `B P F G Gx K K2`, from the [Hudum ligated variants](https://mongfontbuilder.pages.dev/hudum/) and [upstream required ligatures](https://github.com/Kushim-Jiang/mongfontbuilder/blob/7d5fc1cdaf8210f675c16699a8eaeb71aa1e80ca/data/ligatures.ts), also reflected in `src/rules.rs`'s post-bowed classes. `Aa:fina` has a tooth immediately after a bowed written unit (or across `Zwj+`), and no tooth otherwise. Thus `B Aa ↔ B A Aa` and `B Zwj Aa → B A Aa`, while `N A Aa`, `A A Aa`, `B A A Aa`, and `B Zwnj Aa` remain intact. Joiner padding supplies position, not a bowed written unit; never let E8 cross `Nirugu`, `Mvs`, or `Zwnj`, and never let C2 cross structural tokens.
 

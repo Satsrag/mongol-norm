@@ -63,11 +63,13 @@ fn needs_zwnj_between(prev: PositionedWrittenUnit, next: PositionedWrittenUnit) 
 impl Shaper {
     /// Encode an ordered written-unit sequence (e.g. the output of [`Shaper::shape`]) as
     /// canonical Unicode. Letter positions are inferred from order and the structural tokens;
-    /// ZWJ is emitted only where `Zwj` is present in the request *and* changes the ink — the
-    /// request goes through the same control canonicalization and duplicate expansion as
-    /// [`Shaper::shape`] (then contracts the four chain-tail pairs for table lookup), so
-    /// `[L, I, Zwj, Aa]` is encoded as `ᠯᠭ᠌`, exactly like the text `ᠯᠢ\u{200D}ᠡ᠋`. The result is
-    /// accepted only if it reshapes to that folded sequence.
+    /// the request goes through the same single-pass duplicate expansion and control
+    /// canonicalization as [`Shaper::shape`] (then contracts the four chain-tail pairs C1–C4 for
+    /// table lookup), so `[L, I, Zwj, Aa]` is encoded as `ᠯᠭ᠌`, exactly like the text
+    /// `ᠯᠢ\u{200D}ᠡ᠋`, and standalone `[I, Aa]` / `[O, Aa]` chains contract via C4/C3 to
+    /// `[Zwj, G]` / `[Zwj, B2]` (`\u{200D}ᠭ᠌` / `\u{200D}ᠪ᠋`) for suffix stability. Aside from that
+    /// C3/C4 standalone contraction, ZWJ is emitted only where `Zwj` is present in the request
+    /// *and* changes the ink. The result is accepted only if it reshapes to that folded sequence.
     ///
     /// Redundant ZWNJs are removed and consecutive identical ZWJ/ZWNJ/MVS units are merged.
     /// Each segment between remaining breaks is encoded independently and must reshape to its

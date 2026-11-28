@@ -846,7 +846,7 @@ class TestNormalizePositionedWrittenUnits(unittest.TestCase):
                     {"unit": "Nirugu", "position": "control"},
                 ],
                 ["Zwj", "B2", "Zwnj", "Nirugu"],
-                "\u1824\u180b\u1820\u180b\u200c\u180a",
+                "\u200d\u182a\u180b\u200c\u180a",
             ),
             (
                 [
@@ -1106,6 +1106,21 @@ class TestCanonicalPositionedUnitsApi(unittest.TestCase):
                 self.assertEqual(self.shaper.canonical_units(canonical), canonical)
                 normalized = self.shaper.normalize_positioned_written_units(records)
                 self.assertEqual(self.shaper.shape(normalized), canonical)
+
+        # Standalone G:fina / B2:fina contract via C4/C3 to [Zwj, G] / [Zwj, B2]
+        # (‍ᠭ᠌ / ‍ᠪ᠋) for uniform suffix encoding.
+        self.assertEqual(
+            self.shaper.normalize_positioned_written_units(
+                [{"unit": "G", "position": "fina"}]
+            ),
+            "\u200d\u182d\u180c",
+        )
+        self.assertEqual(
+            self.shaper.normalize_positioned_written_units(
+                [{"unit": "B2", "position": "fina"}]
+            ),
+            "\u200d\u182a\u180b",
+        )
 
     def test_rejects_invalid_records_with_identical_precedence(self):
         for invalid in ("B:init", b"B:init", {"B": "init"}, iter([])):

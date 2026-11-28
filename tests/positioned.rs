@@ -1225,7 +1225,7 @@ fn test_synthesizes_zwnj_across_nirugu_boundaries() {
                 WrittenUnit::Zwnj,
                 WrittenUnit::Nirugu,
             ],
-            "\u{1824}\u{180B}\u{1820}\u{180B}\u{200C}\u{180A}",
+            "\u{200D}\u{182A}\u{180B}\u{200C}\u{180A}",
         ),
         (
             &[
@@ -1603,6 +1603,21 @@ fn test_canonical_positioned_units_public_api() {
             "reshape parity on {records:?}"
         );
     }
+
+    // Standalone G:fina / B2:fina expand to [I, Aa] / [O, Aa] in canonical shape, and contract
+    // back to [Zwj, G] / [Zwj, B2] (‍ᠭ᠌ / ‍ᠪ᠋) for uniform suffix encoding in normalize.
+    assert_eq!(
+        shaper
+            .normalize_positioned_written_units(&[rec(G, UnitPosition::Fina)])
+            .unwrap(),
+        "\u{200D}\u{182D}\u{180C}"
+    );
+    assert_eq!(
+        shaper
+            .normalize_positioned_written_units(&[rec(B2, UnitPosition::Fina)])
+            .unwrap(),
+        "\u{200D}\u{182A}\u{180B}"
+    );
 }
 
 #[test]

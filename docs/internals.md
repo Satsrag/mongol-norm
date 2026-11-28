@@ -228,18 +228,23 @@ short canonical table forms (`pad_right == 0` only):
 |---|---|---|---|
 | C1 | `A + Aa` | `A:isol` | Entire chain is `A+Aa`, no adjacent joiner (`pad_left == 0`) |
 | C2 | `<bowed> + A + Aa` | `<bowed> + Aa:fina` | Preceded immediately in the same chain by `<bowed>` |
-| C3 | `O + Aa` | `B2:fina` | Merged unit lands at `fina` (`pad_left + len >= 3`) |
-| C4 | `I + Aa` | `G:fina` | Merged unit lands at `fina` (`pad_left + len >= 3`) |
+| C3 | `O + Aa` | `B2:fina` (or `Zwj + B2` if standalone) | Always at chain tail (`pad_right == 0`) |
+| C4 | `I + Aa` | `G:fina` (or `Zwj + G` if standalone) | Always at chain tail (`pad_right == 0`) |
 
 Position is part of every rule, and it is the *chain* position `normalize` already uses — slots
 between structural units, with a nirugu or ZWJ neighbour padding the chain the way it pads the
 rendering. Because `expand` runs *before* `canonical_controls`, `G:fina` and `B2` need no special
 exemption for lone `Zwj+G` or `Zwj+B2`: `Zwj+G` expands to `Zwj+I+Aa`, and the subsequent ZWJ pass
 drops the now-redundant leading `Zwj` (`I` is in `INITIAL_BEFORE_LETTER`) to yield `I Aa` — matching
-`hudum.otf`'s ink for `‍ᠭ` and `ᠢ᠋ᠠ᠋`. Likewise `Zwj+B2` expands to `Zwj+O+Aa` and drops `Zwj`
-(`O` is in `INITIAL_BEFORE_LETTER`) to yield `O Aa` — matching `‍ᠪ᠋` and `ᠤ᠋ᠠ᠋`. Forms outside a
-verified rule are left alone — initial and final `H`/`Hx`, `G:isol`, `G:init`, `G:medi`, and `A`
-with an adjacent joiner stay unchanged.
+`hudum.otf`'s ink for `‍ᠭ`, `‍ᠢᠠ᠋`, and `ᠢ᠋ᠠ᠋`. Likewise `Zwj+B2` expands to `Zwj+O+Aa` and drops `Zwj`
+(`O` is in `INITIAL_BEFORE_LETTER`) to yield `O Aa` — matching `‍ᠪ᠋`, `‍ᠤᠠ᠋`, and `ᠤ᠋ᠠ᠋`. In
+normalization, C3 and C4 contract every chain-final `O Aa` / `I Aa` (`pad_right == 0`) to `B2:fina`
+/ `G:fina` — prepending `Zwj` (`[Zwj, B2]` / `[Zwj, G]`) when the 2-unit chain has no left joiner
+(`chain.len() == 2 && pad_left == 0`) — so standalone and joined tails alike normalize uniformly to
+the standard `‍ᠪ᠋` (`U+200D U+182A U+180B`) / `‍ᠭ᠌` (`U+200D U+182D U+180C`) suffix spellings instead
+of switching to the uncommon `ᠤ᠋ᠠ᠋` / `ᠢ᠋ᠠ᠋` forms. Forms outside a verified rule are left alone —
+initial and final `H`/`Hx`, `G:isol`, `G:init`, `G:medi`, and `A` with an adjacent joiner stay
+unchanged.
 
 **Terminology.** UTN #57 uses **bowed written units** (圆头书写单位) and names the corresponding lookup **Post-bowed**; see [UTN #57 revision 4](https://www.unicode.org/notes/tn57/utn57-mong-4.pdf).
 
@@ -344,17 +349,24 @@ The exact canonical selection policy is frozen as **`mng-canonical/6`**. It is a
 version alongside them and rebuild those keys if a future release changes it.
 
 **`mng-canonical/6` simplifies shaping to pure single-pass expansion (`expand(E1–E9) → canonical_controls`)
-and fixes three edge-case shape/ink mismatches:**
-- Lone `Zwj+G` (`‍ᠭ`) now expands unconditionally via E6 and drops its redundant `Zwj` to `I Aa`
-  (normalizing to `ᠢ᠋ᠠ᠋`), and lone `Zwj+B2` (`‍ᠪ᠋`) expands unconditionally via E7 to `O Aa`
-  (normalizing to `ᠤ᠋ᠠ᠋`), matching their identical ink in `hudum.otf`.
+and fixes edge-case shape/ink mismatches and suffix stability:**
+- Lone `Zwj+G` (`‍ᠭ`) now expands unconditionally via E6 and drops its redundant `Zwj` to `I Aa`,
+  and lone `Zwj+B2` (`‍ᠪ᠋`) expands unconditionally via E7 to `O Aa`, matching their identical ink
+  in `hudum.otf` (`‍ᠭ` ≡ `‍ᠢᠠ᠋` ≡ `ᠢ᠋ᠠ᠋`, `‍ᠪ᠋` ≡ `‍ᠤᠠ᠋` ≡ `ᠤ᠋ᠠ᠋`).
+- In normalization, C3 (`O Aa → B2:fina`) and C4 (`I Aa → G:fina`) now contract *every* chain-final
+  pair (`pad_right == 0`), prepending `Zwj` when the 2-unit chain is standalone (`chain.len() == 2
+  && pad_left == 0`). Thus standalone `[I, Aa]` (`‍ᠭ` / `‍ᠭ᠌` / `‍ᠢᠠ᠋` / `ᠢ᠋ᠠ᠋`) normalizes uniformly
+  to `‍ᠭ᠌` (`U+200D U+182D U+180C`) and standalone `[O, Aa]` (`‍ᠪ᠋` / `‍ᠤᠠ᠋` / `ᠤ᠋ᠠ᠋`) normalizes
+  uniformly to `‍ᠪ᠋` (`U+200D U+182A U+180B`), matching the `...ᠭ᠌` / `...ᠪ᠋` suffixes of longer
+  chains.
 - The **Z-Keep tooth-forming ligature guard** in `src/redundant_zwnj.rs` retains `Zwnj` whenever it
   separates `<bowed> [Zwj*]` from a chain-final `[Zwj*] Aa` (e.g. `ᠪ‌ᠠ᠌` and `ᠪ‌‍ᠠ` both keep
   `Zwnj` as `B Zwnj Aa` instead of collapsing into tooth-bearing `B A Aa`).
 - All 1,986 corpus golden vectors (`shape` and `normalized_cps`) remain 100% byte-identical to `/5`;
   only the version header advances to `mng-canonical/6`.
 
-**Migration:** rebuild persisted keys for texts that contain lone `‍ᠭ` / `‍ᠪ᠋` or `<bowed> + ZWNJ + Aa`.
+**Migration:** rebuild persisted keys for texts that contain standalone `‍ᠭ` / `ᠢ᠋ᠠ᠋` / `‍ᠪ᠋` / `ᠤ᠋ᠠ᠋`
+or `<bowed> + ZWNJ + Aa`.
 Retain the original source text for regeneration, record `canonical_version()` with the new keys,
 and do not compare keys from different policy versions as if they were interchangeable.
 This change does not itself increment the package version or publish a release.
