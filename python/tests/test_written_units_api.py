@@ -241,6 +241,8 @@ class TestNormalizeWrittenUnits(unittest.TestCase):
             (["B", "Aa"], ["B", "A", "Aa"]),
             (["Nirugu", "B2"], ["Nirugu", "O", "Aa"]),
             (["Nirugu", "G"], ["Nirugu", "I", "Aa"]),
+            (["Zwj", "B2"], ["O", "Aa"]),
+            (["Zwj", "G"], ["I", "Aa"]),
         ]
         for spelled, unified in cases:
             with self.subTest(spelled=spelled):
@@ -351,11 +353,13 @@ class TestCanonicalUnitsApi(unittest.TestCase):
             (["Nirugu", "B2"], ["Nirugu", "O", "Aa"]),
             (["B", "G"], ["B", "I", "Aa"]),
             (["Nirugu", "G"], ["Nirugu", "I", "Aa"]),
-            (["Zwj", "G"], ["Zwj", "G"]),
-            (["Zwj", "B2"], ["Zwj", "B2"]),
+            (["Zwj", "G"], ["I", "Aa"]),
+            (["Zwj", "B2"], ["O", "Aa"]),
             (["L", "I", "Zwj", "Aa"], ["L", "I", "Aa"]),
             (["B", "Zwj", "Aa"], ["B", "A", "Aa"]),
-            (["B", "Zwnj", "Aa"], ["B", "A", "Aa"]),
+            (["B", "Zwnj", "Aa"], ["B", "Zwnj", "Aa"]),
+            (["A", "B", "Zwj", "Zwnj", "Aa"], ["A", "B", "Zwj", "Zwnj", "Aa"]),
+            (["B", "Zwnj", "Zwj", "Aa"], ["B", "Zwnj", "Aa"]),
             (["N", "Zwnj", "B", "Zwnj", "I"], ["N", "B", "I"]),
             (["Mvs", "Zwnj", "Mvs"], ["Mvs"]),
         ]

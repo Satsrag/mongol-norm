@@ -73,6 +73,8 @@ fn duplicate_encodings_are_accepted_as_input_and_unified() {
         (vec![B, Aa], vec![B, A, Aa]),
         (vec![Nirugu, B2], vec![Nirugu, O, Aa]),
         (vec![Nirugu, G], vec![Nirugu, I, Aa]),
+        (vec![Zwj, B2], vec![O, Aa]),
+        (vec![Zwj, G], vec![I, Aa]),
     ] {
         let text = shaper
             .normalize_written_units(&spelled)
@@ -256,14 +258,13 @@ fn test_canonical_units_public_api() {
     assert_eq!(shaper.canonical_units(&[]), Vec::<WrittenUnit>::new());
 
     let cases: &[(&[WrittenUnit], &[WrittenUnit])] = &[
-        // Pre-control expanding duplicates (E1–E5)
+        // Single-pass expanding duplicates (E1–E9)
         (&[A, A, R, A, Dd], &[A, A, R, A, O, A]),
         (&[B, A, H, S, A], &[B, A, A, A, S, A]),
         (&[A, A, R, Hx, A, L], &[A, A, R, N, N, A, L]),
         (&[Cr, Nirugu], &[O, O, Nirugu]),
         // Non-medial H stays unexpanded (final before Mvs)
         (&[T, A, H, Mvs, Aa], &[T, A, H, Mvs, Aa]),
-        // Post-control chain-tail expansions (E6–E9)
         (&[A], &[A, Aa]),
         (&[A, Aa], &[A, Aa]),
         (&[B, Aa], &[B, A, Aa]),
@@ -273,13 +274,15 @@ fn test_canonical_units_public_api() {
         (&[Nirugu, B2], &[Nirugu, O, Aa]),
         (&[B, G], &[B, I, Aa]),
         (&[Nirugu, G], &[Nirugu, I, Aa]),
-        // Lone Zwj+G / Zwj+B2 stay unexpanded
-        (&[Zwj, G], &[Zwj, G]),
-        (&[Zwj, B2], &[Zwj, B2]),
-        // Control canonicalization + duplicate interaction
+        // Lone Zwj+G / Zwj+B2 expand unconditionally and drop the now-redundant leading Zwj
+        (&[Zwj, G], &[I, Aa]),
+        (&[Zwj, B2], &[O, Aa]),
+        // Control canonicalization + duplicate interaction + Z-Keep tooth-forming ligature guard
         (&[L, I, Zwj, Aa], &[L, I, Aa]),
         (&[B, Zwj, Aa], &[B, A, Aa]),
-        (&[B, Zwnj, Aa], &[B, A, Aa]),
+        (&[B, Zwnj, Aa], &[B, Zwnj, Aa]),
+        (&[A, B, Zwj, Zwnj, Aa], &[A, B, Zwj, Zwnj, Aa]),
+        (&[B, Zwnj, Zwj, Aa], &[B, Zwnj, Aa]),
         (&[N, Zwnj, B, Zwnj, I], &[N, B, I]),
         (&[Mvs, Zwnj, Mvs], &[Mvs]),
     ];

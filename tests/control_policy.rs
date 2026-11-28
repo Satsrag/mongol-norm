@@ -1,4 +1,4 @@
-//! Integration contract for complete control-processing rounds, before duplicate unification.
+//! Integration contract for complete control-processing rounds, after single-pass duplicate expansion.
 
 mod common;
 

@@ -1359,19 +1359,20 @@ class TestDuplicateEncodings(unittest.TestCase):
         self.assertEqual(self.s.shape("᠊ᡂ᠊"), ["Nirugu", "O", "O", "Nirugu"])    # Cr:medi
         self.assertEqual(self.s.shape("᠊ᡂ"), ["Nirugu", "O", "O"])               # Cr:fina
 
-    def test_post_control_expanded_duplicates(self):
+    def test_chain_tail_expanded_duplicates(self):
         # All four chain-tail duplicates (E6–E9) also unify by expansion in shape().
         self.assertEqual(self.s.shape("ᠡ"), ["A", "Aa"])                  # E9 A:isol
         self.assertEqual(self.s.shape("ᠡᠠ᠋"), ["A", "Aa"])
         self.assertEqual(self.s.shape("ᠪᠠ"), ["B", "A", "Aa"])            # E8 <bowed>+Aa:fina
         self.assertEqual(self.s.shape("ᠪᠠᠠ᠋"), ["B", "A", "Aa"])
+        self.assertEqual(self.s.shape("ᠪ\u200dᠠ᠋"), ["B", "A", "Aa"])    # E8 through Zwj
         self.assertEqual(self.s.shape("᠊ᠪ᠋"), ["Nirugu", "O", "Aa"])      # E7 B2:fina
         self.assertEqual(self.s.shape("᠊ᠤᠠ᠋"), ["Nirugu", "O", "Aa"])
         self.assertEqual(self.s.shape("᠊ᠭ"), ["Nirugu", "I", "Aa"])       # E6 G:fina
         self.assertEqual(self.s.shape("᠊ᠢᠠ᠋"), ["Nirugu", "I", "Aa"])
-        # Lone Zwj+G / Zwj+B2 stay unexpanded.
-        self.assertEqual(self.s.shape("\u200dᠭ"), ["Zwj", "G"])
-        self.assertEqual(self.s.shape("\u200dᠪ᠋"), ["Zwj", "B2"])
+        # Lone Zwj+G / Zwj+B2 expand unconditionally and drop the now-redundant leading Zwj.
+        self.assertEqual(self.s.shape("\u200dᠭ"), ["I", "Aa"])
+        self.assertEqual(self.s.shape("\u200dᠪ᠋"), ["O", "Aa"])
 
     def test_bowed_aa_expansion_requires_immediate_bowed_unit(self):
         for bowed_unit in ("B", "P", "F", "G", "Gx", "K", "K2"):

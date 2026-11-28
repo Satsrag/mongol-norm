@@ -1537,9 +1537,9 @@ fn test_canonical_positioned_units_public_api() {
             ],
             &[Nirugu, I, Aa],
         ),
-        // Lone Zwj+G / Zwj+B2 stay unexpanded
-        (&[rec(G, UnitPosition::Fina)], &[Zwj, G]),
-        (&[rec(B2, UnitPosition::Fina)], &[Zwj, B2]),
+        // Lone Zwj+G / Zwj+B2 expand via E6/E7 and drop the now-redundant leading Zwj
+        (&[rec(G, UnitPosition::Fina)], &[I, Aa]),
+        (&[rec(B2, UnitPosition::Fina)], &[O, Aa]),
         // Incomplete edges & lone init rules
         (&[rec(A, UnitPosition::Init)], &[A, Zwj]),
         (&[rec(I, UnitPosition::Init)], &[I, Zwj]),
@@ -1603,6 +1603,21 @@ fn test_canonical_positioned_units_public_api() {
             "reshape parity on {records:?}"
         );
     }
+
+    // Standalone G:fina / B2:fina expand to [I, Aa] / [O, Aa] in canonical shape, and contract
+    // back to [Zwj, G] / [Zwj, B2] (‍ᠭ᠌ / ‍ᠪ᠋) for uniform suffix encoding in normalize.
+    assert_eq!(
+        shaper
+            .normalize_positioned_written_units(&[rec(G, UnitPosition::Fina)])
+            .unwrap(),
+        "\u{200D}\u{182D}\u{180C}"
+    );
+    assert_eq!(
+        shaper
+            .normalize_positioned_written_units(&[rec(B2, UnitPosition::Fina)])
+            .unwrap(),
+        "\u{200D}\u{182A}\u{180B}"
+    );
 }
 
 #[test]

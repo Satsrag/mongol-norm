@@ -29,8 +29,8 @@
 //!   and every `Nirugu` preserved), with
 //!   the nine duplicate encodings unified (see [`Shaper::shape_raw`])
 //! * [`Shaper::canonical_units`] / [`Shaper::canonical_positioned_units`] — fold raw or
-//!   explicit-position written units into their canonical shape (pre-control duplicate expansion,
-//!   control canonicalization, and post-control chain-tail expansion)
+//!   explicit-position written units into their canonical shape (single-pass duplicate expansion
+//!   followed by control canonicalization)
 //! * [`Shaper::same_shape`] — do two encodings render identically?
 //! * [`Shaper::normalize`] / [`Shaper::normalize_text`] — canonical, FVS-pinned Unicode
 //! * [`Shaper::normalize_written_units`] / [`Shaper::normalize_positioned_written_units`] —
